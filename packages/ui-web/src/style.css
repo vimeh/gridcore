@@ -8,24 +8,81 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: #f5f5f5;
   color: #333;
+  overflow: hidden;
 }
 
 #app {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-h1 {
-  margin-bottom: 1rem;
-  color: #2c3e50;
+.spreadsheet-app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: white;
 }
 
-#grid-container {
-  background-color: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 1rem;
-  margin-top: 2rem;
-  min-height: 400px;
+.app-header {
+  height: 48px;
+  background: #1976d2;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.app-header h1 {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.formula-bar-container {
+  flex-shrink: 0;
+}
+
+.grid-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.grid-scroll-container {
+  width: 100%;
+  height: 100%;
+}
+
+.grid-canvas {
+  cursor: cell;
+}
+
+.cell-editor {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Scrollbar styling */
+.grid-scroll-container::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.grid-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.grid-scroll-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+}
+
+.grid-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.grid-scroll-container::-webkit-scrollbar-corner {
+  background: #f1f1f1;
 }
