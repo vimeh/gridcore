@@ -6,8 +6,8 @@ export interface FormulaBarCallbacks {
 
 export class FormulaBar {
   private container: HTMLElement;
-  private addressInput: HTMLInputElement;
-  private formulaInput: HTMLInputElement;
+  private addressInput!: HTMLInputElement;
+  private formulaInput!: HTMLInputElement;
   private currentCell: CellAddress | null = null;
 
   constructor(container: HTMLElement, private callbacks: FormulaBarCallbacks) {

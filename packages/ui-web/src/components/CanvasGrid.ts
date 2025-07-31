@@ -15,8 +15,8 @@ export interface CanvasGridOptions {
 
 export class CanvasGrid {
   private container: HTMLElement;
-  private canvas: HTMLCanvasElement;
-  private scrollContainer: HTMLElement;
+  private canvas!: HTMLCanvasElement;
+  private scrollContainer!: HTMLElement;
   private grid: Grid;
   private theme: GridTheme;
   
