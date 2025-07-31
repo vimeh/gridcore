@@ -5,7 +5,9 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "bun run build --watch",
     "build": "bun build ./src/index.ts --outdir ./dist --target node && bunx tsc --emitDeclarationOnly",

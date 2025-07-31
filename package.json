@@ -9,10 +9,12 @@
     "dev": "bun run --filter '*' dev",
     "build": "bun run --filter '*' build",
     "test": "bun run --filter '*' test",
-    "typecheck": "bun run --filter '*' typecheck"
+    "typecheck": "bun run --filter '*' typecheck",
+    "format": "biome format --write ."
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "biome": "^0.3.3",
     "typescript": "^5.3.3"
   }
 }
