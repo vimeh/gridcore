@@ -1,6 +1,6 @@
 import { Cell, CellAddress, cellAddressToString } from '@gridcore/core';
 import { GridTheme } from './GridTheme';
-import { Viewport } from '../components/Viewport';
+import { Viewport, ViewportBounds } from '../components/Viewport';
 
 export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -26,9 +26,6 @@ export class CanvasRenderer {
     this.canvas.width = rect.width * this.devicePixelRatio;
     this.canvas.height = rect.height * this.devicePixelRatio;
     this.ctx.scale(this.devicePixelRatio, this.devicePixelRatio);
-    
-    // Set default styles
-    this.ctx.textBaseline = 'middle';
   }
 
   resize(width: number, height: number): void {
@@ -119,6 +116,9 @@ export class CanvasRenderer {
       const textX = x + this.theme.cellPaddingLeft;
       const textY = y + height / 2;
       
+      // Ensure text baseline is middle for vertical centering
+      this.ctx.textBaseline = 'middle';
+      
       if (cell?.style?.textAlign === 'center') {
         this.ctx.textAlign = 'center';
         this.ctx.fillText(text, x + width / 2, textY);
@@ -176,6 +176,18 @@ export class CanvasRenderer {
     this.ctx.fillStyle = this.theme.headerTextColor;
     this.ctx.font = `${this.theme.headerFontSize}px ${this.theme.headerFontFamily}`;
     this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+
+    // Set clipping region for column headers to prevent overlap with row header area
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.rect(
+      this.theme.rowHeaderWidth, 
+      0, 
+      this.canvas.width / this.devicePixelRatio - this.theme.rowHeaderWidth, 
+      this.theme.columnHeaderHeight
+    );
+    this.ctx.clip();
 
     let x = this.theme.rowHeaderWidth;
     for (let col = 0; col < this.viewport.getTotalCols(); col++) {
@@ -195,7 +207,22 @@ export class CanvasRenderer {
       if (colX > this.canvas.width / this.devicePixelRatio) break;
     }
 
+    this.ctx.restore(); // Restore clipping region
+
     // Row headers - scroll vertically but not horizontally
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    // Set clipping region for row headers to prevent overlap with column header area
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.rect(
+      0, 
+      this.theme.columnHeaderHeight, 
+      this.theme.rowHeaderWidth, 
+      this.canvas.height / this.devicePixelRatio - this.theme.columnHeaderHeight
+    );
+    this.ctx.clip();
+
     let y = this.theme.columnHeaderHeight;
     for (let row = 0; row < this.viewport.getTotalRows(); row++) {
       const height = this.viewport.getRowHeight(row);
@@ -212,6 +239,8 @@ export class CanvasRenderer {
       // Stop if we're way beyond the viewport
       if (rowY > this.canvas.height / this.devicePixelRatio) break;
     }
+
+    this.ctx.restore(); // Restore clipping region
 
     // Header borders
     this.ctx.strokeStyle = this.theme.gridLineColor;
