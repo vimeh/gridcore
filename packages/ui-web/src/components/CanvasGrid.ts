@@ -68,6 +68,15 @@ export class CanvasGrid {
     
     // Initial render
     this.resize();
+    
+    // Set initial selection to A1
+    this.selectionManager.setActiveCell({ row: 0, col: 0 });
+    
+    // Connect selection manager to our callback
+    this.selectionManager.onActiveCellChange = (cell) => {
+      this.onCellClick?.(cell);
+    };
+    
     this.render();
   }
 
@@ -123,14 +132,27 @@ export class CanvasGrid {
   private handleScroll(): void {
     const scrollX = this.scrollContainer.scrollLeft;
     const scrollY = this.scrollContainer.scrollTop;
+    
+    // Position the canvas to match the scroll position
+    // This ensures the canvas viewport shows the correct content
+    this.canvas.style.left = `${scrollX}px`;
+    this.canvas.style.top = `${scrollY}px`;
+    
     this.viewport.setScrollPosition(scrollX, scrollY);
     this.cellEditor.updatePosition();
     this.render();
   }
 
   private handleCellClick(cell: CellAddress): void {
+    this.selectionManager.setActiveCell(cell);
     this.render();
+    
+    // Notify external handlers
+    this.onCellClick?.(cell);
   }
+  
+  // Public method for external cell click handling
+  public onCellClick?: (cell: CellAddress) => void;
 
   private handleCellDoubleClick(cell: CellAddress): void {
     const cellData = this.grid.getCell(cell);
@@ -178,8 +200,10 @@ export class CanvasGrid {
     // Update spacer for scrolling
     const spacer = this.scrollContainer.querySelector('.grid-spacer') as HTMLElement;
     if (spacer) {
-      spacer.style.width = `${this.viewport.getTotalGridWidth()}px`;
-      spacer.style.height = `${this.viewport.getTotalGridHeight()}px`;
+      const totalWidth = this.viewport.getTotalGridWidth();
+      const totalHeight = this.viewport.getTotalGridHeight();
+      spacer.style.width = `${totalWidth}px`;
+      spacer.style.height = `${totalHeight}px`;
     }
   }
 

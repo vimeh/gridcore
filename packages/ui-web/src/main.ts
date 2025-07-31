@@ -55,12 +55,15 @@ const canvasGrid = new CanvasGrid(gridContainer, grid, {
 });
 
 // Connect grid selection to formula bar
-const originalHandleClick = canvasGrid['handleCellClick'].bind(canvasGrid);
-canvasGrid['handleCellClick'] = function(cell) {
-  originalHandleClick(cell);
+canvasGrid.onCellClick = function(cell) {
   const cellData = grid.getCell(cell);
   formulaBar.setActiveCell(cell, cellData);
 };
+
+// Initialize formula bar with A1
+const initialCell = { row: 0, col: 0 };
+const initialCellData = grid.getCell(initialCell);
+formulaBar.setActiveCell(initialCell, initialCellData);
 
 // Handle window resize
 window.addEventListener('resize', () => {

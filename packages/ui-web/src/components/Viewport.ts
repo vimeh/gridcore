@@ -26,6 +26,14 @@ export class Viewport {
     private totalCols: number = 26
   ) {}
 
+  getTotalRows(): number {
+    return this.totalRows;
+  }
+
+  getTotalCols(): number {
+    return this.totalCols;
+  }
+
   setViewportSize(width: number, height: number): void {
     this.viewportWidth = width;
     this.viewportHeight = height;
@@ -60,10 +68,10 @@ export class Viewport {
   }
 
   getVisibleBounds(): ViewportBounds {
-    let startRow = 0;
-    let endRow = 0;
-    let startCol = 0;
-    let endCol = 0;
+    let startRow = -1;
+    let endRow = -1;
+    let startCol = -1;
+    let endCol = -1;
 
     // Calculate visible rows
     let y = this.theme.columnHeaderHeight;
@@ -71,17 +79,19 @@ export class Viewport {
     
     for (let row = 0; row < this.totalRows; row++) {
       const height = this.getRowHeight(row);
-      if (y + height > scrollY && startRow === 0) {
+      // Start from the first row that is at least partially visible
+      if (y + height > scrollY && startRow === -1) {
         startRow = row;
       }
-      if (y > scrollY + this.viewportHeight) {
-        endRow = row;
+      // End when we've gone past the visible area
+      if (y > scrollY + this.viewportHeight && endRow === -1) {
+        endRow = row - 1;
         break;
       }
       y += height;
     }
     
-    if (endRow === 0) endRow = this.totalRows - 1;
+    if (endRow === -1) endRow = this.totalRows - 1;
 
     // Calculate visible columns
     let x = this.theme.rowHeaderWidth;
@@ -89,22 +99,23 @@ export class Viewport {
     
     for (let col = 0; col < this.totalCols; col++) {
       const width = this.getColumnWidth(col);
-      if (x + width > scrollX && startCol === 0) {
+      if (x + width > scrollX && startCol === -1) {
         startCol = col;
       }
-      if (x > scrollX + this.viewportWidth) {
-        endCol = col;
+      if (x > scrollX + this.viewportWidth && endCol === -1) {
+        endCol = col - 1;
         break;
       }
       x += width;
     }
     
-    if (endCol === 0) endCol = this.totalCols - 1;
+    if (endCol === -1) endCol = this.totalCols - 1;
 
     return { startRow, endRow, startCol, endCol };
   }
 
   getCellPosition(address: CellAddress): { x: number; y: number; width: number; height: number } {
+    // Calculate absolute position of the cell in the grid
     let x = this.theme.rowHeaderWidth;
     let y = this.theme.columnHeaderHeight;
 
@@ -118,6 +129,8 @@ export class Viewport {
       y += this.getRowHeight(row);
     }
 
+    // Since the canvas is now positioned at the scroll position,
+    // we need to return coordinates relative to the scrolled canvas
     return {
       x: x - this.scrollPosition.x,
       y: y - this.scrollPosition.y,

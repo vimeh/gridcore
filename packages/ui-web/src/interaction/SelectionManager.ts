@@ -104,5 +104,11 @@ export class SelectionManager {
     }
 
     this.setActiveCell(newCell);
+    
+    // Notify listeners of the change
+    this.onActiveCellChange?.(newCell);
   }
+  
+  // Callback for when active cell changes
+  public onActiveCellChange?: (cell: CellAddress) => void;
 }

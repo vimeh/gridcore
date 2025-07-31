@@ -172,35 +172,45 @@ export class CanvasRenderer {
     this.ctx.fillRect(0, 0, this.canvas.width / this.devicePixelRatio, this.theme.columnHeaderHeight);
     this.ctx.fillRect(0, 0, this.theme.rowHeaderWidth, this.canvas.height / this.devicePixelRatio);
 
-    // Column headers
+    // Column headers - scroll horizontally but not vertically
     this.ctx.fillStyle = this.theme.headerTextColor;
     this.ctx.font = `${this.theme.headerFontSize}px ${this.theme.headerFontFamily}`;
     this.ctx.textAlign = 'center';
 
     let x = this.theme.rowHeaderWidth;
-    for (let col = bounds.startCol; col <= bounds.endCol; col++) {
+    for (let col = 0; col < this.viewport.getTotalCols(); col++) {
       const width = this.viewport.getColumnWidth(col);
-      const colX = x - scrollPos.x;
+      const colX = x - scrollPos.x;  // Apply horizontal scroll
       
-      if (colX + width > this.theme.rowHeaderWidth) {
+      // Only render if the column header is visible in the viewport
+      if (colX + width > this.theme.rowHeaderWidth && colX < this.canvas.width / this.devicePixelRatio) {
         const letter = String.fromCharCode(65 + col); // Simple A-Z for now
+        // Column headers stay at fixed vertical position (not affected by scrollPos.y)
         this.ctx.fillText(letter, colX + width / 2, this.theme.columnHeaderHeight / 2);
       }
       
       x += width;
+      
+      // Stop if we're way beyond the viewport
+      if (colX > this.canvas.width / this.devicePixelRatio) break;
     }
 
-    // Row headers
+    // Row headers - scroll vertically but not horizontally
     let y = this.theme.columnHeaderHeight;
-    for (let row = bounds.startRow; row <= bounds.endRow; row++) {
+    for (let row = 0; row < this.viewport.getTotalRows(); row++) {
       const height = this.viewport.getRowHeight(row);
-      const rowY = y - scrollPos.y;
+      const rowY = y - scrollPos.y;  // Apply vertical scroll
       
-      if (rowY + height > this.theme.columnHeaderHeight) {
+      // Only render if the row header is visible in the viewport
+      if (rowY + height > this.theme.columnHeaderHeight && rowY < this.canvas.height / this.devicePixelRatio) {
+        // Row headers stay at fixed horizontal position (not affected by scrollPos.x)
         this.ctx.fillText(String(row + 1), this.theme.rowHeaderWidth / 2, rowY + height / 2);
       }
       
       y += height;
+      
+      // Stop if we're way beyond the viewport
+      if (rowY > this.canvas.height / this.devicePixelRatio) break;
     }
 
     // Header borders
