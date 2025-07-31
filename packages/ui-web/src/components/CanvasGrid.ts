@@ -96,12 +96,13 @@ export class CanvasGrid {
     this.scrollContainer.style.bottom = '0';
     this.scrollContainer.style.overflow = 'auto';
     
-    // Create canvas
+    // Create canvas - fixed at origin, won't move with scroll
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'grid-canvas';
     this.canvas.style.position = 'absolute';
     this.canvas.style.top = '0';
     this.canvas.style.left = '0';
+    this.canvas.style.pointerEvents = 'auto'; // Ensure it can receive mouse events
     
     // Create spacer for scrolling
     const spacer = document.createElement('div');
@@ -133,10 +134,36 @@ export class CanvasGrid {
     const scrollX = this.scrollContainer.scrollLeft;
     const scrollY = this.scrollContainer.scrollTop;
     
+    // Get viewport dimensions and total grid dimensions
+    const viewportWidth = this.scrollContainer.clientWidth;
+    const viewportHeight = this.scrollContainer.clientHeight;
+    const totalGridWidth = this.viewport.getTotalGridWidth();
+    const totalGridHeight = this.viewport.getTotalGridHeight();
+    
+    // Calculate maximum scroll positions (where last row/col is visible)
+    const maxScrollX = Math.max(0, totalGridWidth - viewportWidth);
+    const maxScrollY = Math.max(0, totalGridHeight - viewportHeight);
+    
+    // Log when scrolling past the last row/column (should not happen with the fix)
+    if (scrollX > maxScrollX) {
+      console.warn(`[SCROLL] Scrolled past last column! scrollX: ${scrollX}, maxScrollX: ${maxScrollX}, excess: ${scrollX - maxScrollX}px`);
+    }
+    
+    if (scrollY > maxScrollY) {
+      console.warn(`[SCROLL] Scrolled past last row! scrollY: ${scrollY}, maxScrollY: ${maxScrollY}, excess: ${scrollY - maxScrollY}px`);
+    }
+    
     // Position the canvas to match the scroll position
-    // This ensures the canvas viewport shows the correct content
-    this.canvas.style.left = `${scrollX}px`;
-    this.canvas.style.top = `${scrollY}px`;
+    // But clamp it so it doesn't extend beyond the grid boundaries
+    const canvasWidth = this.canvas.offsetWidth;
+    const canvasHeight = this.canvas.offsetHeight;
+    
+    // Clamp canvas position so it doesn't extend beyond total grid size
+    const clampedX = Math.min(scrollX, Math.max(0, totalGridWidth - canvasWidth));
+    const clampedY = Math.min(scrollY, Math.max(0, totalGridHeight - canvasHeight));
+    
+    this.canvas.style.left = `${clampedX}px`;
+    this.canvas.style.top = `${clampedY}px`;
     
     this.viewport.setScrollPosition(scrollX, scrollY);
     this.cellEditor.updatePosition();
@@ -198,12 +225,31 @@ export class CanvasGrid {
     this.renderer.resize(width, height);
     
     // Update spacer for scrolling
+    // The spacer should be sized so that when scrolled to maximum,
+    // the last row/column is visible at the bottom/right edge of the viewport
     const spacer = this.scrollContainer.querySelector('.grid-spacer') as HTMLElement;
     if (spacer) {
       const totalWidth = this.viewport.getTotalGridWidth();
       const totalHeight = this.viewport.getTotalGridHeight();
-      spacer.style.width = `${totalWidth}px`;
-      spacer.style.height = `${totalHeight}px`;
+      
+      // Maximum scrollable area = total content - viewport size
+      // This ensures the last column/row is visible when scrolled to the end
+      const maxScrollWidth = Math.max(0, totalWidth - width);
+      const maxScrollHeight = Math.max(0, totalHeight - height);
+      
+      // Spacer should be sized to prevent scrolling beyond the last row/column
+      // Since the canvas moves with scroll, we need to account for that
+      // The spacer should be sized so that when fully scrolled, the canvas doesn't extend beyond it
+      const spacerWidth = Math.max(width, totalWidth);
+      const spacerHeight = Math.max(height, totalHeight);
+      
+      // Uncomment for debugging scroll issues
+      // console.log(`[RESIZE] Setting spacer size: ${spacerWidth}x${spacerHeight}`);
+      // console.log(`[RESIZE] Total grid: ${totalWidth}x${totalHeight}, Viewport: ${width}x${height}`);
+      // console.log(`[RESIZE] Max scroll: ${maxScrollWidth}x${maxScrollHeight}`);
+      
+      spacer.style.width = `${spacerWidth}px`;
+      spacer.style.height = `${spacerHeight}px`;
     }
   }
 
