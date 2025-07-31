@@ -74,6 +74,7 @@ export class CanvasGrid {
     
     // Connect selection manager to our callback
     this.selectionManager.onActiveCellChange = (cell) => {
+      this.render();
       this.onCellClick?.(cell);
     };
     
@@ -262,7 +263,11 @@ export class CanvasGrid {
     // Schedule render on next frame
     this.animationFrameId = requestAnimationFrame(() => {
       this.renderer.renderGrid((address) => this.grid.getCell(address));
-      this.renderer.renderSelection(this.selectionManager.getSelectedCells());
+      this.renderer.renderSelection(
+        this.selectionManager.getSelectedCells(),
+        this.selectionManager.getActiveCell(),
+        this.cellEditor.isCurrentlyEditing()
+      );
       this.animationFrameId = null;
     });
   }

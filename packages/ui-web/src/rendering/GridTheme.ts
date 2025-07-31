@@ -14,6 +14,8 @@ export interface GridTheme {
   gridLineColor: string;
   cellBackgroundColor: string;
   selectedCellBackgroundColor: string;
+  activeCellBackgroundColor: string;
+  activeCellBorderColor: string;
   selectedRangeBackgroundColor: string;
   headerBackgroundColor: string;
   headerTextColor: string;
@@ -47,6 +49,8 @@ export const defaultTheme: GridTheme = {
   gridLineColor: '#e0e0e0',
   cellBackgroundColor: '#ffffff',
   selectedCellBackgroundColor: '#e3f2fd',
+  activeCellBackgroundColor: '#ffffff',
+  activeCellBorderColor: '#1976d2',
   selectedRangeBackgroundColor: 'rgba(66, 165, 245, 0.1)',
   headerBackgroundColor: '#f5f5f5',
   headerTextColor: '#666666',

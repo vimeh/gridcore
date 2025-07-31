@@ -253,32 +253,56 @@ export class CanvasRenderer {
     this.ctx.stroke();
   }
 
-  renderSelection(selectedCells: Set<string>): void {
-    if (selectedCells.size === 0) return;
+  renderSelection(selectedCells: Set<string>, activeCell: CellAddress | null = null, isEditing: boolean = false): void {
+    // Render selected cells background
+    if (selectedCells.size > 0) {
+      this.ctx.fillStyle = this.theme.selectedCellBackgroundColor;
+      this.ctx.globalAlpha = 0.3;
 
-    this.ctx.fillStyle = this.theme.selectedCellBackgroundColor;
-    this.ctx.globalAlpha = 0.3;
+      for (const cellKey of selectedCells) {
+        const match = cellKey.match(/^([A-Z]+)(\d+)$/);
+        if (!match) continue;
+        
+        const col = match[1].charCodeAt(0) - 65; // Simple A-Z for now
+        const row = parseInt(match[2]) - 1;
+        const address: CellAddress = { row, col };
+        const position = this.viewport.getCellPosition(address);
+        
+        if (position.x + position.width > this.theme.rowHeaderWidth &&
+            position.y + position.height > this.theme.columnHeaderHeight) {
+          this.ctx.fillRect(
+            Math.max(position.x, this.theme.rowHeaderWidth),
+            Math.max(position.y, this.theme.columnHeaderHeight),
+            position.width,
+            position.height
+          );
+        }
+      }
+      this.ctx.globalAlpha = 1;
+    }
 
-    for (const cellKey of selectedCells) {
-      const match = cellKey.match(/^([A-Z]+)(\d+)$/);
-      if (!match) continue;
-      
-      const col = match[1].charCodeAt(0) - 65; // Simple A-Z for now
-      const row = parseInt(match[2]) - 1;
-      const address: CellAddress = { row, col };
-      const position = this.viewport.getCellPosition(address);
+    // Render active cell border (skip if editing)
+    if (activeCell && !isEditing) {
+      const position = this.viewport.getCellPosition(activeCell);
       
       if (position.x + position.width > this.theme.rowHeaderWidth &&
           position.y + position.height > this.theme.columnHeaderHeight) {
-        this.ctx.fillRect(
-          Math.max(position.x, this.theme.rowHeaderWidth),
-          Math.max(position.y, this.theme.columnHeaderHeight),
-          position.width,
-          position.height
-        );
+        
+        // Draw thick border around active cell
+        this.ctx.strokeStyle = this.theme.activeCellBorderColor;
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([]);
+        
+        const x = Math.max(position.x, this.theme.rowHeaderWidth);
+        const y = Math.max(position.y, this.theme.columnHeaderHeight);
+        const width = position.width;
+        const height = position.height;
+        
+        this.ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
+        
+        // Reset line width for other drawing
+        this.ctx.lineWidth = this.theme.gridLineWidth;
       }
     }
-
-    this.ctx.globalAlpha = 1;
   }
 }
