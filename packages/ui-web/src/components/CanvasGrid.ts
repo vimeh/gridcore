@@ -76,6 +76,7 @@ export class CanvasGrid {
     
     // Connect selection manager to our callback
     this.selectionManager.onActiveCellChange = (cell) => {
+      this.scrollToCell(cell);
       this.render();
       this.onCellClick?.(cell);
     };
