@@ -67,8 +67,9 @@ export class CanvasRenderer {
         const cellKey = cellAddressToString(address);
         const isSelected = selectedCells?.has(cellKey) || false;
         const isActive = activeCell && activeCell.row === address.row && activeCell.col === address.col;
+        const isBeingEdited = isActive && isEditing;
         
-        this.renderCell(position, cell, address, isSelected, isActive);
+        this.renderCell(position, cell, address, isSelected, isActive, isBeingEdited);
       }
     }
 
@@ -89,7 +90,8 @@ export class CanvasRenderer {
     cell: Cell | undefined,
     address: CellAddress,
     isSelected: boolean = false,
-    isActive: boolean = false
+    isActive: boolean = false,
+    isBeingEdited: boolean = false
   ): void {
     const { x, y, width, height } = position;
 
@@ -118,8 +120,8 @@ export class CanvasRenderer {
       this.ctx.fillRect(x, y, width, height);
     }
 
-    // Render text
-    if (cell?.computedValue !== null && cell?.computedValue !== undefined) {
+    // Render text (skip if cell is being edited)
+    if (!isBeingEdited && cell?.computedValue !== null && cell?.computedValue !== undefined) {
       this.ctx.save();
       
       // Set text styles
