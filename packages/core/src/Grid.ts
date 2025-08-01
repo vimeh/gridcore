@@ -1,5 +1,5 @@
-import { Cell, CellAddress, CellValueType, GridDimensions } from './types';
-import { cellAddressToString, parseCellAddress } from './utils/cellAddress';
+import { Cell, CellAddress, CellValueType, GridDimensions } from "./types";
+import { parseCellAddress } from "./utils/cellAddress";
 
 export class Grid {
   private cells: Map<string, Cell>;
@@ -14,8 +14,8 @@ export class Grid {
     return `${address.row},${address.col}`;
   }
 
-  private parseCellKey(key: string): CellAddress {
-    const [row, col] = key.split(',').map(Number);
+  parseCellKey(key: string): CellAddress {
+    const [row, col] = key.split(",").map(Number);
     return { row, col };
   }
 
@@ -31,19 +31,25 @@ export class Grid {
 
   setCell(address: CellAddress, value: CellValueType, formula?: string): void {
     if (!this.isValidAddress(address)) {
-      throw new Error(`Invalid cell address: row ${address.row}, col ${address.col}`);
+      throw new Error(
+        `Invalid cell address: row ${address.row}, col ${address.col}`,
+      );
     }
 
     const cell: Cell = {
       rawValue: value,
       computedValue: value,
-      formula
+      formula,
     };
 
     this.cells.set(this.getCellKey(address), cell);
   }
 
-  setCellByReference(reference: string, value: CellValueType, formula?: string): void {
+  setCellByReference(
+    reference: string,
+    value: CellValueType,
+    formula?: string,
+  ): void {
     const address = parseCellAddress(reference);
     if (!address) {
       throw new Error(`Invalid cell reference: ${reference}`);
@@ -51,7 +57,7 @@ export class Grid {
     this.setCell(address, value, formula);
   }
 
-  updateCellStyle(address: CellAddress, style: Partial<Cell['style']>): void {
+  updateCellStyle(address: CellAddress, style: Partial<Cell["style"]>): void {
     const cell = this.getCell(address);
     if (cell) {
       cell.style = { ...cell.style, ...style };
@@ -84,12 +90,12 @@ export class Grid {
 
   getNonEmptyCells(): Array<{ address: CellAddress; cell: Cell }> {
     const result: Array<{ address: CellAddress; cell: Cell }> = [];
-    
+
     for (const [key, cell] of this.cells) {
       const address = this.parseCellKey(key);
       result.push({ address, cell });
     }
-    
+
     return result.sort((a, b) => {
       if (a.address.row !== b.address.row) {
         return a.address.row - b.address.row;
@@ -102,8 +108,10 @@ export class Grid {
     const nonEmptyCells = this.getNonEmptyCells();
     if (nonEmptyCells.length === 0) return null;
 
-    let minRow = Infinity, maxRow = -Infinity;
-    let minCol = Infinity, maxCol = -Infinity;
+    let minRow = Infinity,
+      maxRow = -Infinity;
+    let minCol = Infinity,
+      maxCol = -Infinity;
 
     for (const { address } of nonEmptyCells) {
       minRow = Math.min(minRow, address.row);
@@ -114,8 +122,12 @@ export class Grid {
 
     return {
       start: { row: minRow, col: minCol },
-      end: { row: maxRow, col: maxCol }
+      end: { row: maxRow, col: maxCol },
     };
+  }
+
+  getAllCells(): Map<string, Cell> {
+    return this.cells;
   }
 
   clear(): void {
@@ -128,17 +140,17 @@ export class Grid {
 
   clone(): Grid {
     const newGrid = new Grid(this.dimensions.rows, this.dimensions.cols);
-    
+
     for (const [key, cell] of this.cells) {
       newGrid.cells.set(key, {
         rawValue: cell.rawValue,
         computedValue: cell.computedValue,
         formula: cell.formula,
         style: cell.style ? { ...cell.style } : undefined,
-        error: cell.error
+        error: cell.error,
       });
     }
-    
+
     return newGrid;
   }
 
@@ -147,18 +159,18 @@ export class Grid {
       dimensions: this.dimensions,
       cells: Array.from(this.cells.entries()).map(([key, cell]) => ({
         address: this.parseCellKey(key),
-        cell
-      }))
+        cell,
+      })),
     };
   }
 
   static fromJSON(data: any): Grid {
     const grid = new Grid(data.dimensions.rows, data.dimensions.cols);
-    
+
     for (const { address, cell } of data.cells) {
       grid.cells.set(grid.getCellKey(address), cell);
     }
-    
+
     return grid;
   }
 }

@@ -8,8 +8,8 @@ export interface CellStyle {
   backgroundColor?: string;
   fontSize?: number;
   fontFamily?: string;
-  textAlign?: 'left' | 'center' | 'right';
-  verticalAlign?: 'top' | 'middle' | 'bottom';
+  textAlign?: "left" | "center" | "right";
+  verticalAlign?: "top" | "middle" | "bottom";
   numberFormat?: string;
 }
 

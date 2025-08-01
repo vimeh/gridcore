@@ -4,11 +4,11 @@ export interface GridTheme {
   defaultCellHeight: number;
   minCellWidth: number;
   maxCellWidth: number;
-  
+
   // Headers
   rowHeaderWidth: number;
   columnHeaderHeight: number;
-  
+
   // Colors
   backgroundColor: string;
   gridLineColor: string;
@@ -20,13 +20,13 @@ export interface GridTheme {
   headerBackgroundColor: string;
   headerTextColor: string;
   cellTextColor: string;
-  
+
   // Fonts
   cellFontFamily: string;
   cellFontSize: number;
   headerFontFamily: string;
   headerFontSize: number;
-  
+
   // Borders and spacing
   gridLineWidth: number;
   cellPaddingLeft: number;
@@ -39,29 +39,31 @@ export const defaultTheme: GridTheme = {
   defaultCellHeight: 24,
   minCellWidth: 40,
   maxCellWidth: 500,
-  
+
   // Headers
   rowHeaderWidth: 50,
   columnHeaderHeight: 24,
-  
+
   // Colors
-  backgroundColor: '#ffffff',
-  gridLineColor: '#e0e0e0',
-  cellBackgroundColor: '#ffffff',
-  selectedCellBackgroundColor: '#e3f2fd',
-  activeCellBackgroundColor: '#ffffff',
-  activeCellBorderColor: '#1976d2',
-  selectedRangeBackgroundColor: 'rgba(66, 165, 245, 0.1)',
-  headerBackgroundColor: '#f5f5f5',
-  headerTextColor: '#666666',
-  cellTextColor: '#000000',
-  
+  backgroundColor: "#ffffff",
+  gridLineColor: "#e0e0e0",
+  cellBackgroundColor: "#ffffff",
+  selectedCellBackgroundColor: "#e3f2fd",
+  activeCellBackgroundColor: "#ffffff",
+  activeCellBorderColor: "#1976d2",
+  selectedRangeBackgroundColor: "rgba(66, 165, 245, 0.1)",
+  headerBackgroundColor: "#f5f5f5",
+  headerTextColor: "#666666",
+  cellTextColor: "#000000",
+
   // Fonts
-  cellFontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  cellFontFamily:
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   cellFontSize: 13,
-  headerFontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  headerFontFamily:
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   headerFontSize: 12,
-  
+
   // Borders and spacing
   gridLineWidth: 1,
   cellPaddingLeft: 4,

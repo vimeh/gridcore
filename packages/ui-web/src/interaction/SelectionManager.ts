@@ -1,4 +1,4 @@
-import { CellAddress, CellRange, cellAddressToString } from '@gridcore/core';
+import { CellAddress, CellRange, cellAddressToString } from "@gridcore/core";
 
 export interface SelectionState {
   activeCell: CellAddress | null;
@@ -10,7 +10,7 @@ export class SelectionManager {
   private state: SelectionState = {
     activeCell: null,
     selectedCells: new Set(),
-    selectionRange: null
+    selectionRange: null,
   };
 
   private selectionStart: CellAddress | null = null;
@@ -37,16 +37,16 @@ export class SelectionManager {
     if (!this.isSelecting || !this.selectionStart) return;
 
     this.state.selectedCells.clear();
-    
+
     const range: CellRange = {
       start: {
         row: Math.min(this.selectionStart.row, cell.row),
-        col: Math.min(this.selectionStart.col, cell.col)
+        col: Math.min(this.selectionStart.col, cell.col),
       },
       end: {
         row: Math.max(this.selectionStart.row, cell.row),
-        col: Math.max(this.selectionStart.col, cell.col)
-      }
+        col: Math.max(this.selectionStart.col, cell.col),
+      },
     };
 
     this.state.selectionRange = range;
@@ -80,7 +80,7 @@ export class SelectionManager {
     return this.state.selectedCells.has(cellAddressToString(cell));
   }
 
-  moveActiveCell(direction: 'up' | 'down' | 'left' | 'right'): void {
+  moveActiveCell(direction: "up" | "down" | "left" | "right"): void {
     if (!this.state.activeCell) {
       this.setActiveCell({ row: 0, col: 0 });
       return;
@@ -89,26 +89,26 @@ export class SelectionManager {
     const newCell = { ...this.state.activeCell };
 
     switch (direction) {
-      case 'up':
+      case "up":
         if (newCell.row > 0) newCell.row--;
         break;
-      case 'down':
+      case "down":
         newCell.row++;
         break;
-      case 'left':
+      case "left":
         if (newCell.col > 0) newCell.col--;
         break;
-      case 'right':
+      case "right":
         newCell.col++;
         break;
     }
 
     this.setActiveCell(newCell);
-    
+
     // Notify listeners of the change
     this.onActiveCellChange?.(newCell);
   }
-  
+
   // Callback for when active cell changes
   public onActiveCellChange?: (cell: CellAddress) => void;
 }

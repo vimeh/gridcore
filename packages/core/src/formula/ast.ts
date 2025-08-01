@@ -1,6 +1,6 @@
-import { CellAddress, CellRange } from '../types';
+import { CellAddress, CellRange } from "../types";
 
-export type ASTNode = 
+export type ASTNode =
   | NumberLiteral
   | StringLiteral
   | BooleanLiteral
@@ -12,22 +12,22 @@ export type ASTNode =
   | ArrayLiteral;
 
 export interface NumberLiteral {
-  type: 'number';
+  type: "number";
   value: number;
 }
 
 export interface StringLiteral {
-  type: 'string';
+  type: "string";
   value: string;
 }
 
 export interface BooleanLiteral {
-  type: 'boolean';
+  type: "boolean";
   value: boolean;
 }
 
 export interface CellReferenceNode {
-  type: 'cell';
+  type: "cell";
   address: CellAddress;
   reference: string;
   absolute?: {
@@ -37,36 +37,48 @@ export interface CellReferenceNode {
 }
 
 export interface RangeReference {
-  type: 'range';
+  type: "range";
   range: CellRange;
   reference: string;
 }
 
 export interface FunctionCall {
-  type: 'function';
+  type: "function";
   name: string;
   args: ASTNode[];
 }
 
-export type BinaryOperator = '+' | '-' | '*' | '/' | '^' | '=' | '<>' | '<' | '>' | '<=' | '>=' | '&';
+export type BinaryOperator =
+  | "+"
+  | "-"
+  | "*"
+  | "/"
+  | "^"
+  | "="
+  | "<>"
+  | "<"
+  | ">"
+  | "<="
+  | ">="
+  | "&";
 
 export interface BinaryOperation {
-  type: 'binary';
+  type: "binary";
   operator: BinaryOperator;
   left: ASTNode;
   right: ASTNode;
 }
 
-export type UnaryOperator = '-' | '+';
+export type UnaryOperator = "-" | "+";
 
 export interface UnaryOperation {
-  type: 'unary';
+  type: "unary";
   operator: UnaryOperator;
   operand: ASTNode;
 }
 
 export interface ArrayLiteral {
-  type: 'array';
+  type: "array";
   elements: ASTNode[][];
 }
 

@@ -1,14 +1,14 @@
-import { Grid, CellAddress, parseCellAddress } from '@gridcore/core';
-import { SelectionManager } from './SelectionManager';
-import { CellEditor } from '../components/CellEditor';
-import { KEY_CODES } from '../constants';
+import { Grid, CellAddress, parseCellAddress } from "@gridcore/core";
+import { SelectionManager } from "./SelectionManager";
+import { CellEditor } from "../components/CellEditor";
+import { KEY_CODES } from "../constants";
 
 export class KeyboardHandler {
   constructor(
     private container: HTMLElement,
     private selectionManager: SelectionManager,
     private cellEditor: CellEditor,
-    private grid: Grid
+    private grid: Grid,
   ) {
     this.setupEventListeners();
   }
@@ -16,9 +16,9 @@ export class KeyboardHandler {
   private setupEventListeners(): void {
     // Make container focusable
     this.container.tabIndex = 0;
-    this.container.style.outline = 'none';
-    
-    this.container.addEventListener('keydown', this.handleKeyDown.bind(this));
+    this.container.style.outline = "none";
+
+    this.container.addEventListener("keydown", this.handleKeyDown.bind(this));
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
@@ -34,84 +34,94 @@ export class KeyboardHandler {
       // Vim navigation keys
       case KEY_CODES.H:
         event.preventDefault();
-        this.selectionManager.moveActiveCell('left');
+        this.selectionManager.moveActiveCell("left");
         break;
-        
+
       case KEY_CODES.J:
         event.preventDefault();
-        this.selectionManager.moveActiveCell('down');
+        this.selectionManager.moveActiveCell("down");
         break;
-        
+
       case KEY_CODES.K:
         event.preventDefault();
-        this.selectionManager.moveActiveCell('up');
+        this.selectionManager.moveActiveCell("up");
         break;
-        
+
       case KEY_CODES.L:
         event.preventDefault();
-        this.selectionManager.moveActiveCell('right');
+        this.selectionManager.moveActiveCell("right");
         break;
-        
+
       // Vim edit mode
       case KEY_CODES.I:
         event.preventDefault();
         this.startEditingActiveCell();
         break;
-        
+
       // Keep arrow keys as secondary option
       case KEY_CODES.ARROW_UP:
         event.preventDefault();
-        this.selectionManager.moveActiveCell('up');
+        this.selectionManager.moveActiveCell("up");
         break;
-        
+
       case KEY_CODES.ARROW_DOWN:
         event.preventDefault();
-        this.selectionManager.moveActiveCell('down');
+        this.selectionManager.moveActiveCell("down");
         break;
-        
+
       case KEY_CODES.ARROW_LEFT:
         event.preventDefault();
-        this.selectionManager.moveActiveCell('left');
+        this.selectionManager.moveActiveCell("left");
         break;
-        
+
       case KEY_CODES.ARROW_RIGHT:
         event.preventDefault();
-        this.selectionManager.moveActiveCell('right');
+        this.selectionManager.moveActiveCell("right");
         break;
-        
+
       case KEY_CODES.ENTER:
         event.preventDefault();
         if (event.shiftKey) {
-          this.selectionManager.moveActiveCell('up');
+          this.selectionManager.moveActiveCell("up");
         } else {
           this.startEditingActiveCell();
         }
         break;
-        
+
       case KEY_CODES.F2:
         event.preventDefault();
         this.startEditingActiveCell();
         break;
-        
+
       case KEY_CODES.DELETE:
       case KEY_CODES.BACKSPACE:
         event.preventDefault();
         this.deleteSelectedCells();
         break;
-        
+
       case KEY_CODES.TAB:
         event.preventDefault();
         if (event.shiftKey) {
-          this.selectionManager.moveActiveCell('left');
+          this.selectionManager.moveActiveCell("left");
         } else {
-          this.selectionManager.moveActiveCell('right');
+          this.selectionManager.moveActiveCell("right");
         }
         break;
-        
+
       default:
         // Start editing if it's a printable character (except vim nav keys)
-        if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && 
-            ![KEY_CODES.H, KEY_CODES.J, KEY_CODES.K, KEY_CODES.L, KEY_CODES.I].includes(event.key)) {
+        if (
+          event.key.length === 1 &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          ![
+            KEY_CODES.H,
+            KEY_CODES.J,
+            KEY_CODES.K,
+            KEY_CODES.L,
+            KEY_CODES.I,
+          ].includes(event.key)
+        ) {
           this.startEditingActiveCell(event.key);
         }
         break;
@@ -125,25 +135,25 @@ export class KeyboardHandler {
           event.preventDefault();
           this.selectAll();
           break;
-          
+
         case KEY_CODES.C:
         case KEY_CODES.CAPITAL_C:
           event.preventDefault();
           this.copySelection();
           break;
-          
+
         case KEY_CODES.V:
         case KEY_CODES.CAPITAL_V:
           event.preventDefault();
           this.pasteToSelection();
           break;
-          
+
         case KEY_CODES.X:
         case KEY_CODES.CAPITAL_X:
           event.preventDefault();
           this.cutSelection();
           break;
-          
+
         case KEY_CODES.Z:
         case KEY_CODES.CAPITAL_Z:
           event.preventDefault();
@@ -162,14 +172,14 @@ export class KeyboardHandler {
     if (!activeCell) return;
 
     const cellData = this.grid.getCell(activeCell);
-    let initialValue = '';
-    
+    let initialValue = "";
+
     if (initialChar) {
       initialValue = initialChar;
     } else {
-      initialValue = cellData?.formula || String(cellData?.rawValue || '');
+      initialValue = cellData?.formula || String(cellData?.rawValue || "");
     }
-    
+
     this.cellEditor.startEditing(activeCell, initialValue);
   }
 
@@ -184,35 +194,35 @@ export class KeyboardHandler {
 
   private selectAll(): void {
     // TODO: Implement select all
-    console.log('Select all not yet implemented');
+    console.log("Select all not yet implemented");
   }
 
   private copySelection(): void {
     // TODO: Implement copy
-    console.log('Copy not yet implemented');
+    console.log("Copy not yet implemented");
   }
 
   private pasteToSelection(): void {
     // TODO: Implement paste
-    console.log('Paste not yet implemented');
+    console.log("Paste not yet implemented");
   }
 
   private cutSelection(): void {
     // TODO: Implement cut
-    console.log('Cut not yet implemented');
+    console.log("Cut not yet implemented");
   }
 
   private undo(): void {
     // TODO: Implement undo
-    console.log('Undo not yet implemented');
+    console.log("Undo not yet implemented");
   }
 
   private redo(): void {
     // TODO: Implement redo
-    console.log('Redo not yet implemented');
+    console.log("Redo not yet implemented");
   }
 
   destroy(): void {
-    this.container.removeEventListener('keydown', this.handleKeyDown);
+    this.container.removeEventListener("keydown", this.handleKeyDown);
   }
 }

@@ -1,6 +1,6 @@
-import { CellAddress } from '@gridcore/core';
-import { GridTheme } from '../rendering/GridTheme';
-import { DEFAULT_TOTAL_ROWS, DEFAULT_TOTAL_COLS } from '../constants';
+import { CellAddress } from "@gridcore/core";
+import { GridTheme } from "../rendering/GridTheme";
+import { DEFAULT_TOTAL_ROWS, DEFAULT_TOTAL_COLS } from "../constants";
 
 export interface ViewportBounds {
   startRow: number;
@@ -14,19 +14,17 @@ export interface ScrollPosition {
   y: number;
 }
 
-import { DEFAULT_TOTAL_ROWS, DEFAULT_TOTAL_COLS } from '../constants';
-
 export class Viewport {
   private scrollPosition: ScrollPosition = { x: 0, y: 0 };
   private viewportWidth: number = 0;
   private viewportHeight: number = 0;
   private columnWidths: Map<number, number> = new Map();
   private rowHeights: Map<number, number> = new Map();
-  
+
   constructor(
     private theme: GridTheme,
     private totalRows: number = DEFAULT_TOTAL_ROWS,
-    private totalCols: number = DEFAULT_TOTAL_COLS
+    private totalCols: number = DEFAULT_TOTAL_COLS,
   ) {}
 
   getTotalRows(): number {
@@ -57,7 +55,7 @@ export class Viewport {
   setColumnWidth(col: number, width: number): void {
     const clampedWidth = Math.max(
       this.theme.minCellWidth,
-      Math.min(width, this.theme.maxCellWidth)
+      Math.min(width, this.theme.maxCellWidth),
     );
     this.columnWidths.set(col, clampedWidth);
   }
@@ -79,12 +77,20 @@ export class Viewport {
     // Calculate visible rows
     let y = 0;
     const scrollY = this.scrollPosition.y;
+    const totalHeight = this.getTotalGridHeight();
+    const maxScrollY = Math.max(0, totalHeight - this.viewportHeight);
+    const isAtBottomEdge = scrollY >= maxScrollY - 1;
+
     for (let row = 0; row < this.totalRows; row++) {
       const height = this.getRowHeight(row);
       if (y + height > scrollY && startRow === -1) {
         startRow = row;
       }
-      if (y >= scrollY + this.viewportHeight && endRow === -1) {
+      // If at bottom edge, only include fully visible rows
+      if (isAtBottomEdge && y + height > scrollY + this.viewportHeight) {
+        endRow = row;
+        break;
+      } else if (y >= scrollY + this.viewportHeight && endRow === -1) {
         endRow = row;
         break;
       }
@@ -95,12 +101,20 @@ export class Viewport {
     // Calculate visible columns
     let x = 0;
     const scrollX = this.scrollPosition.x;
+    const totalWidth = this.getTotalGridWidth();
+    const maxScrollX = Math.max(0, totalWidth - this.viewportWidth);
+    const isAtRightEdge = scrollX >= maxScrollX - 1;
+
     for (let col = 0; col < this.totalCols; col++) {
       const width = this.getColumnWidth(col);
       if (x + width > scrollX && startCol === -1) {
         startCol = col;
       }
-      if (x >= scrollX + this.viewportWidth && endCol === -1) {
+      // If at right edge, only include fully visible columns
+      if (isAtRightEdge && x + width > scrollX + this.viewportWidth) {
+        endCol = col;
+        break;
+      } else if (x >= scrollX + this.viewportWidth && endCol === -1) {
         endCol = col;
         break;
       }
@@ -108,15 +122,20 @@ export class Viewport {
     }
     if (endCol === -1) endCol = this.totalCols;
 
-    return { 
-      startRow: Math.max(0, startRow), 
-      endRow, 
-      startCol: Math.max(0, startCol), 
-      endCol 
+    return {
+      startRow: Math.max(0, startRow),
+      endRow,
+      startCol: Math.max(0, startCol),
+      endCol,
     };
   }
 
-  getCellPosition(address: CellAddress): { x: number; y: number; width: number; height: number } {
+  getCellPosition(address: CellAddress): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
     let x = 0;
     let y = 0;
 
@@ -132,7 +151,7 @@ export class Viewport {
       x: x - this.scrollPosition.x,
       y: y - this.scrollPosition.y,
       width: this.getColumnWidth(address.col),
-      height: this.getRowHeight(address.row)
+      height: this.getRowHeight(address.row),
     };
   }
 
@@ -142,7 +161,7 @@ export class Viewport {
 
     let currentX = 0;
     let col = -1;
-    
+
     for (let c = 0; c < this.totalCols; c++) {
       const width = this.getColumnWidth(c);
       if (absoluteX >= currentX && absoluteX < currentX + width) {
@@ -154,7 +173,7 @@ export class Viewport {
 
     let currentY = 0;
     let row = -1;
-    
+
     for (let r = 0; r < this.totalRows; r++) {
       const height = this.getRowHeight(r);
       if (absoluteY >= currentY && absoluteY < currentY + height) {

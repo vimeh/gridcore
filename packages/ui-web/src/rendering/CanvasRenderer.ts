@@ -1,7 +1,7 @@
-import { Cell, CellAddress, cellAddressToString } from '@gridcore/core';
-import { GridTheme } from './GridTheme';
-import { Viewport, ViewportBounds } from '../components/Viewport';
-import { PIXEL_PERFECT_OFFSET } from '../constants';
+import { Cell, CellAddress, cellAddressToString } from "@gridcore/core";
+import { GridTheme } from "./GridTheme";
+import { Viewport, ViewportBounds } from "../components/Viewport";
+import { PIXEL_PERFECT_OFFSET } from "../constants";
 
 export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -10,11 +10,11 @@ export class CanvasRenderer {
   constructor(
     private canvas: HTMLCanvasElement,
     private theme: GridTheme,
-    private viewport: Viewport
+    private viewport: Viewport,
   ) {
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     if (!context) {
-      throw new Error('Failed to get 2D context from canvas');
+      throw new Error("Failed to get 2D context from canvas");
     }
     this.ctx = context;
     this.devicePixelRatio = window.devicePixelRatio || 1;
@@ -50,10 +50,10 @@ export class CanvasRenderer {
     getCellValue: (address: CellAddress) => Cell | undefined,
     selectedCells?: Set<string>,
     activeCell?: CellAddress | null,
-    isEditing?: boolean
+    isEditing?: boolean,
   ): void {
     this.clear();
-    
+
     const bounds = this.viewport.getVisibleBounds();
 
     // Render cells
@@ -62,19 +62,30 @@ export class CanvasRenderer {
         const address: CellAddress = { row, col };
         const position = this.viewport.getCellPosition(address);
         const cell = getCellValue(address);
-        
+
         const cellKey = cellAddressToString(address);
         const isSelected = selectedCells?.has(cellKey) || false;
-        const isActive = !!(activeCell && activeCell.row === address.row && activeCell.col === address.col);
+        const isActive = !!(
+          activeCell &&
+          activeCell.row === address.row &&
+          activeCell.col === address.col
+        );
         const isBeingEdited = isActive && (isEditing || false);
-        
-        this.renderCell(position, cell, address, isSelected, isActive, isBeingEdited);
+
+        this.renderCell(
+          position,
+          cell,
+          address,
+          isSelected,
+          isActive,
+          isBeingEdited,
+        );
       }
     }
 
     // Render grid lines
     this.renderGridLines(bounds);
-    
+
     // Render active cell border and glow on top
     if (activeCell) {
       this.renderActiveCellBorder(activeCell, isEditing || false);
@@ -87,13 +98,17 @@ export class CanvasRenderer {
     address: CellAddress,
     isSelected: boolean = false,
     isActive: boolean = false,
-    isBeingEdited: boolean = false
+    isBeingEdited: boolean = false,
   ): void {
     const { x, y, width, height } = position;
 
     // Skip if cell is outside viewport
-    if (x + width < 0 || x > this.canvas.width / this.devicePixelRatio ||
-        y + height < 0 || y > this.canvas.height / this.devicePixelRatio) {
+    if (
+      x + width < 0 ||
+      x > this.canvas.width / this.devicePixelRatio ||
+      y + height < 0 ||
+      y > this.canvas.height / this.devicePixelRatio
+    ) {
       return;
     }
 
@@ -112,19 +127,23 @@ export class CanvasRenderer {
     }
 
     // Render text (skip if cell is being edited)
-    if (!isBeingEdited && cell?.computedValue !== null && cell?.computedValue !== undefined) {
+    if (
+      !isBeingEdited &&
+      cell?.computedValue !== null &&
+      cell?.computedValue !== undefined
+    ) {
       this.ctx.save();
-      
+
       // Set text styles
       this.ctx.fillStyle = cell?.style?.color || this.theme.cellTextColor;
       this.ctx.font = `${cell?.style?.fontSize || this.theme.cellFontSize}px ${
         cell?.style?.fontFamily || this.theme.cellFontFamily
       }`;
-      
+
       if (cell?.style?.bold) {
         this.ctx.font = `bold ${this.ctx.font}`;
       }
-      
+
       if (cell?.style?.italic) {
         this.ctx.font = `italic ${this.ctx.font}`;
       }
@@ -138,18 +157,18 @@ export class CanvasRenderer {
       const text = String(cell.computedValue);
       const textX = x + this.theme.cellPaddingLeft;
       const textY = y + height / 2;
-      
+
       // Ensure text baseline is middle for vertical centering
-      this.ctx.textBaseline = 'middle';
-      
-      if (cell?.style?.textAlign === 'center') {
-        this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = "middle";
+
+      if (cell?.style?.textAlign === "center") {
+        this.ctx.textAlign = "center";
         this.ctx.fillText(text, x + width / 2, textY);
-      } else if (cell?.style?.textAlign === 'right') {
-        this.ctx.textAlign = 'right';
+      } else if (cell?.style?.textAlign === "right") {
+        this.ctx.textAlign = "right";
         this.ctx.fillText(text, x + width - this.theme.cellPaddingLeft, textY);
       } else {
-        this.ctx.textAlign = 'left';
+        this.ctx.textAlign = "left";
         this.ctx.fillText(text, textX, textY);
       }
 
@@ -173,9 +192,15 @@ export class CanvasRenderer {
     for (let col = bounds.startCol; col <= bounds.endCol; col++) {
       const colWidth = this.viewport.getColumnWidth(col);
       const colX = x - scrollX;
-      if (colX + colWidth >= 0 && colX <= this.canvas.width / this.devicePixelRatio) {
+      if (
+        colX + colWidth >= 0 &&
+        colX <= this.canvas.width / this.devicePixelRatio
+      ) {
         this.ctx.moveTo(colX + colWidth - PIXEL_PERFECT_OFFSET, 0);
-        this.ctx.lineTo(colX + colWidth - PIXEL_PERFECT_OFFSET, this.canvas.height / this.devicePixelRatio);
+        this.ctx.lineTo(
+          colX + colWidth - PIXEL_PERFECT_OFFSET,
+          this.canvas.height / this.devicePixelRatio,
+        );
       }
       x += colWidth;
     }
@@ -188,9 +213,15 @@ export class CanvasRenderer {
     for (let row = bounds.startRow; row <= bounds.endRow; row++) {
       const rowHeight = this.viewport.getRowHeight(row);
       const rowY = y - scrollY;
-      if (rowY + rowHeight >= 0 && rowY <= this.canvas.height / this.devicePixelRatio) {
+      if (
+        rowY + rowHeight >= 0 &&
+        rowY <= this.canvas.height / this.devicePixelRatio
+      ) {
         this.ctx.moveTo(0, rowY + rowHeight - PIXEL_PERFECT_OFFSET);
-        this.ctx.lineTo(this.canvas.width / this.devicePixelRatio, rowY + rowHeight - PIXEL_PERFECT_OFFSET);
+        this.ctx.lineTo(
+          this.canvas.width / this.devicePixelRatio,
+          rowY + rowHeight - PIXEL_PERFECT_OFFSET,
+        );
       }
       y += rowHeight;
     }
@@ -198,26 +229,29 @@ export class CanvasRenderer {
     this.ctx.stroke();
   }
 
-  private renderActiveCellBorder(activeCell: CellAddress, isEditing: boolean = false): void {
+  private renderActiveCellBorder(
+    activeCell: CellAddress,
+    isEditing: boolean = false,
+  ): void {
     const position = this.viewport.getCellPosition(activeCell);
-    
+
     if (position.x + position.width > 0 && position.y + position.height > 0) {
       const x = position.x;
       const y = position.y;
       const width = position.width;
       const height = position.height;
-      
+
       if (isEditing) {
         this.ctx.save();
-        
+
         const glowColor = this.theme.activeCellBorderColor;
         const glowLayers = [
           { width: 6, opacity: 0.1 },
           { width: 4, opacity: 0.2 },
-          { width: 3, opacity: 0.3 }
+          { width: 3, opacity: 0.3 },
         ];
-        
-        glowLayers.forEach(layer => {
+
+        glowLayers.forEach((layer) => {
           this.ctx.strokeStyle = glowColor;
           this.ctx.globalAlpha = layer.opacity;
           this.ctx.lineWidth = layer.width;
@@ -225,18 +259,18 @@ export class CanvasRenderer {
             x + 1 - (layer.width - 2) / 2,
             y + 1 - (layer.width - 2) / 2,
             width - 2 + (layer.width - 2),
-            height - 2 + (layer.width - 2)
+            height - 2 + (layer.width - 2),
           );
         });
-        
+
         this.ctx.restore();
       }
-      
+
       this.ctx.strokeStyle = this.theme.activeCellBorderColor;
       this.ctx.lineWidth = 2;
       this.ctx.setLineDash([]);
       this.ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
-      
+
       this.ctx.lineWidth = this.theme.gridLineWidth;
     }
   }

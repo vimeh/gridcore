@@ -1,6 +1,12 @@
-import { ASTNode, ParseResult, ParseError, BinaryOperator, UnaryOperator } from './ast';
-import { Tokenizer, Token, TokenType } from './tokenizer';
-import { parseCellAddress, parseCellRange } from '../utils/cellAddress';
+import {
+  ASTNode,
+  ParseResult,
+  ParseError,
+  BinaryOperator,
+  UnaryOperator,
+} from "./ast";
+import { Tokenizer, Token, TokenType } from "./tokenizer";
+import { parseCellAddress, parseCellRange } from "../utils/cellAddress";
 
 export class FormulaParser {
   private tokens: Token[];
@@ -14,31 +20,39 @@ export class FormulaParser {
   parse(formula: string): ParseResult {
     try {
       // Remove leading '=' if present
-      const cleanFormula = formula.startsWith('=') ? formula.slice(1) : formula;
-      
+      const cleanFormula = formula.startsWith("=") ? formula.slice(1) : formula;
+
       const tokenizer = new Tokenizer(cleanFormula);
       this.tokens = tokenizer.tokenize();
       this.current = 0;
 
       const ast = this.parseExpression();
-      
+
       if (!this.isAtEnd()) {
-        throw this.error('Unexpected token after expression');
+        throw this.error("Unexpected token after expression");
       }
 
       return { ast };
     } catch (error) {
       if (error instanceof Error) {
-        return { 
+        return {
           error: {
             message: error.message,
-            position: this.current < this.tokens.length ? this.tokens[this.current].position : 0,
+            position:
+              this.current < this.tokens.length
+                ? this.tokens[this.current].position
+                : 0,
             line: 1,
-            column: this.current < this.tokens.length ? this.tokens[this.current].position + 1 : 1
-          }
+            column:
+              this.current < this.tokens.length
+                ? this.tokens[this.current].position + 1
+                : 1,
+          },
         };
       }
-      return { error: { message: 'Unknown error', position: 0, line: 1, column: 1 } };
+      return {
+        error: { message: "Unknown error", position: 0, line: 1, column: 1 },
+      };
     }
   }
 
@@ -49,15 +63,18 @@ export class FormulaParser {
   private parseComparison(): ASTNode {
     let left = this.parseConcatenation();
 
-    while (this.check('OPERATOR') && this.isComparisonOperator(this.peek().value)) {
+    while (
+      this.check("OPERATOR") &&
+      this.isComparisonOperator(this.peek().value)
+    ) {
       this.advance();
       const operator = this.previous().value as BinaryOperator;
       const right = this.parseConcatenation();
       left = {
-        type: 'binary',
+        type: "binary",
         operator,
         left,
-        right
+        right,
       };
     }
 
@@ -67,15 +84,15 @@ export class FormulaParser {
   private parseConcatenation(): ASTNode {
     let left = this.parseAddition();
 
-    while (this.check('OPERATOR') && this.peek().value === '&') {
+    while (this.check("OPERATOR") && this.peek().value === "&") {
       this.advance();
-      const operator = '&' as BinaryOperator;
+      const operator = "&" as BinaryOperator;
       const right = this.parseAddition();
       left = {
-        type: 'binary',
+        type: "binary",
         operator,
         left,
-        right
+        right,
       };
     }
 
@@ -85,15 +102,18 @@ export class FormulaParser {
   private parseAddition(): ASTNode {
     let left = this.parseMultiplication();
 
-    while (this.check('OPERATOR') && (this.peek().value === '+' || this.peek().value === '-')) {
+    while (
+      this.check("OPERATOR") &&
+      (this.peek().value === "+" || this.peek().value === "-")
+    ) {
       this.advance();
       const operator = this.previous().value as BinaryOperator;
       const right = this.parseMultiplication();
       left = {
-        type: 'binary',
+        type: "binary",
         operator,
         left,
-        right
+        right,
       };
     }
 
@@ -103,15 +123,18 @@ export class FormulaParser {
   private parseMultiplication(): ASTNode {
     let left = this.parseExponentiation();
 
-    while (this.check('OPERATOR') && (this.peek().value === '*' || this.peek().value === '/')) {
+    while (
+      this.check("OPERATOR") &&
+      (this.peek().value === "*" || this.peek().value === "/")
+    ) {
       this.advance();
       const operator = this.previous().value as BinaryOperator;
       const right = this.parseExponentiation();
       left = {
-        type: 'binary',
+        type: "binary",
         operator,
         left,
-        right
+        right,
       };
     }
 
@@ -121,15 +144,15 @@ export class FormulaParser {
   private parseExponentiation(): ASTNode {
     let left = this.parseUnary();
 
-    while (this.check('OPERATOR') && this.peek().value === '^') {
+    while (this.check("OPERATOR") && this.peek().value === "^") {
       this.advance();
-      const operator = '^' as BinaryOperator;
+      const operator = "^" as BinaryOperator;
       const right = this.parseUnary();
       left = {
-        type: 'binary',
+        type: "binary",
         operator,
         left,
-        right
+        right,
       };
     }
 
@@ -137,26 +160,32 @@ export class FormulaParser {
   }
 
   private parseUnary(): ASTNode {
-    if (this.check('OPERATOR') && (this.peek().value === '-' || this.peek().value === '+')) {
+    if (
+      this.check("OPERATOR") &&
+      (this.peek().value === "-" || this.peek().value === "+")
+    ) {
       this.advance();
       const operator = this.previous().value as UnaryOperator;
-      
+
       // Check for double operators like "+ +"
-      if (this.check('OPERATOR') && (this.peek().value === '-' || this.peek().value === '+')) {
+      if (
+        this.check("OPERATOR") &&
+        (this.peek().value === "-" || this.peek().value === "+")
+      ) {
         // Allow unary operators to stack (like --5)
         const operand = this.parseUnary();
         return {
-          type: 'unary',
+          type: "unary",
           operator,
-          operand
+          operand,
         };
       }
-      
+
       const operand = this.parseUnary();
       return {
-        type: 'unary',
+        type: "unary",
         operator,
-        operand
+        operand,
       };
     }
 
@@ -164,104 +193,104 @@ export class FormulaParser {
   }
 
   private parsePrimary(): ASTNode {
-    if (this.match('NUMBER')) {
+    if (this.match("NUMBER")) {
       return {
-        type: 'number',
-        value: parseFloat(this.previous().value)
+        type: "number",
+        value: parseFloat(this.previous().value),
       };
     }
 
-    if (this.match('STRING')) {
+    if (this.match("STRING")) {
       const value = this.previous().value;
       // Remove quotes
       return {
-        type: 'string',
-        value: value.slice(1, -1).replace(/\\(.)/g, '$1')
+        type: "string",
+        value: value.slice(1, -1).replace(/\\(.)/g, "$1"),
       };
     }
 
-    if (this.match('TRUE')) {
+    if (this.match("TRUE")) {
       return {
-        type: 'boolean',
-        value: true
+        type: "boolean",
+        value: true,
       };
     }
 
-    if (this.match('FALSE')) {
+    if (this.match("FALSE")) {
       return {
-        type: 'boolean',
-        value: false
+        type: "boolean",
+        value: false,
       };
     }
 
-    if (this.match('CELL')) {
+    if (this.match("CELL")) {
       const reference = this.previous().value;
-      const address = parseCellAddress(reference.replace(/\$/g, ''));
+      const address = parseCellAddress(reference.replace(/\$/g, ""));
       if (!address) {
         throw this.error(`Invalid cell reference: ${reference}`);
       }
-      
+
       // Parse absolute references
       const colMatch = reference.match(/^(\$?)([A-Z]+)/);
       const rowMatch = reference.match(/([A-Z]+)(\$?)(\d+)$/);
-      
+
       return {
-        type: 'cell',
+        type: "cell",
         address,
         reference,
         absolute: {
-          row: rowMatch ? rowMatch[2] === '$' : false,
-          col: colMatch ? colMatch[1] === '$' : false
-        }
+          row: rowMatch ? rowMatch[2] === "$" : false,
+          col: colMatch ? colMatch[1] === "$" : false,
+        },
       };
     }
 
-    if (this.match('RANGE')) {
+    if (this.match("RANGE")) {
       const reference = this.previous().value;
-      const range = parseCellRange(reference.replace(/\$/g, ''));
+      const range = parseCellRange(reference.replace(/\$/g, ""));
       if (!range) {
         throw this.error(`Invalid range reference: ${reference}`);
       }
-      
+
       return {
-        type: 'range',
+        type: "range",
         range,
-        reference
+        reference,
       };
     }
 
-    if (this.match('FUNCTION')) {
+    if (this.match("FUNCTION")) {
       const name = this.previous().value.toUpperCase();
-      this.consume('LPAREN', `Expected '(' after function name '${name}'`);
-      
+      this.consume("LPAREN", `Expected '(' after function name '${name}'`);
+
       const args: ASTNode[] = [];
-      
-      if (!this.check('RPAREN')) {
+
+      if (!this.check("RPAREN")) {
         do {
           args.push(this.parseExpression());
-        } while (this.match('COMMA'));
+        } while (this.match("COMMA"));
       }
-      
-      this.consume('RPAREN', `Expected ')' after function arguments`);
-      
+
+      this.consume("RPAREN", `Expected ')' after function arguments`);
+
       return {
-        type: 'function',
+        type: "function",
         name,
-        args
+        args,
       };
     }
 
-    if (this.match('LPAREN')) {
+    if (this.match("LPAREN")) {
       const expr = this.parseExpression();
-      this.consume('RPAREN', 'Expected ) after expression');
+      this.consume("RPAREN", "Expected ) after expression");
       return expr;
     }
 
-    throw this.error('Expected expression');
+    throw this.error("Expected expression");
   }
 
   private isComparisonOperator(op: string): boolean {
-    return ['=', '<>', '<', '>', '<=', '>='].includes(op);
+    return ["=", "<>", "<", ">", "<=", ">="].includes(op);
   }
 
   private match(...types: TokenType[]): boolean {
@@ -285,7 +314,7 @@ export class FormulaParser {
   }
 
   private isAtEnd(): boolean {
-    return this.peek().type === 'EOF';
+    return this.peek().type === "EOF";
   }
 
   private peek(): Token {

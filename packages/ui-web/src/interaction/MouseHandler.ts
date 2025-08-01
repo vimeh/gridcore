@@ -1,32 +1,32 @@
-import { CellAddress } from '@gridcore/core';
-import { Viewport } from '../components/Viewport';
-import { SelectionManager } from './SelectionManager';
+import { CellAddress } from "@gridcore/core";
+import { Viewport } from "../components/Viewport";
+import { SelectionManager } from "./SelectionManager";
 
 export type MouseEventHandler = (cell: CellAddress) => void;
 
 export class MouseHandler {
   private isDragging: boolean = false;
   private lastMousePosition: { x: number; y: number } = { x: 0, y: 0 };
-  
+
   constructor(
     private canvas: HTMLCanvasElement,
     private viewport: Viewport,
     private selectionManager: SelectionManager,
     private onCellClick?: MouseEventHandler,
-    private onCellDoubleClick?: MouseEventHandler
+    private onCellDoubleClick?: MouseEventHandler,
   ) {
     this.setupEventListeners();
   }
 
   private setupEventListeners(): void {
-    this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-    this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
-    this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-    this.canvas.addEventListener('dblclick', this.handleDoubleClick.bind(this));
-    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-    
+    this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
+    this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
+    this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
+    this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
+    this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
     // Prevent text selection while dragging
-    this.canvas.addEventListener('selectstart', (e) => {
+    this.canvas.addEventListener("selectstart", (e) => {
       if (this.isDragging) e.preventDefault();
     });
   }
@@ -35,7 +35,7 @@ export class MouseHandler {
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     const cell = this.viewport.getCellAtPosition(x, y);
     if (!cell) return;
 
@@ -79,7 +79,7 @@ export class MouseHandler {
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     const cell = this.viewport.getCellAtPosition(x, y);
     if (cell) {
       this.onCellDoubleClick?.(cell);
@@ -114,9 +114,9 @@ export class MouseHandler {
 
   destroy(): void {
     // Remove all event listeners
-    this.canvas.removeEventListener('mousedown', this.handleMouseDown);
-    this.canvas.removeEventListener('mousemove', this.handleMouseMove);
-    this.canvas.removeEventListener('mouseup', this.handleMouseUp);
-    this.canvas.removeEventListener('dblclick', this.handleDoubleClick);
+    this.canvas.removeEventListener("mousedown", this.handleMouseDown);
+    this.canvas.removeEventListener("mousemove", this.handleMouseMove);
+    this.canvas.removeEventListener("mouseup", this.handleMouseUp);
+    this.canvas.removeEventListener("dblclick", this.handleDoubleClick);
   }
 }

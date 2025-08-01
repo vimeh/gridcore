@@ -1,6 +1,6 @@
-import { CellAddress, Cell } from '@gridcore/core';
-import { Viewport } from './Viewport';
-import { KEY_CODES } from '../constants';
+import { CellAddress, Cell } from "@gridcore/core";
+import { Viewport } from "./Viewport";
+import { KEY_CODES } from "../constants";
 
 export interface CellEditorCallbacks {
   onCommit: (address: CellAddress, value: string) => void;
@@ -17,56 +17,57 @@ export class CellEditor {
   constructor(
     private container: HTMLElement,
     private viewport: Viewport,
-    private callbacks: CellEditorCallbacks
+    private callbacks: CellEditorCallbacks,
   ) {
     this.input = this.createInput();
     this.container.appendChild(this.input);
   }
 
   private createInput(): HTMLInputElement {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'cell-editor';
-    input.style.position = 'absolute';
-    input.style.display = 'none';
-    input.style.border = 'none';
-    input.style.outline = 'none';
-    input.style.padding = '0 4px';
-    input.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    input.style.fontSize = '13px';
-    input.style.lineHeight = '1';
-    input.style.backgroundColor = 'transparent';
-    input.style.boxShadow = 'none';
-    input.style.textShadow = 'none';
-    input.style.zIndex = '1000';
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "cell-editor";
+    input.style.position = "absolute";
+    input.style.display = "none";
+    input.style.border = "none";
+    input.style.outline = "none";
+    input.style.padding = "0 4px";
+    input.style.fontFamily =
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    input.style.fontSize = "13px";
+    input.style.lineHeight = "1";
+    input.style.backgroundColor = "transparent";
+    input.style.boxShadow = "none";
+    input.style.textShadow = "none";
+    input.style.zIndex = "1000";
 
     // Event listeners
-    input.addEventListener('keydown', this.handleKeyDown.bind(this));
-    input.addEventListener('blur', this.handleBlur.bind(this));
+    input.addEventListener("keydown", this.handleKeyDown.bind(this));
+    input.addEventListener("blur", this.handleBlur.bind(this));
 
     return input;
   }
 
-  startEditing(cell: CellAddress, initialValue: string = ''): void {
+  startEditing(cell: CellAddress, initialValue: string = ""): void {
     if (this.isEditing) {
       this.commitEdit();
     }
 
     this.currentCell = cell;
     this.isEditing = true;
-    
+
     // Notify that editing has started
     this.callbacks.onEditStart?.();
 
     const position = this.viewport.getCellPosition(cell);
-    
+
     // Position the input
     this.input.style.left = `${position.x}px`;
     this.input.style.top = `${position.y}px`;
     this.input.style.width = `${position.width}px`;
     this.input.style.height = `${position.height}px`;
-    this.input.style.display = 'block';
-    
+    this.input.style.display = "block";
+
     // Set value and focus
     this.input.value = initialValue;
     this.input.focus();
@@ -99,9 +100,9 @@ export class CellEditor {
   private hideEditor(): void {
     this.isEditing = false;
     this.currentCell = null;
-    this.input.style.display = 'none';
-    this.input.value = '';
-    
+    this.input.style.display = "none";
+    this.input.value = "";
+
     // Return focus to the main container
     this.callbacks.onEditEnd?.();
   }
