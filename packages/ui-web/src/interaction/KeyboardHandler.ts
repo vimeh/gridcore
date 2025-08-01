@@ -1,4 +1,4 @@
-import { Grid, CellAddress, parseCellAddress } from "@gridcore/core";
+import { SpreadsheetEngine, CellAddress, parseCellAddress } from "@gridcore/core";
 import { SelectionManager } from "./SelectionManager";
 import { CellEditor } from "../components/CellEditor";
 import { KEY_CODES } from "../constants";
@@ -8,7 +8,7 @@ export class KeyboardHandler {
     private container: HTMLElement,
     private selectionManager: SelectionManager,
     private cellEditor: CellEditor,
-    private grid: Grid,
+    private grid: SpreadsheetEngine,
   ) {
     this.setupEventListeners();
   }

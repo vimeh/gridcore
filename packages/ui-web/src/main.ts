@@ -1,4 +1,4 @@
-import { Grid } from "@gridcore/core";
+import { SpreadsheetEngine } from "@gridcore/core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
 import "./style.css";
@@ -27,30 +27,31 @@ const gridContainer = app.querySelector(".grid-container") as HTMLElement;
 const GRID_ROWS = 2000;
 const GRID_COLS = 52; // A-Z, AA-AZ
 
-// Create Grid instance
-const grid = new Grid(GRID_ROWS, GRID_COLS);
+// Create SpreadsheetEngine instance
+const engine = new SpreadsheetEngine(GRID_ROWS, GRID_COLS);
 
 // Add some sample data
-grid.setCellByReference("A1", "Hello");
-grid.setCellByReference("B1", "World");
-grid.setCellByReference("A2", 42);
-grid.setCellByReference("B2", 123);
-grid.setCellByReference("C2", "=A2+B2", "=A2+B2");
+engine.setCellByReference("A1", "Hello");
+engine.setCellByReference("B1", "World");
+engine.setCellByReference("A2", 42);
+engine.setCellByReference("B2", 123);
+engine.setCellByReference("C2", "=A2+B2", "=A2+B2");
+engine.setCellByReference("D2", "=SUM(A2:B2)", "=SUM(A2:B2)");
+engine.setCellByReference("E2", "=AVERAGE(A2:D2)", "=AVERAGE(A2:D2)");
 
 // Create Formula Bar
 const formulaBar = new FormulaBar(formulaBarContainer, {
   onValueChange: (address, value) => {
     if (value.startsWith("=")) {
-      grid.setCell(address, value, value);
+      engine.setCell(address, value, value);
     } else {
       const numValue = parseFloat(value);
       if (!isNaN(numValue) && value.trim() !== "") {
-        grid.setCell(address, numValue);
+        engine.setCell(address, numValue);
       } else {
-        grid.setCell(address, value);
+        engine.setCell(address, value);
       }
     }
-    canvasGrid.render();
   },
   onImport: () => {
     const input = document.createElement("input");
@@ -61,19 +62,18 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
       if (file) {
         const text = await file.text();
         const rows = text.split("\n").map((row) => row.split(","));
-        grid.clear();
+        engine.clear();
         rows.forEach((row, r) => {
           row.forEach((cellValue, c) => {
-            grid.setCell({ row: r, col: c }, cellValue);
+            engine.setCell({ row: r, col: c }, cellValue);
           });
         });
-        canvasGrid.render();
       }
     };
     input.click();
   },
   onExport: () => {
-    const data = grid.getAllCells();
+    const data = engine.getAllCells();
     let csvContent = "";
 
     const keys = Array.from(data.keys());
@@ -81,14 +81,14 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
       return;
     }
 
-    const addresses = keys.map((key) => grid.parseCellKey(key));
+    const addresses = keys.map((key) => engine.parseCellKey(key));
     const maxRow = Math.max(...addresses.map((addr) => addr.row));
     const maxCol = Math.max(...addresses.map((addr) => addr.col));
 
     for (let i = 0; i <= maxRow; i++) {
       const row = [];
       for (let j = 0; j <= maxCol; j++) {
-        const cell = grid.getCell({ row: i, col: j });
+        const cell = engine.getCell({ row: i, col: j });
         const value = cell?.rawValue ?? "";
         // Escape commas and quotes
         const escapedValue =
@@ -113,21 +113,26 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
 });
 
 // Create Canvas Grid
-const canvasGrid = new CanvasGrid(gridContainer, grid, {
+const canvasGrid = new CanvasGrid(gridContainer, engine, {
   totalRows: GRID_ROWS,
   totalCols: GRID_COLS,
 });
 
 // Connect grid selection to formula bar
 canvasGrid.onCellClick = function (cell) {
-  const cellData = grid.getCell(cell);
+  const cellData = engine.getCell(cell);
   formulaBar.setActiveCell(cell, cellData);
 };
 
 // Initialize formula bar with A1
 const initialCell = { row: 0, col: 0 };
-const initialCellData = grid.getCell(initialCell);
+const initialCellData = engine.getCell(initialCell);
 formulaBar.setActiveCell(initialCell, initialCellData);
+
+// Listen for changes from the engine
+engine.addEventListener((event) => {
+  canvasGrid.render();
+});
 
 // Handle window resize
 window.addEventListener("resize", () => {

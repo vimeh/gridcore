@@ -1,4 +1,4 @@
-import { Grid, CellAddress, parseCellAddress } from "@gridcore/core";
+import { SpreadsheetEngine, CellAddress, parseCellAddress } from "@gridcore/core";
 import { CanvasRenderer } from "../rendering/CanvasRenderer";
 import { HeaderRenderer } from "../rendering/HeaderRenderer";
 import { GridTheme, defaultTheme } from "../rendering/GridTheme";
@@ -21,7 +21,7 @@ export class CanvasGrid {
   private colHeaderCanvas!: HTMLCanvasElement;
   private cornerCanvas!: HTMLCanvasElement;
   private scrollContainer!: HTMLElement;
-  private grid: Grid;
+  private grid: SpreadsheetEngine;
   private theme: GridTheme;
 
   private viewport: Viewport;
@@ -36,7 +36,7 @@ export class CanvasGrid {
 
   constructor(
     container: HTMLElement,
-    grid: Grid,
+    grid: SpreadsheetEngine,
     options: CanvasGridOptions = {},
   ) {
     this.container = container;
@@ -348,7 +348,7 @@ export class CanvasGrid {
     this.container.innerHTML = "";
   }
 
-  getGrid(): Grid {
+  getGrid(): SpreadsheetEngine {
     return this.grid;
   }
 

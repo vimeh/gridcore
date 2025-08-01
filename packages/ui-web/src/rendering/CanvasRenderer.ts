@@ -154,12 +154,17 @@ export class CanvasRenderer {
       this.ctx.clip();
 
       // Draw text
-      const text = String(cell.computedValue);
+      const text = cell.error ? cell.error : String(cell.computedValue);
       const textX = x + this.theme.cellPaddingLeft;
       const textY = y + height / 2;
 
       // Ensure text baseline is middle for vertical centering
       this.ctx.textBaseline = "middle";
+      
+      // Style error text differently
+      if (cell.error) {
+        this.ctx.fillStyle = "#FF0000";
+      }
 
       if (cell?.style?.textAlign === "center") {
         this.ctx.textAlign = "center";

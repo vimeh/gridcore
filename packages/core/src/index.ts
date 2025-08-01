@@ -5,6 +5,8 @@ export * from "./DependencyGraph";
 export * from "./formula/ast";
 export * from "./formula/tokenizer";
 export * from "./formula/parser";
+export * from "./formula/evaluator";
+export * from "./SpreadsheetEngine";
 
 export class GridCore {
   private name: string = "GridCore Engine";
