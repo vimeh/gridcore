@@ -1,5 +1,6 @@
-import { Grid, CellAddress, Cell, cellAddressToString, parseCellAddress } from '@gridcore/core';
+import { Grid, CellAddress, parseCellAddress } from '@gridcore/core';
 import { CanvasRenderer } from '../rendering/CanvasRenderer';
+import { HeaderRenderer } from '../rendering/HeaderRenderer';
 import { GridTheme, defaultTheme } from '../rendering/GridTheme';
 import { Viewport } from './Viewport';
 import { SelectionManager } from '../interaction/SelectionManager';
@@ -16,12 +17,16 @@ export interface CanvasGridOptions {
 export class CanvasGrid {
   private container: HTMLElement;
   private canvas!: HTMLCanvasElement;
+  private rowHeaderCanvas!: HTMLCanvasElement;
+  private colHeaderCanvas!: HTMLCanvasElement;
+  private cornerCanvas!: HTMLCanvasElement;
   private scrollContainer!: HTMLElement;
   private grid: Grid;
   private theme: GridTheme;
   
   private viewport: Viewport;
   private renderer: CanvasRenderer;
+  private headerRenderer!: HeaderRenderer;
   private selectionManager: SelectionManager;
   private mouseHandler: MouseHandler;
   private cellEditor: CellEditor;
@@ -34,15 +39,19 @@ export class CanvasGrid {
     this.grid = grid;
     this.theme = options.theme || defaultTheme;
     
-    // Create DOM structure
     this.setupDOM();
     
-    // Initialize components
     this.viewport = new Viewport(this.theme, options.totalRows, options.totalCols);
     this.renderer = new CanvasRenderer(this.canvas, this.theme, this.viewport);
+    this.headerRenderer = new HeaderRenderer(
+      this.rowHeaderCanvas,
+      this.colHeaderCanvas,
+      this.cornerCanvas,
+      this.theme,
+      this.viewport
+    );
     this.selectionManager = new SelectionManager();
     
-    // Initialize interaction handlers
     this.cellEditor = new CellEditor(this.scrollContainer, this.viewport, {
       onCommit: this.handleCellCommit.bind(this),
       onCancel: this.handleCellCancel.bind(this),
@@ -65,74 +74,103 @@ export class CanvasGrid {
       this.grid
     );
     
-    // Setup event listeners
     this.setupEventListeners();
     
-    // Initial render
-    this.resize();
-    
-    // Set initial selection to A1
     this.selectionManager.setActiveCell({ row: 0, col: 0 });
     
-    // Connect selection manager to our callback
     this.selectionManager.onActiveCellChange = (cell) => {
       this.scrollToCell(cell);
       this.render();
       this.onCellClick?.(cell);
     };
     
-    this.render();
+    requestAnimationFrame(() => {
+      this.resize();
+      this.render();
+    });
   }
 
   private setupDOM(): void {
-    // Clear container
     this.container.innerHTML = '';
     this.container.style.position = 'relative';
     this.container.style.overflow = 'hidden';
     
-    // Create scroll container
+    this.cornerCanvas = document.createElement('canvas');
+    this.cornerCanvas.className = 'grid-corner-canvas';
+    this.cornerCanvas.style.position = 'absolute';
+    this.cornerCanvas.style.top = '0';
+    this.cornerCanvas.style.left = '0';
+    this.cornerCanvas.style.width = `${this.theme.rowHeaderWidth}px`;
+    this.cornerCanvas.style.height = `${this.theme.columnHeaderHeight}px`;
+    this.cornerCanvas.style.zIndex = '3';
+    this.cornerCanvas.style.pointerEvents = 'auto';
+    this.cornerCanvas.style.backgroundColor = this.theme.headerBackgroundColor;
+    
+    this.colHeaderCanvas = document.createElement('canvas');
+    this.colHeaderCanvas.className = 'grid-col-header-canvas';
+    this.colHeaderCanvas.style.position = 'absolute';
+    this.colHeaderCanvas.style.top = '0';
+    this.colHeaderCanvas.style.left = `${this.theme.rowHeaderWidth}px`;
+    this.colHeaderCanvas.style.right = '0';
+    this.colHeaderCanvas.style.height = `${this.theme.columnHeaderHeight}px`;
+    this.colHeaderCanvas.style.zIndex = '2';
+    this.colHeaderCanvas.style.pointerEvents = 'auto';
+    this.colHeaderCanvas.style.backgroundColor = this.theme.headerBackgroundColor;
+    
+    this.rowHeaderCanvas = document.createElement('canvas');
+    this.rowHeaderCanvas.className = 'grid-row-header-canvas';
+    this.rowHeaderCanvas.style.position = 'absolute';
+    this.rowHeaderCanvas.style.top = `${this.theme.columnHeaderHeight}px`;
+    this.rowHeaderCanvas.style.left = '0';
+    this.rowHeaderCanvas.style.width = `${this.theme.rowHeaderWidth}px`;
+    this.rowHeaderCanvas.style.bottom = '0';
+    this.rowHeaderCanvas.style.zIndex = '2';
+    this.rowHeaderCanvas.style.pointerEvents = 'auto';
+    this.rowHeaderCanvas.style.backgroundColor = this.theme.headerBackgroundColor;
+    
     this.scrollContainer = document.createElement('div');
     this.scrollContainer.className = 'grid-scroll-container';
     this.scrollContainer.style.position = 'absolute';
-    this.scrollContainer.style.top = '0';
-    this.scrollContainer.style.left = '0';
+    this.scrollContainer.style.top = `${this.theme.columnHeaderHeight}px`;
+    this.scrollContainer.style.left = `${this.theme.rowHeaderWidth}px`;
     this.scrollContainer.style.right = '0';
     this.scrollContainer.style.bottom = '0';
     this.scrollContainer.style.overflow = 'auto';
     
-    // Create canvas - fixed at origin, won't move with scroll
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'grid-canvas';
-    this.canvas.style.position = 'absolute';
-    this.canvas.style.top = '0';
-    this.canvas.style.left = '0';
-    this.canvas.style.pointerEvents = 'auto'; // Ensure it can receive mouse events
+    this.canvas.style.position = 'relative';
+    this.canvas.style.pointerEvents = 'auto';
     
-    // Create spacer for scrolling
     const spacer = document.createElement('div');
     spacer.className = 'grid-spacer';
     spacer.style.position = 'relative';
     
     this.scrollContainer.appendChild(this.canvas);
     this.scrollContainer.appendChild(spacer);
+    
     this.container.appendChild(this.scrollContainer);
+    this.container.appendChild(this.cornerCanvas);
+    this.container.appendChild(this.colHeaderCanvas);
+    this.container.appendChild(this.rowHeaderCanvas);
   }
 
   private setupEventListeners(): void {
-    // Window resize
     window.addEventListener('resize', this.handleResize.bind(this));
-    
-    // Scroll handling
     this.scrollContainer.addEventListener('scroll', this.handleScroll.bind(this));
-    
-    // Prevent context menu on canvas
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     
-    // Prevent arrow keys from scrolling the container
     this.scrollContainer.addEventListener('keydown', (e) => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
       }
+    });
+    
+    [this.cornerCanvas, this.colHeaderCanvas, this.rowHeaderCanvas].forEach(canvas => {
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, { passive: false });
     });
   }
 
@@ -145,51 +183,21 @@ export class CanvasGrid {
     const scrollX = this.scrollContainer.scrollLeft;
     const scrollY = this.scrollContainer.scrollTop;
     
-    // Get viewport dimensions and total grid dimensions
-    const viewportWidth = this.scrollContainer.clientWidth;
-    const viewportHeight = this.scrollContainer.clientHeight;
-    const totalGridWidth = this.viewport.getTotalGridWidth();
-    const totalGridHeight = this.viewport.getTotalGridHeight();
-    
-    // Calculate maximum scroll positions (where last row/col is visible)
-    const maxScrollX = Math.max(0, totalGridWidth - viewportWidth);
-    const maxScrollY = Math.max(0, totalGridHeight - viewportHeight);
-    
-    // Log when scrolling past the last row/column (should not happen with the fix)
-    if (scrollX > maxScrollX) {
-      console.warn(`[SCROLL] Scrolled past last column! scrollX: ${scrollX}, maxScrollX: ${maxScrollX}, excess: ${scrollX - maxScrollX}px`);
-    }
-    
-    if (scrollY > maxScrollY) {
-      console.warn(`[SCROLL] Scrolled past last row! scrollY: ${scrollY}, maxScrollY: ${maxScrollY}, excess: ${scrollY - maxScrollY}px`);
-    }
-    
-    // Position the canvas to match the scroll position
-    // But clamp it so it doesn't extend beyond the grid boundaries
-    const canvasWidth = this.canvas.offsetWidth;
-    const canvasHeight = this.canvas.offsetHeight;
-    
-    // Clamp canvas position so it doesn't extend beyond total grid size
-    const clampedX = Math.min(scrollX, Math.max(0, totalGridWidth - canvasWidth));
-    const clampedY = Math.min(scrollY, Math.max(0, totalGridHeight - canvasHeight));
-    
-    this.canvas.style.left = `${clampedX}px`;
-    this.canvas.style.top = `${clampedY}px`;
-    
     this.viewport.setScrollPosition(scrollX, scrollY);
     this.cellEditor.updatePosition();
+    
+    this.headerRenderer.renderColumnHeaders(scrollX);
+    this.headerRenderer.renderRowHeaders(scrollY);
+    
     this.render();
   }
 
   private handleCellClick(cell: CellAddress): void {
     this.selectionManager.setActiveCell(cell);
     this.render();
-    
-    // Notify external handlers
     this.onCellClick?.(cell);
   }
   
-  // Public method for external cell click handling
   public onCellClick?: (cell: CellAddress) => void;
 
   private handleCellDoubleClick(cell: CellAddress): void {
@@ -199,15 +207,11 @@ export class CanvasGrid {
   }
 
   private handleCellCommit(address: CellAddress, value: string): void {
-    // Check if it's a formula
     const isFormula = value.startsWith('=');
     
     if (isFormula) {
-      // For now, just store the formula as-is
-      // The calculation engine will be implemented later
       this.grid.setCell(address, value, value);
     } else {
-      // Try to parse as number
       const numValue = parseFloat(value);
       if (!isNaN(numValue) && value.trim() !== '') {
         this.grid.setCell(address, numValue);
@@ -217,13 +221,11 @@ export class CanvasGrid {
     }
     
     this.render();
-    // Focus container after commit
     this.container.focus();
   }
 
   private handleCellCancel(): void {
     this.render();
-    // Focus container after cancel
     this.container.focus();
   }
 
@@ -232,49 +234,41 @@ export class CanvasGrid {
     const width = rect.width;
     const height = rect.height;
     
-    // Update canvas size
-    this.canvas.style.width = `${width}px`;
-    this.canvas.style.height = `${height}px`;
+    this.colHeaderCanvas.style.width = `${width - this.theme.rowHeaderWidth}px`;
+    this.rowHeaderCanvas.style.height = `${height - this.theme.columnHeaderHeight}px`;
     
-    // Update renderer
-    this.renderer.resize(width, height);
+    const scrollWidth = width - this.theme.rowHeaderWidth;
+    const scrollHeight = height - this.theme.columnHeaderHeight;
     
-    // Update spacer for scrolling
-    // The spacer should be sized so that when scrolled to maximum,
-    // the last row/column is visible at the bottom/right edge of the viewport
+    this.canvas.style.width = `${scrollWidth}px`;
+    this.canvas.style.height = `${scrollHeight}px`;
+    
+    this.renderer.resize(scrollWidth, scrollHeight);
+    this.headerRenderer.resize();
+    
     const spacer = this.scrollContainer.querySelector('.grid-spacer') as HTMLElement;
     if (spacer) {
       const totalWidth = this.viewport.getTotalGridWidth();
       const totalHeight = this.viewport.getTotalGridHeight();
       
-      // Maximum scrollable area = total content - viewport size
-      // This ensures the last column/row is visible when scrolled to the end
-      const maxScrollWidth = Math.max(0, totalWidth - width);
-      const maxScrollHeight = Math.max(0, totalHeight - height);
-      
-      // Spacer should be sized to prevent scrolling beyond the last row/column
-      // Since the canvas moves with scroll, we need to account for that
-      // The spacer should be sized so that when fully scrolled, the canvas doesn't extend beyond it
-      const spacerWidth = Math.max(width, totalWidth);
-      const spacerHeight = Math.max(height, totalHeight);
-      
-      // Uncomment for debugging scroll issues
-      // console.log(`[RESIZE] Setting spacer size: ${spacerWidth}x${spacerHeight}`);
-      // console.log(`[RESIZE] Total grid: ${totalWidth}x${totalHeight}, Viewport: ${width}x${height}`);
-      // console.log(`[RESIZE] Max scroll: ${maxScrollWidth}x${maxScrollHeight}`);
+      const spacerWidth = Math.max(scrollWidth, totalWidth);
+      const spacerHeight = Math.max(scrollHeight, totalHeight);
       
       spacer.style.width = `${spacerWidth}px`;
       spacer.style.height = `${spacerHeight}px`;
     }
+    
+    this.headerRenderer.renderCorner();
+    const scrollPos = this.viewport.getScrollPosition();
+    this.headerRenderer.renderColumnHeaders(scrollPos.x);
+    this.headerRenderer.renderRowHeaders(scrollPos.y);
   }
 
   render(): void {
-    // Cancel any pending render
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
     
-    // Schedule render on next frame
     this.animationFrameId = requestAnimationFrame(() => {
       this.renderer.renderGrid(
         (address) => this.grid.getCell(address),
@@ -287,25 +281,20 @@ export class CanvasGrid {
   }
 
   destroy(): void {
-    // Cancel any pending renders
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
     
-    // Clean up event listeners
     window.removeEventListener('resize', this.handleResize);
     this.scrollContainer.removeEventListener('scroll', this.handleScroll);
     
-    // Destroy components
     this.mouseHandler.destroy();
     this.cellEditor.destroy();
     this.keyboardHandler.destroy();
     
-    // Clear container
     this.container.innerHTML = '';
   }
 
-  // Public API
   getGrid(): Grid {
     return this.grid;
   }
@@ -325,23 +314,20 @@ export class CanvasGrid {
     const position = this.viewport.getCellPosition(address);
     const scrollPos = this.viewport.getScrollPosition();
     
-    // Calculate if we need to scroll
     const viewportWidth = this.scrollContainer.clientWidth;
     const viewportHeight = this.scrollContainer.clientHeight;
     
     let newScrollX = scrollPos.x;
     let newScrollY = scrollPos.y;
     
-    // Horizontal scroll
-    if (position.x < this.theme.rowHeaderWidth) {
-      newScrollX = scrollPos.x + position.x - this.theme.rowHeaderWidth;
+    if (position.x < 0) {
+      newScrollX = scrollPos.x + position.x;
     } else if (position.x + position.width > viewportWidth) {
       newScrollX = scrollPos.x + (position.x + position.width - viewportWidth);
     }
     
-    // Vertical scroll
-    if (position.y < this.theme.columnHeaderHeight) {
-      newScrollY = scrollPos.y + position.y - this.theme.columnHeaderHeight;
+    if (position.y < 0) {
+      newScrollY = scrollPos.y + position.y;
     } else if (position.y + position.height > viewportHeight) {
       newScrollY = scrollPos.y + (position.y + position.height - viewportHeight);
     }
