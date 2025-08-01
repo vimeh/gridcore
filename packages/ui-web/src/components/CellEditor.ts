@@ -33,7 +33,7 @@ export class CellEditor {
     input.style.padding = '2px 4px';
     input.style.fontFamily = 'inherit';
     input.style.fontSize = '13px';
-    input.style.backgroundColor = 'white';
+    input.style.backgroundColor = 'transparent';
     input.style.zIndex = '1000';
 
     // Event listeners

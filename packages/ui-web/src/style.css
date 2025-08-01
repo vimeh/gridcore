@@ -61,7 +61,7 @@ body {
 }
 
 .cell-editor {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  /* box-shadow removed - using canvas-based glow effect instead */
 }
 
 /* Scrollbar styling */
