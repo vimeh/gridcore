@@ -45,7 +45,12 @@ export class CanvasRenderer {
     this.ctx.fillRect(0, 0, width, height);
   }
 
-  renderGrid(getCellValue: (address: CellAddress) => Cell | undefined): void {
+  renderGrid(
+    getCellValue: (address: CellAddress) => Cell | undefined,
+    selectedCells?: Set<string>,
+    activeCell?: CellAddress | null,
+    isEditing?: boolean
+  ): void {
     this.clear();
     
     const bounds = this.viewport.getVisibleBounds();
@@ -58,7 +63,12 @@ export class CanvasRenderer {
         const position = this.viewport.getCellPosition(address);
         const cell = getCellValue(address);
         
-        this.renderCell(position, cell, address);
+        // Check if this cell is selected
+        const cellKey = cellAddressToString(address);
+        const isSelected = selectedCells?.has(cellKey) || false;
+        const isActive = activeCell && activeCell.row === address.row && activeCell.col === address.col;
+        
+        this.renderCell(position, cell, address, isSelected, isActive);
       }
     }
 
@@ -67,12 +77,19 @@ export class CanvasRenderer {
 
     // Render headers
     this.renderHeaders(bounds);
+    
+    // Render active cell border and glow on top
+    if (activeCell) {
+      this.renderActiveCellBorder(activeCell, isEditing || false);
+    }
   }
 
   private renderCell(
     position: { x: number; y: number; width: number; height: number },
     cell: Cell | undefined,
-    address: CellAddress
+    address: CellAddress,
+    isSelected: boolean = false,
+    isActive: boolean = false
   ): void {
     const { x, y, width, height } = position;
 
@@ -80,6 +97,19 @@ export class CanvasRenderer {
     if (x + width < 0 || x > this.canvas.width / this.devicePixelRatio ||
         y + height < 0 || y > this.canvas.height / this.devicePixelRatio) {
       return;
+    }
+
+    // Render selection background first (if selected)
+    if (isSelected && x + width > this.theme.rowHeaderWidth && y + height > this.theme.columnHeaderHeight) {
+      this.ctx.fillStyle = this.theme.selectedCellBackgroundColor;
+      this.ctx.globalAlpha = 0.3;
+      this.ctx.fillRect(
+        Math.max(x, this.theme.rowHeaderWidth),
+        Math.max(y, this.theme.columnHeaderHeight),
+        width,
+        height
+      );
+      this.ctx.globalAlpha = 1;
     }
 
     // Fill background if needed
@@ -253,82 +283,52 @@ export class CanvasRenderer {
     this.ctx.stroke();
   }
 
-  renderSelection(selectedCells: Set<string>, activeCell: CellAddress | null = null, isEditing: boolean = false): void {
-    // Render selected cells background
-    if (selectedCells.size > 0) {
-      this.ctx.fillStyle = this.theme.selectedCellBackgroundColor;
-      this.ctx.globalAlpha = 0.3;
-
-      for (const cellKey of selectedCells) {
-        const match = cellKey.match(/^([A-Z]+)(\d+)$/);
-        if (!match) continue;
-        
-        const col = match[1].charCodeAt(0) - 65; // Simple A-Z for now
-        const row = parseInt(match[2]) - 1;
-        const address: CellAddress = { row, col };
-        const position = this.viewport.getCellPosition(address);
-        
-        if (position.x + position.width > this.theme.rowHeaderWidth &&
-            position.y + position.height > this.theme.columnHeaderHeight) {
-          this.ctx.fillRect(
-            Math.max(position.x, this.theme.rowHeaderWidth),
-            Math.max(position.y, this.theme.columnHeaderHeight),
-            position.width,
-            position.height
-          );
-        }
-      }
-      this.ctx.globalAlpha = 1;
-    }
-
-    // Render active cell border
-    if (activeCell) {
-      const position = this.viewport.getCellPosition(activeCell);
+  private renderActiveCellBorder(activeCell: CellAddress, isEditing: boolean = false): void {
+    const position = this.viewport.getCellPosition(activeCell);
+    
+    if (position.x + position.width > this.theme.rowHeaderWidth &&
+        position.y + position.height > this.theme.columnHeaderHeight) {
       
-      if (position.x + position.width > this.theme.rowHeaderWidth &&
-          position.y + position.height > this.theme.columnHeaderHeight) {
+      const x = Math.max(position.x, this.theme.rowHeaderWidth);
+      const y = Math.max(position.y, this.theme.columnHeaderHeight);
+      const width = position.width;
+      const height = position.height;
+      
+      // If editing, draw a glow effect
+      if (isEditing) {
+        this.ctx.save();
         
-        const x = Math.max(position.x, this.theme.rowHeaderWidth);
-        const y = Math.max(position.y, this.theme.columnHeaderHeight);
-        const width = position.width;
-        const height = position.height;
+        // Draw multiple layers of border with decreasing opacity for glow effect
+        const glowColor = this.theme.activeCellBorderColor;
+        const glowLayers = [
+          { width: 6, opacity: 0.1 },
+          { width: 4, opacity: 0.2 },
+          { width: 3, opacity: 0.3 }
+        ];
         
-        // If editing, draw a glow effect
-        if (isEditing) {
-          this.ctx.save();
-          
-          // Draw multiple layers of border with decreasing opacity for glow effect
-          const glowColor = this.theme.activeCellBorderColor;
-          const glowLayers = [
-            { width: 6, opacity: 0.1 },
-            { width: 4, opacity: 0.2 },
-            { width: 3, opacity: 0.3 }
-          ];
-          
-          glowLayers.forEach(layer => {
-            this.ctx.strokeStyle = glowColor;
-            this.ctx.globalAlpha = layer.opacity;
-            this.ctx.lineWidth = layer.width;
-            this.ctx.strokeRect(
-              x + 1 - (layer.width - 2) / 2,
-              y + 1 - (layer.width - 2) / 2,
-              width - 2 + (layer.width - 2),
-              height - 2 + (layer.width - 2)
-            );
-          });
-          
-          this.ctx.restore();
-        }
+        glowLayers.forEach(layer => {
+          this.ctx.strokeStyle = glowColor;
+          this.ctx.globalAlpha = layer.opacity;
+          this.ctx.lineWidth = layer.width;
+          this.ctx.strokeRect(
+            x + 1 - (layer.width - 2) / 2,
+            y + 1 - (layer.width - 2) / 2,
+            width - 2 + (layer.width - 2),
+            height - 2 + (layer.width - 2)
+          );
+        });
         
-        // Always draw the main border
-        this.ctx.strokeStyle = this.theme.activeCellBorderColor;
-        this.ctx.lineWidth = 2;
-        this.ctx.setLineDash([]);
-        this.ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
-        
-        // Reset line width for other drawing
-        this.ctx.lineWidth = this.theme.gridLineWidth;
+        this.ctx.restore();
       }
+      
+      // Always draw the main border
+      this.ctx.strokeStyle = this.theme.activeCellBorderColor;
+      this.ctx.lineWidth = 2;
+      this.ctx.setLineDash([]);
+      this.ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
+      
+      // Reset line width for other drawing
+      this.ctx.lineWidth = this.theme.gridLineWidth;
     }
   }
 }

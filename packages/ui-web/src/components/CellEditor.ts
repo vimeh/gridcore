@@ -30,10 +30,13 @@ export class CellEditor {
     input.style.display = 'none';
     input.style.border = 'none';
     input.style.outline = 'none';
-    input.style.padding = '2px 4px';
-    input.style.fontFamily = 'inherit';
+    input.style.padding = '0 4px';
+    input.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     input.style.fontSize = '13px';
+    input.style.lineHeight = '1';
     input.style.backgroundColor = 'transparent';
+    input.style.boxShadow = 'none';
+    input.style.textShadow = 'none';
     input.style.zIndex = '1000';
 
     // Event listeners
@@ -59,8 +62,8 @@ export class CellEditor {
     // Position the input
     this.input.style.left = `${position.x}px`;
     this.input.style.top = `${position.y}px`;
-    this.input.style.width = `${position.width - 4}px`;
-    this.input.style.height = `${position.height - 4}px`;
+    this.input.style.width = `${position.width}px`;
+    this.input.style.height = `${position.height}px`;
     this.input.style.display = 'block';
     
     // Set value and focus

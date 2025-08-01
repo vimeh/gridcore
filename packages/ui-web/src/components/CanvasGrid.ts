@@ -275,8 +275,8 @@ export class CanvasGrid {
     
     // Schedule render on next frame
     this.animationFrameId = requestAnimationFrame(() => {
-      this.renderer.renderGrid((address) => this.grid.getCell(address));
-      this.renderer.renderSelection(
+      this.renderer.renderGrid(
+        (address) => this.grid.getCell(address),
         this.selectionManager.getSelectedCells(),
         this.selectionManager.getActiveCell(),
         this.cellEditor.isCurrentlyEditing()
