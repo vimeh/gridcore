@@ -139,15 +139,20 @@ export class CanvasGrid {
     
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'grid-canvas';
-    this.canvas.style.position = 'absolute';
+    this.canvas.style.position = 'sticky';
+    this.canvas.style.top = '0';
+    this.canvas.style.left = '0';
     this.canvas.style.pointerEvents = 'auto';
     
     const spacer = document.createElement('div');
     spacer.className = 'grid-spacer';
-    spacer.style.position = 'relative';
+    spacer.style.position = 'absolute';
+    spacer.style.top = '0';
+    spacer.style.left = '0';
+    spacer.style.pointerEvents = 'none';
     
-    this.scrollContainer.appendChild(this.canvas);
     this.scrollContainer.appendChild(spacer);
+    this.scrollContainer.appendChild(this.canvas);
     
     this.container.appendChild(this.scrollContainer);
     this.container.appendChild(this.cornerCanvas);
@@ -182,18 +187,6 @@ export class CanvasGrid {
   private handleScroll(): void {
     const scrollX = this.scrollContainer.scrollLeft;
     const scrollY = this.scrollContainer.scrollTop;
-
-    const totalGridWidth = this.viewport.getTotalGridWidth();
-    const totalGridHeight = this.viewport.getTotalGridHeight();
-
-    const canvasWidth = this.canvas.offsetWidth;
-    const canvasHeight = this.canvas.offsetHeight;
-
-    const clampedX = Math.min(scrollX, Math.max(0, totalGridWidth - canvasWidth));
-    const clampedY = Math.min(scrollY, Math.max(0, totalGridHeight - canvasHeight));
-
-    this.canvas.style.left = `${clampedX}px`;
-    this.canvas.style.top = `${clampedY}px`;
     
     this.viewport.setScrollPosition(scrollX, scrollY);
     this.cellEditor.updatePosition();
@@ -258,16 +251,15 @@ export class CanvasGrid {
     this.renderer.resize(scrollWidth, scrollHeight);
     this.headerRenderer.resize();
     
+    this.viewport.setViewportSize(scrollWidth, scrollHeight);
+    
     const spacer = this.scrollContainer.querySelector('.grid-spacer') as HTMLElement;
     if (spacer) {
       const totalWidth = this.viewport.getTotalGridWidth();
       const totalHeight = this.viewport.getTotalGridHeight();
       
-      const spacerWidth = Math.max(scrollWidth, totalWidth);
-      const spacerHeight = Math.max(scrollHeight, totalHeight);
-      
-      spacer.style.width = `${spacerWidth}px`;
-      spacer.style.height = `${spacerHeight}px`;
+      spacer.style.width = `${totalWidth}px`;
+      spacer.style.height = `${totalHeight}px`;
     }
     
     this.headerRenderer.renderCorner();

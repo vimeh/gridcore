@@ -162,41 +162,41 @@ export class CanvasRenderer {
     this.ctx.lineWidth = this.theme.gridLineWidth;
     this.ctx.beginPath();
 
-    // Vertical lines
+    const scrollX = this.viewport.getScrollPosition().x;
+    const scrollY = this.viewport.getScrollPosition().y;
+
+    // Vertical lines (draw right border of each cell)
     let x = 0;
     for (let col = 0; col < bounds.startCol; col++) {
       x += this.viewport.getColumnWidth(col);
     }
-    for (let col = bounds.startCol; col <= bounds.endCol + 1; col++) {
-      const colX = x - this.viewport.getScrollPosition().x;
-      if (colX >= 0 && colX <= this.canvas.width / this.devicePixelRatio) {
-        this.ctx.moveTo(colX + PIXEL_PERFECT_OFFSET, 0);
-        this.ctx.lineTo(colX + PIXEL_PERFECT_OFFSET, this.canvas.height / this.devicePixelRatio);
+    for (let col = bounds.startCol; col <= bounds.endCol; col++) {
+      const colWidth = this.viewport.getColumnWidth(col);
+      const colX = x - scrollX;
+      if (colX + colWidth >= 0 && colX <= this.canvas.width / this.devicePixelRatio) {
+        this.ctx.moveTo(colX + colWidth - PIXEL_PERFECT_OFFSET, 0);
+        this.ctx.lineTo(colX + colWidth - PIXEL_PERFECT_OFFSET, this.canvas.height / this.devicePixelRatio);
       }
-      if (col < this.viewport.getTotalCols()) {
-        x += this.viewport.getColumnWidth(col);
-      }
+      x += colWidth;
     }
 
-    // Horizontal lines
+    // Horizontal lines (draw bottom border of each cell)
     let y = 0;
     for (let row = 0; row < bounds.startRow; row++) {
       y += this.viewport.getRowHeight(row);
     }
-    for (let row = bounds.startRow; row <= bounds.endRow + 1; row++) {
-      const rowY = y - this.viewport.getScrollPosition().y;
-      if (rowY >= 0 && rowY <= this.canvas.height / this.devicePixelRatio) {
-        this.ctx.moveTo(0, rowY + PIXEL_PERFECT_OFFSET);
-        this.ctx.lineTo(this.canvas.width / this.devicePixelRatio, rowY + PIXEL_PERFECT_OFFSET);
+    for (let row = bounds.startRow; row <= bounds.endRow; row++) {
+      const rowHeight = this.viewport.getRowHeight(row);
+      const rowY = y - scrollY;
+      if (rowY + rowHeight >= 0 && rowY <= this.canvas.height / this.devicePixelRatio) {
+        this.ctx.moveTo(0, rowY + rowHeight - PIXEL_PERFECT_OFFSET);
+        this.ctx.lineTo(this.canvas.width / this.devicePixelRatio, rowY + rowHeight - PIXEL_PERFECT_OFFSET);
       }
-      if (row < this.viewport.getTotalRows()) {
-        y += this.viewport.getRowHeight(row);
-      }
+      y += rowHeight;
     }
 
     this.ctx.stroke();
   }
-
 
   private renderActiveCellBorder(activeCell: CellAddress, isEditing: boolean = false): void {
     const position = this.viewport.getCellPosition(activeCell);
