@@ -249,6 +249,11 @@ export class CanvasGrid {
 
     this.render();
     this.container.focus();
+    
+    // Update formula bar with the new cell value
+    if (this.onCellClick) {
+      this.onCellClick(address);
+    }
   }
 
   private handleCellCancel(): void {
