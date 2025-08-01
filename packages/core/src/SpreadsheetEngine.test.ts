@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { SpreadsheetEngine } from "./SpreadsheetEngine";
+import {
+  type SpreadsheetChangeEvent,
+  SpreadsheetEngine,
+} from "./SpreadsheetEngine";
 
 describe("SpreadsheetEngine", () => {
   let engine: SpreadsheetEngine;
@@ -125,7 +128,7 @@ describe("SpreadsheetEngine", () => {
   describe("event handling", () => {
     test("notifies listeners on cell change", () => {
       let eventFired = false;
-      let changedCell: any = null;
+      let changedCell: SpreadsheetChangeEvent["cells"][0] | null = null;
 
       engine.addEventListener((event) => {
         eventFired = true;
@@ -135,12 +138,13 @@ describe("SpreadsheetEngine", () => {
       engine.setCell({ row: 0, col: 0 }, 42);
 
       expect(eventFired).toBe(true);
-      expect(changedCell.address).toEqual({ row: 0, col: 0 });
-      expect(changedCell.newValue?.computedValue).toBe(42);
+      expect(changedCell).not.toBeNull();
+      expect(changedCell?.address).toEqual({ row: 0, col: 0 });
+      expect(changedCell?.newValue?.computedValue).toBe(42);
     });
 
     test("notifies listeners on dependent cell updates", () => {
-      const events: any[] = [];
+      const events: SpreadsheetChangeEvent[] = [];
 
       engine.addEventListener((event) => {
         events.push(event);

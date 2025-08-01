@@ -4,7 +4,10 @@ import { FormulaBar } from "./components/FormulaBar";
 import "./style.css";
 
 // Initialize the app
-const app = document.querySelector<HTMLDivElement>("#app")!;
+const app = document.querySelector<HTMLDivElement>("#app");
+if (!app) {
+  throw new Error("App container not found");
+}
 
 // Create app structure
 app.innerHTML = `

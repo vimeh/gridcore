@@ -1,4 +1,5 @@
 import { DependencyGraph } from "./DependencyGraph";
+import type { ASTNode } from "./formula/ast";
 import { type EvaluationContext, FormulaEvaluator } from "./formula/evaluator";
 import { FormulaParser } from "./formula/parser";
 import { Grid } from "./Grid";
@@ -161,10 +162,10 @@ export class SpreadsheetEngine {
     }
   }
 
-  private extractDependencies(node: any): CellAddress[] {
+  private extractDependencies(node: ASTNode): CellAddress[] {
     const dependencies: CellAddress[] = [];
 
-    const traverse = (n: any) => {
+    const traverse = (n: ASTNode) => {
       if (!n) return;
 
       if (n.type === "cell") {
@@ -373,14 +374,20 @@ export class SpreadsheetEngine {
   }
 
   // Serialization
-  toJSON(): any {
+  toJSON(): {
+    grid: ReturnType<Grid["toJSON"]>;
+    dependencies: ReturnType<DependencyGraph["toJSON"]>;
+  } {
     return {
       grid: this.grid.toJSON(),
       dependencies: this.dependencyGraph.toJSON(),
     };
   }
 
-  static fromJSON(data: any): SpreadsheetEngine {
+  static fromJSON(data: {
+    grid: ReturnType<Grid["toJSON"]>;
+    dependencies: ReturnType<DependencyGraph["toJSON"]>;
+  }): SpreadsheetEngine {
     const dimensions = data.grid.dimensions;
     const engine = new SpreadsheetEngine(dimensions.rows, dimensions.cols);
 
@@ -399,11 +406,11 @@ export class SpreadsheetEngine {
     engine.dependencyGraph = DependencyGraph.fromJSON(data.dependencies);
 
     // Recalculate all formulas
-    const formulaCells = data.grid.cells.filter(
-      (item: any) => item.cell.formula,
-    );
+    const formulaCells = data.grid.cells.filter((item) => item.cell.formula);
     for (const { address, cell } of formulaCells) {
-      engine.evaluateFormula(address, cell.formula);
+      if (cell.formula) {
+        engine.evaluateFormula(address, cell.formula);
+      }
     }
 
     return engine;

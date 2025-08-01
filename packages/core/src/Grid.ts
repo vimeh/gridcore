@@ -154,7 +154,10 @@ export class Grid {
     return newGrid;
   }
 
-  toJSON(): any {
+  toJSON(): {
+    dimensions: GridDimensions;
+    cells: Array<{ address: CellAddress; cell: Cell }>;
+  } {
     return {
       dimensions: this.dimensions,
       cells: Array.from(this.cells.entries()).map(([key, cell]) => ({
@@ -164,7 +167,10 @@ export class Grid {
     };
   }
 
-  static fromJSON(data: any): Grid {
+  static fromJSON(data: {
+    dimensions: GridDimensions;
+    cells: Array<{ address: CellAddress; cell: Cell }>;
+  }): Grid {
     const grid = new Grid(data.dimensions.rows, data.dimensions.cols);
 
     for (const { address, cell } of data.cells) {

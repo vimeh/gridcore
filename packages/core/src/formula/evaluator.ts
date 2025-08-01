@@ -16,9 +16,14 @@ export interface EvaluationResult {
   error?: string;
 }
 
+type FormulaFunction = (
+  args: ASTNode[],
+  context: EvaluationContext,
+) => CellValueType;
+
 export class FormulaEvaluator {
   private parser: FormulaParser;
-  private functions: Map<string, Function>;
+  private functions: Map<string, FormulaFunction>;
 
   constructor() {
     this.parser = new FormulaParser();
@@ -88,8 +93,20 @@ export class FormulaEvaluator {
         return this.evaluateFunction(node.name, node.args, context);
       }
 
-      default:
-        throw new Error(`Unknown node type: ${(node as any).type}`);
+      case "array": {
+        // For now, we'll just return the first element of the first row
+        // In a full implementation, this would return a proper array value
+        if (node.elements.length > 0 && node.elements[0].length > 0) {
+          return this.evaluateNode(node.elements[0][0], context);
+        }
+        return 0;
+      }
+
+      default: {
+        // This should never happen if ASTNode types are exhaustive
+        const _exhaustiveCheck: never = node;
+        throw new Error(`Unknown node type`);
+      }
     }
   }
 
@@ -404,7 +421,7 @@ export class FormulaEvaluator {
     });
   }
 
-  registerFunction(name: string, func: Function): void {
+  registerFunction(name: string, func: FormulaFunction): void {
     this.functions.set(name.toUpperCase(), func);
   }
 }

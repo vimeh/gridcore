@@ -211,7 +211,10 @@ export class DependencyGraph {
     this.dependents.clear();
   }
 
-  toJSON(): any {
+  toJSON(): {
+    dependencies: Array<{ cell: string; deps: string[] }>;
+    dependents: Array<{ cell: string; deps: string[] }>;
+  } {
     return {
       dependencies: Array.from(this.dependencies.entries()).map(
         ([key, deps]) => ({
@@ -226,7 +229,10 @@ export class DependencyGraph {
     };
   }
 
-  static fromJSON(data: any): DependencyGraph {
+  static fromJSON(data: {
+    dependencies: Array<{ cell: string; deps: string[] }>;
+    dependents: Array<{ cell: string; deps: string[] }>;
+  }): DependencyGraph {
     const graph = new DependencyGraph();
 
     for (const { cell, deps } of data.dependencies) {
