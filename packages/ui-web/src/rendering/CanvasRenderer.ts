@@ -281,23 +281,49 @@ export class CanvasRenderer {
       this.ctx.globalAlpha = 1;
     }
 
-    // Render active cell border (skip if editing)
-    if (activeCell && !isEditing) {
+    // Render active cell border
+    if (activeCell) {
       const position = this.viewport.getCellPosition(activeCell);
       
       if (position.x + position.width > this.theme.rowHeaderWidth &&
           position.y + position.height > this.theme.columnHeaderHeight) {
-        
-        // Draw thick border around active cell
-        this.ctx.strokeStyle = this.theme.activeCellBorderColor;
-        this.ctx.lineWidth = 2;
-        this.ctx.setLineDash([]);
         
         const x = Math.max(position.x, this.theme.rowHeaderWidth);
         const y = Math.max(position.y, this.theme.columnHeaderHeight);
         const width = position.width;
         const height = position.height;
         
+        // If editing, draw a glow effect
+        if (isEditing) {
+          this.ctx.save();
+          
+          // Draw multiple layers of border with decreasing opacity for glow effect
+          const glowColor = this.theme.activeCellBorderColor;
+          const glowLayers = [
+            { width: 6, opacity: 0.1 },
+            { width: 4, opacity: 0.2 },
+            { width: 3, opacity: 0.3 }
+          ];
+          
+          glowLayers.forEach(layer => {
+            this.ctx.strokeStyle = glowColor;
+            this.ctx.globalAlpha = layer.opacity;
+            this.ctx.lineWidth = layer.width;
+            this.ctx.strokeRect(
+              x + 1 - (layer.width - 2) / 2,
+              y + 1 - (layer.width - 2) / 2,
+              width - 2 + (layer.width - 2),
+              height - 2 + (layer.width - 2)
+            );
+          });
+          
+          this.ctx.restore();
+        }
+        
+        // Always draw the main border
+        this.ctx.strokeStyle = this.theme.activeCellBorderColor;
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([]);
         this.ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
         
         // Reset line width for other drawing

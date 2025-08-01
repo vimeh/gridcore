@@ -30,6 +30,34 @@ export class KeyboardHandler {
     if (!activeCell) return;
 
     switch (event.key) {
+      // Vim navigation keys
+      case 'h':
+        event.preventDefault();
+        this.selectionManager.moveActiveCell('left');
+        break;
+        
+      case 'j':
+        event.preventDefault();
+        this.selectionManager.moveActiveCell('down');
+        break;
+        
+      case 'k':
+        event.preventDefault();
+        this.selectionManager.moveActiveCell('up');
+        break;
+        
+      case 'l':
+        event.preventDefault();
+        this.selectionManager.moveActiveCell('right');
+        break;
+        
+      // Vim edit mode
+      case 'i':
+        event.preventDefault();
+        this.startEditingActiveCell();
+        break;
+        
+      // Keep arrow keys as secondary option
       case 'ArrowUp':
         event.preventDefault();
         this.selectionManager.moveActiveCell('up');
@@ -80,8 +108,9 @@ export class KeyboardHandler {
         break;
         
       default:
-        // Start editing if it's a printable character
-        if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
+        // Start editing if it's a printable character (except vim nav keys)
+        if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && 
+            !['h', 'j', 'k', 'l', 'i'].includes(event.key)) {
           this.startEditingActiveCell(event.key);
         }
         break;

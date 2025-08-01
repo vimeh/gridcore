@@ -4,6 +4,8 @@ import { Viewport } from './Viewport';
 export interface CellEditorCallbacks {
   onCommit: (address: CellAddress, value: string) => void;
   onCancel: () => void;
+  onEditEnd?: () => void;
+  onEditStart?: () => void;
 }
 
 export class CellEditor {
@@ -26,7 +28,7 @@ export class CellEditor {
     input.className = 'cell-editor';
     input.style.position = 'absolute';
     input.style.display = 'none';
-    input.style.border = '2px solid #1976d2';
+    input.style.border = 'none';
     input.style.outline = 'none';
     input.style.padding = '2px 4px';
     input.style.fontFamily = 'inherit';
@@ -48,6 +50,9 @@ export class CellEditor {
 
     this.currentCell = cell;
     this.isEditing = true;
+    
+    // Notify that editing has started
+    this.callbacks.onEditStart?.();
 
     const position = this.viewport.getCellPosition(cell);
     
@@ -92,6 +97,9 @@ export class CellEditor {
     this.currentCell = null;
     this.input.style.display = 'none';
     this.input.value = '';
+    
+    // Return focus to the main container
+    this.callbacks.onEditEnd?.();
   }
 
   private handleKeyDown(event: KeyboardEvent): void {

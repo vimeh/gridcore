@@ -45,7 +45,9 @@ export class CanvasGrid {
     // Initialize interaction handlers
     this.cellEditor = new CellEditor(this.scrollContainer, this.viewport, {
       onCommit: this.handleCellCommit.bind(this),
-      onCancel: this.handleCellCancel.bind(this)
+      onCancel: this.handleCellCancel.bind(this),
+      onEditEnd: () => this.container.focus(),
+      onEditStart: () => this.render()
     });
     
     this.mouseHandler = new MouseHandler(
@@ -124,6 +126,13 @@ export class CanvasGrid {
     
     // Prevent context menu on canvas
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    // Prevent arrow keys from scrolling the container
+    this.scrollContainer.addEventListener('keydown', (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
   }
 
   private handleResize(): void {
@@ -207,10 +216,14 @@ export class CanvasGrid {
     }
     
     this.render();
+    // Focus container after commit
+    this.container.focus();
   }
 
   private handleCellCancel(): void {
     this.render();
+    // Focus container after cancel
+    this.container.focus();
   }
 
   resize(): void {
