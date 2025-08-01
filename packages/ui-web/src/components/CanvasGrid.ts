@@ -139,7 +139,7 @@ export class CanvasGrid {
     
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'grid-canvas';
-    this.canvas.style.position = 'relative';
+    this.canvas.style.position = 'absolute';
     this.canvas.style.pointerEvents = 'auto';
     
     const spacer = document.createElement('div');
@@ -182,6 +182,18 @@ export class CanvasGrid {
   private handleScroll(): void {
     const scrollX = this.scrollContainer.scrollLeft;
     const scrollY = this.scrollContainer.scrollTop;
+
+    const totalGridWidth = this.viewport.getTotalGridWidth();
+    const totalGridHeight = this.viewport.getTotalGridHeight();
+
+    const canvasWidth = this.canvas.offsetWidth;
+    const canvasHeight = this.canvas.offsetHeight;
+
+    const clampedX = Math.min(scrollX, Math.max(0, totalGridWidth - canvasWidth));
+    const clampedY = Math.min(scrollY, Math.max(0, totalGridHeight - canvasHeight));
+
+    this.canvas.style.left = `${clampedX}px`;
+    this.canvas.style.top = `${clampedY}px`;
     
     this.viewport.setScrollPosition(scrollX, scrollY);
     this.cellEditor.updatePosition();

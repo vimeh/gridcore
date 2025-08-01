@@ -1,6 +1,7 @@
 import { Grid, CellAddress, parseCellAddress } from '@gridcore/core';
 import { SelectionManager } from './SelectionManager';
 import { CellEditor } from '../components/CellEditor';
+import { KEY_CODES } from '../constants';
 
 export class KeyboardHandler {
   constructor(
@@ -31,54 +32,54 @@ export class KeyboardHandler {
 
     switch (event.key) {
       // Vim navigation keys
-      case 'h':
+      case KEY_CODES.H:
         event.preventDefault();
         this.selectionManager.moveActiveCell('left');
         break;
         
-      case 'j':
+      case KEY_CODES.J:
         event.preventDefault();
         this.selectionManager.moveActiveCell('down');
         break;
         
-      case 'k':
+      case KEY_CODES.K:
         event.preventDefault();
         this.selectionManager.moveActiveCell('up');
         break;
         
-      case 'l':
+      case KEY_CODES.L:
         event.preventDefault();
         this.selectionManager.moveActiveCell('right');
         break;
         
       // Vim edit mode
-      case 'i':
+      case KEY_CODES.I:
         event.preventDefault();
         this.startEditingActiveCell();
         break;
         
       // Keep arrow keys as secondary option
-      case 'ArrowUp':
+      case KEY_CODES.ARROW_UP:
         event.preventDefault();
         this.selectionManager.moveActiveCell('up');
         break;
         
-      case 'ArrowDown':
+      case KEY_CODES.ARROW_DOWN:
         event.preventDefault();
         this.selectionManager.moveActiveCell('down');
         break;
         
-      case 'ArrowLeft':
+      case KEY_CODES.ARROW_LEFT:
         event.preventDefault();
         this.selectionManager.moveActiveCell('left');
         break;
         
-      case 'ArrowRight':
+      case KEY_CODES.ARROW_RIGHT:
         event.preventDefault();
         this.selectionManager.moveActiveCell('right');
         break;
         
-      case 'Enter':
+      case KEY_CODES.ENTER:
         event.preventDefault();
         if (event.shiftKey) {
           this.selectionManager.moveActiveCell('up');
@@ -87,18 +88,18 @@ export class KeyboardHandler {
         }
         break;
         
-      case 'F2':
+      case KEY_CODES.F2:
         event.preventDefault();
         this.startEditingActiveCell();
         break;
         
-      case 'Delete':
-      case 'Backspace':
+      case KEY_CODES.DELETE:
+      case KEY_CODES.BACKSPACE:
         event.preventDefault();
         this.deleteSelectedCells();
         break;
         
-      case 'Tab':
+      case KEY_CODES.TAB:
         event.preventDefault();
         if (event.shiftKey) {
           this.selectionManager.moveActiveCell('left');
@@ -110,7 +111,7 @@ export class KeyboardHandler {
       default:
         // Start editing if it's a printable character (except vim nav keys)
         if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && 
-            !['h', 'j', 'k', 'l', 'i'].includes(event.key)) {
+            ![KEY_CODES.H, KEY_CODES.J, KEY_CODES.K, KEY_CODES.L, KEY_CODES.I].includes(event.key)) {
           this.startEditingActiveCell(event.key);
         }
         break;
@@ -119,32 +120,32 @@ export class KeyboardHandler {
     // Handle Ctrl/Cmd shortcuts
     if (event.ctrlKey || event.metaKey) {
       switch (event.key) {
-        case 'a':
-        case 'A':
+        case KEY_CODES.A:
+        case KEY_CODES.CAPITAL_A:
           event.preventDefault();
           this.selectAll();
           break;
           
-        case 'c':
-        case 'C':
+        case KEY_CODES.C:
+        case KEY_CODES.CAPITAL_C:
           event.preventDefault();
           this.copySelection();
           break;
           
-        case 'v':
-        case 'V':
+        case KEY_CODES.V:
+        case KEY_CODES.CAPITAL_V:
           event.preventDefault();
           this.pasteToSelection();
           break;
           
-        case 'x':
-        case 'X':
+        case KEY_CODES.X:
+        case KEY_CODES.CAPITAL_X:
           event.preventDefault();
           this.cutSelection();
           break;
           
-        case 'z':
-        case 'Z':
+        case KEY_CODES.Z:
+        case KEY_CODES.CAPITAL_Z:
           event.preventDefault();
           if (event.shiftKey) {
             this.redo();

@@ -1,6 +1,7 @@
 import { Cell, CellAddress, cellAddressToString } from '@gridcore/core';
 import { GridTheme } from './GridTheme';
 import { Viewport, ViewportBounds } from '../components/Viewport';
+import { PIXEL_PERFECT_OFFSET } from '../constants';
 
 export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -90,11 +91,13 @@ export class CanvasRenderer {
   ): void {
     const { x, y, width, height } = position;
 
+    // Skip if cell is outside viewport
     if (x + width < 0 || x > this.canvas.width / this.devicePixelRatio ||
         y + height < 0 || y > this.canvas.height / this.devicePixelRatio) {
       return;
     }
 
+    // Render selection background first (if selected)
     if (isSelected) {
       this.ctx.fillStyle = this.theme.selectedCellBackgroundColor;
       this.ctx.globalAlpha = 0.3;
@@ -102,14 +105,17 @@ export class CanvasRenderer {
       this.ctx.globalAlpha = 1;
     }
 
+    // Fill background if needed
     if (cell?.style?.backgroundColor) {
       this.ctx.fillStyle = cell.style.backgroundColor;
       this.ctx.fillRect(x, y, width, height);
     }
 
+    // Render text (skip if cell is being edited)
     if (!isBeingEdited && cell?.computedValue !== null && cell?.computedValue !== undefined) {
       this.ctx.save();
       
+      // Set text styles
       this.ctx.fillStyle = cell?.style?.color || this.theme.cellTextColor;
       this.ctx.font = `${cell?.style?.fontSize || this.theme.cellFontSize}px ${
         cell?.style?.fontFamily || this.theme.cellFontFamily
@@ -123,14 +129,17 @@ export class CanvasRenderer {
         this.ctx.font = `italic ${this.ctx.font}`;
       }
 
+      // Clip to cell bounds
       this.ctx.beginPath();
       this.ctx.rect(x, y, width, height);
       this.ctx.clip();
 
+      // Draw text
       const text = String(cell.computedValue);
       const textX = x + this.theme.cellPaddingLeft;
       const textY = y + height / 2;
       
+      // Ensure text baseline is middle for vertical centering
       this.ctx.textBaseline = 'middle';
       
       if (cell?.style?.textAlign === 'center') {
@@ -161,8 +170,8 @@ export class CanvasRenderer {
     for (let col = bounds.startCol; col <= bounds.endCol + 1; col++) {
       const colX = x - this.viewport.getScrollPosition().x;
       if (colX >= 0 && colX <= this.canvas.width / this.devicePixelRatio) {
-        this.ctx.moveTo(colX + 0.5, 0);
-        this.ctx.lineTo(colX + 0.5, this.canvas.height / this.devicePixelRatio);
+        this.ctx.moveTo(colX + PIXEL_PERFECT_OFFSET, 0);
+        this.ctx.lineTo(colX + PIXEL_PERFECT_OFFSET, this.canvas.height / this.devicePixelRatio);
       }
       if (col < this.viewport.getTotalCols()) {
         x += this.viewport.getColumnWidth(col);
@@ -177,8 +186,8 @@ export class CanvasRenderer {
     for (let row = bounds.startRow; row <= bounds.endRow + 1; row++) {
       const rowY = y - this.viewport.getScrollPosition().y;
       if (rowY >= 0 && rowY <= this.canvas.height / this.devicePixelRatio) {
-        this.ctx.moveTo(0, rowY + 0.5);
-        this.ctx.lineTo(this.canvas.width / this.devicePixelRatio, rowY + 0.5);
+        this.ctx.moveTo(0, rowY + PIXEL_PERFECT_OFFSET);
+        this.ctx.lineTo(this.canvas.width / this.devicePixelRatio, rowY + PIXEL_PERFECT_OFFSET);
       }
       if (row < this.viewport.getTotalRows()) {
         y += this.viewport.getRowHeight(row);

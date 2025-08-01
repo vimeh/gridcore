@@ -1,5 +1,6 @@
 import { GridTheme } from './GridTheme';
-import { Viewport, ViewportBounds } from '../components/Viewport';
+import { Viewport } from '../components/Viewport';
+import { PIXEL_PERFECT_OFFSET } from '../constants';
 
 export class HeaderRenderer {
   private rowHeaderCtx: CanvasRenderingContext2D;
@@ -74,19 +75,17 @@ export class HeaderRenderer {
     const width = canvas.width / this.devicePixelRatio;
     const height = canvas.height / this.devicePixelRatio;
     
-    // Clear and fill
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = this.theme.headerBackgroundColor;
     ctx.fillRect(0, 0, width, height);
     
-    // Border
     ctx.strokeStyle = this.theme.gridLineColor;
     ctx.lineWidth = this.theme.gridLineWidth;
     ctx.beginPath();
-    ctx.moveTo(width - 0.5, 0);
-    ctx.lineTo(width - 0.5, height);
-    ctx.moveTo(0, height - 0.5);
-    ctx.lineTo(width, height - 0.5);
+    ctx.moveTo(width + 0.5, 0);
+    ctx.lineTo(width + 0.5, height);
+    ctx.moveTo(0, height + 0.5);
+    ctx.lineTo(width, height + 0.5);
     ctx.stroke();
   }
 
@@ -95,20 +94,16 @@ export class HeaderRenderer {
     const width = this.colHeaderCanvas.width / this.devicePixelRatio;
     const height = this.theme.columnHeaderHeight;
     
-    // Clear
     ctx.clearRect(0, 0, width, height);
     
-    // Background
     ctx.fillStyle = this.theme.headerBackgroundColor;
     ctx.fillRect(0, 0, width, height);
     
-    // Setup text
     ctx.fillStyle = this.theme.headerTextColor;
     ctx.font = `${this.theme.headerFontSize}px ${this.theme.headerFontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    // Render column headers
     let x = 0;
     for (let col = 0; col < this.viewport.getTotalCols(); col++) {
       const colWidth = this.viewport.getColumnWidth(col);
@@ -118,12 +113,11 @@ export class HeaderRenderer {
         const letter = this.getColumnName(col);
         ctx.fillText(letter, colX + colWidth / 2, height / 2);
         
-        // Column separator
         ctx.strokeStyle = this.theme.gridLineColor;
         ctx.lineWidth = this.theme.gridLineWidth;
         ctx.beginPath();
-        ctx.moveTo(colX + colWidth - 0.5, 0);
-        ctx.lineTo(colX + colWidth - 0.5, height);
+        ctx.moveTo(colX + colWidth + 0.5, 0);
+        ctx.lineTo(colX + colWidth + 0.5, height);
         ctx.stroke();
       }
       
@@ -131,7 +125,6 @@ export class HeaderRenderer {
       if (colX > width) break;
     }
     
-    // Bottom border
     ctx.beginPath();
     ctx.moveTo(0, height - 0.5);
     ctx.lineTo(width, height - 0.5);
@@ -143,20 +136,16 @@ export class HeaderRenderer {
     const width = this.theme.rowHeaderWidth;
     const height = this.rowHeaderCanvas.height / this.devicePixelRatio;
     
-    // Clear
     ctx.clearRect(0, 0, width, height);
     
-    // Background
     ctx.fillStyle = this.theme.headerBackgroundColor;
     ctx.fillRect(0, 0, width, height);
     
-    // Setup text
     ctx.fillStyle = this.theme.headerTextColor;
     ctx.font = `${this.theme.headerFontSize}px ${this.theme.headerFontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    // Render row headers
     let y = 0;
     for (let row = 0; row < this.viewport.getTotalRows(); row++) {
       const rowHeight = this.viewport.getRowHeight(row);
@@ -165,12 +154,11 @@ export class HeaderRenderer {
       if (rowY + rowHeight > 0 && rowY < height) {
         ctx.fillText(String(row + 1), width / 2, rowY + rowHeight / 2);
         
-        // Row separator
         ctx.strokeStyle = this.theme.gridLineColor;
         ctx.lineWidth = this.theme.gridLineWidth;
         ctx.beginPath();
-        ctx.moveTo(0, rowY + rowHeight - 0.5);
-        ctx.lineTo(width, rowY + rowHeight - 0.5);
+        ctx.moveTo(0, rowY + rowHeight + 0.5);
+        ctx.lineTo(width, rowY + rowHeight + 0.5);
         ctx.stroke();
       }
       
@@ -178,7 +166,6 @@ export class HeaderRenderer {
       if (rowY > height) break;
     }
     
-    // Right border
     ctx.beginPath();
     ctx.moveTo(width - 0.5, 0);
     ctx.lineTo(width - 0.5, height);

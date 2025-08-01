@@ -1,5 +1,6 @@
 import { CellAddress, Cell } from '@gridcore/core';
 import { Viewport } from './Viewport';
+import { KEY_CODES } from '../constants';
 
 export interface CellEditorCallbacks {
   onCommit: (address: CellAddress, value: string) => void;
@@ -107,15 +108,15 @@ export class CellEditor {
 
   private handleKeyDown(event: KeyboardEvent): void {
     switch (event.key) {
-      case 'Enter':
+      case KEY_CODES.ENTER:
         event.preventDefault();
         this.commitEdit();
         break;
-      case 'Escape':
+      case KEY_CODES.ESCAPE:
         event.preventDefault();
         this.cancelEdit();
         break;
-      case 'Tab':
+      case KEY_CODES.TAB:
         event.preventDefault();
         this.commitEdit();
         // TODO: Move to next cell

@@ -1,5 +1,6 @@
 import { CellAddress } from '@gridcore/core';
 import { GridTheme } from '../rendering/GridTheme';
+import { DEFAULT_TOTAL_ROWS, DEFAULT_TOTAL_COLS } from '../constants';
 
 export interface ViewportBounds {
   startRow: number;
@@ -13,6 +14,8 @@ export interface ScrollPosition {
   y: number;
 }
 
+import { DEFAULT_TOTAL_ROWS, DEFAULT_TOTAL_COLS } from '../constants';
+
 export class Viewport {
   private scrollPosition: ScrollPosition = { x: 0, y: 0 };
   private viewportWidth: number = 0;
@@ -22,8 +25,8 @@ export class Viewport {
   
   constructor(
     private theme: GridTheme,
-    private totalRows: number = 1000,
-    private totalCols: number = 26
+    private totalRows: number = DEFAULT_TOTAL_ROWS,
+    private totalCols: number = DEFAULT_TOTAL_COLS
   ) {}
 
   getTotalRows(): number {
