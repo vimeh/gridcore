@@ -1,6 +1,5 @@
-import { GridTheme } from "./GridTheme";
-import { Viewport } from "../components/Viewport";
-import { PIXEL_PERFECT_OFFSET } from "../constants";
+import type { Viewport } from "../components/Viewport";
+import type { GridTheme } from "./GridTheme";
 
 export class HeaderRenderer {
   private rowHeaderCtx: CanvasRenderingContext2D;

@@ -1,4 +1,4 @@
-import { Cell, CellAddress, CellValueType, GridDimensions } from "./types";
+import type { Cell, CellAddress, CellValueType, GridDimensions } from "./types";
 import { parseCellAddress } from "./utils/cellAddress";
 
 export class Grid {

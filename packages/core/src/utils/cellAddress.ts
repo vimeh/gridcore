@@ -1,4 +1,4 @@
-import { CellAddress, CellRange } from "../types";
+import type { CellAddress, CellRange } from "../types";
 
 export function columnLetterToNumber(letter: string): number {
   let result = 0;

@@ -1,12 +1,11 @@
-import {
+import { parseCellAddress, parseCellRange } from "../utils/cellAddress";
+import type {
   ASTNode,
-  ParseResult,
-  ParseError,
   BinaryOperator,
+  ParseResult,
   UnaryOperator,
 } from "./ast";
-import { Tokenizer, Token, TokenType } from "./tokenizer";
-import { parseCellAddress, parseCellRange } from "../utils/cellAddress";
+import { type Token, Tokenizer, type TokenType } from "./tokenizer";
 
 export class FormulaParser {
   private tokens: Token[];

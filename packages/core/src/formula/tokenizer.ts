@@ -155,9 +155,9 @@ export class Tokenizer {
     const start = this.position;
 
     // Handle $ at the beginning for absolute references
-    let hasDollarPrefix = false;
+    let _hasDollarPrefix = false;
     if (this.input[this.position] === "$") {
-      hasDollarPrefix = true;
+      _hasDollarPrefix = true;
       this.position++;
     }
 
@@ -206,8 +206,7 @@ export class Tokenizer {
         this.position++;
       }
 
-      const fullRange =
-        identifier + ":" + this.input.slice(rangeStart, this.position);
+      const fullRange = `${identifier}:${this.input.slice(rangeStart, this.position)}`;
       this.addToken("RANGE", fullRange);
     } else if (
       this.position < this.input.length &&
@@ -228,7 +227,7 @@ export class Tokenizer {
   }
 
   private readOperator(): void {
-    const start = this.position;
+    const _start = this.position;
     const char = this.input[this.position];
     this.position++;
 

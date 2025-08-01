@@ -1,218 +1,228 @@
-import { Grid } from "./Grid"
-import { DependencyGraph } from "./DependencyGraph"
-import { FormulaEvaluator, EvaluationContext } from "./formula/evaluator"
-import { FormulaParser } from "./formula/parser"
-import { CellAddress, Cell, CellValueType, GridDimensions } from "./types"
-import { parseCellAddress, cellAddressToString } from "./utils/cellAddress"
+import { DependencyGraph } from "./DependencyGraph";
+import { type EvaluationContext, FormulaEvaluator } from "./formula/evaluator";
+import { FormulaParser } from "./formula/parser";
+import { Grid } from "./Grid";
+import type { Cell, CellAddress, CellValueType, GridDimensions } from "./types";
+import { cellAddressToString, parseCellAddress } from "./utils/cellAddress";
 
 export interface SpreadsheetChangeEvent {
-  type: "cell-change" | "batch-change"
-  cells: Array<{ address: CellAddress; oldValue?: Cell; newValue?: Cell }>
+  type: "cell-change" | "batch-change";
+  cells: Array<{ address: CellAddress; oldValue?: Cell; newValue?: Cell }>;
 }
 
-export type SpreadsheetChangeListener = (event: SpreadsheetChangeEvent) => void
+export type SpreadsheetChangeListener = (event: SpreadsheetChangeEvent) => void;
 
 export class SpreadsheetEngine {
-  private grid: Grid
-  private dependencyGraph: DependencyGraph
-  private evaluator: FormulaEvaluator
-  private parser: FormulaParser
-  private listeners: Set<SpreadsheetChangeListener>
-  private isCalculating: boolean = false
-  private calculationQueue: Set<string> = new Set()
+  private grid: Grid;
+  private dependencyGraph: DependencyGraph;
+  private evaluator: FormulaEvaluator;
+  private parser: FormulaParser;
+  private listeners: Set<SpreadsheetChangeListener>;
+  private isCalculating: boolean = false;
+  private calculationQueue: Set<string> = new Set();
 
   constructor(rows: number = 1000, cols: number = 26) {
-    this.grid = new Grid(rows, cols)
-    this.dependencyGraph = new DependencyGraph()
-    this.evaluator = new FormulaEvaluator()
-    this.parser = new FormulaParser()
-    this.listeners = new Set()
+    this.grid = new Grid(rows, cols);
+    this.dependencyGraph = new DependencyGraph();
+    this.evaluator = new FormulaEvaluator();
+    this.parser = new FormulaParser();
+    this.listeners = new Set();
   }
 
   // Event handling
   addEventListener(listener: SpreadsheetChangeListener): void {
-    this.listeners.add(listener)
+    this.listeners.add(listener);
   }
 
   removeEventListener(listener: SpreadsheetChangeListener): void {
-    this.listeners.delete(listener)
+    this.listeners.delete(listener);
   }
 
   private notifyListeners(event: SpreadsheetChangeEvent): void {
     for (const listener of this.listeners) {
-      listener(event)
+      listener(event);
     }
   }
 
   // Cell operations
   getCell(address: CellAddress): Cell | undefined {
-    return this.grid.getCell(address)
+    return this.grid.getCell(address);
   }
 
   getCellByReference(reference: string): Cell | undefined {
-    return this.grid.getCellByReference(reference)
+    return this.grid.getCellByReference(reference);
   }
 
   setCell(address: CellAddress, value: CellValueType, formula?: string): void {
-    const oldCell = this.grid.getCell(address)
-    
+    const oldCell = this.grid.getCell(address);
+
     // Remove old dependencies
-    this.dependencyGraph.removeDependencies(address)
+    this.dependencyGraph.removeDependencies(address);
 
     // Set the raw value
-    this.grid.setCell(address, value, formula)
+    this.grid.setCell(address, value, formula);
 
     // If it's a formula, parse and evaluate it
-    if (formula && formula.startsWith("=")) {
-      this.evaluateFormula(address, formula)
+    if (formula?.startsWith("=")) {
+      this.evaluateFormula(address, formula);
     }
 
     // Trigger recalculation of dependent cells
-    this.recalculateDependents(address)
+    this.recalculateDependents(address);
 
     // Notify listeners
-    const newCell = this.grid.getCell(address)
+    const newCell = this.grid.getCell(address);
     this.notifyListeners({
       type: "cell-change",
-      cells: [{ address, oldValue: oldCell, newValue: newCell }]
-    })
+      cells: [{ address, oldValue: oldCell, newValue: newCell }],
+    });
   }
 
-  setCellByReference(reference: string, value: CellValueType, formula?: string): void {
-    const address = parseCellAddress(reference)
+  setCellByReference(
+    reference: string,
+    value: CellValueType,
+    formula?: string,
+  ): void {
+    const address = parseCellAddress(reference);
     if (!address) {
-      throw new Error(`Invalid cell reference: ${reference}`)
+      throw new Error(`Invalid cell reference: ${reference}`);
     }
-    this.setCell(address, value, formula)
+    this.setCell(address, value, formula);
   }
 
   private evaluateFormula(address: CellAddress, formula: string): void {
     try {
       // Parse the formula to extract dependencies
-      const parseResult = this.parser.parse(formula)
+      const parseResult = this.parser.parse(formula);
       if (parseResult.error) {
-        const cell = this.grid.getCell(address)
+        const cell = this.grid.getCell(address);
         if (cell) {
-          cell.error = parseResult.error.message
-          cell.computedValue = parseResult.error.message
+          cell.error = parseResult.error.message;
+          cell.computedValue = parseResult.error.message;
         }
-        return
+        return;
       }
 
       if (!parseResult.ast) {
-        return
+        return;
       }
 
       // Extract cell references from AST
-      const dependencies = this.extractDependencies(parseResult.ast)
-      
+      const dependencies = this.extractDependencies(parseResult.ast);
+
       // Check for circular dependencies
       for (const dep of dependencies) {
         if (this.dependencyGraph.hasCycle(address, dep)) {
-          const cell = this.grid.getCell(address)
+          const cell = this.grid.getCell(address);
           if (cell) {
-            cell.error = "#CIRCULAR!"
-            cell.computedValue = "#CIRCULAR!"
+            cell.error = "#CIRCULAR!";
+            cell.computedValue = "#CIRCULAR!";
           }
-          return
+          return;
         }
-        this.dependencyGraph.addDependency(address, dep)
+        this.dependencyGraph.addDependency(address, dep);
       }
 
       // Create evaluation context
       const context: EvaluationContext = {
         getCellValue: (addr: CellAddress) => this.grid.getCell(addr),
         getRangeValues: (start: CellAddress, end: CellAddress) => {
-          const cells: Cell[] = []
+          const cells: Cell[] = [];
           for (let row = start.row; row <= end.row; row++) {
             for (let col = start.col; col <= end.col; col++) {
-              const cell = this.grid.getCell({ row, col })
-              if (cell) cells.push(cell)
+              const cell = this.grid.getCell({ row, col });
+              if (cell) cells.push(cell);
             }
           }
-          return cells
+          return cells;
         },
-        currentCell: address
-      }
+        currentCell: address,
+      };
 
       // Evaluate the formula
-      const result = this.evaluator.evaluate(formula, context)
-      const cell = this.grid.getCell(address)
-      
+      const result = this.evaluator.evaluate(formula, context);
+      const cell = this.grid.getCell(address);
+
       if (cell) {
         if (result.error) {
-          cell.error = result.error
-          cell.computedValue = result.error
+          cell.error = result.error;
+          cell.computedValue = result.error;
         } else {
-          cell.error = undefined
-          cell.computedValue = result.value
+          cell.error = undefined;
+          cell.computedValue = result.value;
         }
       }
     } catch (error) {
-      const cell = this.grid.getCell(address)
+      const cell = this.grid.getCell(address);
       if (cell) {
-        cell.error = error instanceof Error ? error.message : "Unknown error"
-        cell.computedValue = cell.error
+        cell.error = error instanceof Error ? error.message : "Unknown error";
+        cell.computedValue = cell.error;
       }
     }
   }
 
   private extractDependencies(node: any): CellAddress[] {
-    const dependencies: CellAddress[] = []
+    const dependencies: CellAddress[] = [];
 
     const traverse = (n: any) => {
-      if (!n) return
+      if (!n) return;
 
       if (n.type === "cell") {
-        dependencies.push(n.address)
+        dependencies.push(n.address);
       } else if (n.type === "range") {
         // Add all cells in the range as dependencies
-        const { start, end } = n.range
+        const { start, end } = n.range;
         for (let row = start.row; row <= end.row; row++) {
           for (let col = start.col; col <= end.col; col++) {
-            dependencies.push({ row, col })
+            dependencies.push({ row, col });
           }
         }
       } else if (n.type === "binary") {
-        traverse(n.left)
-        traverse(n.right)
+        traverse(n.left);
+        traverse(n.right);
       } else if (n.type === "unary") {
-        traverse(n.operand)
+        traverse(n.operand);
       } else if (n.type === "function") {
         for (const arg of n.args) {
-          traverse(arg)
+          traverse(arg);
         }
       }
-    }
+    };
 
-    traverse(node)
-    return dependencies
+    traverse(node);
+    return dependencies;
   }
 
   private recalculateDependents(changedCell: CellAddress): void {
     if (this.isCalculating) {
       // Add to queue for later processing
-      this.calculationQueue.add(cellAddressToString(changedCell))
-      return
+      this.calculationQueue.add(cellAddressToString(changedCell));
+      return;
     }
 
-    this.isCalculating = true
-    const changes: Array<{ address: CellAddress; oldValue?: Cell; newValue?: Cell }> = []
+    this.isCalculating = true;
+    const changes: Array<{
+      address: CellAddress;
+      oldValue?: Cell;
+      newValue?: Cell;
+    }> = [];
 
     try {
       // Get all cells that need recalculation
-      const cellsToRecalculate = this.dependencyGraph.getCalculationOrder([changedCell])
-      
+      const cellsToRecalculate = this.dependencyGraph.getCalculationOrder([
+        changedCell,
+      ]);
+
       // Skip the first cell (the one that changed)
       for (let i = 1; i < cellsToRecalculate.length; i++) {
-        const address = cellsToRecalculate[i]
-        const cell = this.grid.getCell(address)
-        
-        if (cell && cell.formula) {
-          const oldValue = { ...cell }
-          this.evaluateFormula(address, cell.formula)
-          const newValue = this.grid.getCell(address)
-          changes.push({ address, oldValue, newValue })
+        const address = cellsToRecalculate[i];
+        const cell = this.grid.getCell(address);
+
+        if (cell?.formula) {
+          const oldValue = { ...cell };
+          this.evaluateFormula(address, cell.formula);
+          const newValue = this.grid.getCell(address);
+          changes.push({ address, oldValue, newValue });
         }
       }
 
@@ -220,22 +230,22 @@ export class SpreadsheetEngine {
       if (changes.length > 0) {
         this.notifyListeners({
           type: "batch-change",
-          cells: changes
-        })
+          cells: changes,
+        });
       }
     } finally {
-      this.isCalculating = false
+      this.isCalculating = false;
 
       // Process any queued calculations
       if (this.calculationQueue.size > 0) {
-        const queue = Array.from(this.calculationQueue)
-        this.calculationQueue.clear()
-        
+        const queue = Array.from(this.calculationQueue);
+        this.calculationQueue.clear();
+
         for (const cellKey of queue) {
-          const [col, row] = cellKey.split(/(\d+)/)
-          const address = parseCellAddress(col + row)
+          const [col, row] = cellKey.split(/(\d+)/);
+          const address = parseCellAddress(col + row);
           if (address) {
-            this.recalculateDependents(address)
+            this.recalculateDependents(address);
           }
         }
       }
@@ -243,49 +253,65 @@ export class SpreadsheetEngine {
   }
 
   // Batch operations
-  setCells(updates: Array<{ address: CellAddress; value: CellValueType; formula?: string }>): void {
-    const changes: Array<{ address: CellAddress; oldValue?: Cell; newValue?: Cell }> = []
+  setCells(
+    updates: Array<{
+      address: CellAddress;
+      value: CellValueType;
+      formula?: string;
+    }>,
+  ): void {
+    const changes: Array<{
+      address: CellAddress;
+      oldValue?: Cell;
+      newValue?: Cell;
+    }> = [];
 
     // First pass: set all values without triggering recalculation
     for (const update of updates) {
-      const oldCell = this.grid.getCell(update.address)
-      this.dependencyGraph.removeDependencies(update.address)
-      this.grid.setCell(update.address, update.value, update.formula)
-      
-      if (update.formula && update.formula.startsWith("=")) {
-        this.evaluateFormula(update.address, update.formula)
+      const oldCell = this.grid.getCell(update.address);
+      this.dependencyGraph.removeDependencies(update.address);
+      this.grid.setCell(update.address, update.value, update.formula);
+
+      if (update.formula?.startsWith("=")) {
+        this.evaluateFormula(update.address, update.formula);
       }
-      
-      const newCell = this.grid.getCell(update.address)
-      changes.push({ address: update.address, oldValue: oldCell, newValue: newCell })
+
+      const newCell = this.grid.getCell(update.address);
+      changes.push({
+        address: update.address,
+        oldValue: oldCell,
+        newValue: newCell,
+      });
     }
 
     // Second pass: recalculate all dependents
-    const allDependents = new Set<string>()
+    const allDependents = new Set<string>();
     for (const update of updates) {
-      const dependents = this.dependencyGraph.getDependents(update.address)
+      const dependents = this.dependencyGraph.getDependents(update.address);
       for (const dep of dependents) {
-        allDependents.add(cellAddressToString(dep))
+        allDependents.add(cellAddressToString(dep));
       }
     }
 
     // Calculate in proper order
     if (allDependents.size > 0) {
-      const addresses = Array.from(allDependents).map(key => {
-        const match = key.match(/^([A-Z]+)(\d+)$/)
-        if (!match) return null
-        return parseCellAddress(key)
-      }).filter(addr => addr !== null) as CellAddress[]
+      const addresses = Array.from(allDependents)
+        .map((key) => {
+          const match = key.match(/^([A-Z]+)(\d+)$/);
+          if (!match) return null;
+          return parseCellAddress(key);
+        })
+        .filter((addr) => addr !== null) as CellAddress[];
 
-      const orderedCells = this.dependencyGraph.getCalculationOrder(addresses)
-      
+      const orderedCells = this.dependencyGraph.getCalculationOrder(addresses);
+
       for (const address of orderedCells) {
-        const cell = this.grid.getCell(address)
-        if (cell && cell.formula) {
-          const oldValue = { ...cell }
-          this.evaluateFormula(address, cell.formula)
-          const newValue = this.grid.getCell(address)
-          changes.push({ address, oldValue, newValue })
+        const cell = this.grid.getCell(address);
+        if (cell?.formula) {
+          const oldValue = { ...cell };
+          this.evaluateFormula(address, cell.formula);
+          const newValue = this.grid.getCell(address);
+          changes.push({ address, oldValue, newValue });
         }
       }
     }
@@ -293,100 +319,102 @@ export class SpreadsheetEngine {
     // Notify listeners
     this.notifyListeners({
       type: "batch-change",
-      cells: changes
-    })
+      cells: changes,
+    });
   }
 
   // Grid operations
   clearCell(address: CellAddress): void {
-    const oldCell = this.grid.getCell(address)
-    this.dependencyGraph.removeDependencies(address)
-    this.grid.clearCell(address)
-    this.recalculateDependents(address)
-    
+    const oldCell = this.grid.getCell(address);
+    this.dependencyGraph.removeDependencies(address);
+    this.grid.clearCell(address);
+    this.recalculateDependents(address);
+
     this.notifyListeners({
       type: "cell-change",
-      cells: [{ address, oldValue: oldCell, newValue: undefined }]
-    })
+      cells: [{ address, oldValue: oldCell, newValue: undefined }],
+    });
   }
 
   clear(): void {
-    const allCells = this.grid.getNonEmptyCells()
-    this.grid.clear()
-    this.dependencyGraph.clear()
-    
+    const allCells = this.grid.getNonEmptyCells();
+    this.grid.clear();
+    this.dependencyGraph.clear();
+
     this.notifyListeners({
       type: "batch-change",
       cells: allCells.map(({ address, cell }) => ({
         address,
         oldValue: cell,
-        newValue: undefined
-      }))
-    })
+        newValue: undefined,
+      })),
+    });
   }
 
   // Getters
   getDimensions(): GridDimensions {
-    return this.grid.getDimensions()
+    return this.grid.getDimensions();
   }
 
   getNonEmptyCells(): Array<{ address: CellAddress; cell: Cell }> {
-    return this.grid.getNonEmptyCells()
+    return this.grid.getNonEmptyCells();
   }
 
   getUsedRange(): { start: CellAddress; end: CellAddress } | null {
-    return this.grid.getUsedRange()
+    return this.grid.getUsedRange();
   }
 
   getAllCells(): Map<string, Cell> {
-    return this.grid.getAllCells()
+    return this.grid.getAllCells();
   }
 
   getCellCount(): number {
-    return this.grid.getCellCount()
+    return this.grid.getCellCount();
   }
 
   // Serialization
   toJSON(): any {
     return {
       grid: this.grid.toJSON(),
-      dependencies: this.dependencyGraph.toJSON()
-    }
+      dependencies: this.dependencyGraph.toJSON(),
+    };
   }
 
   static fromJSON(data: any): SpreadsheetEngine {
-    const dimensions = data.grid.dimensions
-    const engine = new SpreadsheetEngine(dimensions.rows, dimensions.cols)
-    
+    const dimensions = data.grid.dimensions;
+    const engine = new SpreadsheetEngine(dimensions.rows, dimensions.cols);
+
     // Restore grid data
     for (const { address, cell } of data.grid.cells) {
-      engine.grid.setCell(address, cell.rawValue, cell.formula)
-      const engineCell = engine.grid.getCell(address)
+      engine.grid.setCell(address, cell.rawValue, cell.formula);
+      const engineCell = engine.grid.getCell(address);
       if (engineCell) {
-        engineCell.computedValue = cell.computedValue
-        engineCell.error = cell.error
-        engineCell.style = cell.style
+        engineCell.computedValue = cell.computedValue;
+        engineCell.error = cell.error;
+        engineCell.style = cell.style;
       }
     }
 
     // Restore dependencies
-    engine.dependencyGraph = DependencyGraph.fromJSON(data.dependencies)
+    engine.dependencyGraph = DependencyGraph.fromJSON(data.dependencies);
 
     // Recalculate all formulas
-    const formulaCells = data.grid.cells.filter((item: any) => item.cell.formula)
+    const formulaCells = data.grid.cells.filter(
+      (item: any) => item.cell.formula,
+    );
     for (const { address, cell } of formulaCells) {
-      engine.evaluateFormula(address, cell.formula)
+      engine.evaluateFormula(address, cell.formula);
     }
 
-    return engine
+    return engine;
   }
 
   // Utility methods
   parseCellKey(key: string): CellAddress {
-    return this.grid.parseCellKey(key)
+    return this.grid.parseCellKey(key);
   }
 
   updateCellStyle(address: CellAddress, style: Partial<Cell["style"]>): void {
-    this.grid.updateCellStyle(address, style)
+    this.grid.updateCellStyle(address, style);
   }
 }

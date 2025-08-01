@@ -1,13 +1,17 @@
-import { SpreadsheetEngine, CellAddress, parseCellAddress } from "@gridcore/core";
-import { CanvasRenderer } from "../rendering/CanvasRenderer";
-import { HeaderRenderer } from "../rendering/HeaderRenderer";
-import { GridTheme, defaultTheme } from "../rendering/GridTheme";
-import { Viewport } from "./Viewport";
-import { SelectionManager } from "../interaction/SelectionManager";
-import { MouseHandler } from "../interaction/MouseHandler";
-import { CellEditor } from "./CellEditor";
+import {
+  type CellAddress,
+  parseCellAddress,
+  type SpreadsheetEngine,
+} from "@gridcore/core";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
+import { MouseHandler } from "../interaction/MouseHandler";
+import { SelectionManager } from "../interaction/SelectionManager";
+import { CanvasRenderer } from "../rendering/CanvasRenderer";
 import { DebugRenderer } from "../rendering/DebugRenderer";
+import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
+import { HeaderRenderer } from "../rendering/HeaderRenderer";
+import { CellEditor } from "./CellEditor";
+import { Viewport } from "./Viewport";
 
 export interface CanvasGridOptions {
   theme?: GridTheme;
@@ -240,7 +244,7 @@ export class CanvasGrid {
       this.grid.setCell(address, value, value);
     } else {
       const numValue = parseFloat(value);
-      if (!isNaN(numValue) && value.trim() !== "") {
+      if (!Number.isNaN(numValue) && value.trim() !== "") {
         this.grid.setCell(address, numValue);
       } else {
         this.grid.setCell(address, value);
@@ -249,7 +253,7 @@ export class CanvasGrid {
 
     this.render();
     this.container.focus();
-    
+
     // Update formula bar with the new cell value
     if (this.onCellClick) {
       this.onCellClick(address);
@@ -333,34 +337,38 @@ export class CanvasGrid {
     this.animationFrameId = requestAnimationFrame(() => {
       // Start debug frame tracking
       this.debugRenderer.beginFrame();
-      
+
       // Get visible bounds for debug visualization
       const bounds = this.viewport.getVisibleBounds();
       const scrollPos = this.viewport.getScrollPosition();
-      
+
       // Calculate pixel bounds for visible area
-      let x = 0, y = 0;
+      let x = 0,
+        y = 0;
       for (let col = 0; col < bounds.startCol; col++) {
         x += this.viewport.getColumnWidth(col);
       }
       for (let row = 0; row < bounds.startRow; row++) {
         y += this.viewport.getRowHeight(row);
       }
-      
+
       const visibleBounds = {
         x: x - scrollPos.x,
         y: y - scrollPos.y,
         width: this.canvas.width,
-        height: this.canvas.height
+        height: this.canvas.height,
       };
-      
+
       // Track dirty regions more granularly
       // For now, we'll track the visible cell area as dirty
       // In a production implementation, you'd track individual cell changes
       if (this.debugRenderer.isEnabled()) {
         // Calculate the bounds of the visible cell area
-        let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
-        
+        let minX = Infinity,
+          minY = Infinity,
+          maxX = 0,
+          maxY = 0;
+
         for (let row = bounds.startRow; row <= bounds.endRow; row++) {
           for (let col = bounds.startCol; col <= bounds.endCol; col++) {
             const pos = this.viewport.getCellPosition({ row, col });
@@ -370,17 +378,17 @@ export class CanvasGrid {
             maxY = Math.max(maxY, pos.y + pos.height);
           }
         }
-        
+
         if (minX !== Infinity) {
           this.debugRenderer.addDirtyRegion(
             minX,
             minY,
             maxX - minX,
-            maxY - minY
+            maxY - minY,
           );
         }
       }
-      
+
       // Render the grid
       const cellsRendered = this.renderer.renderGrid(
         (address) => this.grid.getCell(address),
@@ -388,16 +396,16 @@ export class CanvasGrid {
         this.selectionManager.getActiveCell(),
         this.cellEditor.isCurrentlyEditing(),
       );
-      
+
       // End debug frame tracking
       this.debugRenderer.endFrame(cellsRendered);
-      
+
       // Render debug overlay if enabled
       const ctx = this.canvas.getContext("2d");
       if (ctx) {
         this.debugRenderer.render(ctx, visibleBounds);
       }
-      
+
       this.animationFrameId = null;
     });
   }

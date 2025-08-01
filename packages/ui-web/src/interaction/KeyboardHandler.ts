@@ -1,7 +1,7 @@
-import { SpreadsheetEngine, CellAddress, parseCellAddress } from "@gridcore/core";
-import { SelectionManager } from "./SelectionManager";
-import { CellEditor } from "../components/CellEditor";
+import { parseCellAddress, type SpreadsheetEngine } from "@gridcore/core";
+import type { CellEditor } from "../components/CellEditor";
 import { KEY_CODES } from "../constants";
+import type { SelectionManager } from "./SelectionManager";
 
 export class KeyboardHandler {
   constructor(

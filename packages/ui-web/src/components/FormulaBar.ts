@@ -1,4 +1,8 @@
-import { CellAddress, Cell, cellAddressToString } from "@gridcore/core";
+import {
+  type Cell,
+  type CellAddress,
+  cellAddressToString,
+} from "@gridcore/core";
 
 export interface FormulaBarCallbacks {
   onValueChange: (address: CellAddress, value: string) => void;
@@ -120,7 +124,7 @@ export class FormulaBar {
       cursor: pointer;
       user-select: none;
     `;
-    
+
     const debugCheckbox = document.createElement("input");
     debugCheckbox.type = "checkbox";
     debugCheckbox.style.cssText = `
@@ -131,14 +135,14 @@ export class FormulaBar {
         this.callbacks.onDebugToggle(debugCheckbox.checked);
       }
     });
-    
+
     const debugLabel = document.createElement("span");
     debugLabel.textContent = "Debug";
     debugLabel.style.cssText = `
       font-size: 12px;
       color: #666;
     `;
-    
+
     debugToggle.appendChild(debugCheckbox);
     debugToggle.appendChild(debugLabel);
 

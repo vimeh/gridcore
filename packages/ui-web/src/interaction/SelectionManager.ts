@@ -1,4 +1,8 @@
-import { CellAddress, CellRange, cellAddressToString } from "@gridcore/core";
+import {
+  type CellAddress,
+  type CellRange,
+  cellAddressToString,
+} from "@gridcore/core";
 
 export interface SelectionState {
   activeCell: CellAddress | null;

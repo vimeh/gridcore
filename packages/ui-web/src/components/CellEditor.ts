@@ -1,6 +1,6 @@
-import { CellAddress, Cell } from "@gridcore/core";
-import { Viewport } from "./Viewport";
+import type { CellAddress } from "@gridcore/core";
 import { KEY_CODES } from "../constants";
+import type { Viewport } from "./Viewport";
 
 export interface CellEditorCallbacks {
   onCommit: (address: CellAddress, value: string) => void;

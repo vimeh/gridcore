@@ -1,4 +1,4 @@
-import { CellAddress, CellRange } from "../types";
+import type { CellAddress, CellRange } from "../types";
 
 export type ASTNode =
   | NumberLiteral

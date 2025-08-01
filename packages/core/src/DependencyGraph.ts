@@ -24,13 +24,13 @@ export class DependencyGraph {
     if (!this.dependencies.has(fromKey)) {
       this.dependencies.set(fromKey, new Set());
     }
-    this.dependencies.get(fromKey)!.add(toKey);
+    this.dependencies.get(fromKey)?.add(toKey);
 
     // Add to dependents
     if (!this.dependents.has(toKey)) {
       this.dependents.set(toKey, new Set());
     }
-    this.dependents.get(toKey)!.add(fromKey);
+    this.dependents.get(toKey)?.add(fromKey);
   }
 
   removeDependencies(cell: CellAddress): void {

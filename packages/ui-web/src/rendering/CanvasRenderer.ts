@@ -1,7 +1,11 @@
-import { Cell, CellAddress, cellAddressToString } from "@gridcore/core";
-import { GridTheme } from "./GridTheme";
-import { Viewport, ViewportBounds } from "../components/Viewport";
+import {
+  type Cell,
+  type CellAddress,
+  cellAddressToString,
+} from "@gridcore/core";
+import type { Viewport, ViewportBounds } from "../components/Viewport";
 import { PIXEL_PERFECT_OFFSET } from "../constants";
+import type { GridTheme } from "./GridTheme";
 
 export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -92,16 +96,16 @@ export class CanvasRenderer {
     if (activeCell) {
       this.renderActiveCellBorder(activeCell, isEditing || false);
     }
-    
+
     return cellsRendered;
   }
 
   private renderCell(
     position: { x: number; y: number; width: number; height: number },
     cell: Cell | undefined,
-    address: CellAddress,
+    _address: CellAddress,
     isSelected: boolean = false,
-    isActive: boolean = false,
+    _isActive: boolean = false,
     isBeingEdited: boolean = false,
   ): void {
     const { x, y, width, height } = position;
@@ -164,7 +168,7 @@ export class CanvasRenderer {
 
       // Ensure text baseline is middle for vertical centering
       this.ctx.textBaseline = "middle";
-      
+
       // Style error text differently
       if (cell.error) {
         this.ctx.fillStyle = "#FF0000";

@@ -46,7 +46,7 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
       engine.setCell(address, value, value);
     } else {
       const numValue = parseFloat(value);
-      if (!isNaN(numValue) && value.trim() !== "") {
+      if (!Number.isNaN(numValue) && value.trim() !== "") {
         engine.setCell(address, numValue);
       } else {
         engine.setCell(address, value);
@@ -97,7 +97,7 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
             : value;
         row.push(escapedValue);
       }
-      csvContent += row.join(",") + "\r\n";
+      csvContent += `${row.join(",")}\r\n`;
     }
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -122,7 +122,7 @@ const canvasGrid = new CanvasGrid(gridContainer, engine, {
 });
 
 // Connect grid selection to formula bar
-canvasGrid.onCellClick = function (cell) {
+canvasGrid.onCellClick = (cell) => {
   const cellData = engine.getCell(cell);
   formulaBar.setActiveCell(cell, cellData);
 };
@@ -133,7 +133,7 @@ const initialCellData = engine.getCell(initialCell);
 formulaBar.setActiveCell(initialCell, initialCellData);
 
 // Listen for changes from the engine
-engine.addEventListener((event) => {
+engine.addEventListener((_event) => {
   canvasGrid.render();
 });
 

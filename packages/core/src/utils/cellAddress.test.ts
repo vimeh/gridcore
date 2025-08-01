@@ -1,12 +1,12 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
+  cellAddressToString,
   columnLetterToNumber,
+  getCellsInRange,
+  isValidCellAddress,
   numberToColumnLetter,
   parseCellAddress,
-  cellAddressToString,
   parseCellRange,
-  isValidCellAddress,
-  getCellsInRange,
 } from "./cellAddress";
 
 describe("columnLetterToNumber", () => {

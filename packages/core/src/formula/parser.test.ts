@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { FormulaParser } from "./parser";
 
 describe("FormulaParser", () => {
@@ -12,9 +12,9 @@ describe("FormulaParser", () => {
     });
 
     test("parses decimal numbers", () => {
-      const result = parser.parse("3.14159");
+      const result = parser.parse("33.33333");
       expect(result.error).toBeUndefined();
-      expect(result.ast).toEqual({ type: "number", value: 3.14159 });
+      expect(result.ast).toEqual({ type: "number", value: 33.33333 });
     });
 
     test("parses strings", () => {

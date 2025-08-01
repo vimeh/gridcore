@@ -1,6 +1,6 @@
-import { CellAddress } from "@gridcore/core";
-import { GridTheme } from "../rendering/GridTheme";
-import { DEFAULT_TOTAL_ROWS, DEFAULT_TOTAL_COLS } from "../constants";
+import type { CellAddress } from "@gridcore/core";
+import { DEFAULT_TOTAL_COLS, DEFAULT_TOTAL_ROWS } from "../constants";
+import type { GridTheme } from "../rendering/GridTheme";
 
 export interface ViewportBounds {
   startRow: number;

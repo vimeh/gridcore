@@ -1,12 +1,11 @@
-import { CellAddress } from "@gridcore/core";
-import { Viewport } from "../components/Viewport";
-import { SelectionManager } from "./SelectionManager";
+import type { CellAddress } from "@gridcore/core";
+import type { Viewport } from "../components/Viewport";
+import type { SelectionManager } from "./SelectionManager";
 
 export type MouseEventHandler = (cell: CellAddress) => void;
 
 export class MouseHandler {
   private isDragging: boolean = false;
-  private lastMousePosition: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -70,7 +69,7 @@ export class MouseHandler {
     this.lastMousePosition = { x, y };
   }
 
-  private handleMouseUp(event: MouseEvent): void {
+  private handleMouseUp(_event: MouseEvent): void {
     this.isDragging = false;
     this.selectionManager.endRangeSelection();
   }
