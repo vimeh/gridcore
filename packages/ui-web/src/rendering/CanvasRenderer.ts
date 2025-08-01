@@ -51,14 +51,16 @@ export class CanvasRenderer {
     selectedCells?: Set<string>,
     activeCell?: CellAddress | null,
     isEditing?: boolean,
-  ): void {
+  ): number {
     this.clear();
 
     const bounds = this.viewport.getVisibleBounds();
+    let cellsRendered = 0;
 
     // Render cells
     for (let row = bounds.startRow; row <= bounds.endRow; row++) {
       for (let col = bounds.startCol; col <= bounds.endCol; col++) {
+        cellsRendered++;
         const address: CellAddress = { row, col };
         const position = this.viewport.getCellPosition(address);
         const cell = getCellValue(address);
@@ -90,6 +92,8 @@ export class CanvasRenderer {
     if (activeCell) {
       this.renderActiveCellBorder(activeCell, isEditing || false);
     }
+    
+    return cellsRendered;
   }
 
   private renderCell(

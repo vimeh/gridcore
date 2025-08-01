@@ -114,3 +114,13 @@ body {
 .grid-scroll-container::-webkit-scrollbar-corner {
   background: #f1f1f1;
 }
+
+/* Debug mode styles */
+.formula-bar label {
+  font-size: 13px;
+}
+
+.formula-bar input[type="checkbox"] {
+  margin-right: 4px;
+  vertical-align: middle;
+}

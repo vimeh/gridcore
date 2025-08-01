@@ -7,6 +7,7 @@ import { SelectionManager } from "../interaction/SelectionManager";
 import { MouseHandler } from "../interaction/MouseHandler";
 import { CellEditor } from "./CellEditor";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
+import { DebugRenderer } from "../rendering/DebugRenderer";
 
 export interface CanvasGridOptions {
   theme?: GridTheme;
@@ -33,6 +34,7 @@ export class CanvasGrid {
   private keyboardHandler: KeyboardHandler;
 
   private animationFrameId: number | null = null;
+  private debugRenderer!: DebugRenderer;
 
   constructor(
     container: HTMLElement,
@@ -51,6 +53,7 @@ export class CanvasGrid {
       options.totalCols,
     );
     this.renderer = new CanvasRenderer(this.canvas, this.theme, this.viewport);
+    this.debugRenderer = new DebugRenderer(this.canvas);
     this.headerRenderer = new HeaderRenderer(
       this.rowHeaderCanvas,
       this.colHeaderCanvas,
@@ -323,12 +326,73 @@ export class CanvasGrid {
     }
 
     this.animationFrameId = requestAnimationFrame(() => {
-      this.renderer.renderGrid(
+      // Start debug frame tracking
+      this.debugRenderer.beginFrame();
+      
+      // Get visible bounds for debug visualization
+      const bounds = this.viewport.getVisibleBounds();
+      const scrollPos = this.viewport.getScrollPosition();
+      
+      // Calculate pixel bounds for visible area
+      let x = 0, y = 0;
+      for (let col = 0; col < bounds.startCol; col++) {
+        x += this.viewport.getColumnWidth(col);
+      }
+      for (let row = 0; row < bounds.startRow; row++) {
+        y += this.viewport.getRowHeight(row);
+      }
+      
+      const visibleBounds = {
+        x: x - scrollPos.x,
+        y: y - scrollPos.y,
+        width: this.canvas.width,
+        height: this.canvas.height
+      };
+      
+      // Track dirty regions more granularly
+      // For now, we'll track the visible cell area as dirty
+      // In a production implementation, you'd track individual cell changes
+      if (this.debugRenderer.isEnabled()) {
+        // Calculate the bounds of the visible cell area
+        let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+        
+        for (let row = bounds.startRow; row <= bounds.endRow; row++) {
+          for (let col = bounds.startCol; col <= bounds.endCol; col++) {
+            const pos = this.viewport.getCellPosition({ row, col });
+            minX = Math.min(minX, pos.x);
+            minY = Math.min(minY, pos.y);
+            maxX = Math.max(maxX, pos.x + pos.width);
+            maxY = Math.max(maxY, pos.y + pos.height);
+          }
+        }
+        
+        if (minX !== Infinity) {
+          this.debugRenderer.addDirtyRegion(
+            minX,
+            minY,
+            maxX - minX,
+            maxY - minY
+          );
+        }
+      }
+      
+      // Render the grid
+      const cellsRendered = this.renderer.renderGrid(
         (address) => this.grid.getCell(address),
         this.selectionManager.getSelectedCells(),
         this.selectionManager.getActiveCell(),
         this.cellEditor.isCurrentlyEditing(),
       );
+      
+      // End debug frame tracking
+      this.debugRenderer.endFrame(cellsRendered);
+      
+      // Render debug overlay if enabled
+      const ctx = this.canvas.getContext("2d");
+      if (ctx) {
+        this.debugRenderer.render(ctx, visibleBounds);
+      }
+      
       this.animationFrameId = null;
     });
   }
@@ -350,6 +414,11 @@ export class CanvasGrid {
 
   getGrid(): SpreadsheetEngine {
     return this.grid;
+  }
+
+  setDebugMode(enabled: boolean): void {
+    this.debugRenderer.setEnabled(enabled);
+    this.render(); // Re-render to show/hide debug overlay
   }
 
   getSelectedCells(): CellAddress[] {

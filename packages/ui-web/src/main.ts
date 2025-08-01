@@ -110,6 +110,9 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
     link.click();
     document.body.removeChild(link);
   },
+  onDebugToggle: (enabled) => {
+    canvasGrid.setDebugMode(enabled);
+  },
 });
 
 // Create Canvas Grid

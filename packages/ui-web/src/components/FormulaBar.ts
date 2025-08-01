@@ -4,6 +4,7 @@ export interface FormulaBarCallbacks {
   onValueChange: (address: CellAddress, value: string) => void;
   onImport: () => void;
   onExport: () => void;
+  onDebugToggle?: (enabled: boolean) => void;
 }
 
 export class FormulaBar {
@@ -109,9 +110,42 @@ export class FormulaBar {
     exportButton.style.cssText = buttonStyles;
     exportButton.addEventListener("click", () => this.callbacks.onExport());
 
+    // Debug mode toggle
+    const debugToggle = document.createElement("label");
+    debugToggle.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 8px;
+      cursor: pointer;
+      user-select: none;
+    `;
+    
+    const debugCheckbox = document.createElement("input");
+    debugCheckbox.type = "checkbox";
+    debugCheckbox.style.cssText = `
+      cursor: pointer;
+    `;
+    debugCheckbox.addEventListener("change", () => {
+      if (this.callbacks.onDebugToggle) {
+        this.callbacks.onDebugToggle(debugCheckbox.checked);
+      }
+    });
+    
+    const debugLabel = document.createElement("span");
+    debugLabel.textContent = "Debug";
+    debugLabel.style.cssText = `
+      font-size: 12px;
+      color: #666;
+    `;
+    
+    debugToggle.appendChild(debugCheckbox);
+    debugToggle.appendChild(debugLabel);
+
     this.container.appendChild(spacer);
     this.container.appendChild(importButton);
     this.container.appendChild(exportButton);
+    this.container.appendChild(debugToggle);
   }
 
   setActiveCell(address: CellAddress | null, cell: Cell | undefined): void {
