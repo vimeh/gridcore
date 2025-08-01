@@ -9,9 +9,9 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 // Create app structure
 app.innerHTML = `
   <div class="spreadsheet-app">
-    <div class="app-header">
-      <h1>GridCore</h1>
-    </div>
+    <!-- <div class="app-header"> -->
+    <!--   <h1>GridCore</h1> -->
+    <!-- </div> -->
     <div class="formula-bar-container"></div>
     <div class="grid-container"></div>
   </div>

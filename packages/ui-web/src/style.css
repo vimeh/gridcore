@@ -26,20 +26,21 @@ body {
   background: white;
 }
 
-.app-header {
-  height: 48px;
-  background: #1976d2;
-  color: white;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.app-header h1 {
-  font-size: 20px;
-  font-weight: 500;
-}
+/* .app-header { */
+/*   height: 48px; */
+/*   background: #1976d2; */
+/*   color: white; */
+/*   display: flex; */
+/*   align-items: center; */
+/*   padding: 0 16px; */
+/*   box-shadow: 0 2px 4px rgba(0,0,0,0.1); */
+/* } */
+/**/
+/* .app-header h1 { */
+/*   font-size: 20px; */
+/*   font-weight: 500; */
+/* } */
+/**/
 
 .formula-bar-container {
   flex-shrink: 0;
