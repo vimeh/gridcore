@@ -6,6 +6,23 @@ export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D;
   private devicePixelRatio: number;
 
+  /**
+   * Converts a column number to Excel-style column name (A, B, ..., Z, AA, AB, ..., ZZ, AAA, ...)
+   */
+  private getColumnName(col: number): string {
+    // Convert 0-based index to 1-based for the algorithm
+    let num = col + 1;
+    let result = '';
+    
+    while (num > 0) {
+      const remainder = (num - 1) % 26;
+      result = String.fromCharCode(65 + remainder) + result;
+      num = Math.floor((num - 1) / 26);
+    }
+    
+    return result;
+  }
+
   constructor(
     private canvas: HTMLCanvasElement,
     private theme: GridTheme,
@@ -228,7 +245,7 @@ export class CanvasRenderer {
       
       // Only render if the column header is visible in the viewport
       if (colX + width > this.theme.rowHeaderWidth && colX < this.canvas.width / this.devicePixelRatio) {
-        const letter = String.fromCharCode(65 + col); // Simple A-Z for now
+        const letter = this.getColumnName(col);
         // Column headers stay at fixed vertical position (not affected by scrollPos.y)
         this.ctx.fillText(letter, colX + width / 2, this.theme.columnHeaderHeight / 2);
       }

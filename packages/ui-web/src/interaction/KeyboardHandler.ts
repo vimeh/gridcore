@@ -1,4 +1,4 @@
-import { Grid, CellAddress } from '@gridcore/core';
+import { Grid, CellAddress, parseCellAddress } from '@gridcore/core';
 import { SelectionManager } from './SelectionManager';
 import { CellEditor } from '../components/CellEditor';
 
@@ -174,11 +174,9 @@ export class KeyboardHandler {
 
   private deleteSelectedCells(): void {
     for (const cellKey of this.selectionManager.getSelectedCells()) {
-      const match = cellKey.match(/^([A-Z]+)(\d+)$/);
-      if (match) {
-        const col = match[1].charCodeAt(0) - 65;
-        const row = parseInt(match[2]) - 1;
-        this.grid.clearCell({ row, col });
+      const address = parseCellAddress(cellKey);
+      if (address) {
+        this.grid.clearCell(address);
       }
     }
   }

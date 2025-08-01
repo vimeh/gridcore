@@ -1,4 +1,4 @@
-import { Grid, CellAddress, Cell, cellAddressToString } from '@gridcore/core';
+import { Grid, CellAddress, Cell, cellAddressToString, parseCellAddress } from '@gridcore/core';
 import { CanvasRenderer } from '../rendering/CanvasRenderer';
 import { GridTheme, defaultTheme } from '../rendering/GridTheme';
 import { Viewport } from './Viewport';
@@ -313,11 +313,9 @@ export class CanvasGrid {
   getSelectedCells(): CellAddress[] {
     const selected: CellAddress[] = [];
     for (const cellKey of this.selectionManager.getSelectedCells()) {
-      const match = cellKey.match(/^([A-Z]+)(\d+)$/);
-      if (match) {
-        const col = match[1].charCodeAt(0) - 65;
-        const row = parseInt(match[2]) - 1;
-        selected.push({ row, col });
+      const address = parseCellAddress(cellKey);
+      if (address) {
+        selected.push(address);
       }
     }
     return selected;

@@ -21,8 +21,12 @@ app.innerHTML = `
 const formulaBarContainer = app.querySelector('.formula-bar-container') as HTMLElement;
 const gridContainer = app.querySelector('.grid-container') as HTMLElement;
 
+// Grid dimensions configuration
+const GRID_ROWS = 2000;
+const GRID_COLS = 52; // A-Z, AA-AZ
+
 // Create Grid instance
-const grid = new Grid(1000, 26); // 1000 rows, 26 columns (A-Z)
+const grid = new Grid(GRID_ROWS, GRID_COLS);
 
 // Add some sample data
 grid.setCellByReference('A1', 'Hello');
@@ -50,8 +54,8 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
 
 // Create Canvas Grid
 const canvasGrid = new CanvasGrid(gridContainer, grid, {
-  totalRows: 1000,
-  totalCols: 26
+  totalRows: GRID_ROWS,
+  totalCols: GRID_COLS
 });
 
 // Connect grid selection to formula bar
