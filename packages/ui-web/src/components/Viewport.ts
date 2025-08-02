@@ -48,6 +48,73 @@ export class Viewport {
     return { ...this.scrollPosition };
   }
 
+  // Keyboard-driven scrolling methods
+  scrollBy(deltaX: number, deltaY: number): void {
+    const newX = Math.max(0, this.scrollPosition.x + deltaX);
+    const newY = Math.max(0, this.scrollPosition.y + deltaY);
+
+    const maxX = Math.max(0, this.getTotalGridWidth() - this.viewportWidth);
+    const maxY = Math.max(0, this.getTotalGridHeight() - this.viewportHeight);
+
+    this.scrollPosition = {
+      x: Math.min(newX, maxX),
+      y: Math.min(newY, maxY),
+    };
+  }
+
+  scrollToCell(
+    cell: CellAddress,
+    position: "center" | "top" | "bottom" = "center",
+  ): void {
+    const cellPos = this.getCellPosition(cell);
+    const absoluteX = cellPos.x + this.scrollPosition.x;
+    const absoluteY = cellPos.y + this.scrollPosition.y;
+
+    let newY = this.scrollPosition.y;
+
+    switch (position) {
+      case "center":
+        newY = absoluteY - this.viewportHeight / 2 + cellPos.height / 2;
+        break;
+      case "top":
+        newY = absoluteY;
+        break;
+      case "bottom":
+        newY = absoluteY - this.viewportHeight + cellPos.height;
+        break;
+    }
+
+    // Ensure cell is horizontally visible
+    let newX = this.scrollPosition.x;
+    if (absoluteX < this.scrollPosition.x) {
+      newX = absoluteX;
+    } else if (
+      absoluteX + cellPos.width >
+      this.scrollPosition.x + this.viewportWidth
+    ) {
+      newX = absoluteX + cellPos.width - this.viewportWidth;
+    }
+
+    this.setScrollPosition(
+      Math.max(
+        0,
+        Math.min(newX, this.getTotalGridWidth() - this.viewportWidth),
+      ),
+      Math.max(
+        0,
+        Math.min(newY, this.getTotalGridHeight() - this.viewportHeight),
+      ),
+    );
+  }
+
+  getPageSize(): { rows: number; cols: number } {
+    const bounds = this.getVisibleBounds();
+    return {
+      rows: bounds.endRow - bounds.startRow,
+      cols: bounds.endCol - bounds.startCol,
+    };
+  }
+
   getColumnWidth(col: number): number {
     return this.columnWidths.get(col) ?? this.theme.defaultCellWidth;
   }

@@ -11,9 +11,9 @@ import { CanvasRenderer } from "../rendering/CanvasRenderer";
 import { DebugRenderer } from "../rendering/DebugRenderer";
 import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
 import { HeaderRenderer } from "../rendering/HeaderRenderer";
+import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
 import { CellEditor } from "./CellEditor";
 import { Viewport } from "./Viewport";
-import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
 
 export type InteractionMode = "normal" | "keyboard-only";
 
@@ -117,7 +117,7 @@ export class CanvasGrid {
           this.resize();
           this.render();
         },
-      }
+      },
     );
 
     this.setupEventListeners();
@@ -403,7 +403,7 @@ export class CanvasGrid {
       // Set spacer to exact grid size - no buffer needed
       const spacerWidth = Math.max(scrollWidth, totalWidth);
       const spacerHeight = Math.max(scrollHeight, totalHeight);
-      
+
       spacer.style.width = `${spacerWidth}px`;
       spacer.style.height = `${spacerHeight}px`;
     }
@@ -475,7 +475,8 @@ export class CanvasGrid {
       }
 
       // Render the grid
-      const isNavigationMode = this.modeStateMachine?.isInNavigationMode() ?? true;
+      const isNavigationMode =
+        this.modeStateMachine?.isInNavigationMode() ?? true;
       const cellsRendered = this.renderer.renderGrid(
         (address) => this.grid.getCell(address),
         this.selectionManager.getSelectedCells(),
@@ -496,7 +497,6 @@ export class CanvasGrid {
       this.animationFrameId = null;
     });
   }
-
 
   destroy(): void {
     if (this.animationFrameId !== null) {
@@ -595,20 +595,20 @@ export class CanvasGrid {
   // Set interaction mode
   setInteractionMode(mode: InteractionMode): void {
     if (this.interactionMode === mode) return;
-    
+
     this.interactionMode = mode;
-    
+
     // Update mouse handler
     this.mouseHandler.setEnabled(mode === "normal");
-    
+
     // Update resize handler
     this.resizeHandler.setEnabled(mode === "normal");
-    
+
     // Update toggle checkbox state
     if (this.interactionModeToggle) {
       this.interactionModeToggle.checked = mode === "keyboard-only";
     }
-    
+
     // Re-render to update any visual indicators
     this.render();
   }

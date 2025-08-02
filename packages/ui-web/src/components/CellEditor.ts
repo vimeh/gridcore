@@ -1,8 +1,8 @@
 import type { CellAddress } from "@gridcore/core";
 import { KEY_CODES } from "../constants";
-import type { Viewport } from "./Viewport";
 import { VimMode, type VimModeType } from "../interaction/VimMode";
 import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
+import type { Viewport } from "./Viewport";
 
 export interface CellEditorCallbacks {
   onCommit: (address: CellAddress, value: string) => void;
@@ -39,7 +39,7 @@ export class CellEditor {
       onCursorMove: this.updateCursorPosition.bind(this),
       onTextChange: this.handleTextChange.bind(this),
     });
-    
+
     this.editorDiv = this.createEditor();
     this.modeIndicator = this.createModeIndicator();
     this.blockCursor = this.createBlockCursor();
@@ -107,7 +107,11 @@ export class CellEditor {
     return cursor;
   }
 
-  startEditing(cell: CellAddress, initialValue: string = "", mode: "insert" | "append" | "replace" = "append"): void {
+  startEditing(
+    cell: CellAddress,
+    initialValue: string = "",
+    mode: "insert" | "append" | "replace" = "append",
+  ): void {
     if (this.isEditing) {
       this.commitEdit();
     }
@@ -135,7 +139,7 @@ export class CellEditor {
     // Set initial text and vim state
     this.editorDiv.textContent = initialValue;
     this.vimMode.reset();
-    
+
     // Start in appropriate mode
     if (mode === "replace") {
       // For replace mode, clear text and start in insert mode
@@ -153,7 +157,7 @@ export class CellEditor {
     }
     // Update state machine to insert mode
     this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE" });
-    
+
     // Focus and set cursor
     this.editorDiv.focus();
     this.updateCursorPosition(this.vimMode.getCursor());
@@ -199,17 +203,17 @@ export class CellEditor {
 
   private handleKeyDown(event: KeyboardEvent): void {
     const modeBefore = this.vimMode.getMode();
-    
+
     // Let vim mode handle the key first
     const handled = this.vimMode.handleKey(
       event.key,
       event.ctrlKey || event.metaKey,
-      event.shiftKey
+      event.shiftKey,
     );
-    
+
     if (handled) {
       event.preventDefault();
-      
+
       // Update selection if in visual mode
       const selection = this.vimMode.getSelection();
       if (selection) {
@@ -219,18 +223,18 @@ export class CellEditor {
         const sel = window.getSelection();
         sel?.removeAllRanges();
       }
-      
+
       return;
     }
-    
+
     // Get the current mode after vim has processed the key
     const modeAfter = this.vimMode.getMode();
-    
+
     // Handle special keys not handled by vim
     if (modeAfter === "normal") {
       // In normal mode, prevent all default behavior except for special keys
       event.preventDefault();
-      
+
       switch (event.key) {
         case KEY_CODES.ENTER:
           this.commitEdit();
@@ -266,11 +270,11 @@ export class CellEditor {
       }
       return;
     }
-    
+
     // Update vim mode text state
     const text = this.editorDiv.textContent || "";
     const cursorPos = this.getCursorPosition();
-    
+
     // In insert mode, skip cursor callback to let browser handle cursor naturally
     const skipCursorCallback = this.vimMode.getMode() === "insert";
     this.vimMode.setText(text, cursorPos, skipCursorCallback);
@@ -279,7 +283,7 @@ export class CellEditor {
   private handlePaste(event: ClipboardEvent): void {
     event.preventDefault();
     const text = event.clipboardData?.getData("text/plain") || "";
-    
+
     if (this.vimMode.getMode() === "insert") {
       // Insert at current position
       document.execCommand("insertText", false, text);
@@ -292,7 +296,7 @@ export class CellEditor {
       this.ignoreNextBlur = false;
       return;
     }
-    
+
     // Delay to allow click events to fire first
     setTimeout(() => {
       if (this.isEditing) {
@@ -304,10 +308,10 @@ export class CellEditor {
   private handleVimModeChange(mode: VimModeType): void {
     // Update mode indicator
     this.modeIndicator.textContent = mode.toUpperCase();
-    
+
     // Set ignore blur flag when changing contentEditable
     this.ignoreNextBlur = true;
-    
+
     // Update state machine based on vim mode
     switch (mode) {
       case "normal":
@@ -329,7 +333,10 @@ export class CellEditor {
         this.blockCursor.style.display = "none";
         break;
       case "visual":
-        this.modeStateMachine?.transition({ type: "ENTER_VISUAL_MODE", visualType: "character" });
+        this.modeStateMachine?.transition({
+          type: "ENTER_VISUAL_MODE",
+          visualType: "character",
+        });
         this.modeIndicator.style.backgroundColor = "#ff6600";
         this.editorDiv.style.borderColor = "#ff6600";
         // Keep contentEditable true for selection
@@ -337,7 +344,10 @@ export class CellEditor {
         this.blockCursor.style.display = "none";
         break;
       case "visual-line":
-        this.modeStateMachine?.transition({ type: "ENTER_VISUAL_MODE", visualType: "line" });
+        this.modeStateMachine?.transition({
+          type: "ENTER_VISUAL_MODE",
+          visualType: "line",
+        });
         this.modeIndicator.style.backgroundColor = "#ff6600";
         this.editorDiv.style.borderColor = "#ff6600";
         // Keep contentEditable true for selection
@@ -345,13 +355,13 @@ export class CellEditor {
         this.blockCursor.style.display = "none";
         break;
     }
-    
+
     // Ensure focus is maintained
     setTimeout(() => {
       this.editorDiv.focus();
       this.ignoreNextBlur = false;
     }, 0);
-    
+
     // Notify mode change for re-rendering
     this.callbacks.onModeChange?.();
   }
@@ -365,23 +375,23 @@ export class CellEditor {
     const text = this.editorDiv.textContent || "";
     const range = document.createRange();
     const sel = window.getSelection();
-    
+
     if (!this.editorDiv.firstChild) {
       // Create text node if empty
       this.editorDiv.appendChild(document.createTextNode(""));
     }
-    
+
     const textNode = this.editorDiv.firstChild;
     if (!textNode) return;
-    
+
     const offset = Math.min(position, text.length);
-    
+
     range.setStart(textNode, offset);
     range.setEnd(textNode, offset);
-    
+
     sel?.removeAllRanges();
     sel?.addRange(range);
-    
+
     // Update block cursor position in normal mode
     if (this.vimMode.getMode() === "normal") {
       this.updateBlockCursorPosition();
@@ -391,20 +401,20 @@ export class CellEditor {
   private updateBlockCursorPosition(): void {
     const text = this.editorDiv.textContent || "";
     const cursor = this.vimMode.getCursor();
-    
+
     // In vim, cursor can be on the last character in normal mode
     // Only hide if cursor is past the text when text is empty
     if (text.length === 0) {
       this.blockCursor.style.display = "none";
       return;
     }
-    
+
     // Calculate position based on character width
     const charWidth = this.getCharWidth();
     // Cursor should be clamped to last character position in normal mode
     const displayCursor = Math.min(cursor, Math.max(0, text.length - 1));
     const left = displayCursor * charWidth;
-    
+
     this.blockCursor.style.left = `${left}px`;
     this.blockCursor.style.display = "block";
   }
@@ -417,11 +427,11 @@ export class CellEditor {
     span.style.position = "absolute";
     span.style.visibility = "hidden";
     span.textContent = "M";
-    
+
     this.editorDiv.appendChild(span);
     const width = span.offsetWidth;
     span.remove();
-    
+
     return width;
   }
 
@@ -429,20 +439,20 @@ export class CellEditor {
     const text = this.editorDiv.textContent || "";
     const range = document.createRange();
     const sel = window.getSelection();
-    
+
     if (!this.editorDiv.firstChild) {
       this.editorDiv.appendChild(document.createTextNode(""));
     }
-    
+
     const textNode = this.editorDiv.firstChild;
     if (!textNode) return;
-    
+
     const startOffset = Math.min(start, text.length);
     const endOffset = Math.min(end, text.length);
-    
+
     range.setStart(textNode, startOffset);
     range.setEnd(textNode, endOffset);
-    
+
     sel?.removeAllRanges();
     sel?.addRange(range);
   }
@@ -450,7 +460,7 @@ export class CellEditor {
   private getCursorPosition(): number {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return 0;
-    
+
     const range = sel.getRangeAt(0);
     return range.startOffset;
   }
@@ -461,7 +471,7 @@ export class CellEditor {
     const position = this.viewport.getCellPosition(this.currentCell);
     this.editorDiv.style.left = `${position.x - 2}px`;
     this.editorDiv.style.top = `${position.y - 2}px`;
-    
+
     this.modeIndicator.style.left = `${position.x}px`;
     this.modeIndicator.style.top = `${position.y + position.height + 4}px`;
   }
