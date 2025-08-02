@@ -2,12 +2,18 @@ import type { CellAddress } from "@gridcore/core";
 import { KEY_CODES } from "../constants";
 import type { Viewport } from "./Viewport";
 import { VimMode, type VimModeType } from "../interaction/VimMode";
+import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
 
 export interface CellEditorCallbacks {
   onCommit: (address: CellAddress, value: string) => void;
   onCancel: () => void;
   onEditEnd?: () => void;
   onEditStart?: () => void;
+  onModeChange?: () => void;
+}
+
+export interface CellEditorOptions extends CellEditorCallbacks {
+  modeStateMachine?: SpreadsheetModeStateMachine;
 }
 
 export class CellEditor {
@@ -18,12 +24,16 @@ export class CellEditor {
   private modeIndicator: HTMLDivElement;
   private blockCursor: HTMLDivElement;
   private ignoreNextBlur: boolean = false;
+  private modeStateMachine?: SpreadsheetModeStateMachine;
+  private callbacks: CellEditorCallbacks;
 
   constructor(
     private container: HTMLElement,
     private viewport: Viewport,
-    private callbacks: CellEditorCallbacks,
+    options: CellEditorOptions,
   ) {
+    this.callbacks = options;
+    this.modeStateMachine = options.modeStateMachine;
     this.vimMode = new VimMode({
       onModeChange: this.handleVimModeChange.bind(this),
       onCursorMove: this.updateCursorPosition.bind(this),
@@ -124,6 +134,8 @@ export class CellEditor {
     
     // Start in insert mode for convenience
     this.vimMode.handleKey("A");
+    // Update state machine to insert mode
+    this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE" });
     
     // Focus and set cursor
     this.editorDiv.focus();
@@ -145,11 +157,13 @@ export class CellEditor {
 
     const value = this.editorDiv.textContent || "";
     this.callbacks.onCommit(this.currentCell, value);
+    this.modeStateMachine?.transition({ type: "STOP_EDITING", commit: true });
     this.hideEditor();
   }
 
   private cancelEdit(): void {
     this.callbacks.onCancel();
+    this.modeStateMachine?.transition({ type: "STOP_EDITING", commit: false });
     this.hideEditor();
   }
 
@@ -273,8 +287,11 @@ export class CellEditor {
     // Set ignore blur flag when changing contentEditable
     this.ignoreNextBlur = true;
     
+    // Update state machine based on vim mode
     switch (mode) {
       case "normal":
+        this.modeStateMachine?.transition({ type: "EXIT_INSERT_MODE" });
+        this.modeStateMachine?.transition({ type: "EXIT_VISUAL_MODE" });
         this.modeIndicator.style.backgroundColor = "#666";
         this.editorDiv.style.borderColor = "#666";
         // Keep contentEditable true but show block cursor
@@ -283,6 +300,7 @@ export class CellEditor {
         this.updateBlockCursorPosition();
         break;
       case "insert":
+        this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE" });
         this.modeIndicator.style.backgroundColor = "#0066cc";
         this.editorDiv.style.borderColor = "#0066cc";
         // Enable contentEditable in insert mode
@@ -290,7 +308,15 @@ export class CellEditor {
         this.blockCursor.style.display = "none";
         break;
       case "visual":
+        this.modeStateMachine?.transition({ type: "ENTER_VISUAL_MODE", visualType: "character" });
+        this.modeIndicator.style.backgroundColor = "#ff6600";
+        this.editorDiv.style.borderColor = "#ff6600";
+        // Keep contentEditable true for selection
+        this.editorDiv.contentEditable = "true";
+        this.blockCursor.style.display = "none";
+        break;
       case "visual-line":
+        this.modeStateMachine?.transition({ type: "ENTER_VISUAL_MODE", visualType: "line" });
         this.modeIndicator.style.backgroundColor = "#ff6600";
         this.editorDiv.style.borderColor = "#ff6600";
         // Keep contentEditable true for selection
@@ -304,6 +330,9 @@ export class CellEditor {
       this.editorDiv.focus();
       this.ignoreNextBlur = false;
     }, 0);
+    
+    // Notify mode change for re-rendering
+    this.callbacks.onModeChange?.();
   }
 
   private handleTextChange(text: string, cursor: number): void {

@@ -3,6 +3,7 @@ import type { CellEditor } from "../components/CellEditor";
 import type { CanvasGrid } from "../components/CanvasGrid";
 import { KEY_CODES } from "../constants";
 import type { SelectionManager } from "./SelectionManager";
+import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
 
 export class KeyboardHandler {
   constructor(
@@ -11,6 +12,7 @@ export class KeyboardHandler {
     private cellEditor: CellEditor,
     private grid: SpreadsheetEngine,
     private canvasGrid?: CanvasGrid,
+    private modeStateMachine?: SpreadsheetModeStateMachine,
   ) {
     this.setupEventListeners();
   }
@@ -24,8 +26,11 @@ export class KeyboardHandler {
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
-    // Don't handle if editing
-    if (this.cellEditor.isCurrentlyEditing()) {
+    // Check if we're in navigation mode
+    const isNavigationMode = !this.modeStateMachine || this.modeStateMachine.isInNavigationMode();
+    
+    // Don't handle navigation keys if editing (unless we have no state machine)
+    if (!isNavigationMode && this.cellEditor.isCurrentlyEditing()) {
       return;
     }
 
@@ -178,6 +183,9 @@ export class KeyboardHandler {
   private startEditingActiveCell(initialChar?: string): void {
     const activeCell = this.selectionManager.getActiveCell();
     if (!activeCell) return;
+
+    // Transition to editing mode
+    this.modeStateMachine?.transition({ type: "START_EDITING" });
 
     const cellData = this.grid.getCell(activeCell);
     let initialValue = "";

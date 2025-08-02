@@ -13,6 +13,7 @@ import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
 import { HeaderRenderer } from "../rendering/HeaderRenderer";
 import { CellEditor } from "./CellEditor";
 import { Viewport } from "./Viewport";
+import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
 
 export type InteractionMode = "normal" | "keyboard-only";
 
@@ -20,6 +21,7 @@ export interface CanvasGridOptions {
   theme?: GridTheme;
   totalRows?: number;
   totalCols?: number;
+  modeStateMachine?: SpreadsheetModeStateMachine;
 }
 
 export class CanvasGrid {
@@ -45,6 +47,7 @@ export class CanvasGrid {
   private debugRenderer!: DebugRenderer;
   private interactionMode: InteractionMode = "normal";
   private interactionModeToggle!: HTMLInputElement;
+  private modeStateMachine?: SpreadsheetModeStateMachine;
 
   constructor(
     container: HTMLElement,
@@ -54,6 +57,7 @@ export class CanvasGrid {
     this.container = container;
     this.grid = grid;
     this.theme = options.theme || defaultTheme;
+    this.modeStateMachine = options.modeStateMachine;
 
     this.setupDOM();
 
@@ -78,6 +82,8 @@ export class CanvasGrid {
       onCancel: this.handleCellCancel.bind(this),
       onEditEnd: () => this.container.focus(),
       onEditStart: () => this.render(),
+      onModeChange: () => this.render(),
+      modeStateMachine: this.modeStateMachine,
     });
 
     this.mouseHandler = new MouseHandler(
@@ -94,6 +100,7 @@ export class CanvasGrid {
       this.cellEditor,
       this.grid,
       this,
+      this.modeStateMachine,
     );
 
     this.resizeHandler = new ResizeHandler(
@@ -468,11 +475,13 @@ export class CanvasGrid {
       }
 
       // Render the grid
+      const isNavigationMode = this.modeStateMachine?.isInNavigationMode() ?? true;
       const cellsRendered = this.renderer.renderGrid(
         (address) => this.grid.getCell(address),
         this.selectionManager.getSelectedCells(),
         this.selectionManager.getActiveCell(),
         this.cellEditor.isCurrentlyEditing(),
+        isNavigationMode,
       );
 
       // End debug frame tracking

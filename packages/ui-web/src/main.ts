@@ -1,6 +1,8 @@
 import { SpreadsheetEngine } from "@gridcore/core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
+import { SpreadsheetModeStateMachine } from "./state/SpreadsheetMode";
+import { ModeIndicator } from "./components/ModeIndicator";
 import "./style.css";
 
 // Initialize the app
@@ -32,6 +34,9 @@ const GRID_COLS = 52; // A-Z, AA-AZ
 
 // Create SpreadsheetEngine instance
 const engine = new SpreadsheetEngine(GRID_ROWS, GRID_COLS);
+
+// Create state machine
+const modeStateMachine = new SpreadsheetModeStateMachine();
 
 // Add some sample data
 engine.setCellByReference("A1", "Hello");
@@ -166,6 +171,7 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
 const canvasGrid = new CanvasGrid(gridContainer, engine, {
   totalRows: GRID_ROWS,
   totalCols: GRID_COLS,
+  modeStateMachine,
 });
 
 // Create alias for grid (used in import/export)
@@ -192,6 +198,9 @@ window.addEventListener("resize", () => {
   canvasGrid.resize();
   canvasGrid.render();
 });
+
+// Create mode indicator
+const modeIndicator = new ModeIndicator(app, modeStateMachine);
 
 // Initial focus
 gridContainer.focus();
