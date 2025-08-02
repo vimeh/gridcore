@@ -143,13 +143,13 @@ export class CellEditor {
       this.vimMode.setText("", 0);
       this.vimMode.handleKey("i");
     } else if (mode === "append") {
-      // Set cursor at the end for append mode
-      this.vimMode.setText(initialValue, initialValue.length);
+      // Set text first, then append mode will move cursor to end
+      this.vimMode.setText(initialValue);
       this.vimMode.handleKey("A");
     } else {
-      // For insert mode, set cursor at the end (since we're entering an existing cell)
-      this.vimMode.setText(initialValue, initialValue.length);
+      // For insert mode, enter insert mode first then set cursor at the end
       this.vimMode.handleKey("i");
+      this.vimMode.setText(initialValue, initialValue.length);
     }
     // Update state machine to insert mode
     this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE" });
