@@ -13,15 +13,16 @@ import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
 import { HeaderRenderer } from "../rendering/HeaderRenderer";
 import { CellEditor } from "./CellEditor";
 import { Viewport } from "./Viewport";
-import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
+import type { SpreadsheetModeStateMachine, InteractionMode } from "../state/SpreadsheetMode";
+import { ModeManager } from "../state/ModeManager";
 
-export type InteractionMode = "normal" | "keyboard-only";
 
 export interface CanvasGridOptions {
   theme?: GridTheme;
   totalRows?: number;
   totalCols?: number;
   modeStateMachine?: SpreadsheetModeStateMachine;
+  modeManager?: ModeManager;
 }
 
 export class CanvasGrid {
@@ -45,9 +46,10 @@ export class CanvasGrid {
 
   private animationFrameId: number | null = null;
   private debugRenderer!: DebugRenderer;
-  private interactionMode: InteractionMode = "normal";
   private interactionModeToggle!: HTMLInputElement;
   private modeStateMachine?: SpreadsheetModeStateMachine;
+  private modeManager: ModeManager;
+  private modeChangeUnsubscribe?: () => void;
 
   constructor(
     container: HTMLElement,
@@ -58,6 +60,7 @@ export class CanvasGrid {
     this.grid = grid;
     this.theme = options.theme || defaultTheme;
     this.modeStateMachine = options.modeStateMachine;
+    this.modeManager = options.modeManager || new ModeManager(this.modeStateMachine);
 
     this.setupDOM();
 
@@ -83,7 +86,7 @@ export class CanvasGrid {
       onEditEnd: () => this.container.focus(),
       onEditStart: () => this.render(),
       onModeChange: () => this.render(),
-      modeStateMachine: this.modeStateMachine,
+      modeManager: this.modeManager,
     });
 
     this.mouseHandler = new MouseHandler(
@@ -100,7 +103,7 @@ export class CanvasGrid {
       this.cellEditor,
       this.grid,
       this,
-      this.modeStateMachine,
+      this.modeManager,
     );
 
     this.resizeHandler = new ResizeHandler(
@@ -121,6 +124,7 @@ export class CanvasGrid {
     );
 
     this.setupEventListeners();
+    this.setupModeChangeSubscription();
 
     this.selectionManager.setActiveCell({ row: 0, col: 0 });
 
@@ -174,7 +178,7 @@ export class CanvasGrid {
     toggleInput.style.marginRight = "8px";
     toggleInput.addEventListener("change", () => {
       const newMode = toggleInput.checked ? "keyboard-only" : "normal";
-      this.setInteractionMode(newMode);
+      this.modeManager.setInteractionMode(newMode);
     });
 
     const toggleText = document.createElement("span");
@@ -286,6 +290,27 @@ export class CanvasGrid {
           { passive: false },
         );
       },
+    );
+  }
+
+  private setupModeChangeSubscription(): void {
+    this.modeChangeUnsubscribe = this.modeManager.onModeChangeFiltered(
+      (newState, previousState) => {
+        // Update mouse handler based on interaction mode
+        this.mouseHandler.setEnabled(newState.interactionMode === "normal");
+        
+        // Update resize handler based on interaction mode
+        this.resizeHandler.setEnabled(newState.interactionMode === "normal");
+        
+        // Update toggle checkbox state
+        if (this.interactionModeToggle) {
+          this.interactionModeToggle.checked = newState.interactionMode === "keyboard-only";
+        }
+        
+        // Re-render to update any visual indicators
+        this.render();
+      },
+      { interactionMode: ["normal", "keyboard-only"] }
     );
   }
 
@@ -503,6 +528,11 @@ export class CanvasGrid {
       cancelAnimationFrame(this.animationFrameId);
     }
 
+    // Clean up mode change subscription
+    if (this.modeChangeUnsubscribe) {
+      this.modeChangeUnsubscribe();
+    }
+
     window.removeEventListener("resize", this.handleResize);
     this.scrollContainer.removeEventListener("scroll", this.handleScroll);
 
@@ -589,27 +619,11 @@ export class CanvasGrid {
 
   // Get current interaction mode
   getInteractionMode(): InteractionMode {
-    return this.interactionMode;
+    return this.modeManager.getInteractionMode();
   }
 
   // Set interaction mode
   setInteractionMode(mode: InteractionMode): void {
-    if (this.interactionMode === mode) return;
-    
-    this.interactionMode = mode;
-    
-    // Update mouse handler
-    this.mouseHandler.setEnabled(mode === "normal");
-    
-    // Update resize handler
-    this.resizeHandler.setEnabled(mode === "normal");
-    
-    // Update toggle checkbox state
-    if (this.interactionModeToggle) {
-      this.interactionModeToggle.checked = mode === "keyboard-only";
-    }
-    
-    // Re-render to update any visual indicators
-    this.render();
+    this.modeManager.setInteractionMode(mode);
   }
 }

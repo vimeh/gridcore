@@ -3,7 +3,7 @@ import type { CellEditor } from "../components/CellEditor";
 import type { CanvasGrid } from "../components/CanvasGrid";
 import { KEY_CODES } from "../constants";
 import type { SelectionManager } from "./SelectionManager";
-import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
+import type { ModeManager } from "../state/ModeManager";
 
 export class KeyboardHandler {
   constructor(
@@ -12,7 +12,7 @@ export class KeyboardHandler {
     private cellEditor: CellEditor,
     private grid: SpreadsheetEngine,
     private canvasGrid?: CanvasGrid,
-    private modeStateMachine?: SpreadsheetModeStateMachine,
+    private modeManager?: ModeManager,
   ) {
     this.setupEventListeners();
   }
@@ -27,9 +27,9 @@ export class KeyboardHandler {
 
   private handleKeyDown(event: KeyboardEvent): void {
     // Check if we're in navigation mode
-    const isNavigationMode = !this.modeStateMachine || this.modeStateMachine.isInNavigationMode();
+    const isNavigationMode = !this.modeManager || this.modeManager.isNavigating();
     
-    // Don't handle navigation keys if editing (unless we have no state machine)
+    // Don't handle navigation keys if editing (unless we have no mode manager)
     if (!isNavigationMode && this.cellEditor.isCurrentlyEditing()) {
       return;
     }
@@ -203,22 +203,28 @@ export class KeyboardHandler {
     const activeCell = this.selectionManager.getActiveCell();
     if (!activeCell) return;
 
-    // Transition to editing mode
-    this.modeStateMachine?.transition({ type: "START_EDITING" });
+    // Determine the edit mode based on the parameters
+    let editMode: "insert" | "append" | "replace" = "insert";
+    if (mode === "replace") {
+      editMode = "replace";
+    } else if (mode === true) {
+      editMode = "append";
+    } else if (initialChar && mode === false) {
+      editMode = "replace"; // When typing to start, replace content
+    }
+
+    // Start editing with the appropriate edit mode
+    this.modeManager?.startEditingInInsertMode(editMode);
 
     const cellData = this.grid.getCell(activeCell);
     let initialValue = "";
-    let editMode: "insert" | "append" | "replace" = "insert";
 
     if (mode === "replace") {
-      editMode = "replace";
       initialValue = cellData?.formula || String(cellData?.rawValue || "");
-    } else if (initialChar && mode !== true) {
+    } else if (initialChar && mode === false) {
       initialValue = initialChar;
-      editMode = "replace"; // When typing to start, replace content
     } else {
       initialValue = cellData?.formula || String(cellData?.rawValue || "");
-      editMode = mode === true ? "append" : "insert";
     }
 
     this.cellEditor.startEditing(activeCell, initialValue, editMode);
