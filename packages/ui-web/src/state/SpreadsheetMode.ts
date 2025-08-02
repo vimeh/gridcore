@@ -1,11 +1,22 @@
-export type GridMode = "navigation" | "editing"
-export type CellMode = "normal" | "insert" | "visual" | "visual-line"
+import type { CellAddress } from "@gridcore/core";
+
+export type GridMode = "navigation" | "editing";
+export type CellMode =
+  | "normal"
+  | "insert"
+  | "visual"
+  | "visual-line"
+  | "visual-block"
+  | "resize";
 
 export interface SpreadsheetState {
-  gridMode: GridMode
-  cellMode: CellMode
-  previousGridMode?: GridMode
-  previousCellMode?: CellMode
+  gridMode: GridMode;
+  cellMode: CellMode;
+  previousGridMode?: GridMode;
+  previousCellMode?: CellMode;
+  visualAnchor?: CellAddress; // Starting point of visual selection
+  visualCursor?: CellAddress; // Current position in visual selection
+  resizeTarget?: { type: "column" | "row"; index: number }; // What we're resizing
 }
 
 export type ModeTransitionEvent =
@@ -15,55 +26,74 @@ export type ModeTransitionEvent =
   | { type: "EXIT_INSERT_MODE" }
   | { type: "ENTER_VISUAL_MODE"; visualType: "character" | "line" }
   | { type: "EXIT_VISUAL_MODE" }
-  | { type: "ESCAPE" }
+  | { type: "ENTER_VISUAL_BLOCK_MODE" }
+  | {
+      type: "ENTER_RESIZE_MODE";
+      target: { type: "column" | "row"; index: number };
+    }
+  | { type: "EXIT_RESIZE_MODE" }
+  | { type: "ESCAPE" };
 
-export interface ModeChangeCallback {
-  (state: SpreadsheetState, previousState: SpreadsheetState): void
-}
+export type ModeChangeCallback = (
+  state: SpreadsheetState,
+  previousState: SpreadsheetState,
+) => void;
 
 export class SpreadsheetModeStateMachine {
   private state: SpreadsheetState = {
     gridMode: "navigation",
     cellMode: "normal",
-  }
-  
-  private listeners: Set<ModeChangeCallback> = new Set()
-  
+  };
+
+  private listeners: Set<ModeChangeCallback> = new Set();
+
   constructor() {}
-  
+
   getState(): Readonly<SpreadsheetState> {
-    return { ...this.state }
+    return { ...this.state };
   }
-  
+
   getGridMode(): GridMode {
-    return this.state.gridMode
+    return this.state.gridMode;
   }
-  
+
   getCellMode(): CellMode {
-    return this.state.cellMode
+    return this.state.cellMode;
   }
-  
+
   isInEditMode(): boolean {
-    return this.state.gridMode === "editing"
+    return this.state.gridMode === "editing";
   }
-  
+
   isInNavigationMode(): boolean {
-    return this.state.gridMode === "navigation"
+    return this.state.gridMode === "navigation";
   }
-  
+
   isInInsertMode(): boolean {
-    return this.state.gridMode === "editing" && this.state.cellMode === "insert"
+    return (
+      this.state.gridMode === "editing" && this.state.cellMode === "insert"
+    );
   }
-  
+
   isInVisualMode(): boolean {
-    return this.state.gridMode === "editing" && 
-           (this.state.cellMode === "visual" || this.state.cellMode === "visual-line")
+    return (
+      this.state.gridMode === "editing" &&
+      (this.state.cellMode === "visual" ||
+        this.state.cellMode === "visual-line" ||
+        this.state.cellMode === "visual-block")
+    );
   }
-  
+
+  isInResizeMode(): boolean {
+    return (
+      this.state.gridMode === "editing" && this.state.cellMode === "resize"
+    );
+  }
+
   transition(event: ModeTransitionEvent): boolean {
-    const previousState = { ...this.state }
-    let stateChanged = false
-    
+    const previousState = { ...this.state };
+    let stateChanged = false;
+
     switch (event.type) {
       case "START_EDITING":
         if (this.state.gridMode === "navigation") {
@@ -72,11 +102,11 @@ export class SpreadsheetModeStateMachine {
             cellMode: "normal",
             previousGridMode: "navigation",
             previousCellMode: this.state.cellMode,
-          }
-          stateChanged = true
+          };
+          stateChanged = true;
         }
-        break
-        
+        break;
+
       case "STOP_EDITING":
         if (this.state.gridMode === "editing") {
           this.state = {
@@ -84,70 +114,135 @@ export class SpreadsheetModeStateMachine {
             cellMode: "normal",
             previousGridMode: "editing",
             previousCellMode: this.state.cellMode,
-          }
-          stateChanged = true
+          };
+          stateChanged = true;
         }
-        break
-        
+        break;
+
       case "ENTER_INSERT_MODE":
-        if (this.state.gridMode === "editing" && this.state.cellMode !== "insert") {
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode !== "insert"
+        ) {
           this.state = {
             ...this.state,
             cellMode: "insert",
             previousCellMode: this.state.cellMode,
-          }
-          stateChanged = true
+          };
+          stateChanged = true;
         }
-        break
-        
+        break;
+
       case "EXIT_INSERT_MODE":
-        if (this.state.gridMode === "editing" && this.state.cellMode === "insert") {
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode === "insert"
+        ) {
           this.state = {
             ...this.state,
             cellMode: "normal",
             previousCellMode: "insert",
-          }
-          stateChanged = true
+          };
+          stateChanged = true;
         }
-        break
-        
+        break;
+
       case "ENTER_VISUAL_MODE":
-        if (this.state.gridMode === "editing" && 
-            this.state.cellMode !== "visual" && 
-            this.state.cellMode !== "visual-line") {
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode !== "visual" &&
+          this.state.cellMode !== "visual-line"
+        ) {
           this.state = {
             ...this.state,
             cellMode: event.visualType === "line" ? "visual-line" : "visual",
             previousCellMode: this.state.cellMode,
-          }
-          stateChanged = true
+          };
+          stateChanged = true;
         }
-        break
-        
+        break;
+
       case "EXIT_VISUAL_MODE":
-        if (this.state.gridMode === "editing" && 
-            (this.state.cellMode === "visual" || this.state.cellMode === "visual-line")) {
+        if (
+          this.state.gridMode === "editing" &&
+          (this.state.cellMode === "visual" ||
+            this.state.cellMode === "visual-line" ||
+            this.state.cellMode === "visual-block")
+        ) {
           this.state = {
             ...this.state,
             cellMode: "normal",
             previousCellMode: this.state.cellMode,
-          }
-          stateChanged = true
+            visualAnchor: undefined,
+            visualCursor: undefined,
+          };
+          stateChanged = true;
         }
-        break
-        
+        break;
+
+      case "ENTER_VISUAL_BLOCK_MODE":
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode !== "visual-block"
+        ) {
+          this.state = {
+            ...this.state,
+            cellMode: "visual-block",
+            previousCellMode: this.state.cellMode,
+          };
+          stateChanged = true;
+        }
+        break;
+
+      case "ENTER_RESIZE_MODE":
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode !== "resize"
+        ) {
+          this.state = {
+            ...this.state,
+            cellMode: "resize",
+            previousCellMode: this.state.cellMode,
+            resizeTarget: event.target,
+          };
+          stateChanged = true;
+        }
+        break;
+
+      case "EXIT_RESIZE_MODE":
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode === "resize"
+        ) {
+          this.state = {
+            ...this.state,
+            cellMode: "normal",
+            previousCellMode: "resize",
+            resizeTarget: undefined,
+          };
+          stateChanged = true;
+        }
+        break;
+
       case "ESCAPE":
         if (this.state.gridMode === "editing") {
-          if (this.state.cellMode === "insert" || 
-              this.state.cellMode === "visual" || 
-              this.state.cellMode === "visual-line") {
-            // First escape exits insert/visual mode
+          if (
+            this.state.cellMode === "insert" ||
+            this.state.cellMode === "visual" ||
+            this.state.cellMode === "visual-line" ||
+            this.state.cellMode === "visual-block" ||
+            this.state.cellMode === "resize"
+          ) {
+            // First escape exits insert/visual/resize mode
             this.state = {
               ...this.state,
               cellMode: "normal",
               previousCellMode: this.state.cellMode,
-            }
-            stateChanged = true
+              visualAnchor: undefined,
+              visualCursor: undefined,
+              resizeTarget: undefined,
+            };
+            stateChanged = true;
           } else {
             // Second escape exits editing mode
             this.state = {
@@ -155,76 +250,94 @@ export class SpreadsheetModeStateMachine {
               cellMode: "normal",
               previousGridMode: "editing",
               previousCellMode: this.state.cellMode,
-            }
-            stateChanged = true
+            };
+            stateChanged = true;
           }
         }
-        break
+        break;
     }
-    
+
     if (stateChanged) {
-      this.notifyListeners(this.state, previousState)
+      this.notifyListeners(this.state, previousState);
     }
-    
-    return stateChanged
+
+    return stateChanged;
   }
-  
+
   onModeChange(callback: ModeChangeCallback): () => void {
-    this.listeners.add(callback)
-    return () => this.listeners.delete(callback)
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
   }
-  
-  private notifyListeners(newState: SpreadsheetState, previousState: SpreadsheetState): void {
+
+  private notifyListeners(
+    newState: SpreadsheetState,
+    previousState: SpreadsheetState,
+  ): void {
     for (const listener of this.listeners) {
-      listener(newState, previousState)
+      listener(newState, previousState);
     }
   }
-  
+
   reset(): void {
-    const previousState = { ...this.state }
+    const previousState = { ...this.state };
     this.state = {
       gridMode: "navigation",
       cellMode: "normal",
-    }
-    this.notifyListeners(this.state, previousState)
+    };
+    this.notifyListeners(this.state, previousState);
   }
-  
+
   getStateDescription(): string {
     if (this.state.gridMode === "navigation") {
-      return "Grid Navigation"
+      return "Grid Navigation";
     }
-    
+
     switch (this.state.cellMode) {
       case "normal":
-        return "Cell Edit - Normal"
+        return "Cell Edit - Normal";
       case "insert":
-        return "Cell Edit - Insert"
+        return "Cell Edit - Insert";
       case "visual":
-        return "Cell Edit - Visual"
+        return "Cell Edit - Visual";
       case "visual-line":
-        return "Cell Edit - Visual Line"
+        return "Cell Edit - Visual Line";
+      case "visual-block":
+        return "Cell Edit - Visual Block";
+      case "resize":
+        return "Cell Edit - Resize";
       default:
-        return "Unknown"
+        return "Unknown";
     }
   }
-  
+
   getAllowedTransitions(): ModeTransitionEvent["type"][] {
-    const allowed: ModeTransitionEvent["type"][] = []
-    
+    const allowed: ModeTransitionEvent["type"][] = [];
+
     if (this.state.gridMode === "navigation") {
-      allowed.push("START_EDITING")
+      allowed.push("START_EDITING");
     } else if (this.state.gridMode === "editing") {
-      allowed.push("STOP_EDITING", "ESCAPE")
-      
+      allowed.push("STOP_EDITING", "ESCAPE");
+
       if (this.state.cellMode === "normal") {
-        allowed.push("ENTER_INSERT_MODE", "ENTER_VISUAL_MODE")
+        allowed.push(
+          "ENTER_INSERT_MODE",
+          "ENTER_VISUAL_MODE",
+          "ENTER_VISUAL_BLOCK_MODE",
+          "ENTER_RESIZE_MODE",
+        );
       } else if (this.state.cellMode === "insert") {
-        allowed.push("EXIT_INSERT_MODE")
-      } else if (this.state.cellMode === "visual" || this.state.cellMode === "visual-line") {
-        allowed.push("EXIT_VISUAL_MODE")
+        allowed.push("EXIT_INSERT_MODE");
+      } else if (
+        this.state.cellMode === "visual" ||
+        this.state.cellMode === "visual-line" ||
+        this.state.cellMode === "visual-block"
+      ) {
+        allowed.push("EXIT_VISUAL_MODE");
+      } else if (this.state.cellMode === "resize") {
+        allowed.push("EXIT_RESIZE_MODE");
       }
     }
-    
-    return allowed
+
+    return allowed;
   }
 }

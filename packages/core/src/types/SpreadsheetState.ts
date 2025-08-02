@@ -1,4 +1,4 @@
-import type { CellAddress, Cell } from "../types";
+import type { Cell, CellAddress } from "../types";
 
 /**
  * Complete spreadsheet state including cells, dimensions, and view properties
