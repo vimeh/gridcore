@@ -16,6 +16,8 @@ export class CellEditor {
   private currentCell: CellAddress | null = null;
   private vimMode: VimMode;
   private modeIndicator: HTMLDivElement;
+  private blockCursor: HTMLDivElement;
+  private ignoreNextBlur: boolean = false;
 
   constructor(
     private container: HTMLElement,
@@ -30,6 +32,8 @@ export class CellEditor {
     
     this.editorDiv = this.createEditor();
     this.modeIndicator = this.createModeIndicator();
+    this.blockCursor = this.createBlockCursor();
+    this.editorDiv.appendChild(this.blockCursor);
     this.container.appendChild(this.editorDiv);
     this.container.appendChild(this.modeIndicator);
   }
@@ -74,6 +78,18 @@ export class CellEditor {
     indicator.style.zIndex = "1001";
     indicator.style.pointerEvents = "none";
     return indicator;
+  }
+
+  private createBlockCursor(): HTMLDivElement {
+    const cursor = document.createElement("div");
+    cursor.style.position = "absolute";
+    cursor.style.display = "none";
+    cursor.style.width = "1ch";
+    cursor.style.height = "1.5em";
+    cursor.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
+    cursor.style.pointerEvents = "none";
+    cursor.style.transition = "left 0.1s ease-out";
+    return cursor;
   }
 
   startEditing(cell: CellAddress, initialValue: string = ""): void {
@@ -142,6 +158,7 @@ export class CellEditor {
     this.currentCell = null;
     this.editorDiv.style.display = "none";
     this.modeIndicator.style.display = "none";
+    this.blockCursor.style.display = "none";
     this.editorDiv.textContent = "";
     this.vimMode.reset();
 
@@ -235,6 +252,12 @@ export class CellEditor {
   }
 
   private handleBlur(): void {
+    // Ignore blur if we're transitioning modes
+    if (this.ignoreNextBlur) {
+      this.ignoreNextBlur = false;
+      return;
+    }
+    
     // Delay to allow click events to fire first
     setTimeout(() => {
       if (this.isEditing) {
@@ -247,30 +270,40 @@ export class CellEditor {
     // Update mode indicator
     this.modeIndicator.textContent = mode.toUpperCase();
     
+    // Set ignore blur flag when changing contentEditable
+    this.ignoreNextBlur = true;
+    
     switch (mode) {
       case "normal":
         this.modeIndicator.style.backgroundColor = "#666";
         this.editorDiv.style.borderColor = "#666";
-        // Disable contentEditable in normal mode to prevent text input
-        this.editorDiv.contentEditable = "false";
+        // Keep contentEditable true but show block cursor
+        this.editorDiv.contentEditable = "true";
+        this.blockCursor.style.display = "block";
+        this.updateBlockCursorPosition();
         break;
       case "insert":
         this.modeIndicator.style.backgroundColor = "#0066cc";
         this.editorDiv.style.borderColor = "#0066cc";
         // Enable contentEditable in insert mode
         this.editorDiv.contentEditable = "true";
+        this.blockCursor.style.display = "none";
         break;
       case "visual":
       case "visual-line":
         this.modeIndicator.style.backgroundColor = "#ff6600";
         this.editorDiv.style.borderColor = "#ff6600";
-        // Disable contentEditable in visual mode
-        this.editorDiv.contentEditable = "false";
+        // Keep contentEditable true for selection
+        this.editorDiv.contentEditable = "true";
+        this.blockCursor.style.display = "none";
         break;
     }
     
     // Ensure focus is maintained
-    this.editorDiv.focus();
+    setTimeout(() => {
+      this.editorDiv.focus();
+      this.ignoreNextBlur = false;
+    }, 0);
   }
 
   private handleTextChange(text: string, cursor: number): void {
@@ -298,6 +331,45 @@ export class CellEditor {
     
     sel?.removeAllRanges();
     sel?.addRange(range);
+    
+    // Update block cursor position in normal mode
+    if (this.vimMode.getMode() === "normal") {
+      this.updateBlockCursorPosition();
+    }
+  }
+
+  private updateBlockCursorPosition(): void {
+    const text = this.editorDiv.textContent || "";
+    const cursor = this.vimMode.getCursor();
+    
+    if (cursor >= text.length && text.length > 0) {
+      // Cursor is at end, hide block cursor
+      this.blockCursor.style.display = "none";
+      return;
+    }
+    
+    // Calculate position based on character width
+    const charWidth = this.getCharWidth();
+    const left = cursor * charWidth;
+    
+    this.blockCursor.style.left = `${left}px`;
+    this.blockCursor.style.display = "block";
+  }
+
+  private getCharWidth(): number {
+    // Create a temporary span to measure character width
+    const span = document.createElement("span");
+    span.style.fontFamily = this.editorDiv.style.fontFamily;
+    span.style.fontSize = this.editorDiv.style.fontSize;
+    span.style.position = "absolute";
+    span.style.visibility = "hidden";
+    span.textContent = "M";
+    
+    this.editorDiv.appendChild(span);
+    const width = span.offsetWidth;
+    span.remove();
+    
+    return width;
   }
 
   private setSelection(start: number, end: number): void {
@@ -352,5 +424,6 @@ export class CellEditor {
   destroy(): void {
     this.editorDiv.remove();
     this.modeIndicator.remove();
+    this.blockCursor.remove();
   }
 }
