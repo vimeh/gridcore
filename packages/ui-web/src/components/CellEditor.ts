@@ -203,6 +203,18 @@ export class CellEditor {
   }
 
   private handleInput(event: Event): void {
+    // In normal mode, prevent any text changes
+    if (this.vimMode.getMode() === "normal") {
+      event.preventDefault();
+      // Restore the text to what vim mode thinks it should be
+      const vimText = this.vimMode.getText();
+      if (this.editorDiv.textContent !== vimText) {
+        this.editorDiv.textContent = vimText;
+        this.updateCursorPosition(this.vimMode.getCursor());
+      }
+      return;
+    }
+    
     // Update vim mode text state
     const text = this.editorDiv.textContent || "";
     const cursorPos = this.getCursorPosition();
@@ -236,17 +248,26 @@ export class CellEditor {
       case "normal":
         this.modeIndicator.style.backgroundColor = "#666";
         this.editorDiv.style.borderColor = "#666";
+        // Disable contentEditable in normal mode to prevent text input
+        this.editorDiv.contentEditable = "false";
         break;
       case "insert":
         this.modeIndicator.style.backgroundColor = "#0066cc";
         this.editorDiv.style.borderColor = "#0066cc";
+        // Enable contentEditable in insert mode
+        this.editorDiv.contentEditable = "true";
         break;
       case "visual":
       case "visual-line":
         this.modeIndicator.style.backgroundColor = "#ff6600";
         this.editorDiv.style.borderColor = "#ff6600";
+        // Disable contentEditable in visual mode
+        this.editorDiv.contentEditable = "false";
         break;
     }
+    
+    // Ensure focus is maintained
+    this.editorDiv.focus();
   }
 
   private handleTextChange(text: string, cursor: number): void {
