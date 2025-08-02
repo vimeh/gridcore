@@ -218,7 +218,10 @@ export class CellEditor {
     // Update vim mode text state
     const text = this.editorDiv.textContent || "";
     const cursorPos = this.getCursorPosition();
-    this.vimMode.setText(text, cursorPos);
+    
+    // In insert mode, skip cursor callback to let browser handle cursor naturally
+    const skipCursorCallback = this.vimMode.getMode() === "insert";
+    this.vimMode.setText(text, cursorPos, skipCursorCallback);
   }
 
   private handlePaste(event: ClipboardEvent): void {

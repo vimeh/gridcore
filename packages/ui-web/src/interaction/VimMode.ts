@@ -31,12 +31,17 @@ export class VimMode {
     this.callbacks = callbacks;
   }
   
-  setText(text: string, cursor?: number): void {
+  setText(text: string, cursor?: number, skipCursorCallback: boolean = false): void {
     this.text = text;
     if (cursor !== undefined) {
-      this.state.cursor = Math.min(cursor, Math.max(0, text.length - 1));
+      // In insert mode, cursor can be at text.length (after last character)
+      // In normal mode, cursor is clamped to text.length - 1 (on last character)
+      const maxCursor = this.state.mode === "insert" ? text.length : Math.max(0, text.length - 1);
+      this.state.cursor = Math.min(cursor, maxCursor);
     }
-    this.callbacks.onCursorMove?.(this.state.cursor);
+    if (!skipCursorCallback) {
+      this.callbacks.onCursorMove?.(this.state.cursor);
+    }
   }
   
   getText(): string {
