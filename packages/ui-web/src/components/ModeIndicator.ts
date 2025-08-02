@@ -1,13 +1,15 @@
-import type { SpreadsheetModeStateMachine, SpreadsheetState } from "../state/SpreadsheetMode"
+import type { SpreadsheetState } from "../state/SpreadsheetMode"
+import type { ModeManager } from "../state/ModeManager"
 
 export class ModeIndicator {
   private element: HTMLDivElement
   private modeText: HTMLSpanElement
   private detailText: HTMLSpanElement
+  private unsubscribe: (() => void) | null = null
   
   constructor(
     private container: HTMLElement,
-    private modeStateMachine: SpreadsheetModeStateMachine
+    private modeManager: ModeManager
   ) {
     this.element = this.createElement()
     this.modeText = this.element.querySelector(".mode-text")!
@@ -15,10 +17,10 @@ export class ModeIndicator {
     this.container.appendChild(this.element)
     
     // Subscribe to mode changes
-    this.modeStateMachine.onModeChange(this.handleModeChange.bind(this))
+    this.unsubscribe = this.modeManager.onModeChange(this.handleModeChange.bind(this))
     
     // Set initial state
-    this.updateDisplay(this.modeStateMachine.getState())
+    this.updateDisplay(this.modeManager.getState())
   }
   
   private createElement(): HTMLDivElement {
@@ -34,30 +36,33 @@ export class ModeIndicator {
       position: "fixed",
       bottom: "20px",
       left: "20px",
-      padding: "8px 16px",
+      padding: "10px 16px",
       backgroundColor: "#333",
       color: "white",
-      borderRadius: "4px",
+      borderRadius: "6px",
       fontFamily: "monospace",
       fontSize: "14px",
       display: "flex",
-      alignItems: "center",
-      gap: "12px",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+      flexDirection: "column",
+      gap: "4px",
+      boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
       zIndex: "2000",
       transition: "all 0.2s ease",
+      minWidth: "200px",
     })
     
     const modeText = div.querySelector(".mode-text") as HTMLSpanElement
     Object.assign(modeText.style, {
       fontWeight: "bold",
       textTransform: "uppercase",
+      fontSize: "16px",
     })
     
     const detailText = div.querySelector(".mode-detail") as HTMLSpanElement
     Object.assign(detailText.style, {
-      opacity: "0.8",
+      opacity: "0.85",
       fontSize: "12px",
+      lineHeight: "1.4",
     })
     
     return div
@@ -82,38 +87,92 @@ export class ModeIndicator {
       "visual-line": { bg: "#e53e3e", text: "#fed7d7" },
     }
     
+    // Determine primary mode and color
+    let primaryMode: string
+    let colorKey: keyof typeof colors
+    
     if (state.gridMode === "navigation") {
-      this.modeText.textContent = "NAVIGATION"
-      this.detailText.textContent = "hjkl to move • i to edit"
-      const color = colors.navigation
-      this.element.style.backgroundColor = color.bg
-      this.element.style.color = color.text
+      primaryMode = "NAVIGATION"
+      colorKey = "navigation"
     } else {
-      const modeKey = state.cellMode === "visual-line" ? "visual-line" : state.cellMode
-      const color = colors[modeKey] || colors.normal
-      
-      this.element.style.backgroundColor = color.bg
-      this.element.style.color = color.text
-      
+      // In editing mode, use cell mode for coloring
       switch (state.cellMode) {
-        case "normal":
-          this.modeText.textContent = "NORMAL"
-          this.detailText.textContent = "i/a to insert • v for visual • ESC to exit"
-          break
         case "insert":
-          this.modeText.textContent = "INSERT"
-          this.detailText.textContent = "ESC to normal mode"
+          primaryMode = state.editMode ? `${state.editMode.toUpperCase()}` : "INSERT"
+          colorKey = "insert"
           break
         case "visual":
-          this.modeText.textContent = "VISUAL"
-          this.detailText.textContent = "hjkl to select • ESC to exit"
+          primaryMode = "VISUAL"
+          colorKey = "visual"
           break
         case "visual-line":
-          this.modeText.textContent = "VISUAL LINE"
-          this.detailText.textContent = "Select entire line • ESC to exit"
+          primaryMode = "VISUAL LINE"
+          colorKey = "visual-line"
+          break
+        default:
+          primaryMode = "NORMAL"
+          colorKey = "normal"
+      }
+    }
+    
+    // Set primary mode text
+    this.modeText.textContent = primaryMode
+    
+    // Build detailed mode information
+    const details: string[] = []
+    
+    // Grid mode (always show when editing)
+    if (state.gridMode === "editing") {
+      details.push(`Grid: ${state.gridMode}`)
+    }
+    
+    // Cell mode (show when editing and not redundant with primary mode)
+    if (state.gridMode === "editing" && state.cellMode !== "insert") {
+      details.push(`Cell: ${state.cellMode}`)
+    }
+    
+    // Edit mode (show when in insert mode and different from primary)
+    if (state.cellMode === "insert" && state.editMode && state.editMode !== "insert") {
+      details.push(`Edit: ${state.editMode}`)
+    }
+    
+    // Pending edit mode (show when there's a pending edit mode)
+    if (state.pendingEditMode && state.pendingEditMode !== state.editMode) {
+      details.push(`Pending: ${state.pendingEditMode}`)
+    }
+    
+    // Interaction mode (show when not normal)
+    if (state.interactionMode !== "normal") {
+      details.push(`Input: ${state.interactionMode}`)
+    }
+    
+    // Add helpful hints based on current mode
+    let hints: string[] = []
+    if (state.gridMode === "navigation") {
+      hints = ["hjkl to move", "i/a to edit", "v for visual"]
+    } else {
+      switch (state.cellMode) {
+        case "normal":
+          hints = ["i/a to insert", "v for visual", "ESC to exit"]
+          break
+        case "insert":
+          hints = ["ESC to normal", "text editing active"]
+          break
+        case "visual":
+        case "visual-line":
+          hints = ["hjkl to select", "ESC to exit"]
           break
       }
     }
+    
+    // Combine details and hints
+    const allDetails = [...details, ...hints]
+    this.detailText.textContent = allDetails.join(" • ")
+    
+    // Apply colors
+    const color = colors[colorKey]
+    this.element.style.backgroundColor = color.bg
+    this.element.style.color = color.text
   }
   
   setPosition(position: { bottom?: string; left?: string; right?: string; top?: string }): void {
@@ -129,6 +188,13 @@ export class ModeIndicator {
   }
   
   destroy(): void {
+    // Clean up subscription
+    if (this.unsubscribe) {
+      this.unsubscribe()
+      this.unsubscribe = null
+    }
+    
+    // Remove element from DOM
     this.element.remove()
   }
 }

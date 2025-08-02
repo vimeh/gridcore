@@ -1,8 +1,9 @@
 import type { CellAddress } from "@gridcore/core";
 import { KEY_CODES } from "../constants";
 import type { Viewport } from "./Viewport";
-import { VimMode, type VimModeType } from "../interaction/VimMode";
-import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
+import { VimBehavior, type VimBehaviorCallbacks } from "../interaction/VimMode";
+import type { ModeManager } from "../state/ModeManager";
+import type { CellMode, EditMode, SpreadsheetState } from "../state/SpreadsheetMode";
 
 export interface CellEditorCallbacks {
   onCommit: (address: CellAddress, value: string) => void;
@@ -13,19 +14,20 @@ export interface CellEditorCallbacks {
 }
 
 export interface CellEditorOptions extends CellEditorCallbacks {
-  modeStateMachine?: SpreadsheetModeStateMachine;
+  modeManager?: ModeManager;
 }
 
 export class CellEditor {
   private editorDiv: HTMLDivElement;
   private isEditing: boolean = false;
   private currentCell: CellAddress | null = null;
-  private vimMode: VimMode;
+  private vimBehavior: VimBehavior;
   private modeIndicator: HTMLDivElement;
   private blockCursor: HTMLDivElement;
   private ignoreNextBlur: boolean = false;
-  private modeStateMachine?: SpreadsheetModeStateMachine;
+  private modeManager?: ModeManager;
   private callbacks: CellEditorCallbacks;
+  private unsubscribeModeChange?: () => void;
 
   constructor(
     private container: HTMLElement,
@@ -33,12 +35,21 @@ export class CellEditor {
     options: CellEditorOptions,
   ) {
     this.callbacks = options;
-    this.modeStateMachine = options.modeStateMachine;
-    this.vimMode = new VimMode({
-      onModeChange: this.handleVimModeChange.bind(this),
+    this.modeManager = options.modeManager;
+    
+    // Create VimBehavior with callbacks that connect to ModeManager
+    const vimCallbacks: VimBehaviorCallbacks = {
+      onModeChangeRequest: (mode: CellMode, editMode?: EditMode) => {
+        this.handleVimModeChangeRequest(mode, editMode);
+      },
       onCursorMove: this.updateCursorPosition.bind(this),
       onTextChange: this.handleTextChange.bind(this),
-    });
+    };
+    
+    this.vimBehavior = new VimBehavior(
+      vimCallbacks,
+      () => this.getCurrentCellMode()
+    );
     
     this.editorDiv = this.createEditor();
     this.modeIndicator = this.createModeIndicator();
@@ -46,6 +57,13 @@ export class CellEditor {
     this.editorDiv.appendChild(this.blockCursor);
     this.container.appendChild(this.editorDiv);
     this.container.appendChild(this.modeIndicator);
+    
+    // Subscribe to mode changes if ModeManager is available
+    if (this.modeManager) {
+      this.unsubscribeModeChange = this.modeManager.onModeChange(
+        this.handleModeStateChange.bind(this)
+      );
+    }
   }
 
   private createEditor(): HTMLDivElement {
@@ -115,6 +133,9 @@ export class CellEditor {
     this.currentCell = cell;
     this.isEditing = true;
 
+    // Start editing mode in ModeManager with the specified edit mode
+    this.modeManager?.startEditing(mode as EditMode);
+
     // Notify that editing has started
     this.callbacks.onEditStart?.();
 
@@ -134,29 +155,30 @@ export class CellEditor {
 
     // Set initial text and vim state
     this.editorDiv.textContent = initialValue;
-    this.vimMode.reset();
+    this.vimBehavior.reset();
+    
+    // Set text in vim behavior
+    this.vimBehavior.setText(initialValue);
     
     // Start in appropriate mode
     if (mode === "replace") {
       // For replace mode, clear text and start in insert mode
       this.editorDiv.textContent = "";
-      this.vimMode.setText("", 0);
-      this.vimMode.handleKey("i");
+      this.vimBehavior.setText("", 0);
+      this.modeManager?.enterInsertMode("replace");
     } else if (mode === "append") {
       // Set text first, then append mode will move cursor to end
-      this.vimMode.setText(initialValue);
-      this.vimMode.handleKey("A");
+      this.vimBehavior.setText(initialValue, initialValue.length);
+      this.modeManager?.enterInsertMode("append");
     } else {
-      // For insert mode, enter insert mode first then set cursor at the end
-      this.vimMode.handleKey("i");
-      this.vimMode.setText(initialValue, initialValue.length);
+      // For insert mode, enter insert mode at current position
+      this.vimBehavior.setText(initialValue, initialValue.length);
+      this.modeManager?.enterInsertMode("insert");
     }
-    // Update state machine to insert mode
-    this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE" });
     
     // Focus and set cursor
     this.editorDiv.focus();
-    this.updateCursorPosition(this.vimMode.getCursor());
+    this.updateCursorPosition(this.vimBehavior.getCursor());
   }
 
   stopEditing(commit: boolean = true): void {
@@ -174,13 +196,13 @@ export class CellEditor {
 
     const value = this.editorDiv.textContent || "";
     this.callbacks.onCommit(this.currentCell, value);
-    this.modeStateMachine?.transition({ type: "STOP_EDITING", commit: true });
+    this.modeManager?.stopEditing(true);
     this.hideEditor();
   }
 
   private cancelEdit(): void {
     this.callbacks.onCancel();
-    this.modeStateMachine?.transition({ type: "STOP_EDITING", commit: false });
+    this.modeManager?.stopEditing(false);
     this.hideEditor();
   }
 
@@ -191,17 +213,17 @@ export class CellEditor {
     this.modeIndicator.style.display = "none";
     this.blockCursor.style.display = "none";
     this.editorDiv.textContent = "";
-    this.vimMode.reset();
+    this.vimBehavior.reset();
 
     // Return focus to the main container
     this.callbacks.onEditEnd?.();
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
-    const modeBefore = this.vimMode.getMode();
+    const modeBefore = this.getCurrentCellMode();
     
-    // Let vim mode handle the key first
-    const handled = this.vimMode.handleKey(
+    // Let vim behavior handle the key first
+    const handled = this.vimBehavior.handleKey(
       event.key,
       event.ctrlKey || event.metaKey,
       event.shiftKey
@@ -211,7 +233,7 @@ export class CellEditor {
       event.preventDefault();
       
       // Update selection if in visual mode
-      const selection = this.vimMode.getSelection();
+      const selection = this.vimBehavior.getSelection();
       if (selection) {
         this.setSelection(selection.start, selection.end);
       } else {
@@ -224,7 +246,7 @@ export class CellEditor {
     }
     
     // Get the current mode after vim has processed the key
-    const modeAfter = this.vimMode.getMode();
+    const modeAfter = this.getCurrentCellMode();
     
     // Handle special keys not handled by vim
     if (modeAfter === "normal") {
@@ -236,8 +258,8 @@ export class CellEditor {
           this.commitEdit();
           break;
         case KEY_CODES.ESCAPE:
-          // Second Escape in normal mode should save and exit
-          this.commitEdit();
+          // Handle escape through ModeManager
+          this.modeManager?.handleEscape();
           break;
       }
     } else if (modeAfter === "insert") {
@@ -256,31 +278,31 @@ export class CellEditor {
 
   private handleInput(event: Event): void {
     // In normal mode, prevent any text changes
-    if (this.vimMode.getMode() === "normal") {
+    if (this.getCurrentCellMode() === "normal") {
       event.preventDefault();
-      // Restore the text to what vim mode thinks it should be
-      const vimText = this.vimMode.getText();
+      // Restore the text to what vim behavior thinks it should be
+      const vimText = this.vimBehavior.getText();
       if (this.editorDiv.textContent !== vimText) {
         this.editorDiv.textContent = vimText;
-        this.updateCursorPosition(this.vimMode.getCursor());
+        this.updateCursorPosition(this.vimBehavior.getCursor());
       }
       return;
     }
     
-    // Update vim mode text state
+    // Update vim behavior text state
     const text = this.editorDiv.textContent || "";
     const cursorPos = this.getCursorPosition();
     
     // In insert mode, skip cursor callback to let browser handle cursor naturally
-    const skipCursorCallback = this.vimMode.getMode() === "insert";
-    this.vimMode.setText(text, cursorPos, skipCursorCallback);
+    const skipCursorCallback = this.getCurrentCellMode() === "insert";
+    this.vimBehavior.setText(text, cursorPos, skipCursorCallback);
   }
 
   private handlePaste(event: ClipboardEvent): void {
     event.preventDefault();
     const text = event.clipboardData?.getData("text/plain") || "";
     
-    if (this.vimMode.getMode() === "insert") {
+    if (this.getCurrentCellMode() === "insert") {
       // Insert at current position
       document.execCommand("insertText", false, text);
     }
@@ -301,18 +323,46 @@ export class CellEditor {
     }, 100);
   }
 
-  private handleVimModeChange(mode: VimModeType): void {
+  /**
+   * Handle vim behavior mode change requests by delegating to ModeManager
+   */
+  private handleVimModeChangeRequest(mode: CellMode, editMode?: EditMode): void {
+    if (!this.modeManager) return;
+    
+    switch (mode) {
+      case "normal":
+        this.modeManager.returnToNormalCellMode();
+        break;
+      case "insert":
+        this.modeManager.enterInsertMode(editMode);
+        break;
+      case "visual":
+        this.modeManager.enterVisualMode("character");
+        break;
+      case "visual-line":
+        this.modeManager.enterVisualMode("line");
+        break;
+    }
+  }
+
+  /**
+   * Handle mode state changes from ModeManager
+   */
+  private handleModeStateChange(newState: SpreadsheetState, previousState: SpreadsheetState): void {
+    // Only handle changes when we're actively editing
+    if (!this.isEditing) return;
+    
+    const currentCellMode = newState.cellMode;
+    
     // Update mode indicator
-    this.modeIndicator.textContent = mode.toUpperCase();
+    this.modeIndicator.textContent = currentCellMode.toUpperCase();
     
     // Set ignore blur flag when changing contentEditable
     this.ignoreNextBlur = true;
     
-    // Update state machine based on vim mode
-    switch (mode) {
+    // Update UI based on cell mode
+    switch (currentCellMode) {
       case "normal":
-        this.modeStateMachine?.transition({ type: "EXIT_INSERT_MODE" });
-        this.modeStateMachine?.transition({ type: "EXIT_VISUAL_MODE" });
         this.modeIndicator.style.backgroundColor = "#666";
         this.editorDiv.style.borderColor = "#666";
         // Keep contentEditable true but show block cursor
@@ -321,7 +371,6 @@ export class CellEditor {
         this.updateBlockCursorPosition();
         break;
       case "insert":
-        this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE" });
         this.modeIndicator.style.backgroundColor = "#0066cc";
         this.editorDiv.style.borderColor = "#0066cc";
         // Enable contentEditable in insert mode
@@ -329,21 +378,20 @@ export class CellEditor {
         this.blockCursor.style.display = "none";
         break;
       case "visual":
-        this.modeStateMachine?.transition({ type: "ENTER_VISUAL_MODE", visualType: "character" });
-        this.modeIndicator.style.backgroundColor = "#ff6600";
-        this.editorDiv.style.borderColor = "#ff6600";
-        // Keep contentEditable true for selection
-        this.editorDiv.contentEditable = "true";
-        this.blockCursor.style.display = "none";
-        break;
       case "visual-line":
-        this.modeStateMachine?.transition({ type: "ENTER_VISUAL_MODE", visualType: "line" });
         this.modeIndicator.style.backgroundColor = "#ff6600";
         this.editorDiv.style.borderColor = "#ff6600";
         // Keep contentEditable true for selection
         this.editorDiv.contentEditable = "true";
         this.blockCursor.style.display = "none";
         break;
+    }
+    
+    // Handle grid mode changes (e.g., exit editing)
+    if (newState.gridMode === "navigation" && previousState.gridMode === "editing") {
+      // Editing was stopped externally, hide the editor
+      this.hideEditor();
+      return;
     }
     
     // Ensure focus is maintained
@@ -354,6 +402,13 @@ export class CellEditor {
     
     // Notify mode change for re-rendering
     this.callbacks.onModeChange?.();
+  }
+
+  /**
+   * Get current cell mode from ModeManager or fallback to normal
+   */
+  private getCurrentCellMode(): CellMode {
+    return this.modeManager?.getCellMode() ?? "normal";
   }
 
   private handleTextChange(text: string, cursor: number): void {
@@ -383,14 +438,14 @@ export class CellEditor {
     sel?.addRange(range);
     
     // Update block cursor position in normal mode
-    if (this.vimMode.getMode() === "normal") {
+    if (this.getCurrentCellMode() === "normal") {
       this.updateBlockCursorPosition();
     }
   }
 
   private updateBlockCursorPosition(): void {
     const text = this.editorDiv.textContent || "";
-    const cursor = this.vimMode.getCursor();
+    const cursor = this.vimBehavior.getCursor();
     
     // In vim, cursor can be on the last character in normal mode
     // Only hide if cursor is past the text when text is empty
@@ -475,6 +530,9 @@ export class CellEditor {
   }
 
   destroy(): void {
+    // Clean up mode change subscription
+    this.unsubscribeModeChange?.();
+    
     this.editorDiv.remove();
     this.modeIndicator.remove();
     this.blockCursor.remove();
