@@ -544,6 +544,10 @@ export class CanvasGrid {
   getGrid(): SpreadsheetEngine {
     return this.grid;
   }
+  
+  getViewport(): Viewport {
+    return this.viewport;
+  }
 
   setDebugMode(enabled: boolean): void {
     this.debugRenderer.setEnabled(enabled);
