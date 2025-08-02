@@ -11,14 +11,14 @@ describe("HeaderRenderer Resize Handle Detection", () => {
   let colHeaderCanvas: HTMLCanvasElement;
   let cornerCanvas: HTMLCanvasElement;
   let window: Window;
-  let document: Document;
+  let document: any;
   
   beforeEach(() => {
     // Setup DOM environment
     window = new Window();
     document = window.document;
-    global.window = window as any;
-    global.document = document as any;
+    (global as any).window = window;
+    (global as any).document = document;
     global.devicePixelRatio = 1;
     
     // Create mock canvases

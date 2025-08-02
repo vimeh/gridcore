@@ -6,6 +6,15 @@ export type MouseEventHandler = (cell: CellAddress) => void;
 
 export class MouseHandler {
   private isDragging: boolean = false;
+  private enabled: boolean = true;
+  private boundHandlers: {
+    mousedown: (e: MouseEvent) => void;
+    mousemove: (e: MouseEvent) => void;
+    mouseup: (e: MouseEvent) => void;
+    dblclick: (e: MouseEvent) => void;
+    contextmenu: (e: MouseEvent) => void;
+    selectstart: (e: Event) => void;
+  };
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -14,23 +23,46 @@ export class MouseHandler {
     private onCellClick?: MouseEventHandler,
     private onCellDoubleClick?: MouseEventHandler,
   ) {
+    // Store bound handlers so we can remove them later
+    this.boundHandlers = {
+      mousedown: this.handleMouseDown.bind(this),
+      mousemove: this.handleMouseMove.bind(this),
+      mouseup: this.handleMouseUp.bind(this),
+      dblclick: this.handleDoubleClick.bind(this),
+      contextmenu: (e) => e.preventDefault(),
+      selectstart: (e) => {
+        if (this.isDragging) e.preventDefault();
+      }
+    };
+    
     this.setupEventListeners();
   }
 
   private setupEventListeners(): void {
-    this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
-    this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
-    this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
-    this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
-    this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    if (!this.enabled) return;
+    
+    this.canvas.addEventListener("mousedown", this.boundHandlers.mousedown);
+    this.canvas.addEventListener("mousemove", this.boundHandlers.mousemove);
+    this.canvas.addEventListener("mouseup", this.boundHandlers.mouseup);
+    this.canvas.addEventListener("dblclick", this.boundHandlers.dblclick);
+    this.canvas.addEventListener("contextmenu", this.boundHandlers.contextmenu);
 
     // Prevent text selection while dragging
-    this.canvas.addEventListener("selectstart", (e) => {
-      if (this.isDragging) e.preventDefault();
-    });
+    this.canvas.addEventListener("selectstart", this.boundHandlers.selectstart);
+  }
+
+  private removeEventListeners(): void {
+    this.canvas.removeEventListener("mousedown", this.boundHandlers.mousedown);
+    this.canvas.removeEventListener("mousemove", this.boundHandlers.mousemove);
+    this.canvas.removeEventListener("mouseup", this.boundHandlers.mouseup);
+    this.canvas.removeEventListener("dblclick", this.boundHandlers.dblclick);
+    this.canvas.removeEventListener("contextmenu", this.boundHandlers.contextmenu);
+    this.canvas.removeEventListener("selectstart", this.boundHandlers.selectstart);
   }
 
   private handleMouseDown(event: MouseEvent): void {
+    if (!this.enabled) return;
+    
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -51,7 +83,7 @@ export class MouseHandler {
   }
 
   private handleMouseMove(event: MouseEvent): void {
-    if (!this.isDragging) return;
+    if (!this.enabled || !this.isDragging) return;
 
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -72,6 +104,8 @@ export class MouseHandler {
   }
 
   private handleDoubleClick(event: MouseEvent): void {
+    if (!this.enabled) return;
+    
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -108,11 +142,21 @@ export class MouseHandler {
     }
   }
 
+  setEnabled(enabled: boolean): void {
+    if (this.enabled === enabled) return;
+    
+    this.enabled = enabled;
+    
+    if (enabled) {
+      this.setupEventListeners();
+    } else {
+      this.removeEventListeners();
+      // Reset any dragging state
+      this.isDragging = false;
+    }
+  }
+
   destroy(): void {
-    // Remove all event listeners
-    this.canvas.removeEventListener("mousedown", this.handleMouseDown);
-    this.canvas.removeEventListener("mousemove", this.handleMouseMove);
-    this.canvas.removeEventListener("mouseup", this.handleMouseUp);
-    this.canvas.removeEventListener("dblclick", this.handleDoubleClick);
+    this.removeEventListeners();
   }
 }

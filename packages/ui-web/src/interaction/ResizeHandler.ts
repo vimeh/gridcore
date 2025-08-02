@@ -15,6 +15,15 @@ export class ResizeHandler {
   private startPosition: number = 0;
   private startSize: number = 0;
   private minSize: number = 20; // Minimum column/row size
+  private enabled: boolean = true;
+  private boundHandlers: {
+    colHeaderMouseDown: (e: MouseEvent) => void;
+    colHeaderMouseMove: (e: MouseEvent) => void;
+    rowHeaderMouseDown: (e: MouseEvent) => void;
+    rowHeaderMouseMove: (e: MouseEvent) => void;
+    documentMouseMove: (e: MouseEvent) => void;
+    documentMouseUp: (e: MouseEvent) => void;
+  };
   
   constructor(
     private colHeaderCanvas: HTMLCanvasElement,
@@ -23,24 +32,47 @@ export class ResizeHandler {
     private headerRenderer: HeaderRenderer,
     private callbacks: ResizeHandlerCallbacks = {}
   ) {
+    // Store bound handlers so we can remove them later
+    this.boundHandlers = {
+      colHeaderMouseDown: this.handleColHeaderMouseDown.bind(this),
+      colHeaderMouseMove: this.handleColHeaderMouseMove.bind(this),
+      rowHeaderMouseDown: this.handleRowHeaderMouseDown.bind(this),
+      rowHeaderMouseMove: this.handleRowHeaderMouseMove.bind(this),
+      documentMouseMove: this.handleDocumentMouseMove.bind(this),
+      documentMouseUp: this.handleDocumentMouseUp.bind(this)
+    };
+    
     this.setupEventListeners();
   }
   
   private setupEventListeners(): void {
+    if (!this.enabled) return;
+    
     // Column header events
-    this.colHeaderCanvas.addEventListener("mousedown", this.handleColHeaderMouseDown.bind(this));
-    this.colHeaderCanvas.addEventListener("mousemove", this.handleColHeaderMouseMove.bind(this));
+    this.colHeaderCanvas.addEventListener("mousedown", this.boundHandlers.colHeaderMouseDown);
+    this.colHeaderCanvas.addEventListener("mousemove", this.boundHandlers.colHeaderMouseMove);
     
     // Row header events
-    this.rowHeaderCanvas.addEventListener("mousedown", this.handleRowHeaderMouseDown.bind(this));
-    this.rowHeaderCanvas.addEventListener("mousemove", this.handleRowHeaderMouseMove.bind(this));
+    this.rowHeaderCanvas.addEventListener("mousedown", this.boundHandlers.rowHeaderMouseDown);
+    this.rowHeaderCanvas.addEventListener("mousemove", this.boundHandlers.rowHeaderMouseMove);
     
     // Document events for resize dragging
-    document.addEventListener("mousemove", this.handleDocumentMouseMove.bind(this));
-    document.addEventListener("mouseup", this.handleDocumentMouseUp.bind(this));
+    document.addEventListener("mousemove", this.boundHandlers.documentMouseMove);
+    document.addEventListener("mouseup", this.boundHandlers.documentMouseUp);
+  }
+  
+  private removeEventListeners(): void {
+    this.colHeaderCanvas.removeEventListener("mousedown", this.boundHandlers.colHeaderMouseDown);
+    this.colHeaderCanvas.removeEventListener("mousemove", this.boundHandlers.colHeaderMouseMove);
+    this.rowHeaderCanvas.removeEventListener("mousedown", this.boundHandlers.rowHeaderMouseDown);
+    this.rowHeaderCanvas.removeEventListener("mousemove", this.boundHandlers.rowHeaderMouseMove);
+    document.removeEventListener("mousemove", this.boundHandlers.documentMouseMove);
+    document.removeEventListener("mouseup", this.boundHandlers.documentMouseUp);
   }
   
   private handleColHeaderMouseDown(event: MouseEvent): void {
+    if (!this.enabled) return;
+    
     const rect = this.colHeaderCanvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const scrollPos = this.viewport.getScrollPosition();
@@ -53,6 +85,8 @@ export class ResizeHandler {
   }
   
   private handleRowHeaderMouseDown(event: MouseEvent): void {
+    if (!this.enabled) return;
+    
     const rect = this.rowHeaderCanvas.getBoundingClientRect();
     const y = event.clientY - rect.top;
     const scrollPos = this.viewport.getScrollPosition();
@@ -65,7 +99,7 @@ export class ResizeHandler {
   }
   
   private handleColHeaderMouseMove(event: MouseEvent): void {
-    if (this.isResizing) return;
+    if (!this.enabled || this.isResizing) return;
     
     const rect = this.colHeaderCanvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -80,7 +114,7 @@ export class ResizeHandler {
   }
   
   private handleRowHeaderMouseMove(event: MouseEvent): void {
-    if (this.isResizing) return;
+    if (!this.enabled || this.isResizing) return;
     
     const rect = this.rowHeaderCanvas.getBoundingClientRect();
     const y = event.clientY - rect.top;
@@ -143,8 +177,26 @@ export class ResizeHandler {
     this.callbacks.onResizeEnd?.();
   }
   
+  setEnabled(enabled: boolean): void {
+    if (this.enabled === enabled) return;
+    
+    this.enabled = enabled;
+    
+    if (enabled) {
+      this.setupEventListeners();
+    } else {
+      this.removeEventListeners();
+      // Reset any resize state
+      if (this.isResizing) {
+        this.handleDocumentMouseUp();
+      }
+      // Reset cursors
+      this.colHeaderCanvas.style.cursor = "";
+      this.rowHeaderCanvas.style.cursor = "";
+    }
+  }
+
   destroy(): void {
-    document.removeEventListener("mousemove", this.handleDocumentMouseMove);
-    document.removeEventListener("mouseup", this.handleDocumentMouseUp);
+    this.removeEventListeners();
   }
 }

@@ -1,5 +1,6 @@
 import { parseCellAddress, type SpreadsheetEngine } from "@gridcore/core";
 import type { CellEditor } from "../components/CellEditor";
+import type { CanvasGrid } from "../components/CanvasGrid";
 import { KEY_CODES } from "../constants";
 import type { SelectionManager } from "./SelectionManager";
 
@@ -9,6 +10,7 @@ export class KeyboardHandler {
     private selectionManager: SelectionManager,
     private cellEditor: CellEditor,
     private grid: SpreadsheetEngine,
+    private canvasGrid?: CanvasGrid,
   ) {
     this.setupEventListeners();
   }
@@ -163,6 +165,12 @@ export class KeyboardHandler {
             this.undo();
           }
           break;
+
+        case KEY_CODES.M:
+        case KEY_CODES.CAPITAL_M:
+          event.preventDefault();
+          this.toggleInteractionMode();
+          break;
       }
     }
   }
@@ -220,6 +228,17 @@ export class KeyboardHandler {
   private redo(): void {
     // TODO: Implement redo
     console.log("Redo not yet implemented");
+  }
+
+  private toggleInteractionMode(): void {
+    if (!this.canvasGrid) return;
+    
+    const currentMode = this.canvasGrid.getInteractionMode();
+    const newMode = currentMode === "normal" ? "keyboard-only" : "normal";
+    this.canvasGrid.setInteractionMode(newMode);
+    
+    // Log the mode change for user feedback
+    console.log(`Interaction mode changed to: ${newMode}`);
   }
 
   destroy(): void {

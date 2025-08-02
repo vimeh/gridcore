@@ -14,6 +14,8 @@ import { HeaderRenderer } from "../rendering/HeaderRenderer";
 import { CellEditor } from "./CellEditor";
 import { Viewport } from "./Viewport";
 
+export type InteractionMode = "normal" | "keyboard-only";
+
 export interface CanvasGridOptions {
   theme?: GridTheme;
   totalRows?: number;
@@ -41,6 +43,7 @@ export class CanvasGrid {
 
   private animationFrameId: number | null = null;
   private debugRenderer!: DebugRenderer;
+  private interactionMode: InteractionMode = "normal";
 
   constructor(
     container: HTMLElement,
@@ -89,6 +92,7 @@ export class CanvasGrid {
       this.selectionManager,
       this.cellEditor,
       this.grid,
+      this,
     );
 
     this.resizeHandler = new ResizeHandler(
@@ -424,10 +428,41 @@ export class CanvasGrid {
       const ctx = this.canvas.getContext("2d");
       if (ctx) {
         this.debugRenderer.render(ctx, visibleBounds);
+        
+        // Always render interaction mode indicator
+        this.renderInteractionModeIndicator(ctx);
       }
 
       this.animationFrameId = null;
     });
+  }
+
+  private renderInteractionModeIndicator(ctx: CanvasRenderingContext2D): void {
+    const mode = this.interactionMode;
+    const text = mode === "keyboard-only" ? "⌨️ Keyboard Only" : "🖱️ Normal Mode";
+    
+    // Position in top-right corner
+    const padding = 10;
+    const height = 30;
+    const width = 140;
+    const x = this.canvas.width - width - padding;
+    const y = padding;
+    
+    // Draw background
+    ctx.fillStyle = mode === "keyboard-only" ? "rgba(255, 100, 0, 0.9)" : "rgba(0, 100, 255, 0.9)";
+    ctx.fillRect(x, y, width, height);
+    
+    // Draw border
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, width, height);
+    
+    // Draw text
+    ctx.fillStyle = "white";
+    ctx.font = "bold 14px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, x + width / 2, y + height / 2);
   }
 
   destroy(): void {
@@ -516,6 +551,27 @@ export class CanvasGrid {
       this.viewport.setRowHeights(state.rowHeights);
     }
     this.resize();
+    this.render();
+  }
+
+  // Get current interaction mode
+  getInteractionMode(): InteractionMode {
+    return this.interactionMode;
+  }
+
+  // Set interaction mode
+  setInteractionMode(mode: InteractionMode): void {
+    if (this.interactionMode === mode) return;
+    
+    this.interactionMode = mode;
+    
+    // Update mouse handler
+    this.mouseHandler.setEnabled(mode === "normal");
+    
+    // Update resize handler
+    this.resizeHandler.setEnabled(mode === "normal");
+    
+    // Re-render to update any visual indicators
     this.render();
   }
 }
