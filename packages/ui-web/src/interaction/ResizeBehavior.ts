@@ -103,7 +103,7 @@ export class ResizeBehavior {
         if (cell) {
           // Estimate width based on content length
           const content =
-            cell.formattedValue || cell.rawValue?.toString() || "";
+            cell.computedValue?.toString() || cell.rawValue?.toString() || "";
           const estimatedWidth = content.length * 8 + 20; // rough estimate
           maxWidth = Math.max(maxWidth, estimatedWidth);
         }
