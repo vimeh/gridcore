@@ -135,7 +135,6 @@ export class CellEditor {
     // Set initial text and vim state
     this.editorDiv.textContent = initialValue;
     this.vimMode.reset();
-    this.vimMode.setText(initialValue, initialValue.length);
     
     // Start in appropriate mode
     if (mode === "replace") {
@@ -144,8 +143,12 @@ export class CellEditor {
       this.vimMode.setText("", 0);
       this.vimMode.handleKey("i");
     } else if (mode === "append") {
+      // Set cursor at the end for append mode
+      this.vimMode.setText(initialValue, initialValue.length);
       this.vimMode.handleKey("A");
     } else {
+      // For insert mode, set cursor at the end (since we're entering an existing cell)
+      this.vimMode.setText(initialValue, initialValue.length);
       this.vimMode.handleKey("i");
     }
     // Update state machine to insert mode
@@ -233,14 +236,15 @@ export class CellEditor {
           this.commitEdit();
           break;
         case KEY_CODES.ESCAPE:
-          this.cancelEdit();
+          // Second Escape in normal mode should save and exit
+          this.commitEdit();
           break;
       }
     } else if (modeAfter === "insert") {
       switch (event.key) {
         case KEY_CODES.ENTER:
-          event.preventDefault();
-          this.commitEdit();
+          // In insert mode, Enter should insert a newline, not commit
+          // Let the browser handle it naturally
           break;
         case KEY_CODES.TAB:
           event.preventDefault();
