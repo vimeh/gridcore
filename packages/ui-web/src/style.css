@@ -65,6 +65,7 @@ body {
 
 .grid-scroll-container {
   /* Removed width/height 100% since we position it absolutely with specific offsets */
+  overscroll-behavior: contain;
 }
 
 .grid-canvas {

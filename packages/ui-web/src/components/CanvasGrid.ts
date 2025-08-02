@@ -130,6 +130,10 @@ export class CanvasGrid {
       this.onCellClick?.(cell);
     };
 
+    // Do an immediate resize to set initial dimensions correctly
+    this.resize();
+    
+    // Then do another resize in next frame to handle any layout changes
     requestAnimationFrame(() => {
       this.resize();
       this.render();
@@ -244,6 +248,9 @@ export class CanvasGrid {
     this.canvas.style.top = "0";
     this.canvas.style.left = "0";
     this.canvas.style.pointerEvents = "auto";
+    // Prevent canvas from creating initial scroll space
+    this.canvas.style.width = "0px";
+    this.canvas.style.height = "0px";
 
     const spacer = document.createElement("div");
     spacer.className = "grid-spacer";
@@ -251,6 +258,11 @@ export class CanvasGrid {
     spacer.style.top = "0";
     spacer.style.left = "0";
     spacer.style.pointerEvents = "none";
+    // Set initial size to prevent over-scrolling on load
+    spacer.style.width = "0px";
+    spacer.style.height = "0px";
+    spacer.style.minWidth = "0px";
+    spacer.style.minHeight = "0px";
 
     this.scrollContainer.appendChild(spacer);
     this.scrollContainer.appendChild(this.canvas);
@@ -375,6 +387,11 @@ export class CanvasGrid {
     const rect = this.container.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
+    
+    // Early return if container has no dimensions yet
+    if (width === 0 || height === 0) {
+      return;
+    }
 
     // Calculate scrollbar dimensions
     const hasVerticalScrollbar =
@@ -422,12 +439,9 @@ export class CanvasGrid {
       const totalWidth = this.viewport.getTotalGridWidth();
       const totalHeight = this.viewport.getTotalGridHeight();
 
-      // Set spacer to exact grid size - no buffer needed
-      const spacerWidth = Math.max(scrollWidth, totalWidth);
-      const spacerHeight = Math.max(scrollHeight, totalHeight);
-
-      spacer.style.width = `${spacerWidth}px`;
-      spacer.style.height = `${spacerHeight}px`;
+      // Set spacer to exact grid size to prevent over-scrolling
+      spacer.style.width = `${totalWidth}px`;
+      spacer.style.height = `${totalHeight}px`;
     }
 
     this.headerRenderer.renderCorner();
