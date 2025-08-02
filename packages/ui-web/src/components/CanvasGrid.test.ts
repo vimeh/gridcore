@@ -40,6 +40,8 @@ describe("CanvasGrid Initial Load", () => {
       createLinearGradient: () => ({
         addColorStop: () => {},
       }),
+      rect: () => {},
+      clip: () => {},
     }
 
     // Mock canvas
@@ -196,6 +198,8 @@ describe("CanvasGrid Scrolling", () => {
       createLinearGradient: () => ({
         addColorStop: () => {},
       }),
+      rect: () => {},
+      clip: () => {},
     }
 
     // Mock canvas

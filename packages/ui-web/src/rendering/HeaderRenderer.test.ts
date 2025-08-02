@@ -38,6 +38,18 @@ describe("HeaderRenderer Resize Handle Detection", () => {
       stroke: () => {},
       fillText: () => {},
       measureText: () => ({ width: 50 }),
+      rect: () => {},
+      clip: () => {},
+      save: () => {},
+      restore: () => {},
+      translate: () => {},
+      rotate: () => {},
+      arc: () => {},
+      fill: () => {},
+      setLineDash: () => {},
+      createLinearGradient: () => ({
+        addColorStop: () => {},
+      }),
     };
 
     rowHeaderCanvas.getContext = () => mockContext as any;
