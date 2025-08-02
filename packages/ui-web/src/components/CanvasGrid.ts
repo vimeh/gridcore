@@ -5,6 +5,7 @@ import {
 } from "@gridcore/core";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
 import { MouseHandler } from "../interaction/MouseHandler";
+import { ResizeHandler } from "../interaction/ResizeHandler";
 import { SelectionManager } from "../interaction/SelectionManager";
 import { CanvasRenderer } from "../rendering/CanvasRenderer";
 import { DebugRenderer } from "../rendering/DebugRenderer";
@@ -36,6 +37,7 @@ export class CanvasGrid {
   private mouseHandler: MouseHandler;
   private cellEditor: CellEditor;
   private keyboardHandler: KeyboardHandler;
+  private resizeHandler!: ResizeHandler;
 
   private animationFrameId: number | null = null;
   private debugRenderer!: DebugRenderer;
@@ -87,6 +89,23 @@ export class CanvasGrid {
       this.selectionManager,
       this.cellEditor,
       this.grid,
+    );
+
+    this.resizeHandler = new ResizeHandler(
+      this.colHeaderCanvas,
+      this.rowHeaderCanvas,
+      this.viewport,
+      this.headerRenderer,
+      {
+        onColumnResize: () => {
+          this.resize();
+          this.render();
+        },
+        onRowResize: () => {
+          this.resize();
+          this.render();
+        },
+      }
     );
 
     this.setupEventListeners();
@@ -422,6 +441,7 @@ export class CanvasGrid {
     this.mouseHandler.destroy();
     this.cellEditor.destroy();
     this.keyboardHandler.destroy();
+    this.resizeHandler.destroy();
 
     this.container.innerHTML = "";
   }
@@ -471,5 +491,31 @@ export class CanvasGrid {
 
     this.scrollContainer.scrollLeft = newScrollX;
     this.scrollContainer.scrollTop = newScrollY;
+  }
+
+  // Get view state including column widths and row heights
+  getViewState(): {
+    columnWidths: Record<number, number>;
+    rowHeights: Record<number, number>;
+  } {
+    return {
+      columnWidths: this.viewport.getColumnWidths(),
+      rowHeights: this.viewport.getRowHeights(),
+    };
+  }
+
+  // Set view state including column widths and row heights
+  setViewState(state: {
+    columnWidths?: Record<number, number>;
+    rowHeights?: Record<number, number>;
+  }): void {
+    if (state.columnWidths) {
+      this.viewport.setColumnWidths(state.columnWidths);
+    }
+    if (state.rowHeights) {
+      this.viewport.setRowHeights(state.rowHeights);
+    }
+    this.resize();
+    this.render();
   }
 }

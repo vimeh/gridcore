@@ -5,6 +5,7 @@ import { FormulaParser } from "./formula/parser";
 import { Grid } from "./Grid";
 import type { Cell, CellAddress, CellValueType, GridDimensions } from "./types";
 import { cellAddressToString, parseCellAddress } from "./utils/cellAddress";
+import type { SpreadsheetState, SpreadsheetStateOptions } from "./types/SpreadsheetState";
 
 export interface SpreadsheetChangeEvent {
   type: "cell-change" | "batch-change";
@@ -384,6 +385,26 @@ export class SpreadsheetEngine {
     };
   }
 
+  // New serialization format with view state
+  toState(options: SpreadsheetStateOptions = {}): SpreadsheetState {
+    const state: SpreadsheetState = {
+      version: "1.0",
+      dimensions: this.grid.getDimensions(),
+      cells: this.grid.toJSON().cells,
+      dependencies: this.dependencyGraph.toJSON(),
+    };
+
+    if (options.includeMetadata) {
+      state.metadata = {
+        createdAt: new Date().toISOString(),
+        modifiedAt: new Date().toISOString(),
+      };
+    }
+
+    // View properties will be added by the UI layer
+    return state;
+  }
+
   static fromJSON(data: {
     grid: ReturnType<Grid["toJSON"]>;
     dependencies: ReturnType<DependencyGraph["toJSON"]>;
@@ -412,6 +433,31 @@ export class SpreadsheetEngine {
         engine.evaluateFormula(address, cell.formula);
       }
     }
+
+    return engine;
+  }
+
+  static fromState(state: SpreadsheetState): SpreadsheetEngine {
+    const engine = new SpreadsheetEngine(state.dimensions.rows, state.dimensions.cols);
+
+    // Restore cells
+    for (const { address, cell } of state.cells) {
+      // For formula cells, use the formula value directly
+      if (cell.formula) {
+        engine.setCell(address, cell.formula, cell.formula);
+      } else {
+        engine.grid.setCell(address, cell.rawValue, cell.formula);
+        const engineCell = engine.grid.getCell(address);
+        if (engineCell) {
+          engineCell.computedValue = cell.computedValue;
+          engineCell.error = cell.error;
+          engineCell.style = cell.style;
+        }
+      }
+    }
+
+    // Restore dependencies
+    engine.dependencyGraph = DependencyGraph.fromJSON(state.dependencies);
 
     return engine;
   }

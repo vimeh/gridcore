@@ -59,59 +59,103 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
   onImport: () => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ".csv";
+    input.accept = ".json,.csv";
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const text = await file.text();
-        const rows = text.split("\n").map((row) => row.split(","));
-        engine.clear();
-        rows.forEach((row, r) => {
-          row.forEach((cellValue, c) => {
-            engine.setCell({ row: r, col: c }, cellValue);
+        
+        if (file.name.endsWith(".json")) {
+          // Import JSON format with view state
+          try {
+            const state = JSON.parse(text);
+            const newEngine = SpreadsheetEngine.fromState(state);
+            
+            // Replace the engine (this would need refactoring for proper implementation)
+            engine.clear();
+            const cells = newEngine.getAllCells();
+            cells.forEach((cell, key) => {
+              const addr = newEngine.parseCellKey(key);
+              engine.setCell(addr, cell.rawValue || "", cell.formula);
+            });
+            
+            // Apply view state
+            if (state.view) {
+              grid.setViewState(state.view);
+            }
+          } catch (error) {
+            console.error("Failed to import JSON:", error);
+            alert("Failed to import file. Please check the format.");
+          }
+        } else {
+          // Import CSV format
+          const rows = text.split("\n").map((row) => row.split(","));
+          engine.clear();
+          rows.forEach((row, r) => {
+            row.forEach((cellValue, c) => {
+              engine.setCell({ row: r, col: c }, cellValue);
+            });
           });
-        });
+        }
       }
     };
     input.click();
   },
   onExport: () => {
-    const data = engine.getAllCells();
-    let csvContent = "";
+    // Ask user for export format
+    const format = confirm("Export as JSON (OK) or CSV (Cancel)?") ? "json" : "csv";
+    
+    if (format === "json") {
+      // Export as JSON with view state
+      const state = engine.toState({ includeMetadata: true });
+      state.view = grid.getViewState();
+      
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "spreadsheet.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      // Export as CSV
+      const data = engine.getAllCells();
+      let csvContent = "";
 
-    const keys = Array.from(data.keys());
-    if (keys.length === 0) {
-      return;
-    }
-
-    const addresses = keys.map((key) => engine.parseCellKey(key));
-    const maxRow = Math.max(...addresses.map((addr) => addr.row));
-    const maxCol = Math.max(...addresses.map((addr) => addr.col));
-
-    for (let i = 0; i <= maxRow; i++) {
-      const row = [];
-      for (let j = 0; j <= maxCol; j++) {
-        const cell = engine.getCell({ row: i, col: j });
-        const value = cell?.rawValue ?? "";
-        // Escape commas and quotes
-        const escapedValue =
-          String(value).includes(",") || String(value).includes('"')
-            ? `"${String(value).replace(/"/g, '""')}"`
-            : value;
-        row.push(escapedValue);
+      const keys = Array.from(data.keys());
+      if (keys.length === 0) {
+        return;
       }
-      csvContent += `${row.join(",")}\r\n`;
-    }
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "spreadsheet.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const addresses = keys.map((key) => engine.parseCellKey(key));
+      const maxRow = Math.max(...addresses.map((addr) => addr.row));
+      const maxCol = Math.max(...addresses.map((addr) => addr.col));
+
+      for (let i = 0; i <= maxRow; i++) {
+        const row = [];
+        for (let j = 0; j <= maxCol; j++) {
+          const cell = engine.getCell({ row: i, col: j });
+          const value = cell?.rawValue ?? "";
+          // Escape commas and quotes
+          const escapedValue =
+            String(value).includes(",") || String(value).includes('"')
+              ? `"${String(value).replace(/"/g, '""')}"`
+              : value;
+          row.push(escapedValue);
+        }
+        csvContent += `${row.join(",")}\r\n`;
+      }
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "spreadsheet.csv");
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   },
   onDebugToggle: (enabled) => {
     canvasGrid.setDebugMode(enabled);
@@ -123,6 +167,9 @@ const canvasGrid = new CanvasGrid(gridContainer, engine, {
   totalRows: GRID_ROWS,
   totalCols: GRID_COLS,
 });
+
+// Create alias for grid (used in import/export)
+const grid = canvasGrid;
 
 // Connect grid selection to formula bar
 canvasGrid.onCellClick = (cell) => {

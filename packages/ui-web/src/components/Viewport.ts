@@ -205,4 +205,36 @@ export class Viewport {
     }
     return height;
   }
+
+  // Get all custom column widths
+  getColumnWidths(): Record<number, number> {
+    const widths: Record<number, number> = {};
+    this.columnWidths.forEach((width, col) => {
+      widths[col] = width;
+    });
+    return widths;
+  }
+
+  // Get all custom row heights
+  getRowHeights(): Record<number, number> {
+    const heights: Record<number, number> = {};
+    this.rowHeights.forEach((height, row) => {
+      heights[row] = height;
+    });
+    return heights;
+  }
+
+  // Set multiple column widths at once
+  setColumnWidths(widths: Record<number, number>): void {
+    Object.entries(widths).forEach(([col, width]) => {
+      this.setColumnWidth(Number(col), width);
+    });
+  }
+
+  // Set multiple row heights at once
+  setRowHeights(heights: Record<number, number>): void {
+    Object.entries(heights).forEach(([row, height]) => {
+      this.setRowHeight(Number(row), height);
+    });
+  }
 }

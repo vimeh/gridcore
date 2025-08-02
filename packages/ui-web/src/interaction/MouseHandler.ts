@@ -39,7 +39,6 @@ export class MouseHandler {
     if (!cell) return;
 
     this.isDragging = true;
-    this.lastMousePosition = { x, y };
 
     if (event.shiftKey && this.selectionManager.getActiveCell()) {
       // Extend selection
@@ -65,8 +64,6 @@ export class MouseHandler {
     if (cell) {
       this.selectionManager.updateRangeSelection(cell);
     }
-
-    this.lastMousePosition = { x, y };
   }
 
   private handleMouseUp(_event: MouseEvent): void {
