@@ -78,6 +78,7 @@ export class CellEditor {
 
   private createModeIndicator(): HTMLDivElement {
     const indicator = document.createElement("div");
+    indicator.className = "mode-indicator";
     indicator.style.position = "absolute";
     indicator.style.display = "none";
     indicator.style.padding = "2px 6px";
@@ -92,17 +93,21 @@ export class CellEditor {
 
   private createBlockCursor(): HTMLDivElement {
     const cursor = document.createElement("div");
+    cursor.className = "block-cursor";
     cursor.style.position = "absolute";
     cursor.style.display = "none";
+    cursor.style.top = "0";
+    cursor.style.left = "0";
     cursor.style.width = "1ch";
     cursor.style.height = "1.5em";
     cursor.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
     cursor.style.pointerEvents = "none";
     cursor.style.transition = "left 0.1s ease-out";
+    cursor.style.zIndex = "1";
     return cursor;
   }
 
-  startEditing(cell: CellAddress, initialValue: string = ""): void {
+  startEditing(cell: CellAddress, initialValue: string = "", mode: "insert" | "append" | "replace" = "append"): void {
     if (this.isEditing) {
       this.commitEdit();
     }
@@ -132,8 +137,17 @@ export class CellEditor {
     this.vimMode.reset();
     this.vimMode.setText(initialValue, initialValue.length);
     
-    // Start in insert mode for convenience
-    this.vimMode.handleKey("A");
+    // Start in appropriate mode
+    if (mode === "replace") {
+      // For replace mode, clear text and start in insert mode
+      this.editorDiv.textContent = "";
+      this.vimMode.setText("", 0);
+      this.vimMode.handleKey("i");
+    } else if (mode === "append") {
+      this.vimMode.handleKey("A");
+    } else {
+      this.vimMode.handleKey("i");
+    }
     // Update state machine to insert mode
     this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE" });
     
@@ -374,15 +388,18 @@ export class CellEditor {
     const text = this.editorDiv.textContent || "";
     const cursor = this.vimMode.getCursor();
     
-    if (cursor >= text.length && text.length > 0) {
-      // Cursor is at end, hide block cursor
+    // In vim, cursor can be on the last character in normal mode
+    // Only hide if cursor is past the text when text is empty
+    if (text.length === 0) {
       this.blockCursor.style.display = "none";
       return;
     }
     
     // Calculate position based on character width
     const charWidth = this.getCharWidth();
-    const left = cursor * charWidth;
+    // Cursor should be clamped to last character position in normal mode
+    const displayCursor = Math.min(cursor, Math.max(0, text.length - 1));
+    const left = displayCursor * charWidth;
     
     this.blockCursor.style.left = `${left}px`;
     this.blockCursor.style.display = "block";

@@ -8,21 +8,21 @@ test.describe("Common Features", () => {
 
   test("should display initial data correctly", async ({ page }) => {
     // Check initial values
-    await expect(page.locator(".formula-bar input:last-child")).toHaveValue("Hello")
+    await expect(page.locator(".formula-bar-input")).toHaveValue("Hello")
     
     await page.keyboard.press("l")
-    await expect(page.locator(".formula-bar input:last-child")).toHaveValue("World")
+    await expect(page.locator(".formula-bar-input")).toHaveValue("World")
     
     await page.keyboard.press("j")
-    await expect(page.locator(".formula-bar input:last-child")).toHaveValue("123")
+    await expect(page.locator(".formula-bar-input")).toHaveValue("123")
     
     await page.keyboard.press("l")
-    await expect(page.locator(".formula-bar input:last-child")).toHaveValue("=A2+B2")
+    await expect(page.locator(".formula-bar-input")).toHaveValue("=A2+B2")
   })
 
   test("should update formula bar when navigating", async ({ page }) => {
-    const cellRef = page.locator(".formula-bar input:first-child")
-    const cellValue = page.locator(".formula-bar input:last-child")
+    const cellRef = page.locator(".formula-bar-address")
+    const cellValue = page.locator(".formula-bar-input")
     
     // Check A1
     await expect(cellRef).toHaveValue("A1")
@@ -36,7 +36,7 @@ test.describe("Common Features", () => {
   })
 
   test("should show mode indicator", async ({ page }) => {
-    const modeIndicator = page.locator(".mode-indicator")
+    const modeIndicator = page.locator(".mode-indicator").filter({ hasText: "hjkl to move" })
     
     // Should start in navigation mode
     await expect(modeIndicator).toBeVisible()
@@ -81,7 +81,7 @@ test.describe("Common Features", () => {
     
     // Should still be able to navigate
     await page.keyboard.press("l")
-    await expect(page.locator(".formula-bar input:first-child")).toHaveValue("B1")
+    await expect(page.locator(".formula-bar-address")).toHaveValue("B1")
   })
 
   test("should handle import/export buttons", async ({ page }) => {
@@ -101,17 +101,33 @@ test.describe("Common Features", () => {
     // Grid container should be focusable
     const gridContainer = page.locator(".grid-container")
     
-    // Click on grid
+    // Click on grid to focus it
     await gridContainer.click()
+    
+    // Wait for grid to be focused
+    await page.waitForTimeout(100)
+    
+    // Navigate to A1 using vim keys (go far left and up)
+    // Press 'h' multiple times to go to column A
+    for (let i = 0; i < 20; i++) {
+      await page.keyboard.press("h")
+    }
+    // Press 'k' multiple times to go to row 1
+    for (let i = 0; i < 20; i++) {
+      await page.keyboard.press("k")
+    }
+    
+    // Verify we're at A1
+    await expect(page.locator(".formula-bar-address")).toHaveValue("A1")
     
     // Should be able to navigate immediately
     await page.keyboard.press("j")
-    await expect(page.locator(".formula-bar input:first-child")).toHaveValue("A2")
+    await expect(page.locator(".formula-bar-address")).toHaveValue("A2")
   })
 
   test("should show cursor in navigation mode", async ({ page }) => {
     // In navigation mode, there should be a visible cursor
-    await expect(page.locator(".mode-indicator")).toContainText("NAVIGATION")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "hjkl to move" })).toContainText("NAVIGATION")
     
     // Move around and cursor should follow
     await page.keyboard.press("l")
@@ -129,7 +145,7 @@ test.describe("Common Features", () => {
     }
     
     // Should be at F1
-    await expect(page.locator(".formula-bar input:first-child")).toHaveValue("F1")
+    await expect(page.locator(".formula-bar-address")).toHaveValue("F1")
     
     // Navigate back
     for (let i = 0; i < 5; i++) {
@@ -137,6 +153,6 @@ test.describe("Common Features", () => {
     }
     
     // Should be back at A1
-    await expect(page.locator(".formula-bar input:first-child")).toHaveValue("A1")
+    await expect(page.locator(".formula-bar-address")).toHaveValue("A1")
   })
 })

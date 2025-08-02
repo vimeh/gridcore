@@ -9,13 +9,13 @@ test.describe("Vim Mode", () => {
 
   test("should transition from navigation to edit mode with 'i' key", async ({ page }) => {
     // Initially in navigation mode
-    await expect(page.locator(".mode-indicator")).toContainText("NAVIGATION")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "hjkl to move" })).toContainText("NAVIGATION")
     
     // Press 'i' to enter edit mode
     await page.keyboard.press("i")
     
     // Should be in insert mode
-    await expect(page.locator(".mode-indicator")).toContainText("INSERT")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" })).toContainText("INSERT")
     
     // Should show cell editor
     await expect(page.locator(".cell-editor")).toBeVisible()
@@ -36,26 +36,26 @@ test.describe("Vim Mode", () => {
     await page.keyboard.press("Enter")
     
     // Check that text was saved
-    await expect(page.locator(".formula-bar input")).toHaveValue("Hello Vim")
+    await expect(page.locator(".formula-bar-input")).toHaveValue("Hello Vim")
   })
 
   test("should transition between vim modes correctly", async ({ page }) => {
     // Start editing
     await page.keyboard.press("i")
-    await expect(page.locator(".mode-indicator")).toContainText("INSERT")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" })).toContainText("INSERT")
     
     // Switch to normal mode
     await page.keyboard.press("Escape")
-    await expect(page.locator(".mode-indicator")).toContainText("NORMAL")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "i/a to insert" })).toContainText("NORMAL")
     
     // Back to insert mode
     await page.keyboard.press("i")
-    await expect(page.locator(".mode-indicator")).toContainText("INSERT")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" })).toContainText("INSERT")
     
     // Exit to navigation
     await page.keyboard.press("Escape") // To normal
     await page.keyboard.press("Escape") // To navigation
-    await expect(page.locator(".mode-indicator")).toContainText("NAVIGATION")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "hjkl to move" })).toContainText("NAVIGATION")
   })
 
   test("should position cursor correctly with vim commands", async ({ page }) => {
@@ -73,7 +73,7 @@ test.describe("Vim Mode", () => {
     await page.keyboard.press("b") // Previous word
     
     // Should still be in normal mode
-    await expect(page.locator(".mode-indicator")).toContainText("NORMAL")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "i/a to insert" })).toContainText("NORMAL")
   })
 
   test("should handle 'a' to append", async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe("Vim Mode", () => {
     await page.keyboard.press("a")
     
     // Should be in insert mode
-    await expect(page.locator(".mode-indicator")).toContainText("INSERT")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" })).toContainText("INSERT")
     
     // Type additional text
     await page.keyboard.type("!")
@@ -93,7 +93,7 @@ test.describe("Vim Mode", () => {
     await page.keyboard.press("Enter")
     
     // Check the result
-    await expect(page.locator(".formula-bar input")).toHaveValue("World!")
+    await expect(page.locator(".formula-bar-input")).toHaveValue("World!")
   })
 
   test("should show visual mode", async ({ page }) => {
@@ -106,7 +106,7 @@ test.describe("Vim Mode", () => {
     
     // Enter visual mode
     await page.keyboard.press("v")
-    await expect(page.locator(".mode-indicator")).toContainText("VISUAL")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "hjkl to select" })).toContainText("VISUAL")
     
     // Move to select text
     await page.keyboard.press("l")
@@ -114,6 +114,6 @@ test.describe("Vim Mode", () => {
     
     // Exit visual mode
     await page.keyboard.press("Escape")
-    await expect(page.locator(".mode-indicator")).toContainText("NORMAL")
+    await expect(page.locator(".mode-indicator").filter({ hasText: "i/a to insert" })).toContainText("NORMAL")
   })
 })

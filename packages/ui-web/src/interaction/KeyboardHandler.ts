@@ -34,56 +34,74 @@ export class KeyboardHandler {
       return;
     }
 
-    const activeCell = this.selectionManager.getActiveCell();
-    if (!activeCell) return;
-
     switch (event.key) {
       // Vim navigation keys
       case KEY_CODES.H:
         event.preventDefault();
-        this.selectionManager.moveActiveCell("left");
+        if (this.selectionManager.getActiveCell()) {
+          this.selectionManager.moveActiveCell("left");
+        }
         break;
 
       case KEY_CODES.J:
         event.preventDefault();
-        this.selectionManager.moveActiveCell("down");
+        if (this.selectionManager.getActiveCell()) {
+          this.selectionManager.moveActiveCell("down");
+        }
         break;
 
       case KEY_CODES.K:
         event.preventDefault();
-        this.selectionManager.moveActiveCell("up");
+        if (this.selectionManager.getActiveCell()) {
+          this.selectionManager.moveActiveCell("up");
+        }
         break;
 
       case KEY_CODES.L:
         event.preventDefault();
-        this.selectionManager.moveActiveCell("right");
+        if (this.selectionManager.getActiveCell()) {
+          this.selectionManager.moveActiveCell("right");
+        }
         break;
 
       // Vim edit mode
       case KEY_CODES.I:
         event.preventDefault();
-        this.startEditingActiveCell();
+        this.startEditingActiveCell("", false); // insert mode
+        break;
+
+      case KEY_CODES.A:
+        event.preventDefault();
+        this.startEditingActiveCell("", true); // append mode
         break;
 
       // Keep arrow keys as secondary option
       case KEY_CODES.ARROW_UP:
         event.preventDefault();
-        this.selectionManager.moveActiveCell("up");
+        if (this.selectionManager.getActiveCell()) {
+          this.selectionManager.moveActiveCell("up");
+        }
         break;
 
       case KEY_CODES.ARROW_DOWN:
         event.preventDefault();
-        this.selectionManager.moveActiveCell("down");
+        if (this.selectionManager.getActiveCell()) {
+          this.selectionManager.moveActiveCell("down");
+        }
         break;
 
       case KEY_CODES.ARROW_LEFT:
         event.preventDefault();
-        this.selectionManager.moveActiveCell("left");
+        if (this.selectionManager.getActiveCell()) {
+          this.selectionManager.moveActiveCell("left");
+        }
         break;
 
       case KEY_CODES.ARROW_RIGHT:
         event.preventDefault();
-        this.selectionManager.moveActiveCell("right");
+        if (this.selectionManager.getActiveCell()) {
+          this.selectionManager.moveActiveCell("right");
+        }
         break;
 
       case KEY_CODES.ENTER:
@@ -91,7 +109,7 @@ export class KeyboardHandler {
         if (event.shiftKey) {
           this.selectionManager.moveActiveCell("up");
         } else {
-          this.startEditingActiveCell();
+          this.startEditingActiveCell("", "replace"); // replace mode for Enter
         }
         break;
 
@@ -127,6 +145,7 @@ export class KeyboardHandler {
             KEY_CODES.K,
             KEY_CODES.L,
             KEY_CODES.I,
+            KEY_CODES.A,
           ].includes(event.key)
         ) {
           this.startEditingActiveCell(event.key);
@@ -180,7 +199,7 @@ export class KeyboardHandler {
     }
   }
 
-  private startEditingActiveCell(initialChar?: string): void {
+  private startEditingActiveCell(initialChar?: string, mode: boolean | "replace" = false): void {
     const activeCell = this.selectionManager.getActiveCell();
     if (!activeCell) return;
 
@@ -189,21 +208,45 @@ export class KeyboardHandler {
 
     const cellData = this.grid.getCell(activeCell);
     let initialValue = "";
+    let editMode: "insert" | "append" | "replace" = "insert";
 
-    if (initialChar) {
+    if (mode === "replace") {
+      editMode = "replace";
+      initialValue = cellData?.formula || String(cellData?.rawValue || "");
+    } else if (initialChar && mode !== true) {
       initialValue = initialChar;
+      editMode = "replace"; // When typing to start, replace content
     } else {
       initialValue = cellData?.formula || String(cellData?.rawValue || "");
+      editMode = mode === true ? "append" : "insert";
     }
 
-    this.cellEditor.startEditing(activeCell, initialValue);
+    this.cellEditor.startEditing(activeCell, initialValue, editMode);
   }
 
   private deleteSelectedCells(): void {
-    for (const cellKey of this.selectionManager.getSelectedCells()) {
-      const address = parseCellAddress(cellKey);
-      if (address) {
-        this.grid.clearCell(address);
+    const selectedCells = this.selectionManager.getSelectedCells();
+    
+    // If only one cell is selected (the active cell) or no cells are selected
+    const activeCell = this.selectionManager.getActiveCell();
+    if (selectedCells.size <= 1 && activeCell) {
+      this.grid.clearCell(activeCell);
+      // Update the canvas grid to reflect the change
+      this.canvasGrid?.render();
+      // Trigger cell click callback to update formula bar
+      this.canvasGrid?.onCellClick?.(activeCell);
+    } else if (selectedCells.size > 1) {
+      // Delete all selected cells
+      for (const cellKey of selectedCells) {
+        const address = parseCellAddress(cellKey);
+        if (address) {
+          this.grid.clearCell(address);
+        }
+      }
+      this.canvasGrid?.render();
+      // Update formula bar for active cell if it exists
+      if (activeCell) {
+        this.canvasGrid?.onCellClick?.(activeCell);
       }
     }
   }
