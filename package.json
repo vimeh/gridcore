@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "build": "bun run --filter '*' build",
-    "test": "bun run --filter '*' test",
+    "test": "bun test packages/core && bun test packages/ui-web/src",
+    "test:all": "bun test packages/core && bun test packages/ui-web/src && bun run --cwd packages/ui-web test:e2e",
     "typecheck": "bun run --filter '*' typecheck",
     "check": "biome check --write ."
   },
