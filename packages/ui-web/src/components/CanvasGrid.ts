@@ -316,11 +316,12 @@ export class CanvasGrid {
       const totalWidth = this.viewport.getTotalGridWidth();
       const totalHeight = this.viewport.getTotalGridHeight();
 
-      // Add a small buffer to prevent the last cell from triggering extra scroll
-      // when scrollbars appear
-      const scrollbarBuffer = 1;
-      spacer.style.width = `${Math.max(scrollWidth, totalWidth - scrollbarBuffer)}px`;
-      spacer.style.height = `${Math.max(scrollHeight, totalHeight - scrollbarBuffer)}px`;
+      // Set spacer to exact grid size - no buffer needed
+      const spacerWidth = Math.max(scrollWidth, totalWidth);
+      const spacerHeight = Math.max(scrollHeight, totalHeight);
+      
+      spacer.style.width = `${spacerWidth}px`;
+      spacer.style.height = `${spacerHeight}px`;
     }
 
     this.headerRenderer.renderCorner();
