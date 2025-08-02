@@ -187,24 +187,29 @@ export class HeaderRenderer {
    * Get the column index at the given x coordinate (relative to column header)
    * Returns the column index and whether the position is near a resize handle
    */
-  getColumnAtPosition(x: number, scrollX: number): { col: number; isResizeHandle: boolean } | null {
+  getColumnAtPosition(
+    x: number,
+    scrollX: number,
+  ): { col: number; isResizeHandle: boolean } | null {
     let currentX = 0;
-    
+
     for (let col = 0; col < this.viewport.getTotalCols(); col++) {
       const colWidth = this.viewport.getColumnWidth(col);
       const colStart = currentX - scrollX;
       const colEnd = colStart + colWidth;
-      
+
       if (x >= colStart && x <= colEnd) {
         // Check if near the right edge (resize handle)
-        const isResizeHandle = x >= colEnd - this.resizeHandleWidth / 2 && x <= colEnd + this.resizeHandleWidth / 2;
+        const isResizeHandle =
+          x >= colEnd - this.resizeHandleWidth / 2 &&
+          x <= colEnd + this.resizeHandleWidth / 2;
         return { col, isResizeHandle };
       }
-      
+
       currentX += colWidth;
       if (colStart > x + this.resizeHandleWidth) break; // Past the click point
     }
-    
+
     return null;
   }
 
@@ -212,24 +217,29 @@ export class HeaderRenderer {
    * Get the row index at the given y coordinate (relative to row header)
    * Returns the row index and whether the position is near a resize handle
    */
-  getRowAtPosition(y: number, scrollY: number): { row: number; isResizeHandle: boolean } | null {
+  getRowAtPosition(
+    y: number,
+    scrollY: number,
+  ): { row: number; isResizeHandle: boolean } | null {
     let currentY = 0;
-    
+
     for (let row = 0; row < this.viewport.getTotalRows(); row++) {
       const rowHeight = this.viewport.getRowHeight(row);
       const rowStart = currentY - scrollY;
       const rowEnd = rowStart + rowHeight;
-      
+
       if (y >= rowStart && y <= rowEnd) {
         // Check if near the bottom edge (resize handle)
-        const isResizeHandle = y >= rowEnd - this.resizeHandleWidth / 2 && y <= rowEnd + this.resizeHandleWidth / 2;
+        const isResizeHandle =
+          y >= rowEnd - this.resizeHandleWidth / 2 &&
+          y <= rowEnd + this.resizeHandleWidth / 2;
         return { row, isResizeHandle };
       }
-      
+
       currentY += rowHeight;
       if (rowStart > y + this.resizeHandleWidth) break; // Past the click point
     }
-    
+
     return null;
   }
 }

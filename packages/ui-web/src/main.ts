@@ -1,8 +1,8 @@
 import { SpreadsheetEngine } from "@gridcore/core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
-import { SpreadsheetModeStateMachine } from "./state/SpreadsheetMode";
 import { ModeIndicator } from "./components/ModeIndicator";
+import { SpreadsheetModeStateMachine } from "./state/SpreadsheetMode";
 import "./style.css";
 
 // Initialize the app
@@ -69,13 +69,13 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const text = await file.text();
-        
+
         if (file.name.endsWith(".json")) {
           // Import JSON format with view state
           try {
             const state = JSON.parse(text);
             const newEngine = SpreadsheetEngine.fromState(state);
-            
+
             // Replace the engine (this would need refactoring for proper implementation)
             engine.clear();
             const cells = newEngine.getAllCells();
@@ -83,7 +83,7 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
               const addr = newEngine.parseCellKey(key);
               engine.setCell(addr, cell.rawValue || "", cell.formula);
             });
-            
+
             // Apply view state
             if (state.view) {
               grid.setViewState(state.view);
@@ -108,14 +108,18 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
   },
   onExport: () => {
     // Ask user for export format
-    const format = confirm("Export as JSON (OK) or CSV (Cancel)?") ? "json" : "csv";
-    
+    const format = confirm("Export as JSON (OK) or CSV (Cancel)?")
+      ? "json"
+      : "csv";
+
     if (format === "json") {
       // Export as JSON with view state
       const state = engine.toState({ includeMetadata: true });
       state.view = grid.getViewState();
-      
-      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+
+      const blob = new Blob([JSON.stringify(state, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
