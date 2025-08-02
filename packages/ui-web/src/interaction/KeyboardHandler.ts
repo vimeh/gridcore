@@ -41,7 +41,7 @@ export class KeyboardHandler {
           if (mode === "visual") {
             const activeCell = this.selectionManager.getActiveCell();
             if (activeCell) {
-              this.modeStateMachine.transition({
+              this.modeStateMachine?.transition({
                 type: "ENTER_VISUAL_MODE",
                 visualType: "character",
               });
@@ -53,7 +53,7 @@ export class KeyboardHandler {
           } else if (mode === "visual-line") {
             const activeCell = this.selectionManager.getActiveCell();
             if (activeCell) {
-              this.modeStateMachine.transition({
+              this.modeStateMachine?.transition({
                 type: "ENTER_VISUAL_MODE",
                 visualType: "line",
               });
@@ -62,7 +62,7 @@ export class KeyboardHandler {
           } else if (mode === "visual-block") {
             const activeCell = this.selectionManager.getActiveCell();
             if (activeCell) {
-              this.modeStateMachine.transition({
+              this.modeStateMachine?.transition({
                 type: "ENTER_VISUAL_BLOCK_MODE",
               });
               this.selectionManager.startVisualSelection(activeCell, "block");
@@ -70,7 +70,7 @@ export class KeyboardHandler {
           } else if (mode === "resize") {
             const activeCell = this.selectionManager.getActiveCell();
             if (activeCell) {
-              this.modeStateMachine.transition({
+              this.modeStateMachine?.transition({
                 type: "ENTER_RESIZE_MODE",
                 target: { type: "column", index: activeCell.col },
               });
@@ -78,11 +78,11 @@ export class KeyboardHandler {
             }
           } else if (mode === "normal") {
             // Exit visual or resize mode
-            if (this.modeStateMachine.isInVisualMode()) {
-              this.modeStateMachine.transition({ type: "EXIT_VISUAL_MODE" });
+            if (this.modeStateMachine?.isInVisualMode()) {
+              this.modeStateMachine?.transition({ type: "EXIT_VISUAL_MODE" });
               this.selectionManager.endVisualSelection();
-            } else if (this.modeStateMachine.isInResizeMode()) {
-              this.modeStateMachine.transition({ type: "EXIT_RESIZE_MODE" });
+            } else if (this.modeStateMachine?.isInResizeMode()) {
+              this.modeStateMachine?.transition({ type: "EXIT_RESIZE_MODE" });
               this.resizeBehavior?.clear();
             }
           }
