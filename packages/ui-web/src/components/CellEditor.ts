@@ -1,6 +1,7 @@
 import type { CellAddress } from "@gridcore/core";
 import { KEY_CODES } from "../constants";
 import type { Viewport } from "./Viewport";
+import { VimMode, type VimModeType } from "../interaction/VimMode";
 
 export interface CellEditorCallbacks {
   onCommit: (address: CellAddress, value: string) => void;
@@ -10,42 +11,69 @@ export interface CellEditorCallbacks {
 }
 
 export class CellEditor {
-  private input: HTMLInputElement;
+  private editorDiv: HTMLDivElement;
   private isEditing: boolean = false;
   private currentCell: CellAddress | null = null;
+  private vimMode: VimMode;
+  private modeIndicator: HTMLDivElement;
 
   constructor(
     private container: HTMLElement,
     private viewport: Viewport,
     private callbacks: CellEditorCallbacks,
   ) {
-    this.input = this.createInput();
-    this.container.appendChild(this.input);
+    this.vimMode = new VimMode({
+      onModeChange: this.handleVimModeChange.bind(this),
+      onCursorMove: this.updateCursorPosition.bind(this),
+      onTextChange: this.handleTextChange.bind(this),
+    });
+    
+    this.editorDiv = this.createEditor();
+    this.modeIndicator = this.createModeIndicator();
+    this.container.appendChild(this.editorDiv);
+    this.container.appendChild(this.modeIndicator);
   }
 
-  private createInput(): HTMLInputElement {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.className = "cell-editor";
-    input.style.position = "absolute";
-    input.style.display = "none";
-    input.style.border = "none";
-    input.style.outline = "none";
-    input.style.padding = "0 4px";
-    input.style.fontFamily =
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    input.style.fontSize = "13px";
-    input.style.lineHeight = "1";
-    input.style.backgroundColor = "transparent";
-    input.style.boxShadow = "none";
-    input.style.textShadow = "none";
-    input.style.zIndex = "1000";
+  private createEditor(): HTMLDivElement {
+    const div = document.createElement("div");
+    div.className = "cell-editor";
+    div.contentEditable = "true";
+    div.style.position = "absolute";
+    div.style.display = "none";
+    div.style.border = "2px solid #0066cc";
+    div.style.outline = "none";
+    div.style.padding = "0 4px";
+    div.style.fontFamily =
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace';
+    div.style.fontSize = "13px";
+    div.style.lineHeight = "1.5";
+    div.style.backgroundColor = "white";
+    div.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+    div.style.zIndex = "1000";
+    div.style.whiteSpace = "pre";
+    div.style.overflow = "hidden";
 
     // Event listeners
-    input.addEventListener("keydown", this.handleKeyDown.bind(this));
-    input.addEventListener("blur", this.handleBlur.bind(this));
+    div.addEventListener("keydown", this.handleKeyDown.bind(this));
+    div.addEventListener("input", this.handleInput.bind(this));
+    div.addEventListener("blur", this.handleBlur.bind(this));
+    div.addEventListener("paste", this.handlePaste.bind(this));
 
-    return input;
+    return div;
+  }
+
+  private createModeIndicator(): HTMLDivElement {
+    const indicator = document.createElement("div");
+    indicator.style.position = "absolute";
+    indicator.style.display = "none";
+    indicator.style.padding = "2px 6px";
+    indicator.style.fontSize = "11px";
+    indicator.style.fontWeight = "bold";
+    indicator.style.color = "white";
+    indicator.style.borderRadius = "3px";
+    indicator.style.zIndex = "1001";
+    indicator.style.pointerEvents = "none";
+    return indicator;
   }
 
   startEditing(cell: CellAddress, initialValue: string = ""): void {
@@ -61,17 +89,29 @@ export class CellEditor {
 
     const position = this.viewport.getCellPosition(cell);
 
-    // Position the input
-    this.input.style.left = `${position.x}px`;
-    this.input.style.top = `${position.y}px`;
-    this.input.style.width = `${position.width}px`;
-    this.input.style.height = `${position.height}px`;
-    this.input.style.display = "block";
+    // Position the editor
+    this.editorDiv.style.left = `${position.x - 2}px`; // Account for border
+    this.editorDiv.style.top = `${position.y - 2}px`;
+    this.editorDiv.style.width = `${position.width}px`;
+    this.editorDiv.style.height = `${position.height}px`;
+    this.editorDiv.style.display = "block";
 
-    // Set value and focus
-    this.input.value = initialValue;
-    this.input.focus();
-    this.input.select();
+    // Position mode indicator
+    this.modeIndicator.style.left = `${position.x}px`;
+    this.modeIndicator.style.top = `${position.y + position.height + 4}px`;
+    this.modeIndicator.style.display = "block";
+
+    // Set initial text and vim state
+    this.editorDiv.textContent = initialValue;
+    this.vimMode.reset();
+    this.vimMode.setText(initialValue, initialValue.length);
+    
+    // Start in insert mode for convenience
+    this.vimMode.handleKey("A");
+    
+    // Focus and set cursor
+    this.editorDiv.focus();
+    this.updateCursorPosition(this.vimMode.getCursor());
   }
 
   stopEditing(commit: boolean = true): void {
@@ -87,7 +127,7 @@ export class CellEditor {
   private commitEdit(): void {
     if (!this.currentCell) return;
 
-    const value = this.input.value;
+    const value = this.editorDiv.textContent || "";
     this.callbacks.onCommit(this.currentCell, value);
     this.hideEditor();
   }
@@ -100,28 +140,81 @@ export class CellEditor {
   private hideEditor(): void {
     this.isEditing = false;
     this.currentCell = null;
-    this.input.style.display = "none";
-    this.input.value = "";
+    this.editorDiv.style.display = "none";
+    this.modeIndicator.style.display = "none";
+    this.editorDiv.textContent = "";
+    this.vimMode.reset();
 
     // Return focus to the main container
     this.callbacks.onEditEnd?.();
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
-    switch (event.key) {
-      case KEY_CODES.ENTER:
-        event.preventDefault();
-        this.commitEdit();
-        break;
-      case KEY_CODES.ESCAPE:
-        event.preventDefault();
-        this.cancelEdit();
-        break;
-      case KEY_CODES.TAB:
-        event.preventDefault();
-        this.commitEdit();
-        // TODO: Move to next cell
-        break;
+    const mode = this.vimMode.getMode();
+    
+    // Let vim mode handle the key first
+    const handled = this.vimMode.handleKey(
+      event.key,
+      event.ctrlKey || event.metaKey,
+      event.shiftKey
+    );
+    
+    if (handled) {
+      event.preventDefault();
+      
+      // Update selection if in visual mode
+      const selection = this.vimMode.getSelection();
+      if (selection) {
+        this.setSelection(selection.start, selection.end);
+      } else {
+        // Clear selection
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+      }
+      
+      return;
+    }
+    
+    // Handle special keys not handled by vim
+    if (mode === "normal") {
+      switch (event.key) {
+        case KEY_CODES.ENTER:
+          event.preventDefault();
+          this.commitEdit();
+          break;
+        case KEY_CODES.ESCAPE:
+          event.preventDefault();
+          this.cancelEdit();
+          break;
+      }
+    } else if (mode === "insert") {
+      switch (event.key) {
+        case KEY_CODES.ENTER:
+          event.preventDefault();
+          this.commitEdit();
+          break;
+        case KEY_CODES.TAB:
+          event.preventDefault();
+          this.commitEdit();
+          break;
+      }
+    }
+  }
+
+  private handleInput(event: Event): void {
+    // Update vim mode text state
+    const text = this.editorDiv.textContent || "";
+    const cursorPos = this.getCursorPosition();
+    this.vimMode.setText(text, cursorPos);
+  }
+
+  private handlePaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const text = event.clipboardData?.getData("text/plain") || "";
+    
+    if (this.vimMode.getMode() === "insert") {
+      // Insert at current position
+      document.execCommand("insertText", false, text);
     }
   }
 
@@ -134,12 +227,93 @@ export class CellEditor {
     }, 100);
   }
 
+  private handleVimModeChange(mode: VimModeType): void {
+    // Update mode indicator
+    this.modeIndicator.textContent = mode.toUpperCase();
+    
+    switch (mode) {
+      case "normal":
+        this.modeIndicator.style.backgroundColor = "#666";
+        this.editorDiv.style.borderColor = "#666";
+        break;
+      case "insert":
+        this.modeIndicator.style.backgroundColor = "#0066cc";
+        this.editorDiv.style.borderColor = "#0066cc";
+        break;
+      case "visual":
+      case "visual-line":
+        this.modeIndicator.style.backgroundColor = "#ff6600";
+        this.editorDiv.style.borderColor = "#ff6600";
+        break;
+    }
+  }
+
+  private handleTextChange(text: string, cursor: number): void {
+    this.editorDiv.textContent = text;
+    this.updateCursorPosition(cursor);
+  }
+
+  private updateCursorPosition(position: number): void {
+    const text = this.editorDiv.textContent || "";
+    const range = document.createRange();
+    const sel = window.getSelection();
+    
+    if (!this.editorDiv.firstChild) {
+      // Create text node if empty
+      this.editorDiv.appendChild(document.createTextNode(""));
+    }
+    
+    const textNode = this.editorDiv.firstChild;
+    if (!textNode) return;
+    
+    const offset = Math.min(position, text.length);
+    
+    range.setStart(textNode, offset);
+    range.setEnd(textNode, offset);
+    
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
+
+  private setSelection(start: number, end: number): void {
+    const text = this.editorDiv.textContent || "";
+    const range = document.createRange();
+    const sel = window.getSelection();
+    
+    if (!this.editorDiv.firstChild) {
+      this.editorDiv.appendChild(document.createTextNode(""));
+    }
+    
+    const textNode = this.editorDiv.firstChild;
+    if (!textNode) return;
+    
+    const startOffset = Math.min(start, text.length);
+    const endOffset = Math.min(end, text.length);
+    
+    range.setStart(textNode, startOffset);
+    range.setEnd(textNode, endOffset);
+    
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
+
+  private getCursorPosition(): number {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return 0;
+    
+    const range = sel.getRangeAt(0);
+    return range.startOffset;
+  }
+
   updatePosition(): void {
     if (!this.isEditing || !this.currentCell) return;
 
     const position = this.viewport.getCellPosition(this.currentCell);
-    this.input.style.left = `${position.x}px`;
-    this.input.style.top = `${position.y}px`;
+    this.editorDiv.style.left = `${position.x - 2}px`;
+    this.editorDiv.style.top = `${position.y - 2}px`;
+    
+    this.modeIndicator.style.left = `${position.x}px`;
+    this.modeIndicator.style.top = `${position.y + position.height + 4}px`;
   }
 
   isCurrentlyEditing(): boolean {
@@ -151,6 +325,7 @@ export class CellEditor {
   }
 
   destroy(): void {
-    this.input.remove();
+    this.editorDiv.remove();
+    this.modeIndicator.remove();
   }
 }
