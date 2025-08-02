@@ -249,17 +249,9 @@ export class SpreadsheetModeStateMachine {
             cellMode: "normal",
             editMode: undefined,
             previousCellMode: "insert",
-<<<<<<< HEAD
             previousEditMode: this.state.editMode,
           }
           stateChanged = true
-||||||| 18cde57
-          }
-          stateChanged = true
-=======
-          };
-          stateChanged = true;
->>>>>>> vim-selection
         }
         break;
 
@@ -294,7 +286,6 @@ export class SpreadsheetModeStateMachine {
           };
           stateChanged = true;
         }
-<<<<<<< HEAD
         break
         
       case "SET_EDIT_MODE":
@@ -331,12 +322,6 @@ export class SpreadsheetModeStateMachine {
           stateChanged = true
         }
         break
-        
-||||||| 18cde57
-        break
-        
-=======
-        break;
 
       case "ENTER_VISUAL_BLOCK_MODE":
         if (
@@ -382,7 +367,6 @@ export class SpreadsheetModeStateMachine {
         }
         break;
 
->>>>>>> vim-selection
       case "ESCAPE":
         if (this.state.gridMode === "editing") {
           if (
@@ -398,20 +382,12 @@ export class SpreadsheetModeStateMachine {
               cellMode: "normal",
               editMode: undefined,
               previousCellMode: this.state.cellMode,
-<<<<<<< HEAD
               previousEditMode: this.state.editMode,
-            }
-            stateChanged = true
-||||||| 18cde57
-            }
-            stateChanged = true
-=======
               visualAnchor: undefined,
               visualCursor: undefined,
               resizeTarget: undefined,
-            };
-            stateChanged = true;
->>>>>>> vim-selection
+            }
+            stateChanged = true
           } else {
             // Second escape exits editing mode
             this.state = {
