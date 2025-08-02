@@ -177,13 +177,14 @@ export class CellEditor {
     
     // Handle special keys not handled by vim
     if (mode === "normal") {
+      // In normal mode, prevent all default behavior except for special keys
+      event.preventDefault();
+      
       switch (event.key) {
         case KEY_CODES.ENTER:
-          event.preventDefault();
           this.commitEdit();
           break;
         case KEY_CODES.ESCAPE:
-          event.preventDefault();
           this.cancelEdit();
           break;
       }
