@@ -32,8 +32,9 @@ test.describe("Vim Mode", () => {
     // Type some text
     await page.keyboard.type("Hello Vim")
     
-    // Commit with Enter
-    await page.keyboard.press("Enter")
+    // Save with Escape twice (vim mode behavior)
+    await page.keyboard.press("Escape") // To normal mode
+    await page.keyboard.press("Escape") // Exit editor and save
     
     // Check that text was saved
     await expect(page.locator(".formula-bar-input")).toHaveValue("Hello Vim")
@@ -89,8 +90,9 @@ test.describe("Vim Mode", () => {
     // Type additional text
     await page.keyboard.type("!")
     
-    // Commit
-    await page.keyboard.press("Enter")
+    // Save with Escape twice
+    await page.keyboard.press("Escape") // To normal mode
+    await page.keyboard.press("Escape") // Exit editor and save
     
     // Check the result
     await expect(page.locator(".formula-bar-input")).toHaveValue("World!")
