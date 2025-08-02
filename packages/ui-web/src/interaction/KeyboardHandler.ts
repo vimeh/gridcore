@@ -1,11 +1,17 @@
 import { parseCellAddress, type SpreadsheetEngine } from "@gridcore/core";
-import type { CellEditor } from "../components/CellEditor";
 import type { CanvasGrid } from "../components/CanvasGrid";
+import type { CellEditor } from "../components/CellEditor";
 import { KEY_CODES } from "../constants";
-import type { SelectionManager } from "./SelectionManager";
 import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
+import { GridVimBehavior, type GridVimCallbacks } from "./GridVimBehavior";
+import { ResizeBehavior } from "./ResizeBehavior";
+import type { SelectionManager } from "./SelectionManager";
 
 export class KeyboardHandler {
+  private gridVimBehavior?: GridVimBehavior;
+  private resizeBehavior?: ResizeBehavior;
+  private lastKey: string = "";
+
   constructor(
     private container: HTMLElement,
     private selectionManager: SelectionManager,
@@ -15,6 +21,7 @@ export class KeyboardHandler {
     private modeStateMachine?: SpreadsheetModeStateMachine,
   ) {
     this.setupEventListeners();
+    this.initializeVimBehaviors();
   }
 
   private setupEventListeners(): void {
@@ -25,10 +32,172 @@ export class KeyboardHandler {
     this.container.addEventListener("keydown", this.handleKeyDown.bind(this));
   }
 
+  private initializeVimBehaviors(): void {
+    // Initialize GridVimBehavior if we have mode state machine
+    if (this.modeStateMachine && this.canvasGrid) {
+      const callbacks: GridVimCallbacks = {
+        onModeChangeRequest: (mode, editMode) => {
+          // Handle mode transitions
+          if (mode === "visual") {
+            const activeCell = this.selectionManager.getActiveCell();
+            if (activeCell) {
+              this.modeStateMachine.transition({
+                type: "ENTER_VISUAL_MODE",
+                visualType: "character",
+              });
+              this.selectionManager.startVisualSelection(
+                activeCell,
+                "character",
+              );
+            }
+          } else if (mode === "visual-line") {
+            const activeCell = this.selectionManager.getActiveCell();
+            if (activeCell) {
+              this.modeStateMachine.transition({
+                type: "ENTER_VISUAL_MODE",
+                visualType: "line",
+              });
+              this.selectionManager.startVisualSelection(activeCell, "line");
+            }
+          } else if (mode === "visual-block") {
+            const activeCell = this.selectionManager.getActiveCell();
+            if (activeCell) {
+              this.modeStateMachine.transition({
+                type: "ENTER_VISUAL_BLOCK_MODE",
+              });
+              this.selectionManager.startVisualSelection(activeCell, "block");
+            }
+          } else if (mode === "resize") {
+            const activeCell = this.selectionManager.getActiveCell();
+            if (activeCell) {
+              this.modeStateMachine.transition({
+                type: "ENTER_RESIZE_MODE",
+                target: { type: "column", index: activeCell.col },
+              });
+              this.resizeBehavior?.setTarget("column", activeCell.col);
+            }
+          } else if (mode === "normal") {
+            // Exit visual or resize mode
+            if (this.modeStateMachine.isInVisualMode()) {
+              this.modeStateMachine.transition({ type: "EXIT_VISUAL_MODE" });
+              this.selectionManager.endVisualSelection();
+            } else if (this.modeStateMachine.isInResizeMode()) {
+              this.modeStateMachine.transition({ type: "EXIT_RESIZE_MODE" });
+              this.resizeBehavior?.clear();
+            }
+          }
+        },
+        onRangeSelectionRequest: (anchor, cursor) => {
+          this.selectionManager.updateVisualSelection(cursor);
+        },
+        onResizeRequest: (type, index, delta) => {
+          if (delta === 0) {
+            // Auto-fit request
+            // This would need implementation in ResizeBehavior
+          } else {
+            if (type === "column") {
+              const current =
+                this.canvasGrid!.getViewport().getColumnWidth(index);
+              this.canvasGrid!.getViewport().setColumnWidth(
+                index,
+                current + delta,
+              );
+            } else {
+              const current =
+                this.canvasGrid!.getViewport().getRowHeight(index);
+              this.canvasGrid!.getViewport().setRowHeight(
+                index,
+                current + delta,
+              );
+            }
+          }
+          this.canvasGrid?.render();
+        },
+        onScrollRequest: (direction, amount) => {
+          const viewport = this.canvasGrid!.getViewport();
+          const pageSize = viewport.getPageSize();
+          const scrollAmount =
+            amount === 0.5
+              ? Math.floor((pageSize?.rows || 10) / 2)
+              : amount === 1
+                ? pageSize?.rows || 10
+                : Math.floor((pageSize?.rows || 10) * amount);
+
+          switch (direction) {
+            case "up":
+              viewport.scrollBy(0, -scrollAmount * 25);
+              break;
+            case "down":
+              viewport.scrollBy(0, scrollAmount * 25);
+              break;
+            case "left":
+              viewport.scrollBy(-scrollAmount * 100, 0);
+              break;
+            case "right":
+              viewport.scrollBy(scrollAmount * 100, 0);
+              break;
+          }
+          this.canvasGrid?.render();
+        },
+        onCellNavigate: (direction, count) => {
+          for (let i = 0; i < count; i++) {
+            this.selectionManager.moveActiveCell(direction);
+          }
+        },
+      };
+
+      // Set viewport on selection manager
+      this.selectionManager.setViewport(this.canvasGrid.getViewport());
+
+      this.gridVimBehavior = new GridVimBehavior(
+        callbacks,
+        () => this.modeStateMachine!.getCellMode(),
+        this.selectionManager,
+        this.canvasGrid.getViewport(),
+      );
+
+      this.resizeBehavior = new ResizeBehavior(
+        this.canvasGrid.getViewport(),
+        this.grid,
+      );
+    }
+  }
+
   private handleKeyDown(event: KeyboardEvent): void {
     // Check if we're in navigation mode
-    const isNavigationMode = !this.modeStateMachine || this.modeStateMachine.isInNavigationMode();
-    
+    const isNavigationMode =
+      !this.modeStateMachine || this.modeStateMachine.isInNavigationMode();
+    const isResizeMode = this.modeStateMachine?.isInResizeMode();
+
+    // Handle resize mode
+    if (isResizeMode && this.resizeBehavior) {
+      const result = this.resizeBehavior.handleKey(event.key);
+      if (result.handled) {
+        event.preventDefault();
+        if (result.exitMode) {
+          this.modeStateMachine?.transition({ type: "EXIT_RESIZE_MODE" });
+        }
+        return;
+      }
+    }
+
+    // Handle vim commands in editing mode
+    if (
+      !isNavigationMode &&
+      this.gridVimBehavior &&
+      !this.cellEditor.isCurrentlyEditing()
+    ) {
+      const handled = this.gridVimBehavior.handleKey(
+        event.key,
+        event.ctrlKey,
+        event.shiftKey,
+      );
+      if (handled) {
+        event.preventDefault();
+        return;
+      }
+    }
+
     // Don't handle navigation keys if editing (unless we have no state machine)
     if (!isNavigationMode && this.cellEditor.isCurrentlyEditing()) {
       return;
@@ -133,6 +302,154 @@ export class KeyboardHandler {
         }
         break;
 
+      // Visual mode triggers
+      case "v":
+        if (isNavigationMode) {
+          event.preventDefault();
+          const activeCell = this.selectionManager.getActiveCell();
+          if (activeCell) {
+            this.modeStateMachine?.transition({ type: "START_EDITING" });
+            this.modeStateMachine?.transition({
+              type: "ENTER_VISUAL_MODE",
+              visualType: "character",
+            });
+            this.selectionManager.startVisualSelection(activeCell, "character");
+          }
+        }
+        break;
+
+      case "V":
+        if (isNavigationMode) {
+          event.preventDefault();
+          const cell = this.selectionManager.getActiveCell();
+          if (cell) {
+            this.modeStateMachine?.transition({ type: "START_EDITING" });
+            this.modeStateMachine?.transition({
+              type: "ENTER_VISUAL_MODE",
+              visualType: "line",
+            });
+            this.selectionManager.startVisualSelection(cell, "line");
+          }
+        }
+        break;
+
+      // Special navigation
+      case "G":
+        if (isNavigationMode) {
+          event.preventDefault();
+          // G goes to last row
+          const currentCell = this.selectionManager.getActiveCell();
+          if (currentCell) {
+            this.selectionManager.setActiveCell({
+              row: Number.MAX_SAFE_INTEGER,
+              col: currentCell.col,
+            });
+          }
+        }
+        break;
+
+      case "$":
+        if (isNavigationMode) {
+          event.preventDefault();
+          // $ goes to last column
+          const cell = this.selectionManager.getActiveCell();
+          if (cell) {
+            this.selectionManager.setActiveCell({
+              row: cell.row,
+              col: Number.MAX_SAFE_INTEGER,
+            });
+          }
+        }
+        break;
+
+      case "0":
+        if (isNavigationMode) {
+          event.preventDefault();
+          // 0 goes to first column
+          const cell = this.selectionManager.getActiveCell();
+          if (cell) {
+            this.selectionManager.setActiveCell({ row: cell.row, col: 0 });
+          }
+        }
+        break;
+
+      // Command sequences
+      case "g":
+        if (isNavigationMode) {
+          if (this.lastKey === "g") {
+            // gg - go to first row
+            event.preventDefault();
+            this.lastKey = "";
+            const cell = this.selectionManager.getActiveCell();
+            if (cell) {
+              this.selectionManager.setActiveCell({ row: 0, col: cell.col });
+            }
+          } else {
+            event.preventDefault();
+            this.lastKey = "g";
+            setTimeout(() => {
+              this.lastKey = "";
+            }, 1000);
+          }
+        }
+        break;
+
+      case "r":
+        if (isNavigationMode && this.lastKey === "g") {
+          // gr - enter resize mode
+          event.preventDefault();
+          this.lastKey = "";
+          const active = this.selectionManager.getActiveCell();
+          if (active) {
+            this.modeStateMachine?.transition({ type: "START_EDITING" });
+            this.modeStateMachine?.transition({
+              type: "ENTER_RESIZE_MODE",
+              target: { type: "column", index: active.col },
+            });
+            this.resizeBehavior?.setTarget("column", active.col);
+          }
+        }
+        break;
+
+      case "z":
+        if (isNavigationMode) {
+          event.preventDefault();
+          if (this.lastKey === "z") {
+            // zz - center current cell
+            this.lastKey = "";
+            const activeCell = this.selectionManager.getActiveCell();
+            if (activeCell && this.canvasGrid) {
+              const viewport = this.canvasGrid.getViewport();
+              viewport.scrollToCell(activeCell, "center");
+              this.canvasGrid.render();
+            }
+          } else {
+            this.lastKey = "z";
+            setTimeout(() => {
+              this.lastKey = "";
+            }, 1000);
+          }
+        }
+        break;
+
+      case "t":
+      case "b":
+        if (isNavigationMode && this.lastKey === "z") {
+          event.preventDefault();
+          this.lastKey = "";
+          const activeCell = this.selectionManager.getActiveCell();
+          if (activeCell && this.canvasGrid) {
+            const viewport = this.canvasGrid.getViewport();
+            if (event.key === "t") {
+              viewport.scrollToCell(activeCell, "top");
+            } else if (event.key === "b") {
+              viewport.scrollToCell(activeCell, "bottom");
+            }
+            this.canvasGrid.render();
+          }
+        }
+        break;
+
       default:
         // Start editing if it's a printable character (except vim nav keys)
         if (
@@ -171,7 +488,19 @@ export class KeyboardHandler {
         case KEY_CODES.V:
         case KEY_CODES.CAPITAL_V:
           event.preventDefault();
-          this.pasteToSelection();
+          // In navigation mode, Ctrl+V enters visual block mode
+          if (isNavigationMode) {
+            const activeCell = this.selectionManager.getActiveCell();
+            if (activeCell) {
+              this.modeStateMachine?.transition({ type: "START_EDITING" });
+              this.modeStateMachine?.transition({
+                type: "ENTER_VISUAL_BLOCK_MODE",
+              });
+              this.selectionManager.startVisualSelection(activeCell, "block");
+            }
+          } else {
+            this.pasteToSelection();
+          }
           break;
 
         case KEY_CODES.X:
@@ -199,7 +528,10 @@ export class KeyboardHandler {
     }
   }
 
-  private startEditingActiveCell(initialChar?: string, mode: boolean | "replace" = false): void {
+  private startEditingActiveCell(
+    initialChar?: string,
+    mode: boolean | "replace" = false,
+  ): void {
     const activeCell = this.selectionManager.getActiveCell();
     if (!activeCell) return;
 
@@ -226,7 +558,7 @@ export class KeyboardHandler {
 
   private deleteSelectedCells(): void {
     const selectedCells = this.selectionManager.getSelectedCells();
-    
+
     // If only one cell is selected (the active cell) or no cells are selected
     const activeCell = this.selectionManager.getActiveCell();
     if (selectedCells.size <= 1 && activeCell) {
@@ -283,11 +615,11 @@ export class KeyboardHandler {
 
   private toggleInteractionMode(): void {
     if (!this.canvasGrid) return;
-    
+
     const currentMode = this.canvasGrid.getInteractionMode();
     const newMode = currentMode === "normal" ? "keyboard-only" : "normal";
     this.canvasGrid.setInteractionMode(newMode);
-    
+
     // Log the mode change for user feedback
     console.log(`Interaction mode changed to: ${newMode}`);
   }

@@ -19,6 +19,9 @@ export class SelectionManager {
 
   private selectionStart: CellAddress | null = null;
   private isSelecting: boolean = false;
+  private visualAnchor: CellAddress | null = null;
+  private visualMode: "character" | "line" | "block" | null = null;
+  private viewport: any = null; // Will be injected
 
   setActiveCell(cell: CellAddress): void {
     this.clearSelection();
@@ -115,4 +118,87 @@ export class SelectionManager {
 
   // Callback for when active cell changes
   public onActiveCellChange?: (cell: CellAddress) => void;
+
+  // Visual mode methods
+  setViewport(viewport: any): void {
+    this.viewport = viewport;
+  }
+
+  startVisualSelection(
+    anchor: CellAddress,
+    mode: "character" | "line" | "block",
+  ): void {
+    this.visualAnchor = anchor;
+    this.visualMode = mode;
+    this.state.activeCell = anchor;
+    this.updateVisualSelection(anchor);
+  }
+
+  updateVisualSelection(cursor: CellAddress): void {
+    if (!this.visualAnchor || !this.visualMode) return;
+
+    this.state.selectedCells.clear();
+
+    if (this.visualMode === "line") {
+      // Select entire rows from anchor to cursor
+      const startRow = Math.min(this.visualAnchor.row, cursor.row);
+      const endRow = Math.max(this.visualAnchor.row, cursor.row);
+
+      // Use a reasonable max column count if viewport is not available
+      const totalCols = this.viewport?.getTotalCols?.() || 100;
+
+      for (let row = startRow; row <= endRow; row++) {
+        for (let col = 0; col < totalCols; col++) {
+          this.state.selectedCells.add(cellAddressToString({ row, col }));
+        }
+      }
+    } else if (this.visualMode === "block") {
+      // Select rectangular block
+      const startRow = Math.min(this.visualAnchor.row, cursor.row);
+      const endRow = Math.max(this.visualAnchor.row, cursor.row);
+      const startCol = Math.min(this.visualAnchor.col, cursor.col);
+      const endCol = Math.max(this.visualAnchor.col, cursor.col);
+
+      for (let row = startRow; row <= endRow; row++) {
+        for (let col = startCol; col <= endCol; col++) {
+          this.state.selectedCells.add(cellAddressToString({ row, col }));
+        }
+      }
+    } else {
+      // Character mode - normal range selection
+      const range: CellRange = {
+        start: {
+          row: Math.min(this.visualAnchor.row, cursor.row),
+          col: Math.min(this.visualAnchor.col, cursor.col),
+        },
+        end: {
+          row: Math.max(this.visualAnchor.row, cursor.row),
+          col: Math.max(this.visualAnchor.col, cursor.col),
+        },
+      };
+
+      this.state.selectionRange = range;
+
+      for (let row = range.start.row; row <= range.end.row; row++) {
+        for (let col = range.start.col; col <= range.end.col; col++) {
+          this.state.selectedCells.add(cellAddressToString({ row, col }));
+        }
+      }
+    }
+
+    this.state.activeCell = cursor;
+  }
+
+  endVisualSelection(): void {
+    this.visualAnchor = null;
+    this.visualMode = null;
+  }
+
+  getVisualMode(): "character" | "line" | "block" | null {
+    return this.visualMode;
+  }
+
+  getVisualAnchor(): CellAddress | null {
+    return this.visualAnchor;
+  }
 }
