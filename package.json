@@ -18,5 +18,8 @@
     "@types/bun": "latest",
     "biome": "^0.3.3",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "jsdom": "^26.1.0"
   }
 }
