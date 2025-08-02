@@ -1,3 +1,5 @@
+import { CellMode, EditMode } from "../state/SpreadsheetMode"
+
 export type VimModeType = "normal" | "insert" | "visual" | "visual-line";
 
 export interface VimState {
@@ -17,18 +19,45 @@ export interface VimCallbacks {
   onTextChange?: (text: string, cursor: number) => void;
 }
 
-export class VimMode {
-  private state: VimState = {
-    mode: "normal",
+/**
+ * Callbacks for the stateless VimBehavior class to communicate with the mode system
+ */
+export interface VimBehaviorCallbacks {
+  onModeChangeRequest: (mode: CellMode, editMode?: EditMode) => void;
+  onCursorMove: (position: number) => void;
+  onTextChange: (text: string, cursor: number) => void;
+}
+
+/**
+ * Internal state for VimBehavior that doesn't include mode management
+ */
+interface VimBehaviorState {
+  cursor: number;
+  visualStart?: number;
+  visualEnd?: number;
+  operator?: string; // 'c', 'd', 'y', etc.
+  textObjectModifier?: string; // 'i' or 'a'
+  count: string; // accumulate count digits
+  lastAction?: string; // for repeat (.)
+}
+
+/**
+ * Stateless VimBehavior class that handles vim keybindings and emits mode change requests
+ * instead of managing mode state internally. This integrates with the centralized mode system.
+ */
+export class VimBehavior {
+  private state: VimBehaviorState = {
     cursor: 0,
     count: "",
   };
   
   private text: string = "";
-  private callbacks: VimCallbacks;
+  private callbacks: VimBehaviorCallbacks;
+  private getCurrentMode: () => CellMode;
   
-  constructor(callbacks: VimCallbacks = {}) {
+  constructor(callbacks: VimBehaviorCallbacks, getCurrentMode: () => CellMode) {
     this.callbacks = callbacks;
+    this.getCurrentMode = getCurrentMode;
   }
   
   setText(text: string, cursor?: number, skipCursorCallback: boolean = false): void {
@@ -36,11 +65,12 @@ export class VimMode {
     if (cursor !== undefined) {
       // In insert mode, cursor can be at text.length (after last character)
       // In normal mode, cursor is clamped to text.length - 1 (on last character)
-      const maxCursor = this.state.mode === "insert" ? text.length : Math.max(0, text.length - 1);
+      const currentMode = this.getCurrentMode();
+      const maxCursor = currentMode === "insert" ? text.length : Math.max(0, text.length - 1);
       this.state.cursor = Math.min(cursor, maxCursor);
     }
     if (!skipCursorCallback) {
-      this.callbacks.onCursorMove?.(this.state.cursor);
+      this.callbacks.onCursorMove(this.state.cursor);
     }
   }
   
@@ -52,12 +82,13 @@ export class VimMode {
     return this.state.cursor;
   }
   
-  getMode(): VimModeType {
-    return this.state.mode;
+  getMode(): CellMode {
+    return this.getCurrentMode();
   }
   
   handleKey(key: string, ctrl: boolean = false, shift: boolean = false): boolean {
-    switch (this.state.mode) {
+    const currentMode = this.getCurrentMode();
+    switch (currentMode) {
       case "normal":
         return this.handleNormalMode(key, ctrl, shift);
       case "insert":
@@ -117,26 +148,26 @@ export class VimMode {
       case "0":
         if (!this.state.count) {
           this.state.cursor = 0;
-          this.callbacks.onCursorMove?.(this.state.cursor);
+          this.callbacks.onCursorMove(this.state.cursor);
           return true;
         }
         return false;
         
       case "$":
         this.state.cursor = Math.max(0, this.text.length - 1);
-        this.callbacks.onCursorMove?.(this.state.cursor);
+        this.callbacks.onCursorMove(this.state.cursor);
         this.state.count = "";
         return true;
         
       // Insert mode transitions
       case "i":
-        this.setMode("insert");
+        this.callbacks.onModeChangeRequest("insert", "insert");
         this.state.count = "";
         return true;
         
       case "I":
         this.state.cursor = 0;
-        this.setMode("insert");
+        this.callbacks.onModeChangeRequest("insert", "insert");
         this.state.count = "";
         return true;
         
@@ -144,27 +175,27 @@ export class VimMode {
         if (this.text.length > 0) {
           this.state.cursor = Math.min(this.state.cursor + 1, this.text.length);
         }
-        this.setMode("insert");
+        this.callbacks.onModeChangeRequest("insert", "append");
         this.state.count = "";
         return true;
         
       case "A":
         this.state.cursor = this.text.length;
-        this.setMode("insert");
+        this.callbacks.onModeChangeRequest("insert", "append");
         this.state.count = "";
         return true;
         
       case "o":
         // In single-line context, just go to end
         this.state.cursor = this.text.length;
-        this.setMode("insert");
+        this.callbacks.onModeChangeRequest("insert", "insert");
         this.state.count = "";
         return true;
         
       case "O":
         // In single-line context, just go to beginning
         this.state.cursor = 0;
-        this.setMode("insert");
+        this.callbacks.onModeChangeRequest("insert", "insert");
         this.state.count = "";
         return true;
         
@@ -172,14 +203,14 @@ export class VimMode {
       case "v":
         this.state.visualStart = this.state.cursor;
         this.state.visualEnd = this.state.cursor;
-        this.setMode("visual");
+        this.callbacks.onModeChangeRequest("visual");
         this.state.count = "";
         return true;
         
       case "V":
         this.state.visualStart = 0;
         this.state.visualEnd = this.text.length - 1;
-        this.setMode("visual-line");
+        this.callbacks.onModeChangeRequest("visual-line");
         this.state.count = "";
         return true;
         
@@ -201,8 +232,8 @@ export class VimMode {
           } else {
             this.state.cursor = Math.min(this.state.cursor, this.text.length - 1);
           }
-          this.callbacks.onTextChange?.(this.text, this.state.cursor);
-          this.callbacks.onCursorMove?.(this.state.cursor);
+          this.callbacks.onTextChange(this.text, this.state.cursor);
+          this.callbacks.onCursorMove(this.state.cursor);
         }
         this.state.count = "";
         return true;
@@ -219,8 +250,8 @@ export class VimMode {
       if (this.state.cursor > 0 && this.state.cursor === this.text.length) {
         this.state.cursor--;
       }
-      this.setMode("normal");
-      this.callbacks.onCursorMove?.(this.state.cursor);
+      this.callbacks.onModeChangeRequest("normal");
+      this.callbacks.onCursorMove(this.state.cursor);
       return true;
     }
     
@@ -230,7 +261,7 @@ export class VimMode {
   
   private handleVisualMode(key: string, ctrl: boolean, shift: boolean): boolean {
     if (key === "Escape" || (ctrl && key === "[")) {
-      this.setMode("normal");
+      this.callbacks.onModeChangeRequest("normal");
       return true;
     }
     
@@ -264,13 +295,13 @@ export class VimMode {
       case "0":
         this.state.cursor = 0;
         this.updateVisualSelection();
-        this.callbacks.onCursorMove?.(this.state.cursor);
+        this.callbacks.onCursorMove(this.state.cursor);
         return true;
         
       case "$":
         this.state.cursor = Math.max(0, this.text.length - 1);
         this.updateVisualSelection();
-        this.callbacks.onCursorMove?.(this.state.cursor);
+        this.callbacks.onCursorMove(this.state.cursor);
         return true;
         
       // Operations on visual selection
@@ -280,17 +311,17 @@ export class VimMode {
         this.text = this.text.slice(0, start) + this.text.slice(end + 1);
         this.state.cursor = start;
         if (key === "c") {
-          this.setMode("insert");
+          this.callbacks.onModeChangeRequest("insert");
         } else {
-          this.setMode("normal");
+          this.callbacks.onModeChangeRequest("normal");
         }
-        this.callbacks.onTextChange?.(this.text, this.state.cursor);
-        this.callbacks.onCursorMove?.(this.state.cursor);
+        this.callbacks.onTextChange(this.text, this.state.cursor);
+        this.callbacks.onCursorMove(this.state.cursor);
         return true;
         
       case "y":
         // Would copy to clipboard in real implementation
-        this.setMode("normal");
+        this.callbacks.onModeChangeRequest("normal");
         return true;
         
       default:
@@ -309,10 +340,10 @@ export class VimMode {
         this.text = "";
         this.state.cursor = 0;
         if (operator === "c") {
-          this.setMode("insert");
+          this.callbacks.onModeChangeRequest("insert");
         }
-        this.callbacks.onTextChange?.(this.text, this.state.cursor);
-        this.callbacks.onCursorMove?.(this.state.cursor);
+        this.callbacks.onTextChange(this.text, this.state.cursor);
+        this.callbacks.onCursorMove(this.state.cursor);
       }
       return true;
     }
@@ -365,10 +396,10 @@ export class VimMode {
       this.text = this.text.slice(0, start) + this.text.slice(end + 1);
       this.state.cursor = start;
       if (operator === "c") {
-        this.setMode("insert");
+        this.callbacks.onModeChangeRequest("insert");
       }
-      this.callbacks.onTextChange?.(this.text, this.state.cursor);
-      this.callbacks.onCursorMove?.(this.state.cursor);
+      this.callbacks.onTextChange(this.text, this.state.cursor);
+      this.callbacks.onCursorMove(this.state.cursor);
     }
     
     return true;
@@ -442,10 +473,10 @@ export class VimMode {
       this.text = this.text.slice(0, start) + this.text.slice(end + 1);
       this.state.cursor = start;
       if (operator === "c") {
-        this.setMode("insert");
+        this.callbacks.onModeChangeRequest("insert");
       }
-      this.callbacks.onTextChange?.(this.text, this.state.cursor);
-      this.callbacks.onCursorMove?.(this.state.cursor);
+      this.callbacks.onTextChange(this.text, this.state.cursor);
+      this.callbacks.onCursorMove(this.state.cursor);
     } else if (operator === "y") {
       // Would copy to clipboard in real implementation
       // For now, just exit operator mode
@@ -456,14 +487,14 @@ export class VimMode {
   
   private moveCursor(delta: number): void {
     this.state.cursor = Math.max(0, Math.min(this.text.length - 1, this.state.cursor + delta));
-    this.callbacks.onCursorMove?.(this.state.cursor);
+    this.callbacks.onCursorMove(this.state.cursor);
   }
   
   private moveWord(count: number, direction: "forward" | "backward" | "end"): void {
     for (let i = 0; i < count; i++) {
       this.state.cursor = this.getWordEnd(this.state.cursor, direction);
     }
-    this.callbacks.onCursorMove?.(this.state.cursor);
+    this.callbacks.onCursorMove(this.state.cursor);
   }
   
   private getWordEnd(pos: number, direction: "forward" | "backward" | "end"): number {
@@ -592,17 +623,9 @@ export class VimMode {
     return [start, end];
   }
   
-  private setMode(mode: VimModeType): void {
-    this.state.mode = mode;
-    if (mode !== "visual" && mode !== "visual-line") {
-      this.state.visualStart = undefined;
-      this.state.visualEnd = undefined;
-    }
-    this.callbacks.onModeChange?.(mode);
-  }
-  
   getSelection(): { start: number; end: number } | null {
-    if (this.state.mode === "visual" || this.state.mode === "visual-line") {
+    const currentMode = this.getCurrentMode();
+    if (currentMode === "visual" || currentMode === "visual-line") {
       const [start, end] = this.getVisualSelection();
       return { start, end: end + 1 }; // end is inclusive in selection
     }
@@ -611,10 +634,92 @@ export class VimMode {
   
   reset(): void {
     this.state = {
-      mode: "normal",
       cursor: 0,
       count: "",
     };
     this.text = "";
+  }
+}
+
+export class VimMode {
+  private state: VimState = {
+    mode: "normal",
+    cursor: 0,
+    count: "",
+  };
+  
+  private callbacks: VimCallbacks;
+  private vimBehavior: VimBehavior;
+  
+  constructor(callbacks: VimCallbacks = {}) {
+    this.callbacks = callbacks;
+    
+    // Create VimBehavior with callbacks that sync with our internal state
+    const behaviorCallbacks: VimBehaviorCallbacks = {
+      onModeChangeRequest: (mode: CellMode, editMode?: EditMode) => {
+        this.setMode(mode as VimModeType);
+      },
+      onCursorMove: (position: number) => {
+        this.state.cursor = position;
+        this.callbacks.onCursorMove?.(position);
+      },
+      onTextChange: (text: string, cursor: number) => {
+        this.state.cursor = cursor;
+        this.callbacks.onTextChange?.(text, cursor);
+      }
+    };
+    
+    // Create VimBehavior that gets current mode from our state
+    this.vimBehavior = new VimBehavior(
+      behaviorCallbacks,
+      () => this.state.mode as CellMode
+    );
+  }
+  
+  setText(text: string, cursor?: number, skipCursorCallback: boolean = false): void {
+    this.vimBehavior.setText(text, cursor, skipCursorCallback);
+    // Sync cursor state
+    this.state.cursor = this.vimBehavior.getCursor();
+  }
+  
+  getText(): string {
+    return this.vimBehavior.getText();
+  }
+  
+  getCursor(): number {
+    return this.state.cursor;
+  }
+  
+  getMode(): VimModeType {
+    return this.state.mode;
+  }
+  
+  handleKey(key: string, ctrl: boolean = false, shift: boolean = false): boolean {
+    const result = this.vimBehavior.handleKey(key, ctrl, shift);
+    // Sync cursor state after key handling
+    this.state.cursor = this.vimBehavior.getCursor();
+    return result;
+  }
+  
+  getSelection(): { start: number; end: number } | null {
+    return this.vimBehavior.getSelection();
+  }
+  
+  reset(): void {
+    this.state = {
+      mode: "normal",
+      cursor: 0,
+      count: "",
+    };
+    this.vimBehavior.reset();
+  }
+  
+  private setMode(mode: VimModeType): void {
+    this.state.mode = mode;
+    if (mode !== "visual" && mode !== "visual-line") {
+      this.state.visualStart = undefined;
+      this.state.visualEnd = undefined;
+    }
+    this.callbacks.onModeChange?.(mode);
   }
 }
