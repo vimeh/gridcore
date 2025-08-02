@@ -1,20 +1,30 @@
 export type GridMode = "navigation" | "editing"
 export type CellMode = "normal" | "insert" | "visual" | "visual-line"
+export type EditMode = "insert" | "append" | "replace"
+export type InteractionMode = "normal" | "keyboard-only"
 
 export interface SpreadsheetState {
   gridMode: GridMode
   cellMode: CellMode
+  editMode?: EditMode // Only relevant when cellMode is "insert"
+  pendingEditMode?: EditMode // Edit mode to apply when entering insert mode
+  interactionMode: InteractionMode
   previousGridMode?: GridMode
   previousCellMode?: CellMode
+  previousEditMode?: EditMode
+  previousInteractionMode?: InteractionMode
 }
 
 export type ModeTransitionEvent =
-  | { type: "START_EDITING" }
+  | { type: "START_EDITING"; editMode?: EditMode }
   | { type: "STOP_EDITING"; commit: boolean }
-  | { type: "ENTER_INSERT_MODE" }
+  | { type: "ENTER_INSERT_MODE"; editMode?: EditMode }
   | { type: "EXIT_INSERT_MODE" }
   | { type: "ENTER_VISUAL_MODE"; visualType: "character" | "line" }
   | { type: "EXIT_VISUAL_MODE" }
+  | { type: "SET_EDIT_MODE"; editMode: EditMode }
+  | { type: "TOGGLE_INTERACTION_MODE" }
+  | { type: "SET_INTERACTION_MODE"; mode: InteractionMode }
   | { type: "ESCAPE" }
 
 export interface ModeChangeCallback {
@@ -25,6 +35,7 @@ export class SpreadsheetModeStateMachine {
   private state: SpreadsheetState = {
     gridMode: "navigation",
     cellMode: "normal",
+    interactionMode: "normal",
   }
   
   private listeners: Set<ModeChangeCallback> = new Set()
@@ -41,6 +52,14 @@ export class SpreadsheetModeStateMachine {
   
   getCellMode(): CellMode {
     return this.state.cellMode
+  }
+  
+  getEditMode(): EditMode | undefined {
+    return this.state.editMode
+  }
+  
+  getInteractionMode(): InteractionMode {
+    return this.state.interactionMode
   }
   
   isInEditMode(): boolean {
@@ -60,7 +79,99 @@ export class SpreadsheetModeStateMachine {
            (this.state.cellMode === "visual" || this.state.cellMode === "visual-line")
   }
   
+  isInNormalCellMode(): boolean {
+    return this.state.gridMode === "editing" && this.state.cellMode === "normal"
+  }
+  
+  isInKeyboardOnlyMode(): boolean {
+    return this.state.interactionMode === "keyboard-only"
+  }
+  
+  isInNormalInteractionMode(): boolean {
+    return this.state.interactionMode === "normal"
+  }
+  
+  isInAppendMode(): boolean {
+    return this.state.editMode === "append" || this.state.pendingEditMode === "append"
+  }
+  
+  isInReplaceMode(): boolean {
+    return this.state.editMode === "replace" || this.state.pendingEditMode === "replace"
+  }
+  
+  getCurrentEditMode(): EditMode | null {
+    return this.state.editMode || null
+  }
+  
+  getPendingEditMode(): EditMode | null {
+    return this.state.pendingEditMode || null
+  }
+  
+  // Mode validation methods
+  isValidTransition(event: ModeTransitionEvent): boolean {
+    return this.getAllowedTransitions().includes(event.type)
+  }
+  
+  canStartEditing(): boolean {
+    return this.state.gridMode === "navigation"
+  }
+  
+  canStopEditing(): boolean {
+    return this.state.gridMode === "editing"
+  }
+  
+  canEnterInsertMode(): boolean {
+    return this.state.gridMode === "editing" && this.state.cellMode !== "insert"
+  }
+  
+  canExitInsertMode(): boolean {
+    return this.state.gridMode === "editing" && this.state.cellMode === "insert"
+  }
+  
+  canEnterVisualMode(): boolean {
+    return this.state.gridMode === "editing" && 
+           this.state.cellMode !== "visual" && 
+           this.state.cellMode !== "visual-line"
+  }
+  
+  canExitVisualMode(): boolean {
+    return this.state.gridMode === "editing" && 
+           (this.state.cellMode === "visual" || this.state.cellMode === "visual-line")
+  }
+  
+  canSetEditMode(): boolean {
+    return this.state.gridMode === "editing" && this.state.cellMode === "insert"
+  }
+  
+  isValidEditMode(editMode: EditMode): boolean {
+    return ["insert", "append", "replace"].includes(editMode)
+  }
+  
+  isValidInteractionMode(interactionMode: InteractionMode): boolean {
+    return ["normal", "keyboard-only"].includes(interactionMode)
+  }
+  
+  // State constraint validation
+  isStateValid(state: SpreadsheetState): boolean {
+    // EditMode should only be set when in insert mode
+    if (state.editMode && state.cellMode !== "insert") {
+      return false
+    }
+    
+    // Check for valid mode combinations
+    if (state.gridMode === "navigation" && state.cellMode !== "normal") {
+      return false
+    }
+    
+    return true
+  }
+  
   transition(event: ModeTransitionEvent): boolean {
+    // Validate transition is allowed
+    if (!this.isValidTransition(event)) {
+      return false
+    }
+    
     const previousState = { ...this.state }
     let stateChanged = false
     
@@ -70,8 +181,11 @@ export class SpreadsheetModeStateMachine {
           this.state = {
             gridMode: "editing",
             cellMode: "normal",
+            pendingEditMode: event.editMode,
+            interactionMode: this.state.interactionMode,
             previousGridMode: "navigation",
             previousCellMode: this.state.cellMode,
+            previousInteractionMode: this.state.interactionMode,
           }
           stateChanged = true
         }
@@ -82,8 +196,11 @@ export class SpreadsheetModeStateMachine {
           this.state = {
             gridMode: "navigation",
             cellMode: "normal",
+            interactionMode: this.state.interactionMode,
             previousGridMode: "editing",
             previousCellMode: this.state.cellMode,
+            previousEditMode: this.state.editMode,
+            previousInteractionMode: this.state.interactionMode,
           }
           stateChanged = true
         }
@@ -94,7 +211,10 @@ export class SpreadsheetModeStateMachine {
           this.state = {
             ...this.state,
             cellMode: "insert",
+            editMode: event.editMode || this.state.pendingEditMode || this.state.editMode,
+            pendingEditMode: undefined,
             previousCellMode: this.state.cellMode,
+            previousEditMode: this.state.editMode,
           }
           stateChanged = true
         }
@@ -105,7 +225,9 @@ export class SpreadsheetModeStateMachine {
           this.state = {
             ...this.state,
             cellMode: "normal",
+            editMode: undefined,
             previousCellMode: "insert",
+            previousEditMode: this.state.editMode,
           }
           stateChanged = true
         }
@@ -136,6 +258,41 @@ export class SpreadsheetModeStateMachine {
         }
         break
         
+      case "SET_EDIT_MODE":
+        if (this.state.gridMode === "editing" && 
+            this.state.cellMode === "insert" && 
+            this.isValidEditMode(event.editMode)) {
+          this.state = {
+            ...this.state,
+            editMode: event.editMode,
+            previousEditMode: this.state.editMode,
+          }
+          stateChanged = true
+        }
+        break
+        
+      case "TOGGLE_INTERACTION_MODE":
+        const newInteractionMode: InteractionMode = this.state.interactionMode === "normal" ? "keyboard-only" : "normal"
+        this.state = {
+          ...this.state,
+          interactionMode: newInteractionMode,
+          previousInteractionMode: this.state.interactionMode,
+        }
+        stateChanged = true
+        break
+        
+      case "SET_INTERACTION_MODE":
+        if (this.state.interactionMode !== event.mode && 
+            this.isValidInteractionMode(event.mode)) {
+          this.state = {
+            ...this.state,
+            interactionMode: event.mode,
+            previousInteractionMode: this.state.interactionMode,
+          }
+          stateChanged = true
+        }
+        break
+        
       case "ESCAPE":
         if (this.state.gridMode === "editing") {
           if (this.state.cellMode === "insert" || 
@@ -145,7 +302,9 @@ export class SpreadsheetModeStateMachine {
             this.state = {
               ...this.state,
               cellMode: "normal",
+              editMode: undefined,
               previousCellMode: this.state.cellMode,
+              previousEditMode: this.state.editMode,
             }
             stateChanged = true
           } else {
@@ -153,13 +312,23 @@ export class SpreadsheetModeStateMachine {
             this.state = {
               gridMode: "navigation",
               cellMode: "normal",
+              interactionMode: this.state.interactionMode,
               previousGridMode: "editing",
               previousCellMode: this.state.cellMode,
+              previousEditMode: this.state.editMode,
+              previousInteractionMode: this.state.interactionMode,
             }
             stateChanged = true
           }
         }
         break
+    }
+    
+    // Validate the resulting state
+    if (stateChanged && !this.isStateValid(this.state)) {
+      // Rollback to previous state if validation fails
+      this.state = previousState
+      return false
     }
     
     if (stateChanged) {
@@ -175,9 +344,9 @@ export class SpreadsheetModeStateMachine {
   }
   
   private notifyListeners(newState: SpreadsheetState, previousState: SpreadsheetState): void {
-    for (const listener of this.listeners) {
+    this.listeners.forEach(listener => {
       listener(newState, previousState)
-    }
+    })
   }
   
   reset(): void {
@@ -185,31 +354,45 @@ export class SpreadsheetModeStateMachine {
     this.state = {
       gridMode: "navigation",
       cellMode: "normal",
+      interactionMode: "normal",
     }
     this.notifyListeners(this.state, previousState)
   }
   
   getStateDescription(): string {
+    const interactionSuffix = this.state.interactionMode === "keyboard-only" ? " (Keyboard Only)" : ""
+    
     if (this.state.gridMode === "navigation") {
-      return "Grid Navigation"
+      return `Grid Navigation${interactionSuffix}`
     }
     
+    let description = ""
     switch (this.state.cellMode) {
       case "normal":
-        return "Cell Edit - Normal"
+        description = "Cell Edit - Normal"
+        break
       case "insert":
-        return "Cell Edit - Insert"
+        const editMode = this.state.editMode ? ` (${this.state.editMode})` : ""
+        description = `Cell Edit - Insert${editMode}`
+        break
       case "visual":
-        return "Cell Edit - Visual"
+        description = "Cell Edit - Visual"
+        break
       case "visual-line":
-        return "Cell Edit - Visual Line"
+        description = "Cell Edit - Visual Line"
+        break
       default:
-        return "Unknown"
+        description = "Unknown"
     }
+    
+    return `${description}${interactionSuffix}`
   }
   
   getAllowedTransitions(): ModeTransitionEvent["type"][] {
     const allowed: ModeTransitionEvent["type"][] = []
+    
+    // Interaction mode can always be changed
+    allowed.push("TOGGLE_INTERACTION_MODE", "SET_INTERACTION_MODE")
     
     if (this.state.gridMode === "navigation") {
       allowed.push("START_EDITING")
@@ -219,7 +402,7 @@ export class SpreadsheetModeStateMachine {
       if (this.state.cellMode === "normal") {
         allowed.push("ENTER_INSERT_MODE", "ENTER_VISUAL_MODE")
       } else if (this.state.cellMode === "insert") {
-        allowed.push("EXIT_INSERT_MODE")
+        allowed.push("EXIT_INSERT_MODE", "SET_EDIT_MODE")
       } else if (this.state.cellMode === "visual" || this.state.cellMode === "visual-line") {
         allowed.push("EXIT_VISUAL_MODE")
       }
