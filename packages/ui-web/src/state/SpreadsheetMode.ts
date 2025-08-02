@@ -1,5 +1,7 @@
+import type { CellAddress } from "@gridcore/core"
+
 export type GridMode = "navigation" | "editing"
-export type CellMode = "normal" | "insert" | "visual" | "visual-line"
+export type CellMode = "normal" | "insert" | "visual" | "visual-line" | "visual-block" | "resize"
 export type EditMode = "insert" | "append" | "replace"
 export type InteractionMode = "normal" | "keyboard-only"
 
@@ -13,6 +15,9 @@ export interface SpreadsheetState {
   previousCellMode?: CellMode
   previousEditMode?: EditMode
   previousInteractionMode?: InteractionMode
+  visualAnchor?: CellAddress // Starting point of visual selection
+  visualCursor?: CellAddress // Current position in visual selection
+  resizeTarget?: { type: "column" | "row"; index: number } // What we're resizing
 }
 
 export type ModeTransitionEvent =
@@ -22,6 +27,9 @@ export type ModeTransitionEvent =
   | { type: "EXIT_INSERT_MODE" }
   | { type: "ENTER_VISUAL_MODE"; visualType: "character" | "line" }
   | { type: "EXIT_VISUAL_MODE" }
+  | { type: "ENTER_VISUAL_BLOCK_MODE" }
+  | { type: "ENTER_RESIZE_MODE"; target: { type: "column" | "row"; index: number } }
+  | { type: "EXIT_RESIZE_MODE" }
   | { type: "SET_EDIT_MODE"; editMode: EditMode }
   | { type: "TOGGLE_INTERACTION_MODE" }
   | { type: "SET_INTERACTION_MODE"; mode: InteractionMode }
@@ -41,15 +49,15 @@ export class SpreadsheetModeStateMachine {
   private listeners: Set<ModeChangeCallback> = new Set()
   
   constructor() {}
-  
+
   getState(): Readonly<SpreadsheetState> {
     return { ...this.state }
   }
-  
+
   getGridMode(): GridMode {
     return this.state.gridMode
   }
-  
+
   getCellMode(): CellMode {
     return this.state.cellMode
   }
@@ -61,22 +69,25 @@ export class SpreadsheetModeStateMachine {
   getInteractionMode(): InteractionMode {
     return this.state.interactionMode
   }
-  
   isInEditMode(): boolean {
-    return this.state.gridMode === "editing"
+    return this.state.gridMode === "editing";
   }
-  
+
   isInNavigationMode(): boolean {
-    return this.state.gridMode === "navigation"
+    return this.state.gridMode === "navigation";
   }
-  
+
   isInInsertMode(): boolean {
-    return this.state.gridMode === "editing" && this.state.cellMode === "insert"
+    return (
+      this.state.gridMode === "editing" && this.state.cellMode === "insert"
+    );
   }
-  
+
   isInVisualMode(): boolean {
     return this.state.gridMode === "editing" && 
-           (this.state.cellMode === "visual" || this.state.cellMode === "visual-line")
+           (this.state.cellMode === "visual" || 
+            this.state.cellMode === "visual-line" ||
+            this.state.cellMode === "visual-block")
   }
   
   isInNormalCellMode(): boolean {
@@ -97,6 +108,10 @@ export class SpreadsheetModeStateMachine {
   
   isInReplaceMode(): boolean {
     return this.state.editMode === "replace" || this.state.pendingEditMode === "replace"
+  }
+  
+  isInResizeMode(): boolean {
+    return this.state.gridMode === "editing" && this.state.cellMode === "resize"
   }
   
   getCurrentEditMode(): EditMode | null {
@@ -131,12 +146,15 @@ export class SpreadsheetModeStateMachine {
   canEnterVisualMode(): boolean {
     return this.state.gridMode === "editing" && 
            this.state.cellMode !== "visual" && 
-           this.state.cellMode !== "visual-line"
+           this.state.cellMode !== "visual-line" &&
+           this.state.cellMode !== "visual-block"
   }
   
   canExitVisualMode(): boolean {
     return this.state.gridMode === "editing" && 
-           (this.state.cellMode === "visual" || this.state.cellMode === "visual-line")
+           (this.state.cellMode === "visual" || 
+            this.state.cellMode === "visual-line" ||
+            this.state.cellMode === "visual-block")
   }
   
   canSetEditMode(): boolean {
@@ -165,7 +183,6 @@ export class SpreadsheetModeStateMachine {
     
     return true
   }
-  
   transition(event: ModeTransitionEvent): boolean {
     // Validate transition is allowed
     if (!this.isValidTransition(event)) {
@@ -174,7 +191,6 @@ export class SpreadsheetModeStateMachine {
     
     const previousState = { ...this.state }
     let stateChanged = false
-    
     switch (event.type) {
       case "START_EDITING":
         if (this.state.gridMode === "navigation") {
@@ -189,8 +205,8 @@ export class SpreadsheetModeStateMachine {
           }
           stateChanged = true
         }
-        break
-        
+        break;
+
       case "STOP_EDITING":
         if (this.state.gridMode === "editing") {
           this.state = {
@@ -204,10 +220,13 @@ export class SpreadsheetModeStateMachine {
           }
           stateChanged = true
         }
-        break
-        
+        break;
+
       case "ENTER_INSERT_MODE":
-        if (this.state.gridMode === "editing" && this.state.cellMode !== "insert") {
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode !== "insert"
+        ) {
           this.state = {
             ...this.state,
             cellMode: "insert",
@@ -218,44 +237,64 @@ export class SpreadsheetModeStateMachine {
           }
           stateChanged = true
         }
-        break
-        
+        break;
+
       case "EXIT_INSERT_MODE":
-        if (this.state.gridMode === "editing" && this.state.cellMode === "insert") {
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode === "insert"
+        ) {
           this.state = {
             ...this.state,
             cellMode: "normal",
             editMode: undefined,
             previousCellMode: "insert",
+<<<<<<< HEAD
             previousEditMode: this.state.editMode,
           }
           stateChanged = true
+||||||| 18cde57
+          }
+          stateChanged = true
+=======
+          };
+          stateChanged = true;
+>>>>>>> vim-selection
         }
-        break
-        
+        break;
+
       case "ENTER_VISUAL_MODE":
-        if (this.state.gridMode === "editing" && 
-            this.state.cellMode !== "visual" && 
-            this.state.cellMode !== "visual-line") {
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode !== "visual" &&
+          this.state.cellMode !== "visual-line"
+        ) {
           this.state = {
             ...this.state,
             cellMode: event.visualType === "line" ? "visual-line" : "visual",
             previousCellMode: this.state.cellMode,
-          }
-          stateChanged = true
+          };
+          stateChanged = true;
         }
-        break
-        
+        break;
+
       case "EXIT_VISUAL_MODE":
-        if (this.state.gridMode === "editing" && 
-            (this.state.cellMode === "visual" || this.state.cellMode === "visual-line")) {
+        if (
+          this.state.gridMode === "editing" &&
+          (this.state.cellMode === "visual" ||
+            this.state.cellMode === "visual-line" ||
+            this.state.cellMode === "visual-block")
+        ) {
           this.state = {
             ...this.state,
             cellMode: "normal",
             previousCellMode: this.state.cellMode,
-          }
-          stateChanged = true
+            visualAnchor: undefined,
+            visualCursor: undefined,
+          };
+          stateChanged = true;
         }
+<<<<<<< HEAD
         break
         
       case "SET_EDIT_MODE":
@@ -293,20 +332,86 @@ export class SpreadsheetModeStateMachine {
         }
         break
         
+||||||| 18cde57
+        break
+        
+=======
+        break;
+
+      case "ENTER_VISUAL_BLOCK_MODE":
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode !== "visual-block"
+        ) {
+          this.state = {
+            ...this.state,
+            cellMode: "visual-block",
+            previousCellMode: this.state.cellMode,
+          };
+          stateChanged = true;
+        }
+        break;
+
+      case "ENTER_RESIZE_MODE":
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode !== "resize"
+        ) {
+          this.state = {
+            ...this.state,
+            cellMode: "resize",
+            previousCellMode: this.state.cellMode,
+            resizeTarget: event.target,
+          };
+          stateChanged = true;
+        }
+        break;
+
+      case "EXIT_RESIZE_MODE":
+        if (
+          this.state.gridMode === "editing" &&
+          this.state.cellMode === "resize"
+        ) {
+          this.state = {
+            ...this.state,
+            cellMode: "normal",
+            previousCellMode: "resize",
+            resizeTarget: undefined,
+          };
+          stateChanged = true;
+        }
+        break;
+
+>>>>>>> vim-selection
       case "ESCAPE":
         if (this.state.gridMode === "editing") {
-          if (this.state.cellMode === "insert" || 
-              this.state.cellMode === "visual" || 
-              this.state.cellMode === "visual-line") {
-            // First escape exits insert/visual mode
+          if (
+            this.state.cellMode === "insert" ||
+            this.state.cellMode === "visual" ||
+            this.state.cellMode === "visual-line" ||
+            this.state.cellMode === "visual-block" ||
+            this.state.cellMode === "resize"
+          ) {
+            // First escape exits insert/visual/resize mode
             this.state = {
               ...this.state,
               cellMode: "normal",
               editMode: undefined,
               previousCellMode: this.state.cellMode,
+<<<<<<< HEAD
               previousEditMode: this.state.editMode,
             }
             stateChanged = true
+||||||| 18cde57
+            }
+            stateChanged = true
+=======
+              visualAnchor: undefined,
+              visualCursor: undefined,
+              resizeTarget: undefined,
+            };
+            stateChanged = true;
+>>>>>>> vim-selection
           } else {
             // Second escape exits editing mode
             this.state = {
@@ -321,7 +426,7 @@ export class SpreadsheetModeStateMachine {
             stateChanged = true
           }
         }
-        break
+        break;
     }
     
     // Validate the resulting state
@@ -332,15 +437,15 @@ export class SpreadsheetModeStateMachine {
     }
     
     if (stateChanged) {
-      this.notifyListeners(this.state, previousState)
+      this.notifyListeners(this.state, previousState);
     }
-    
-    return stateChanged
+
+    return stateChanged;
   }
-  
+
   onModeChange(callback: ModeChangeCallback): () => void {
-    this.listeners.add(callback)
-    return () => this.listeners.delete(callback)
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
   }
   
   private notifyListeners(newState: SpreadsheetState, previousState: SpreadsheetState): void {
@@ -348,9 +453,9 @@ export class SpreadsheetModeStateMachine {
       listener(newState, previousState)
     })
   }
-  
+
   reset(): void {
-    const previousState = { ...this.state }
+    const previousState = { ...this.state };
     this.state = {
       gridMode: "navigation",
       cellMode: "normal",
@@ -358,7 +463,7 @@ export class SpreadsheetModeStateMachine {
     }
     this.notifyListeners(this.state, previousState)
   }
-  
+
   getStateDescription(): string {
     const interactionSuffix = this.state.interactionMode === "keyboard-only" ? " (Keyboard Only)" : ""
     
@@ -381,33 +486,49 @@ export class SpreadsheetModeStateMachine {
       case "visual-line":
         description = "Cell Edit - Visual Line"
         break
+      case "visual-block":
+        description = "Cell Edit - Visual Block"
+        break
+      case "resize":
+        description = "Cell Edit - Resize"
+        break
       default:
         description = "Unknown"
     }
     
     return `${description}${interactionSuffix}`
   }
-  
+
   getAllowedTransitions(): ModeTransitionEvent["type"][] {
     const allowed: ModeTransitionEvent["type"][] = []
     
     // Interaction mode can always be changed
     allowed.push("TOGGLE_INTERACTION_MODE", "SET_INTERACTION_MODE")
-    
     if (this.state.gridMode === "navigation") {
-      allowed.push("START_EDITING")
+      allowed.push("START_EDITING");
     } else if (this.state.gridMode === "editing") {
-      allowed.push("STOP_EDITING", "ESCAPE")
-      
+      allowed.push("STOP_EDITING", "ESCAPE");
+
       if (this.state.cellMode === "normal") {
-        allowed.push("ENTER_INSERT_MODE", "ENTER_VISUAL_MODE")
+        allowed.push(
+          "ENTER_INSERT_MODE",
+          "ENTER_VISUAL_MODE",
+          "ENTER_VISUAL_BLOCK_MODE",
+          "ENTER_RESIZE_MODE",
+        );
       } else if (this.state.cellMode === "insert") {
         allowed.push("EXIT_INSERT_MODE", "SET_EDIT_MODE")
-      } else if (this.state.cellMode === "visual" || this.state.cellMode === "visual-line") {
+      } else if (
+        this.state.cellMode === "visual" ||
+        this.state.cellMode === "visual-line" ||
+        this.state.cellMode === "visual-block"
+      ) {
         allowed.push("EXIT_VISUAL_MODE")
+      } else if (this.state.cellMode === "resize") {
+        allowed.push("EXIT_RESIZE_MODE")
       }
     }
-    
-    return allowed
+
+    return allowed;
   }
 }

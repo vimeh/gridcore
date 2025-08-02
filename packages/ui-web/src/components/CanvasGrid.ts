@@ -11,10 +11,9 @@ import { CanvasRenderer } from "../rendering/CanvasRenderer";
 import { DebugRenderer } from "../rendering/DebugRenderer";
 import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
 import { HeaderRenderer } from "../rendering/HeaderRenderer";
+import type { SpreadsheetModeStateMachine, InteractionMode } from "../state/SpreadsheetMode";
 import { CellEditor } from "./CellEditor";
 import { Viewport } from "./Viewport";
-import type { SpreadsheetModeStateMachine, InteractionMode } from "../state/SpreadsheetMode";
-import { ModeManager } from "../state/ModeManager";
 
 
 export interface CanvasGridOptions {
@@ -22,7 +21,6 @@ export interface CanvasGridOptions {
   totalRows?: number;
   totalCols?: number;
   modeStateMachine?: SpreadsheetModeStateMachine;
-  modeManager?: ModeManager;
 }
 
 export class CanvasGrid {
@@ -48,7 +46,6 @@ export class CanvasGrid {
   private debugRenderer!: DebugRenderer;
   private interactionModeToggle!: HTMLInputElement;
   private modeStateMachine?: SpreadsheetModeStateMachine;
-  private modeManager: ModeManager;
   private modeChangeUnsubscribe?: () => void;
 
   constructor(
@@ -60,7 +57,6 @@ export class CanvasGrid {
     this.grid = grid;
     this.theme = options.theme || defaultTheme;
     this.modeStateMachine = options.modeStateMachine;
-    this.modeManager = options.modeManager || new ModeManager(this.modeStateMachine);
 
     this.setupDOM();
 
@@ -86,7 +82,7 @@ export class CanvasGrid {
       onEditEnd: () => this.container.focus(),
       onEditStart: () => this.render(),
       onModeChange: () => this.render(),
-      modeManager: this.modeManager,
+      modeStateMachine: this.modeStateMachine,
     });
 
     this.mouseHandler = new MouseHandler(
@@ -103,7 +99,7 @@ export class CanvasGrid {
       this.cellEditor,
       this.grid,
       this,
-      this.modeManager,
+      this.modeStateMachine,
     );
 
     this.resizeHandler = new ResizeHandler(
@@ -120,7 +116,7 @@ export class CanvasGrid {
           this.resize();
           this.render();
         },
-      }
+      },
     );
 
     this.setupEventListeners();
@@ -178,7 +174,7 @@ export class CanvasGrid {
     toggleInput.style.marginRight = "8px";
     toggleInput.addEventListener("change", () => {
       const newMode = toggleInput.checked ? "keyboard-only" : "normal";
-      this.modeManager.setInteractionMode(newMode);
+      this.setInteractionMode(newMode);
     });
 
     const toggleText = document.createElement("span");
@@ -294,24 +290,25 @@ export class CanvasGrid {
   }
 
   private setupModeChangeSubscription(): void {
-    this.modeChangeUnsubscribe = this.modeManager.onModeChangeFiltered(
-      (newState, previousState) => {
-        // Update mouse handler based on interaction mode
-        this.mouseHandler.setEnabled(newState.interactionMode === "normal");
-        
-        // Update resize handler based on interaction mode
-        this.resizeHandler.setEnabled(newState.interactionMode === "normal");
-        
-        // Update toggle checkbox state
-        if (this.interactionModeToggle) {
-          this.interactionModeToggle.checked = newState.interactionMode === "keyboard-only";
+    if (this.modeStateMachine) {
+      this.modeChangeUnsubscribe = this.modeStateMachine.onModeChange(
+        (newState, previousState) => {
+          // Update mouse handler based on interaction mode
+          this.mouseHandler.setEnabled(newState.interactionMode === "normal");
+          
+          // Update resize handler based on interaction mode
+          this.resizeHandler.setEnabled(newState.interactionMode === "normal");
+          
+          // Update toggle checkbox state
+          if (this.interactionModeToggle) {
+            this.interactionModeToggle.checked = newState.interactionMode === "keyboard-only";
+          }
+          
+          // Re-render to update any visual indicators
+          this.render();
         }
-        
-        // Re-render to update any visual indicators
-        this.render();
-      },
-      { interactionMode: ["normal", "keyboard-only"] }
-    );
+      );
+    }
   }
 
   private handleResize(): void {
@@ -428,7 +425,7 @@ export class CanvasGrid {
       // Set spacer to exact grid size - no buffer needed
       const spacerWidth = Math.max(scrollWidth, totalWidth);
       const spacerHeight = Math.max(scrollHeight, totalHeight);
-      
+
       spacer.style.width = `${spacerWidth}px`;
       spacer.style.height = `${spacerHeight}px`;
     }
@@ -500,7 +497,8 @@ export class CanvasGrid {
       }
 
       // Render the grid
-      const isNavigationMode = this.modeStateMachine?.isInNavigationMode() ?? true;
+      const isNavigationMode =
+        this.modeStateMachine?.isInNavigationMode() ?? true;
       const cellsRendered = this.renderer.renderGrid(
         (address) => this.grid.getCell(address),
         this.selectionManager.getSelectedCells(),
@@ -521,7 +519,6 @@ export class CanvasGrid {
       this.animationFrameId = null;
     });
   }
-
 
   destroy(): void {
     if (this.animationFrameId !== null) {
@@ -619,11 +616,30 @@ export class CanvasGrid {
 
   // Get current interaction mode
   getInteractionMode(): InteractionMode {
-    return this.modeManager.getInteractionMode();
+    return this.modeStateMachine?.getInteractionMode() || "normal";
   }
 
   // Set interaction mode
   setInteractionMode(mode: InteractionMode): void {
-    this.modeManager.setInteractionMode(mode);
+    if (this.getInteractionMode() === mode) return;
+    
+    this.modeStateMachine?.transition({ 
+      type: "SET_INTERACTION_MODE", 
+      mode 
+    });
+    
+    // Update mouse handler
+    this.mouseHandler.setEnabled(mode === "normal");
+    
+    // Update resize handler
+    this.resizeHandler.setEnabled(mode === "normal");
+    
+    // Update toggle checkbox state
+    if (this.interactionModeToggle) {
+      this.interactionModeToggle.checked = mode === "keyboard-only";
+    }
+    
+    // Re-render to update any visual indicators
+    this.render();
   }
 }

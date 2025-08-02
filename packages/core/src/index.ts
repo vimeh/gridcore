@@ -6,8 +6,8 @@ export * from "./formula/tokenizer";
 export * from "./Grid";
 export * from "./SpreadsheetEngine";
 export * from "./types";
-export * from "./utils/cellAddress";
 export * from "./types/SpreadsheetState";
+export * from "./utils/cellAddress";
 
 export class GridCore {
   private name: string = "GridCore Engine";

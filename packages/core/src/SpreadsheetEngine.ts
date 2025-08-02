@@ -4,8 +4,11 @@ import { type EvaluationContext, FormulaEvaluator } from "./formula/evaluator";
 import { FormulaParser } from "./formula/parser";
 import { Grid } from "./Grid";
 import type { Cell, CellAddress, CellValueType, GridDimensions } from "./types";
+import type {
+  SpreadsheetState,
+  SpreadsheetStateOptions,
+} from "./types/SpreadsheetState";
 import { cellAddressToString, parseCellAddress } from "./utils/cellAddress";
-import type { SpreadsheetState, SpreadsheetStateOptions } from "./types/SpreadsheetState";
 
 export interface SpreadsheetChangeEvent {
   type: "cell-change" | "batch-change";
@@ -438,7 +441,10 @@ export class SpreadsheetEngine {
   }
 
   static fromState(state: SpreadsheetState): SpreadsheetEngine {
-    const engine = new SpreadsheetEngine(state.dimensions.rows, state.dimensions.cols);
+    const engine = new SpreadsheetEngine(
+      state.dimensions.rows,
+      state.dimensions.cols,
+    );
 
     // Restore cells
     for (const { address, cell } of state.cells) {

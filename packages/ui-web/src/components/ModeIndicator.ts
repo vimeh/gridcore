@@ -1,5 +1,4 @@
-import type { SpreadsheetState } from "../state/SpreadsheetMode"
-import type { ModeManager } from "../state/ModeManager"
+import type { SpreadsheetState, SpreadsheetModeStateMachine } from "../state/SpreadsheetMode"
 
 export class ModeIndicator {
   private element: HTMLDivElement
@@ -9,28 +8,28 @@ export class ModeIndicator {
   
   constructor(
     private container: HTMLElement,
-    private modeManager: ModeManager
+    private modeStateMachine: SpreadsheetModeStateMachine
   ) {
-    this.element = this.createElement()
-    this.modeText = this.element.querySelector(".mode-text")!
-    this.detailText = this.element.querySelector(".mode-detail")!
-    this.container.appendChild(this.element)
-    
+    this.element = this.createElement();
+    this.modeText = this.element.querySelector(".mode-text")!;
+    this.detailText = this.element.querySelector(".mode-detail")!;
+    this.container.appendChild(this.element);
+
     // Subscribe to mode changes
-    this.unsubscribe = this.modeManager.onModeChange(this.handleModeChange.bind(this))
+    this.unsubscribe = this.modeStateMachine.onModeChange(this.handleModeChange.bind(this))
     
     // Set initial state
-    this.updateDisplay(this.modeManager.getState())
+    this.updateDisplay(this.modeStateMachine.getState())
   }
-  
+
   private createElement(): HTMLDivElement {
-    const div = document.createElement("div")
-    div.className = "mode-indicator"
+    const div = document.createElement("div");
+    div.className = "mode-indicator";
     div.innerHTML = `
       <span class="mode-text"></span>
       <span class="mode-detail"></span>
-    `
-    
+    `;
+
     // Style the indicator
     Object.assign(div.style, {
       position: "fixed",
@@ -67,17 +66,20 @@ export class ModeIndicator {
     
     return div
   }
-  
-  private handleModeChange(state: SpreadsheetState, previousState: SpreadsheetState): void {
-    this.updateDisplay(state)
-    
+
+  private handleModeChange(
+    state: SpreadsheetState,
+    previousState: SpreadsheetState,
+  ): void {
+    this.updateDisplay(state);
+
     // Add animation effect on mode change
-    this.element.style.transform = "scale(1.1)"
+    this.element.style.transform = "scale(1.1)";
     setTimeout(() => {
-      this.element.style.transform = "scale(1)"
-    }, 200)
+      this.element.style.transform = "scale(1)";
+    }, 200);
   }
-  
+
   private updateDisplay(state: SpreadsheetState): void {
     const colors = {
       navigation: { bg: "#2c5282", text: "#bee3f8" },
@@ -85,6 +87,8 @@ export class ModeIndicator {
       insert: { bg: "#3182ce", text: "#bee3f8" },
       visual: { bg: "#d69e2e", text: "#fefcbf" },
       "visual-line": { bg: "#e53e3e", text: "#fed7d7" },
+      "visual-block": { bg: "#9f3a38", text: "#fcb9b9" },
+      resize: { bg: "#6b46c1", text: "#e9d8fd" },
     }
     
     // Determine primary mode and color
@@ -108,6 +112,14 @@ export class ModeIndicator {
         case "visual-line":
           primaryMode = "VISUAL LINE"
           colorKey = "visual-line"
+          break
+        case "visual-block":
+          primaryMode = "VISUAL BLOCK"
+          colorKey = "visual-block"
+          break
+        case "resize":
+          primaryMode = "RESIZE"
+          colorKey = "resize"
           break
         default:
           primaryMode = "NORMAL"
@@ -146,6 +158,16 @@ export class ModeIndicator {
       details.push(`Input: ${state.interactionMode}`)
     }
     
+    // Visual mode details
+    if (state.visualAnchor && state.visualCursor) {
+      details.push(`Selection: ${state.visualAnchor.row},${state.visualAnchor.col} to ${state.visualCursor.row},${state.visualCursor.col}`)
+    }
+    
+    // Resize mode details
+    if (state.resizeTarget) {
+      details.push(`Target: ${state.resizeTarget.type} ${state.resizeTarget.index}`)
+    }
+    
     // Add helpful hints based on current mode
     let hints: string[] = []
     if (state.gridMode === "navigation") {
@@ -160,7 +182,11 @@ export class ModeIndicator {
           break
         case "visual":
         case "visual-line":
+        case "visual-block":
           hints = ["hjkl to select", "ESC to exit"]
+          break
+        case "resize":
+          hints = ["+/- to resize", "= to auto-fit", "ESC to exit"]
           break
       }
     }
@@ -174,19 +200,24 @@ export class ModeIndicator {
     this.element.style.backgroundColor = color.bg
     this.element.style.color = color.text
   }
-  
-  setPosition(position: { bottom?: string; left?: string; right?: string; top?: string }): void {
-    Object.assign(this.element.style, position)
+
+  setPosition(position: {
+    bottom?: string;
+    left?: string;
+    right?: string;
+    top?: string;
+  }): void {
+    Object.assign(this.element.style, position);
   }
-  
+
   show(): void {
-    this.element.style.display = "flex"
+    this.element.style.display = "flex";
   }
-  
+
   hide(): void {
-    this.element.style.display = "none"
+    this.element.style.display = "none";
   }
-  
+
   destroy(): void {
     // Clean up subscription
     if (this.unsubscribe) {

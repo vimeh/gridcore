@@ -95,7 +95,11 @@ export class CanvasRenderer {
 
     // Render active cell border and glow on top
     if (activeCell) {
-      this.renderActiveCellBorder(activeCell, isEditing || false, isNavigationMode || false);
+      this.renderActiveCellBorder(
+        activeCell,
+        isEditing || false,
+        isNavigationMode || false,
+      );
     }
 
     return cellsRendered;
@@ -283,51 +287,51 @@ export class CanvasRenderer {
       } else if (isNavigationMode) {
         // Navigation mode - show distinct cursor
         this.ctx.save();
-        
+
         // Fill with semi-transparent color
         this.ctx.fillStyle = this.theme.activeCellBorderColor;
         this.ctx.globalAlpha = 0.1;
         this.ctx.fillRect(x + 1, y + 1, width - 2, height - 2);
-        
+
         // Draw thicker border
         this.ctx.globalAlpha = 1;
         this.ctx.strokeStyle = this.theme.activeCellBorderColor;
         this.ctx.lineWidth = 3;
         this.ctx.setLineDash([]);
         this.ctx.strokeRect(x + 1.5, y + 1.5, width - 3, height - 3);
-        
+
         // Add corner indicators for better visibility
         const cornerSize = 6;
         this.ctx.lineWidth = 2;
-        
+
         // Top-left corner
         this.ctx.beginPath();
         this.ctx.moveTo(x + 1, y + cornerSize);
         this.ctx.lineTo(x + 1, y + 1);
         this.ctx.lineTo(x + cornerSize, y + 1);
         this.ctx.stroke();
-        
+
         // Top-right corner
         this.ctx.beginPath();
         this.ctx.moveTo(x + width - cornerSize, y + 1);
         this.ctx.lineTo(x + width - 1, y + 1);
         this.ctx.lineTo(x + width - 1, y + cornerSize);
         this.ctx.stroke();
-        
+
         // Bottom-left corner
         this.ctx.beginPath();
         this.ctx.moveTo(x + 1, y + height - cornerSize);
         this.ctx.lineTo(x + 1, y + height - 1);
         this.ctx.lineTo(x + cornerSize, y + height - 1);
         this.ctx.stroke();
-        
+
         // Bottom-right corner
         this.ctx.beginPath();
         this.ctx.moveTo(x + width - cornerSize, y + height - 1);
         this.ctx.lineTo(x + width - 1, y + height - 1);
         this.ctx.lineTo(x + width - 1, y + height - cornerSize);
         this.ctx.stroke();
-        
+
         this.ctx.restore();
       } else {
         // Default active cell border (thin border)

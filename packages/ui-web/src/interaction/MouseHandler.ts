@@ -32,15 +32,15 @@ export class MouseHandler {
       contextmenu: (e) => e.preventDefault(),
       selectstart: (e) => {
         if (this.isDragging) e.preventDefault();
-      }
+      },
     };
-    
+
     this.setupEventListeners();
   }
 
   private setupEventListeners(): void {
     if (!this.enabled) return;
-    
+
     this.canvas.addEventListener("mousedown", this.boundHandlers.mousedown);
     this.canvas.addEventListener("mousemove", this.boundHandlers.mousemove);
     this.canvas.addEventListener("mouseup", this.boundHandlers.mouseup);
@@ -56,13 +56,19 @@ export class MouseHandler {
     this.canvas.removeEventListener("mousemove", this.boundHandlers.mousemove);
     this.canvas.removeEventListener("mouseup", this.boundHandlers.mouseup);
     this.canvas.removeEventListener("dblclick", this.boundHandlers.dblclick);
-    this.canvas.removeEventListener("contextmenu", this.boundHandlers.contextmenu);
-    this.canvas.removeEventListener("selectstart", this.boundHandlers.selectstart);
+    this.canvas.removeEventListener(
+      "contextmenu",
+      this.boundHandlers.contextmenu,
+    );
+    this.canvas.removeEventListener(
+      "selectstart",
+      this.boundHandlers.selectstart,
+    );
   }
 
   private handleMouseDown(event: MouseEvent): void {
     if (!this.enabled) return;
-    
+
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -105,7 +111,7 @@ export class MouseHandler {
 
   private handleDoubleClick(event: MouseEvent): void {
     if (!this.enabled) return;
-    
+
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -144,9 +150,9 @@ export class MouseHandler {
 
   setEnabled(enabled: boolean): void {
     if (this.enabled === enabled) return;
-    
+
     this.enabled = enabled;
-    
+
     if (enabled) {
       this.setupEventListeners();
     } else {
