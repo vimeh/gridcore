@@ -181,7 +181,7 @@ export class CellEditor {
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
-    const mode = this.vimMode.getMode();
+    const modeBefore = this.vimMode.getMode();
     
     // Let vim mode handle the key first
     const handled = this.vimMode.handleKey(
@@ -206,8 +206,11 @@ export class CellEditor {
       return;
     }
     
+    // Get the current mode after vim has processed the key
+    const modeAfter = this.vimMode.getMode();
+    
     // Handle special keys not handled by vim
-    if (mode === "normal") {
+    if (modeAfter === "normal") {
       // In normal mode, prevent all default behavior except for special keys
       event.preventDefault();
       
@@ -219,7 +222,7 @@ export class CellEditor {
           this.cancelEdit();
           break;
       }
-    } else if (mode === "insert") {
+    } else if (modeAfter === "insert") {
       switch (event.key) {
         case KEY_CODES.ENTER:
           event.preventDefault();
