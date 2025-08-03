@@ -147,6 +147,20 @@ export class KeyboardHandler {
             this.selectionManager.moveActiveCell(direction);
           }
         },
+        onUndo: (count) => {
+          for (let i = 0; i < count; i++) {
+            if (!this.grid.canUndo()) break;
+            this.grid.undo();
+          }
+          this.canvasGrid?.render();
+        },
+        onRedo: (count) => {
+          for (let i = 0; i < count; i++) {
+            if (!this.grid.canRedo()) break;
+            this.grid.redo();
+          }
+          this.canvasGrid?.render();
+        },
       };
 
       // Set viewport on selection manager
@@ -534,6 +548,12 @@ export class KeyboardHandler {
           }
           break;
 
+        case KEY_CODES.R:
+        case KEY_CODES.CAPITAL_R:
+          event.preventDefault();
+          this.redo();
+          break;
+
         case KEY_CODES.M:
         case KEY_CODES.CAPITAL_M:
           event.preventDefault();
@@ -623,13 +643,15 @@ export class KeyboardHandler {
   }
 
   private undo(): void {
-    // TODO: Implement undo
-    console.log("Undo not yet implemented");
+    if (this.grid.undo()) {
+      this.canvasGrid?.render();
+    }
   }
 
   private redo(): void {
-    // TODO: Implement redo
-    console.log("Redo not yet implemented");
+    if (this.grid.redo()) {
+      this.canvasGrid?.render();
+    }
   }
 
   private toggleInteractionMode(): void {

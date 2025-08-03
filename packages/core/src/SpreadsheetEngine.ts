@@ -10,6 +10,7 @@ import type {
   SpreadsheetState,
   SpreadsheetStateOptions,
 } from "./types/SpreadsheetState";
+import { UndoRedoManager, type UndoRedoOptions } from "./UndoRedoManager";
 import { cellAddressToString, parseCellAddress } from "./utils/cellAddress";
 
 export interface SpreadsheetChangeEvent {
@@ -31,13 +32,22 @@ export class SpreadsheetEngine {
     string,
     { table: PivotTable; outputCell: CellAddress }
   > = new Map();
+  private undoRedoManager: UndoRedoManager;
 
-  constructor(rows: number = 1000, cols: number = 26) {
+  constructor(
+    rows: number = 1000,
+    cols: number = 26,
+    undoRedoOptions?: UndoRedoOptions,
+  ) {
     this.grid = new Grid(rows, cols);
     this.dependencyGraph = new DependencyGraph();
     this.evaluator = new FormulaEvaluator();
     this.parser = new FormulaParser();
     this.listeners = new Set();
+    this.undoRedoManager = new UndoRedoManager(undoRedoOptions);
+
+    // Record initial empty state
+    this.recordSnapshot("Initial state");
   }
 
   // Event handling
@@ -87,6 +97,10 @@ export class SpreadsheetEngine {
       type: "cell-change",
       cells: [{ address, oldValue: oldCell, newValue: newCell }],
     });
+
+    // Record snapshot after cell change
+    const cellRef = cellAddressToString(address);
+    this.recordSnapshot(`Set cell ${cellRef}`);
   }
 
   setCellByReference(
@@ -332,6 +346,9 @@ export class SpreadsheetEngine {
       type: "batch-change",
       cells: changes,
     });
+
+    // Record snapshot after batch change
+    this.recordSnapshot(`Batch update (${updates.length} cells)`);
   }
 
   // Grid operations
@@ -345,6 +362,10 @@ export class SpreadsheetEngine {
       type: "cell-change",
       cells: [{ address, oldValue: oldCell, newValue: undefined }],
     });
+
+    // Record snapshot after clearing cell
+    const cellRef = cellAddressToString(address);
+    this.recordSnapshot(`Clear cell ${cellRef}`);
   }
 
   clear(): void {
@@ -446,17 +467,27 @@ export class SpreadsheetEngine {
     return engine;
   }
 
-  static fromState(state: SpreadsheetState): SpreadsheetEngine {
+  static fromState(
+    state: SpreadsheetState,
+    undoRedoOptions?: UndoRedoOptions,
+  ): SpreadsheetEngine {
+    // Create engine without recording initial snapshot
     const engine = new SpreadsheetEngine(
       state.dimensions.rows,
       state.dimensions.cols,
+      undoRedoOptions,
     );
+
+    // Clear the initial snapshot recorded in constructor
+    engine.undoRedoManager.clear();
 
     // Restore cells
     for (const { address, cell } of state.cells) {
       // For formula cells, use the formula value directly
       if (cell.formula) {
-        engine.setCell(address, cell.formula, cell.formula);
+        // Temporarily disable snapshot recording during restore
+        engine.grid.setCell(address, cell.formula, cell.formula);
+        engine.evaluateFormula(address, cell.formula);
       } else {
         engine.grid.setCell(address, cell.rawValue, cell.formula);
         const engineCell = engine.grid.getCell(address);
@@ -471,6 +502,9 @@ export class SpreadsheetEngine {
     // Restore dependencies
     engine.dependencyGraph = DependencyGraph.fromJSON(state.dependencies);
 
+    // Record the loaded state as the initial snapshot
+    engine.recordSnapshot("Loaded state");
+
     return engine;
   }
 
@@ -481,6 +515,76 @@ export class SpreadsheetEngine {
 
   updateCellStyle(address: CellAddress, style: Partial<Cell["style"]>): void {
     this.grid.updateCellStyle(address, style);
+  }
+
+  // Undo/Redo methods
+  recordSnapshot(description?: string): void {
+    const state = this.toState({ includeView: false, includeMetadata: false });
+    this.undoRedoManager.recordState(state, description);
+  }
+
+  undo(): boolean {
+    const state = this.undoRedoManager.undo();
+    if (!state) {
+      return false;
+    }
+
+    this.restoreState(state);
+    return true;
+  }
+
+  redo(): boolean {
+    const state = this.undoRedoManager.redo();
+    if (!state) {
+      return false;
+    }
+
+    this.restoreState(state);
+    return true;
+  }
+
+  canUndo(): boolean {
+    return this.undoRedoManager.canUndo();
+  }
+
+  canRedo(): boolean {
+    return this.undoRedoManager.canRedo();
+  }
+
+  private restoreState(state: SpreadsheetState): void {
+    // Clear current grid
+    this.grid = new Grid(state.dimensions.rows, state.dimensions.cols);
+
+    // Restore cells
+    for (const { address, cell } of state.cells) {
+      this.grid.setCell(address, cell.rawValue, cell.formula);
+      const engineCell = this.grid.getCell(address);
+      if (engineCell) {
+        engineCell.computedValue = cell.computedValue;
+        engineCell.error = cell.error;
+        engineCell.style = cell.style;
+      }
+    }
+
+    // Restore dependencies
+    this.dependencyGraph = DependencyGraph.fromJSON(state.dependencies);
+
+    // Recalculate all formulas
+    const formulaCells = state.cells.filter((item) => item.cell.formula);
+    for (const { address, cell } of formulaCells) {
+      if (cell.formula) {
+        this.evaluateFormula(address, cell.formula);
+      }
+    }
+
+    // Notify listeners of the change
+    this.notifyListeners({
+      type: "batch-change",
+      cells: state.cells.map(({ address, cell }) => ({
+        address,
+        newValue: cell,
+      })),
+    });
   }
 
   // Pivot table methods
