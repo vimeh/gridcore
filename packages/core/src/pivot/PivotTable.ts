@@ -9,13 +9,13 @@ import type {
 
 export class PivotTable {
   private config: PivotTableConfig;
-  private transformer: PivotTransformer;
+  private transformer!: PivotTransformer;
   private lastOutput?: PivotTableOutput;
   private metadata?: PivotTableMetadata;
 
   constructor(config: PivotTableConfig) {
     this.config = config;
-    this.transformer = null as any; // Will be set when generating
+    // transformer will be initialized in generate()
   }
 
   setConfig(config: Partial<PivotTableConfig>): void {

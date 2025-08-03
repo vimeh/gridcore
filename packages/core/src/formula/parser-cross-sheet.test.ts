@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { SheetCellReference, SheetRangeReference } from "./ast";
+import type {
+  BinaryOperation,
+  FunctionCall,
+  SheetCellReference,
+  SheetRangeReference,
+} from "./ast";
 import { FormulaParser } from "./parser";
 
 describe("FormulaParser - Cross-sheet references", () => {
@@ -108,7 +113,7 @@ describe("FormulaParser - Cross-sheet references", () => {
       expect(result.error).toBeUndefined();
       expect(result.ast?.type).toBe("binary");
 
-      const binary = result.ast as any;
+      const binary = result.ast as BinaryOperation;
       expect(binary.operator).toBe("+");
       expect(binary.left.type).toBe("sheet_cell");
       expect(binary.right.type).toBe("sheet_cell");
@@ -122,7 +127,7 @@ describe("FormulaParser - Cross-sheet references", () => {
       expect(result.error).toBeUndefined();
       expect(result.ast?.type).toBe("function");
 
-      const func = result.ast as any;
+      const func = result.ast as FunctionCall;
       expect(func.name).toBe("SUM");
       expect(func.args.length).toBe(1);
       expect(func.args[0].type).toBe("sheet_range");
@@ -135,7 +140,7 @@ describe("FormulaParser - Cross-sheet references", () => {
       expect(result.error).toBeUndefined();
       expect(result.ast?.type).toBe("function");
 
-      const func = result.ast as any;
+      const func = result.ast as FunctionCall;
       expect(func.name).toBe("VLOOKUP");
       expect(func.args.length).toBe(4);
       expect(func.args[0].type).toBe("cell");
@@ -153,7 +158,7 @@ describe("FormulaParser - Cross-sheet references", () => {
       expect(result.error).toBeUndefined();
       expect(result.ast?.type).toBe("function");
 
-      const ifFunc = result.ast as any;
+      const ifFunc = result.ast as FunctionCall;
       expect(ifFunc.name).toBe("IF");
       expect(ifFunc.args.length).toBe(3);
 
@@ -201,7 +206,7 @@ describe("FormulaParser - Cross-sheet references", () => {
       const result = parser.parse("=SUM(A1:B10)");
 
       expect(result.error).toBeUndefined();
-      const func = result.ast as any;
+      const func = result.ast as FunctionCall;
       expect(func.args[0].type).toBe("range");
     });
   });

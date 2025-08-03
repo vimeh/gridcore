@@ -162,10 +162,12 @@ describe("PivotTransformer", () => {
 
     // Should have entries like "January|Laptop"
     let hasCompositeKey = false;
-    for (const key of electronics?.keys()) {
-      if (key.includes("|")) {
-        hasCompositeKey = true;
-        break;
+    if (electronics) {
+      for (const key of electronics.keys()) {
+        if (key.includes("|")) {
+          hasCompositeKey = true;
+          break;
+        }
       }
     }
     expect(hasCompositeKey).toBe(true);

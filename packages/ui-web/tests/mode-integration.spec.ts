@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 /**
  * Comprehensive integration tests for the unified mode system.
@@ -7,15 +7,15 @@ import { expect, test } from "@playwright/test";
  */
 
 // Helper function to get the correct mode indicator (there are multiple on the page)
-function getModeIndicator(page: any) {
+function getModeIndicator(page: Page) {
   return page.locator(".mode-indicator").last();
 }
 
-function getModeText(page: any) {
+function getModeText(page: Page) {
   return page.locator(".mode-indicator .mode-text").last();
 }
 
-function getModeDetail(page: any) {
+function getModeDetail(page: Page) {
   return page.locator(".mode-indicator .mode-detail").last();
 }
 

@@ -244,26 +244,30 @@ describe("WorkbookState", () => {
       expect(restoredSheets[3].getName()).toBe("Hidden Report");
 
       // Verify data preservation
-      const restoredSheet2 = restored.getSheetByName("Sales Data")!;
-      const restoredSheet3 = restored.getSheetByName("Hidden Report")!;
-      const restoredSheet4 = restored.getSheetByName("Protected Summary")!;
+      const restoredSheet2 = restored.getSheetByName("Sales Data");
+      const restoredSheet3 = restored.getSheetByName("Hidden Report");
+      const restoredSheet4 = restored.getSheetByName("Protected Summary");
+
+      expect(restoredSheet2).toBeDefined();
+      expect(restoredSheet3).toBeDefined();
+      expect(restoredSheet4).toBeDefined();
 
       expect(
-        restoredSheet2.getEngine().getCell({ row: 0, col: 0 })?.rawValue,
+        restoredSheet2?.getEngine().getCell({ row: 0, col: 0 })?.rawValue,
       ).toBe("Text");
       expect(
-        restoredSheet2.getEngine().getCell({ row: 1, col: 1 })?.rawValue,
+        restoredSheet2?.getEngine().getCell({ row: 1, col: 1 })?.rawValue,
       ).toBe(123.45);
       expect(
-        restoredSheet3.getEngine().getCell({ row: 2, col: 2 })?.rawValue,
+        restoredSheet3?.getEngine().getCell({ row: 2, col: 2 })?.rawValue,
       ).toBe(true);
       expect(
-        restoredSheet4.getEngine().getCell({ row: 3, col: 3 })?.formula,
+        restoredSheet4?.getEngine().getCell({ row: 3, col: 3 })?.formula,
       ).toBe("=A1+B2");
 
       // Verify properties
-      expect(restoredSheet3.isHidden()).toBe(true);
-      expect(restoredSheet4.isProtected()).toBe(true);
+      expect(restoredSheet3?.isHidden()).toBe(true);
+      expect(restoredSheet4?.isProtected()).toBe(true);
     });
   });
 });

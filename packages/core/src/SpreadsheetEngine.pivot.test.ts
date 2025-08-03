@@ -179,7 +179,7 @@ describe("SpreadsheetEngine Pivot Table Integration", () => {
 
   test("pivot table with change events", () => {
     const engine = createEngineWithData();
-    const changes: any[] = [];
+    const changes: Array<{ type: string; data?: unknown }> = [];
 
     engine.addEventListener((event) => {
       changes.push(event);

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { CellValueType } from "../types";
 import { aggregators, getAggregator } from "./PivotAggregators";
+import type { AggregatorType } from "./PivotTypes";
 
 describe("PivotAggregators", () => {
   describe("SUM aggregator", () => {
@@ -157,7 +158,7 @@ describe("PivotAggregators", () => {
     });
 
     test("throws for unknown aggregator", () => {
-      expect(() => getAggregator("UNKNOWN" as any)).toThrow(
+      expect(() => getAggregator("UNKNOWN" as AggregatorType)).toThrow(
         "Unknown aggregator type: UNKNOWN",
       );
     });

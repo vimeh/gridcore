@@ -6,7 +6,7 @@ import { CanvasGrid } from "./CanvasGrid";
 describe("CanvasGrid Initial Load", () => {
   let container: HTMLElement;
   let window: Window;
-  let document: any;
+  let document: Document;
 
   beforeEach(() => {
     // Setup DOM environment
@@ -15,8 +15,10 @@ describe("CanvasGrid Initial Load", () => {
     (global as any).window = window;
     (global as any).document = document;
     global.devicePixelRatio = 1;
-    global.requestAnimationFrame = ((cb: any) => setTimeout(cb, 0)) as any;
-    global.cancelAnimationFrame = ((id: any) => clearTimeout(id)) as any;
+    global.requestAnimationFrame = ((cb: FrameRequestCallback) =>
+      setTimeout(cb, 0)) as typeof requestAnimationFrame;
+    global.cancelAnimationFrame = ((id: number) =>
+      clearTimeout(id)) as typeof cancelAnimationFrame;
 
     // Mock canvas context
     const mockContext = {
@@ -46,7 +48,8 @@ describe("CanvasGrid Initial Load", () => {
 
     // Mock canvas
     const _originalGetContext = window.HTMLCanvasElement.prototype.getContext;
-    window.HTMLCanvasElement.prototype.getContext = () => mockContext as any;
+    window.HTMLCanvasElement.prototype.getContext = () =>
+      mockContext as unknown as CanvasRenderingContext2D;
 
     // Create container
     container = document.createElement("div");
@@ -174,7 +177,7 @@ describe("CanvasGrid Scrolling", () => {
   let grid: SpreadsheetEngine;
   let canvasGrid: CanvasGrid;
   let window: Window;
-  let document: any;
+  let document: Document;
 
   beforeEach(() => {
     // Setup DOM environment
@@ -183,8 +186,10 @@ describe("CanvasGrid Scrolling", () => {
     (global as any).window = window;
     (global as any).document = document;
     global.devicePixelRatio = 1;
-    global.requestAnimationFrame = ((cb: any) => setTimeout(cb, 0)) as any;
-    global.cancelAnimationFrame = ((id: any) => clearTimeout(id)) as any;
+    global.requestAnimationFrame = ((cb: FrameRequestCallback) =>
+      setTimeout(cb, 0)) as typeof requestAnimationFrame;
+    global.cancelAnimationFrame = ((id: number) =>
+      clearTimeout(id)) as typeof cancelAnimationFrame;
 
     // Mock canvas context
     const mockContext = {
@@ -214,7 +219,8 @@ describe("CanvasGrid Scrolling", () => {
 
     // Mock canvas
     const _originalGetContext = window.HTMLCanvasElement.prototype.getContext;
-    window.HTMLCanvasElement.prototype.getContext = () => mockContext as any;
+    window.HTMLCanvasElement.prototype.getContext = () =>
+      mockContext as unknown as CanvasRenderingContext2D;
 
     // Create container
     container = document.createElement("div");
