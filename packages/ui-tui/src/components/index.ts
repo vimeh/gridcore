@@ -1,3 +1,3 @@
-export { GridComponent } from './Grid'
-export { FormulaBarComponent } from './FormulaBar'
-export { StatusBarComponent } from './StatusBar'
+export { FormulaBarComponent } from "./FormulaBar";
+export { GridComponent } from "./Grid";
+export { StatusBarComponent } from "./StatusBar";

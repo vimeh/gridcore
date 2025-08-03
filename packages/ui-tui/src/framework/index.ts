@@ -1,3 +1,3 @@
-export { Renderable } from './Renderable'
-export { OptimizedBuffer, type RGBA, type Cell } from './OptimizedBuffer'
-export { Terminal, type KeyMeta } from './Terminal'
+export { type Cell, OptimizedBuffer, type RGBA } from "./OptimizedBuffer";
+export { Renderable } from "./Renderable";
+export { type KeyMeta, Terminal } from "./Terminal";
