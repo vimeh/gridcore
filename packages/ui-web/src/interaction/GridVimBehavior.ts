@@ -21,6 +21,8 @@ export interface GridVimCallbacks {
   ) => void;
   onTextChange?: (text: string, cursor: number) => void;
   onCursorMove?: (position: number) => void;
+  onUndo?: (count: number) => void;
+  onRedo?: (count: number) => void;
 }
 
 export class GridVimBehavior {
@@ -225,6 +227,22 @@ export class GridVimBehavior {
           return true;
         }
         break;
+
+      case "u":
+        // u - undo
+        this.numberBuffer = "";
+        if (this.callbacks.onUndo) {
+          this.callbacks.onUndo(count);
+        }
+        return true;
+
+      case "R":
+        // R - redo
+        this.numberBuffer = "";
+        if (this.callbacks.onRedo) {
+          this.callbacks.onRedo(count);
+        }
+        return true;
 
       // Handle z combinations
       default:

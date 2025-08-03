@@ -8,6 +8,7 @@ export * from "./pivot";
 export * from "./SpreadsheetEngine";
 export * from "./types";
 export * from "./types/SpreadsheetState";
+export * from "./UndoRedoManager";
 export * from "./utils/cellAddress";
 
 export class GridCore {
