@@ -276,6 +276,14 @@ export class CellEditor {
           this.commitEdit();
           break;
       }
+    } else if (modeAfter === "visual") {
+      switch (event.key) {
+        case KEY_CODES.ESCAPE:
+          // Handle escape through SpreadsheetModeStateMachine
+          event.preventDefault();
+          this.modeStateMachine?.transition({ type: "ESCAPE" });
+          break;
+      }
     }
   }
 
@@ -337,7 +345,15 @@ export class CellEditor {
 
     switch (mode) {
       case "normal":
-        this.modeStateMachine.transition({ type: "EXIT_INSERT_MODE" });
+        // Check current mode to determine which exit transition to use
+        const currentState = this.modeStateMachine.getState();
+        if (currentState.type === "editing") {
+          if (currentState.substate.type === "insert") {
+            this.modeStateMachine.transition({ type: "EXIT_INSERT_MODE" });
+          } else if (currentState.substate.type === "visual") {
+            this.modeStateMachine.transition({ type: "EXIT_VISUAL_MODE" });
+          }
+        }
         break;
       case "insert":
         this.modeStateMachine.transition({
