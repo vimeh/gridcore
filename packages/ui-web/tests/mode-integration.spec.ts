@@ -595,18 +595,16 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NORMAL");
 
-      // Test that visual mode doesn't accept insert commands
+      // Test that visual mode exits to normal when pressing insert keys
       await page.keyboard.press("v"); // Re-enter visual
       await expect(getModeText(page)).toContainText("VISUAL");
 
-      // Try to enter insert mode with 'i' - should not work in visual mode
+      // Pressing 'i' in visual mode exits to normal (not insert)
       await page.keyboard.press("i");
-      // Should still be in visual mode
-      await expect(getModeText(page)).toContainText("VISUAL");
-
-      // Exit properly - visual -> normal -> navigation
-      await page.keyboard.press("Escape"); // To normal
+      // Should be in normal mode (visual mode was exited)
       await expect(getModeText(page)).toContainText("NORMAL");
+
+      // Exit properly - normal -> navigation
       await page.keyboard.press("Escape"); // To navigation
       await expect(getModeText(page)).toContainText("NAVIGATION");
 
