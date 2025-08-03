@@ -152,6 +152,11 @@ export class KeyboardHandler {
       // Set viewport on selection manager
       this.selectionManager.setViewport(this.canvasGrid.getViewport());
 
+      // Register selection change callback to trigger render
+      this.selectionManager.onSelectionChange = () => {
+        this.canvasGrid?.render();
+      };
+
       this.gridVimBehavior = new GridVimBehavior(
         callbacks,
         () => {

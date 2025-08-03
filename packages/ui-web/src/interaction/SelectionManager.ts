@@ -123,6 +123,9 @@ export class SelectionManager {
   // Callback for when active cell changes
   public onActiveCellChange?: (cell: CellAddress) => void;
 
+  // Callback for when selection changes
+  public onSelectionChange?: () => void;
+
   // Visual mode methods
   setViewport(viewport: Viewport): void {
     this.viewport = viewport;
@@ -191,11 +194,15 @@ export class SelectionManager {
     }
 
     this.state.activeCell = cursor;
+
+    // Notify listeners of selection change
+    this.onSelectionChange?.();
   }
 
   endVisualSelection(): void {
     this.visualAnchor = null;
     this.visualMode = null;
+    this.onSelectionChange?.();
   }
 
   getVisualMode(): "character" | "line" | "block" | null {
