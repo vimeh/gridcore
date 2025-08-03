@@ -329,8 +329,8 @@ describe("SpreadsheetStateMachine", () => {
 
       stateMachine.transition({ type: "START_EDITING" });
       expect(notificationCount).toBe(1);
-      expect(lastState).toBeTruthy();
-      expect(lastState!.type).toBe("editing");
+      expect(lastState).not.toBeNull();
+      expect((lastState as unknown as SpreadsheetState).type).toBe("editing");
 
       stateMachine.transition({ type: "ENTER_INSERT_MODE" });
       expect(notificationCount).toBe(2);

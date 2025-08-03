@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Viewport } from "../components/Viewport";
-import { mockCanvasContext, setupTestEnvironment } from "../test-utils/setup";
+import { setupTestEnvironment } from "../test-utils/setup";
 import { defaultTheme } from "./GridTheme";
 import { HeaderRenderer } from "./HeaderRenderer";
 
@@ -10,14 +10,14 @@ describe("HeaderRenderer Resize Handle Detection", () => {
   let rowHeaderCanvas: HTMLCanvasElement;
   let colHeaderCanvas: HTMLCanvasElement;
   let cornerCanvas: HTMLCanvasElement;
-  let window: any;
-  let document: any;
+  let _window: Window & typeof globalThis;
+  let document: Document;
 
   beforeEach(() => {
     // Setup DOM environment
     const env = setupTestEnvironment();
-    window = env.window;
-    document = env.document;
+    _window = env.window as unknown as Window & typeof globalThis;
+    document = env.document as unknown as Document;
 
     // Create mock canvases
     rowHeaderCanvas = document.createElement("canvas");
@@ -50,9 +50,12 @@ describe("HeaderRenderer Resize Handle Detection", () => {
       }),
     };
 
-    rowHeaderCanvas.getContext = (() => mockContext) as any;
-    colHeaderCanvas.getContext = (() => mockContext) as any;
-    cornerCanvas.getContext = (() => mockContext) as any;
+    rowHeaderCanvas.getContext = (() =>
+      mockContext) as unknown as HTMLCanvasElement["getContext"];
+    colHeaderCanvas.getContext = (() =>
+      mockContext) as unknown as HTMLCanvasElement["getContext"];
+    cornerCanvas.getContext = (() =>
+      mockContext) as unknown as HTMLCanvasElement["getContext"];
 
     // Set canvas dimensions
     rowHeaderCanvas.width = defaultTheme.rowHeaderWidth;

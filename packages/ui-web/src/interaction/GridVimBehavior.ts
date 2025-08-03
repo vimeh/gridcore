@@ -28,6 +28,7 @@ export class GridVimBehavior {
   private numberBuffer: string = ""; // For count prefixes
   private lastCommand: string = ""; // For command sequences like 'gg', 'zz'
   private commandTimeout: ReturnType<typeof setTimeout> | null = null;
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: visualAnchor is reset in reset() method and will be used for visual mode selection anchoring
   private visualAnchor: CellAddress | null = null;
 
   constructor(

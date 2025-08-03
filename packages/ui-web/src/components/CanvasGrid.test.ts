@@ -1,18 +1,18 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { SpreadsheetEngine } from "@gridcore/core";
-import { mockCanvasContext, setupTestEnvironment } from "../test-utils/setup";
+import { setupTestEnvironment } from "../test-utils/setup";
 import { CanvasGrid } from "./CanvasGrid";
 
 describe("CanvasGrid Initial Load", () => {
   let container: HTMLElement;
-  let window: any;
-  let document: any;
+  let window: Window & typeof globalThis;
+  let document: Document;
 
   beforeEach(() => {
     // Setup DOM environment
     const env = setupTestEnvironment();
-    window = env.window;
-    document = env.document;
+    window = env.window as unknown as Window & typeof globalThis;
+    document = env.document as unknown as Document;
 
     // Mock canvas context
     const mockContext = {
@@ -42,10 +42,10 @@ describe("CanvasGrid Initial Load", () => {
 
     // Mock canvas
     const canvasElement = document.createElement("canvas");
-    const originalGetContext = canvasElement.getContext;
-    if (canvasElement.constructor && canvasElement.constructor.prototype) {
+    const _originalGetContext = canvasElement.getContext;
+    if (canvasElement.constructor?.prototype) {
       canvasElement.constructor.prototype.getContext = (() =>
-        mockContext) as any;
+        mockContext) as unknown as HTMLCanvasElement["getContext"];
     }
 
     // Create container
@@ -173,14 +173,14 @@ describe("CanvasGrid Scrolling", () => {
   let container: HTMLElement;
   let grid: SpreadsheetEngine;
   let canvasGrid: CanvasGrid;
-  let window: Window;
+  let window: Window & typeof globalThis;
   let document: Document;
 
   beforeEach(() => {
     // Setup DOM environment
     const env = setupTestEnvironment();
-    window = env.window;
-    document = env.document;
+    window = env.window as unknown as Window & typeof globalThis;
+    document = env.document as unknown as Document;
 
     // Mock canvas context
     const mockContext = {
@@ -210,10 +210,10 @@ describe("CanvasGrid Scrolling", () => {
 
     // Mock canvas
     const canvasElement = document.createElement("canvas");
-    const originalGetContext = canvasElement.getContext;
-    if (canvasElement.constructor && canvasElement.constructor.prototype) {
+    const _originalGetContext = canvasElement.getContext;
+    if (canvasElement.constructor?.prototype) {
       canvasElement.constructor.prototype.getContext = (() =>
-        mockContext) as any;
+        mockContext) as unknown as HTMLCanvasElement["getContext"];
     }
 
     // Create container
