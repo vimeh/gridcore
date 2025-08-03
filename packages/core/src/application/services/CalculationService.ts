@@ -13,10 +13,11 @@ export interface ICalculationService {
   calculateRange(addresses: CellAddress[]): Result<Map<string, Cell>>
   recalculateDependents(address: CellAddress): Result<Map<string, Cell>>
   invalidateCache(address: CellAddress): void
+  clearCache(): void
 }
 
 export interface CalculationContext extends EvaluationContext {
-  getCellValue(address: CellAddress): Result<CellValue>
+  // getCellValue is inherited from EvaluationContext
   getFunction(name: string): Result<(args: CellValue[]) => Result<CellValue>>
 }
 
@@ -70,14 +71,35 @@ export class CalculationService implements ICalculationService {
     try {
       // Create evaluation context
       const context: CalculationContext = {
-        getCellValue: (addr: CellAddress) => {
+        getCellValue: (addr: CellAddress): CellValue => {
           // Recursively calculate dependencies
           const depResult = this.calculateCell(addr)
           if (!depResult.ok) {
-            return err(depResult.error)
+            // If it's a circular dependency, throw to propagate the error
+            if (depResult.error.includes("Circular dependency")) {
+              throw new Error(depResult.error)
+            }
+            // Return null for other errors during dependency calculation
+            return null
           }
-          return ok(depResult.value.computedValue ?? null)
+          return depResult.value.computedValue ?? null
         },
+        getRangeValues: (range): CellValue[] => {
+          const values: CellValue[] = []
+          for (const addr of range) {
+            const depResult = this.calculateCell(addr)
+            if (depResult.ok) {
+              values.push(depResult.value.computedValue ?? null)
+            } else {
+              values.push(null)
+            }
+          }
+          return values
+        },
+        getCell: (addr: CellAddress): Cell | undefined => {
+          return this.cellRepository.get(addr)
+        },
+        formulaAddress: address,
         getFunction: (name: string) => {
           // For now, we don't support custom functions
           return err(`Unknown function: ${name}`)
@@ -91,6 +113,7 @@ export class CalculationService implements ICalculationService {
       if (!evalResult.ok) {
         // Check if it's a circular dependency error
         if (evalResult.error.includes("Circular dependency")) {
+          this.calculatingCells.delete(key)
           return err(evalResult.error)
         }
         

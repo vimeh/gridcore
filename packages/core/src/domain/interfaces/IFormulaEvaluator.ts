@@ -5,6 +5,8 @@ import type { CellRange } from "../models/CellRange";
 import type { CellValue } from "../models/CellValue";
 import type { FormulaAST } from "./IFormulaParser";
 
+export type { FormulaAST };
+
 export interface EvaluationContext {
   getCellValue(address: CellAddress): CellValue;
   getRangeValues(range: CellRange): CellValue[];

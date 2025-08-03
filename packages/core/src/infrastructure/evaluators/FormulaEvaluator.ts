@@ -2,6 +2,7 @@ import type {
   IFormulaEvaluator,
   FormulaAST,
   EvaluationContext,
+  FormulaFunction,
 } from "../../domain/interfaces/IFormulaEvaluator"
 import { Result, ok, err } from "../../shared/types/Result"
 import { CellValue, isNumericValue, isStringValue } from "../../domain/models/CellValue"
@@ -38,31 +39,22 @@ export class FormulaEvaluator implements IFormulaEvaluator {
   private evaluateNode(node: FormulaAST, context: EvaluationContext): Result<CellValue> {
     switch (node.type) {
       case "literal":
-        return ok(node.value)
+        return ok(node.value as CellValue)
 
       case "cellRef":
         if (!node.address) {
           return err("Cell reference missing address")
         }
         const cellValue = context.getCellValue(node.address)
-        if (!cellValue.ok) {
-          return err(cellValue.error)
-        }
-        return ok(cellValue.value)
+        return ok(cellValue)
 
       case "rangeRef":
         if (!node.range) {
           return err("Range reference missing range")
         }
-        const values: CellValue[] = []
-        for (const address of node.range.cells()) {
-          const cellValue = context.getCellValue(address)
-          if (!cellValue.ok) {
-            return err(cellValue.error)
-          }
-          values.push(cellValue.value)
-        }
-        return ok(values)
+        const values = context.getRangeValues(node.range)
+        // Range values are handled specially by functions
+        return ok(values as any)
 
       case "function":
         if (!node.name || !node.arguments) {
@@ -74,13 +66,13 @@ export class FormulaEvaluator implements IFormulaEvaluator {
         if (!node.left || !node.right) {
           return err("Binary operation missing operands")
         }
-        return this.evaluateBinaryOp(node.operator, node.left, node.right, context)
+        return this.evaluateBinaryOp(node.operator || "", node.left, node.right, context)
 
       case "unaryOp":
         if (!node.operand) {
           return err("Unary operation missing operand")
         }
-        return this.evaluateUnaryOp(node.operator, node.operand, context)
+        return this.evaluateUnaryOp(node.operator || "", node.operand, context)
 
       default:
         return err(`Unknown AST node type: ${(node as any).type}`)
@@ -111,12 +103,7 @@ export class FormulaEvaluator implements IFormulaEvaluator {
     // Get function implementation
     const func = this.builtinFunctions.get(name.toUpperCase())
     if (!func) {
-      // Check if it's a custom function
-      const customFunc = context.getFunction(name)
-      if (!customFunc.ok) {
-        return err(`Unknown function: ${name}`)
-      }
-      return customFunc.value(evaluatedArgs)
+      return err(`Unknown function: ${name}`)
     }
 
     return func.call(this, evaluatedArgs)
@@ -333,5 +320,17 @@ export class FormulaEvaluator implements IFormulaEvaluator {
       return ok("")
     }
     return ok(String(value).toLowerCase())
+  }
+
+  registerFunction(func: FormulaFunction): void {
+    this.builtinFunctions.set(func.name.toUpperCase(), (args: CellValue[]) => func.evaluate(args, {} as EvaluationContext))
+  }
+
+  unregisterFunction(name: string): void {
+    this.builtinFunctions.delete(name.toUpperCase())
+  }
+
+  hasFunction(name: string): boolean {
+    return this.builtinFunctions.has(name.toUpperCase())
   }
 }

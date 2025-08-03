@@ -69,15 +69,23 @@ describe("cellAddressToString", () => {
 
 describe("parseCellRange", () => {
   test("parses valid ranges", () => {
-    expect(parseCellRange("A1:B2")).toEqual({
-      start: { row: 0, col: 0 },
-      end: { row: 1, col: 1 },
-    });
+    const range1 = parseCellRange("A1:B2");
+    expect(range1).not.toBeNull();
+    if (range1) {
+      expect(range1.start.row).toBe(0);
+      expect(range1.start.col).toBe(0);
+      expect(range1.end.row).toBe(1);
+      expect(range1.end.col).toBe(1);
+    }
 
-    expect(parseCellRange("B2:A1")).toEqual({
-      start: { row: 0, col: 0 },
-      end: { row: 1, col: 1 },
-    });
+    const range2 = parseCellRange("B2:A1");
+    expect(range2).not.toBeNull();
+    if (range2) {
+      expect(range2.start.row).toBe(0);
+      expect(range2.start.col).toBe(0);
+      expect(range2.end.row).toBe(1);
+      expect(range2.end.col).toBe(1);
+    }
   });
 
   test("returns null for invalid ranges", () => {

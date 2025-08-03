@@ -19,7 +19,7 @@ describe("FormulaService", () => {
 
     // Create mock context
     mockContext = {
-      getCellValue: (address: CellAddress) => {
+      getCellValue: (address: CellAddress): CellValue => {
         const key = address.toString()
         const values: Record<string, CellValue> = {
           "A1": 10,
@@ -28,8 +28,17 @@ describe("FormulaService", () => {
           "B1": 5,
           "B2": 15,
         }
-        return ok(values[key] ?? null)
+        return values[key] ?? null
       },
+      getRangeValues: (range): CellValue[] => {
+        const values: CellValue[] = []
+        for (const addr of range) {
+          values.push(mockContext.getCellValue(addr))
+        }
+        return values
+      },
+      getCell: () => undefined,
+      formulaAddress: CellAddress.create(0, 0).value,
       getFunction: () => err("No custom functions"),
     }
   })
@@ -122,15 +131,23 @@ describe("FormulaService", () => {
 
     test("evaluates string operations", () => {
       const stringContext: EvaluationContext = {
-        getCellValue: (address: CellAddress) => {
+        getCellValue: (address: CellAddress): CellValue => {
           const key = address.toString()
           const values: Record<string, CellValue> = {
             "A1": "Hello",
             "A2": "World",
           }
-          return ok(values[key] ?? null)
+          return values[key] ?? null
         },
-        getFunction: () => err("No custom functions"),
+        getRangeValues: (range): CellValue[] => {
+          const values: CellValue[] = []
+          for (const addr of range) {
+            values.push(stringContext.getCellValue(addr))
+          }
+          return values
+        },
+        getCell: () => undefined,
+        formulaAddress: CellAddress.create(2, 0).value,
       }
 
       const address = CellAddress.create(2, 0).value

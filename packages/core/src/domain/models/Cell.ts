@@ -16,7 +16,7 @@ export class Cell {
       return ok(new Cell(null, null));
     }
 
-    if (isStringValue(value) && value.startsWith("=") && address) {
+    if (typeof value === "string" && value.startsWith("=") && address) {
       const formulaResult = Formula.create(value, address);
       if (!formulaResult.ok) {
         return err(formulaResult.error);

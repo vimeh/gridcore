@@ -61,6 +61,10 @@ export class CellRange {
     }
   }
 
+  [Symbol.iterator](): Iterator<CellAddress> {
+    return this.cells();
+  }
+
   get rowCount(): number {
     return this.end.row - this.start.row + 1;
   }

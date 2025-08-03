@@ -1,4 +1,5 @@
-import type { CellAddress, CellRange } from "../types";
+import { CellAddress } from "../domain/models/CellAddress";
+import { CellRange } from "../domain/models/CellRange";
 
 export function columnLetterToNumber(letter: string): number {
   let result = 0;
@@ -30,7 +31,8 @@ export function parseCellAddress(reference: string): CellAddress | null {
   // Add reasonable limits
   if (row > 1048576 || col > 16384) return null; // Excel limits
 
-  return { row: row - 1, col: col - 1 };
+  const result = CellAddress.create(row - 1, col - 1);
+  return result.ok ? result.value : null;
 }
 
 export function cellAddressToString(address: CellAddress): string {
@@ -41,21 +43,24 @@ export function parseCellRange(rangeStr: string): CellRange | null {
   const parts = rangeStr.split(":");
   if (parts.length !== 2) return null;
 
-  const start = parseCellAddress(parts[0]);
-  const end = parseCellAddress(parts[1]);
+  const addr1 = parseCellAddress(parts[0]);
+  const addr2 = parseCellAddress(parts[1]);
 
-  if (!start || !end) return null;
+  if (!addr1 || !addr2) return null;
 
-  return {
-    start: {
-      row: Math.min(start.row, end.row),
-      col: Math.min(start.col, end.col),
-    },
-    end: {
-      row: Math.max(start.row, end.row),
-      col: Math.max(start.col, end.col),
-    },
-  };
+  // Normalize range so start is always before end
+  const startRow = Math.min(addr1.row, addr2.row);
+  const startCol = Math.min(addr1.col, addr2.col);
+  const endRow = Math.max(addr1.row, addr2.row);
+  const endCol = Math.max(addr1.col, addr2.col);
+
+  const startResult = CellAddress.create(startRow, startCol);
+  const endResult = CellAddress.create(endRow, endCol);
+  
+  if (!startResult.ok || !endResult.ok) return null;
+
+  const result = CellRange.create(startResult.value, endResult.value);
+  return result.ok ? result.value : null;
 }
 
 export function isValidCellAddress(reference: string): boolean {
@@ -67,7 +72,10 @@ export function getCellsInRange(range: CellRange): CellAddress[] {
 
   for (let row = range.start.row; row <= range.end.row; row++) {
     for (let col = range.start.col; col <= range.end.col; col++) {
-      cells.push({ row, col });
+      const cellResult = CellAddress.create(row, col);
+      if (cellResult.ok) {
+        cells.push(cellResult.value);
+      }
     }
   }
 
