@@ -12,7 +12,7 @@ export abstract class Renderable {
 
   constructor(protected name: string) {}
 
-  abstract renderSelf(buffer: OptimizedBuffer): void
+  protected abstract renderSelf(buffer: OptimizedBuffer): void
 
   render(buffer: OptimizedBuffer): void {
     if (!this.visible) return

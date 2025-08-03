@@ -13,7 +13,10 @@ export class Terminal {
   enterRawMode(): void {
     if (this.isRawMode) return
     
-    this.stdin.setRawMode(true)
+    // Check if setRawMode is available (not available in some environments)
+    if (typeof this.stdin.setRawMode === 'function') {
+      this.stdin.setRawMode(true)
+    }
     this.stdin.resume()
     this.stdin.setEncoding('utf8')
     this.isRawMode = true
@@ -22,7 +25,10 @@ export class Terminal {
   exitRawMode(): void {
     if (!this.isRawMode) return
     
-    this.stdin.setRawMode(false)
+    // Check if setRawMode is available
+    if (typeof this.stdin.setRawMode === 'function') {
+      this.stdin.setRawMode(false)
+    }
     this.stdin.pause()
     this.isRawMode = false
   }

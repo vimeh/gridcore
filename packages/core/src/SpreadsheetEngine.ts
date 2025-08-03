@@ -74,6 +74,20 @@ export class SpreadsheetEngine {
     return this.grid.getCellByReference(reference);
   }
 
+  getCellValue(address: CellAddress): CellValueType {
+    const cell = this.getCell(address);
+    return cell?.computedValue ?? cell?.rawValue ?? null;
+  }
+
+  getCellFormula(address: CellAddress): string | undefined {
+    const cell = this.getCell(address);
+    return cell?.formula;
+  }
+
+  setCellValue(address: CellAddress, value: CellValueType, formula?: string): void {
+    this.setCell(address, value, formula);
+  }
+
   setCell(address: CellAddress, value: CellValueType, formula?: string): void {
     const oldCell = this.grid.getCell(address);
 
