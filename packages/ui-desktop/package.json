@@ -4,12 +4,16 @@
   "type": "module",
   "main": "./dist/main.js",
   "scripts": {
-    "dev": "bun run src/main.ts",
-    "build": "bun build ./src/main.ts --outdir ./dist --target node",
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gridcore/core": "workspace:*"
+    "@gridcore/core": "workspace:*",
+    "@tauri-apps/api": "^2.7.0",
+    "@tauri-apps/cli": "^2.7.1",
+    "@tauri-apps/plugin-dialog": "^2.3.2"
   },
   "devDependencies": {
     "@types/bun": "latest",
