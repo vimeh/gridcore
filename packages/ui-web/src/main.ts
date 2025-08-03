@@ -71,15 +71,16 @@ sampleData.forEach((row, i) => {
 });
 
 // Create a pivot table
-engine.addPivotTable("demo-pivot", {
-  sourceRange: "A5:E12",
-  rowFields: ["Category"],
-  columnFields: ["Month"],
-  valueFields: [{ fieldName: "Sales", aggregator: "SUM" }],
-  showRowTotals: true,
-  showColumnTotals: true,
-  showGrandTotals: true
-}, { row: 14, col: 0 });
+// TODO: Fix pivot table - requires sourceColumn in valueFields
+// engine.addPivotTable("demo-pivot", {
+//   sourceRange: "A5:E12",
+//   rowFields: ["Category"],
+//   columnFields: ["Month"],
+//   valueFields: [{ fieldName: "Sales", aggregator: "SUM" }],
+//   showRowTotals: true,
+//   showColumnTotals: true,
+//   showGrandTotals: true
+// }, { row: 14, col: 0 });
 
 // Create Formula Bar
 const formulaBar = new FormulaBar(formulaBarContainer, {
