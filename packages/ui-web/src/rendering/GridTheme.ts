@@ -17,6 +17,8 @@ export interface GridTheme {
   activeCellBackgroundColor: string;
   activeCellBorderColor: string;
   selectedRangeBackgroundColor: string;
+  selectionBorderColor: string;
+  visualModeBorderWidth: number;
   headerBackgroundColor: string;
   headerTextColor: string;
   cellTextColor: string;
@@ -52,6 +54,8 @@ export const defaultTheme: GridTheme = {
   activeCellBackgroundColor: "#ffffff",
   activeCellBorderColor: "#1976d2",
   selectedRangeBackgroundColor: "rgba(66, 165, 245, 0.1)",
+  selectionBorderColor: "#2196f3",
+  visualModeBorderWidth: 2,
   headerBackgroundColor: "#f5f5f5",
   headerTextColor: "#666666",
   cellTextColor: "#000000",

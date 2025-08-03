@@ -11,6 +11,7 @@ import { CanvasRenderer } from "../rendering/CanvasRenderer";
 import { DebugRenderer } from "../rendering/DebugRenderer";
 import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
 import { HeaderRenderer } from "../rendering/HeaderRenderer";
+import { SelectionRenderer } from "../rendering/SelectionRenderer";
 import type {
   InteractionMode,
   SpreadsheetStateMachine,
@@ -38,6 +39,7 @@ export class CanvasGrid {
   private viewport: Viewport;
   private renderer: CanvasRenderer;
   private headerRenderer!: HeaderRenderer;
+  private selectionRenderer: SelectionRenderer;
   private selectionManager: SelectionManager;
   private mouseHandler: MouseHandler;
   private cellEditor: CellEditor;
@@ -68,6 +70,7 @@ export class CanvasGrid {
       options.totalCols,
     );
     this.renderer = new CanvasRenderer(this.canvas, this.theme, this.viewport);
+    this.selectionRenderer = new SelectionRenderer(this.canvas, this.theme, this.viewport);
     this.debugRenderer = new DebugRenderer(this.canvas);
     this.headerRenderer = new HeaderRenderer(
       this.rowHeaderCanvas,
@@ -517,10 +520,16 @@ export class CanvasGrid {
       const isNavigationMode = this.modeStateMachine?.isNavigating() ?? true;
       const cellsRendered = this.renderer.renderGrid(
         (address) => this.grid.getCell(address),
-        this.selectionManager.getSelectedCells(),
         this.selectionManager.getActiveCell(),
         this.cellEditor.isCurrentlyEditing(),
         isNavigationMode,
+      );
+
+      // Render selection after grid
+      this.selectionRenderer.renderSelection(
+        this.selectionManager.getSelectedCells(),
+        this.selectionManager.getSelectionRange(),
+        this.selectionManager.getVisualMode(),
       );
 
       // End debug frame tracking

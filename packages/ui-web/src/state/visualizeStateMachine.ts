@@ -11,6 +11,22 @@ export function generateStateDiagram(): string {
   lines.push("    Navigation --> Editing: START_EDITING");
   lines.push("    Editing --> Navigation: STOP_EDITING/ESCAPE");
   lines.push("");
+  lines.push("    state Navigation {");
+  lines.push("        [*] --> Normal");
+  lines.push("        Normal --> VisualSelect: v/V/Ctrl+V");
+  lines.push("        VisualSelect --> Normal: ESCAPE");
+  lines.push("");
+  lines.push("        state VisualSelect {");
+  lines.push("            [*] --> Character");
+  lines.push("            Character --> Line: V");
+  lines.push("            Character --> Block: Ctrl+V");
+  lines.push("            Line --> Character: v");
+  lines.push("            Line --> Block: Ctrl+V");
+  lines.push("            Block --> Character: v");
+  lines.push("            Block --> Line: V");
+  lines.push("        }");
+  lines.push("    }");
+  lines.push("");
   lines.push("    state Editing {");
   lines.push("        [*] --> Normal");
   lines.push("        Normal --> Insert: ENTER_INSERT_MODE");
@@ -42,7 +58,19 @@ export function generateStateDiagram(): string {
  */
 export function generateStateTable(): string {
   const states = {
-    Navigation: ["START_EDITING → Editing:Normal"],
+    Navigation: [
+      "START_EDITING → Editing:Normal",
+      "v → Navigation:VisualSelect:Character",
+      "V → Navigation:VisualSelect:Line",
+      "Ctrl+V → Navigation:VisualSelect:Block",
+    ],
+    "Navigation:VisualSelect": [
+      "ESCAPE → Navigation:Normal",
+      "v → (switch to character mode)",
+      "V → (switch to line mode)",
+      "Ctrl+V → (switch to block mode)",
+      "y/d/c → (operate on selection)",
+    ],
     "Editing:Normal": [
       "ENTER_INSERT_MODE → Editing:Insert",
       "ENTER_VISUAL_MODE → Editing:Visual",
@@ -70,6 +98,8 @@ export function generateStateTable(): string {
 
   output +=
     "Note: TOGGLE_INTERACTION_MODE and SET_INTERACTION_MODE work in all states\n";
+  output +=
+    "      Visual selection in Navigation mode allows selecting cells without entering edit mode\n";
 
   return output;
 }

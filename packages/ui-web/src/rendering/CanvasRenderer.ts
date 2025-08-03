@@ -52,7 +52,6 @@ export class CanvasRenderer {
 
   renderGrid(
     getCellValue: (address: CellAddress) => Cell | undefined,
-    selectedCells?: Set<string>,
     activeCell?: CellAddress | null,
     isEditing?: boolean,
     isNavigationMode?: boolean,
@@ -70,8 +69,6 @@ export class CanvasRenderer {
         const position = this.viewport.getCellPosition(address);
         const cell = getCellValue(address);
 
-        const cellKey = cellAddressToString(address);
-        const isSelected = selectedCells?.has(cellKey) || false;
         const isActive = !!(
           activeCell &&
           activeCell.row === address.row &&
@@ -83,7 +80,6 @@ export class CanvasRenderer {
           position,
           cell,
           address,
-          isSelected,
           isActive,
           isBeingEdited,
         );
@@ -109,7 +105,6 @@ export class CanvasRenderer {
     position: { x: number; y: number; width: number; height: number },
     cell: Cell | undefined,
     _address: CellAddress,
-    isSelected: boolean = false,
     _isActive: boolean = false,
     isBeingEdited: boolean = false,
   ): void {
@@ -123,14 +118,6 @@ export class CanvasRenderer {
       y > this.canvas.height / this.devicePixelRatio
     ) {
       return;
-    }
-
-    // Render selection background first (if selected)
-    if (isSelected) {
-      this.ctx.fillStyle = this.theme.selectedCellBackgroundColor;
-      this.ctx.globalAlpha = 0.3;
-      this.ctx.fillRect(x, y, width, height);
-      this.ctx.globalAlpha = 1;
     }
 
     // Fill background if needed
