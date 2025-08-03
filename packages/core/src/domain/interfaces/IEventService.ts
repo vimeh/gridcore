@@ -37,12 +37,19 @@ export interface BatchUpdateCompletedEvent extends DomainEvent {
   affectedCells: CellAddress[];
 }
 
+export interface CellCalculatedEvent extends DomainEvent {
+  type: "CellCalculated";
+  address: CellAddress;
+  cell: Cell;
+}
+
 export type SpreadsheetEvent =
   | CellValueChangedEvent
   | CellsDeletedEvent
   | FormulaEvaluatedEvent
   | BatchUpdateStartedEvent
-  | BatchUpdateCompletedEvent;
+  | BatchUpdateCompletedEvent
+  | CellCalculatedEvent;
 
 export type EventHandler<T extends DomainEvent> = (
   event: T,
