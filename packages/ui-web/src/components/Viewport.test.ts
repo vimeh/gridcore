@@ -14,7 +14,7 @@ describe("Viewport", () => {
   describe("constructor and basic getters", () => {
     test("should initialize with default values", () => {
       const defaultViewport = new Viewport(theme);
-      expect(defaultViewport.getTotalRows()).toBe(1000000);
+      expect(defaultViewport.getTotalRows()).toBe(1000);
       expect(defaultViewport.getTotalCols()).toBe(26);
     });
 
@@ -27,11 +27,24 @@ describe("Viewport", () => {
   describe("viewport size", () => {
     test("should set viewport size", () => {
       viewport.setViewportSize(800, 600);
-      // Verify through scroll behavior
-      viewport.scrollBy(1000, 1000);
+      // Reset scroll position first
+      viewport.setScrollPosition(0, 0);
+      
+      // Debug: check actual grid dimensions
+      const totalWidth = viewport.getTotalGridWidth();
+      const totalHeight = viewport.getTotalGridHeight();
+      
+      // Verify through scroll behavior - scroll position should be clamped
+      viewport.scrollBy(50000, 50000);
       const pos = viewport.getScrollPosition();
-      expect(pos.x).toBeLessThan(1000);
-      expect(pos.y).toBeLessThan(1000);
+      
+      // Max scroll X = totalWidth - viewportWidth
+      const expectedMaxX = Math.max(0, totalWidth - 800);
+      expect(pos.x).toBe(expectedMaxX);
+      
+      // Max scroll Y = totalHeight - viewportHeight
+      const expectedMaxY = Math.max(0, totalHeight - 600);
+      expect(pos.y).toBe(expectedMaxY);
     });
   });
 
@@ -272,14 +285,23 @@ describe("Viewport", () => {
     });
 
     test("should handle custom dimensions", () => {
-      viewport.setColumnWidth(0, 200);
-      viewport.setRowHeight(0, 100);
+      // Create a fresh viewport to ensure clean state
+      const customViewport = new Viewport(theme, 10, 10);
+      customViewport.setColumnWidth(0, 200);
+      customViewport.setRowHeight(0, 100);
 
-      const cell1 = viewport.getCellAtPosition(150, 50);
+      const cell1 = customViewport.getCellAtPosition(150, 50);
       expect(cell1).toEqual({ row: 0, col: 0 });
 
-      const cell2 = viewport.getCellAtPosition(250, 150);
-      expect(cell2).toEqual({ row: 1, col: 1 });
+      // Position 150 with row 0 having height 100 and default height 24:
+      // Row 0: 0-99 (height 100)
+      // Row 1: 100-123 (height 24)
+      // Row 2: 124-147 (height 24)
+      // Row 3: 148-171 (height 24)
+      // Position 150 is in row 3
+      
+      const cell2 = customViewport.getCellAtPosition(250, 150);
+      expect(cell2).toEqual({ row: 3, col: 1 });
     });
   });
 

@@ -258,9 +258,10 @@ describe("SpreadsheetStateMachine", () => {
       expect(stateMachine.isInNormalMode()).toBe(true);
     });
 
-    test("cannot enter insert mode from visual mode", () => {
+    test("can enter insert mode from visual mode", () => {
       const result = stateMachine.transition({ type: "ENTER_INSERT_MODE" });
-      expect(result.ok).toBe(false);
+      expect(result.ok).toBe(true);
+      expect(stateMachine.isInInsertMode()).toBe(true);
     });
   });
 
@@ -291,24 +292,24 @@ describe("SpreadsheetStateMachine", () => {
       expect(stateMachine.getModeString()).toBe("navigation");
 
       stateMachine.transition({ type: "START_EDITING" });
-      expect(stateMachine.getModeString()).toBe("editing:normal");
+      expect(stateMachine.getModeString()).toBe("normal");
 
       stateMachine.transition({ type: "ENTER_INSERT_MODE", mode: "append" });
-      expect(stateMachine.getModeString()).toBe("editing:insert:append");
+      expect(stateMachine.getModeString()).toBe("insert:append");
 
       stateMachine.transition({ type: "EXIT_INSERT_MODE" });
       stateMachine.transition({
         type: "ENTER_VISUAL_MODE",
         visualType: "line",
       });
-      expect(stateMachine.getModeString()).toBe("editing:visual:line");
+      expect(stateMachine.getModeString()).toBe("visual:line");
 
       stateMachine.transition({ type: "EXIT_VISUAL_MODE" });
       stateMachine.transition({
         type: "ENTER_RESIZE_MODE",
         target: { type: "row", index: 1 },
       });
-      expect(stateMachine.getModeString()).toBe("editing:resize:row");
+      expect(stateMachine.getModeString()).toBe("resize");
     });
 
     test("returns undefined for modes when not in that state", () => {

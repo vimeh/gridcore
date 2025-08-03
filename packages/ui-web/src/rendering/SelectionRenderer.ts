@@ -217,6 +217,9 @@ export class SelectionRenderer {
     width: number;
     height: number;
   }): boolean {
+    if (!this.ctx || !this.ctx.canvas) {
+      return false;
+    }
     const canvasWidth = this.ctx.canvas.width / this.devicePixelRatio;
     const canvasHeight = this.ctx.canvas.height / this.devicePixelRatio;
 
