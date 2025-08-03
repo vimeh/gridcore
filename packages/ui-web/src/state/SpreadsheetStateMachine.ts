@@ -292,26 +292,6 @@ export const transitions: Record<string, TransitionHandler> = {
     return { ok: true, value: { ...state, substate: { type: "normal" } } };
   },
 
-  "editing.visual.ENTER_INSERT_MODE": (
-    state: SpreadsheetState,
-    action: Action,
-  ) => {
-    if (state.type !== "editing")
-      return { ok: false, error: "Invalid state type" };
-    if (action.type !== "ENTER_INSERT_MODE")
-      return { ok: false, error: "Invalid action" };
-    if (state.substate.type !== "visual")
-      return { ok: false, error: "Not in visual mode" };
-
-    return {
-      ok: true,
-      value: {
-        ...state,
-        substate: { type: "insert", mode: action.mode || "insert" },
-      },
-    };
-  },
-
   // Resize mode transitions
   "editing.resize.EXIT_RESIZE_MODE": (state: SpreadsheetState) => {
     if (state.type !== "editing")
