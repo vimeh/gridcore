@@ -549,9 +549,6 @@ export class KeyboardHandler {
       editMode = "replace"; // When typing to start, replace content
     }
 
-    // Start editing with the appropriate edit mode
-    this.modeStateMachine?.transition({ type: "START_EDITING", editMode });
-
     const cellData = this.grid.getCell(activeCell);
     let initialValue = "";
 
@@ -563,6 +560,7 @@ export class KeyboardHandler {
       initialValue = cellData?.formula || String(cellData?.rawValue || "");
     }
 
+    // CellEditor.startEditing will handle the state machine transition
     this.cellEditor.startEditing(activeCell, initialValue, editMode);
   }
 

@@ -131,6 +131,16 @@ export const transitions: Record<string, TransitionHandler> = {
     };
   },
 
+  "editing.normal.ESCAPE": (state: EditingState) => {
+    if (state.substate.type !== "normal")
+      return { ok: false, error: "Not in normal mode" };
+    // Escape in normal mode exits to navigation
+    return {
+      ok: true,
+      value: { type: "navigation", interactionMode: state.interactionMode },
+    };
+  },
+
   "editing.normal.ENTER_VISUAL_MODE": (state: EditingState, action: Action) => {
     if (action.type !== "ENTER_VISUAL_MODE")
       return { ok: false, error: "Invalid action" };

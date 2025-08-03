@@ -71,8 +71,8 @@ test.describe("Mode Integration", () => {
       // Press 'a' to start editing in append mode
       await page.keyboard.press("a");
 
-      // Should be in insert mode (append variant)
-      await expect(getModeText(page)).toContainText("APPEND");
+      // Should be in insert mode (append variant shows as INSERT)
+      await expect(getModeText(page)).toContainText("INSERT");
       await expect(page.locator(".cell-editor")).toBeVisible();
 
       // Type additional text
@@ -91,8 +91,8 @@ test.describe("Mode Integration", () => {
     }) => {
       await page.keyboard.press("Enter");
 
-      // Should be in insert mode (Enter uses replace mode)
-      await expect(getModeText(page)).toContainText("REPLACE");
+      // Should be in insert mode (Enter uses replace mode but shows as INSERT)
+      await expect(getModeText(page)).toContainText("INSERT");
       await expect(page.locator(".cell-editor")).toBeVisible();
     });
 
@@ -223,7 +223,7 @@ test.describe("Mode Integration", () => {
 
       // Enter append mode
       await page.keyboard.press("a");
-      await expect(getModeText(page)).toContainText("APPEND");
+      await expect(getModeText(page)).toContainText("INSERT");
 
       // Type text (should append at end)
       await page.keyboard.type("!");
@@ -247,7 +247,7 @@ test.describe("Mode Integration", () => {
       await expect(getModeText(page)).toContainText("NORMAL");
 
       await page.keyboard.press("a"); // Switch to append behavior
-      await expect(getModeText(page)).toContainText("APPEND");
+      await expect(getModeText(page)).toContainText("INSERT");
       await page.keyboard.type(" append");
 
       // Exit and verify

@@ -109,9 +109,11 @@ export class ModeIndicator {
           colorKey = "normal";
           break;
         case "insert":
-          primaryMode = state.substate.mode.toUpperCase();
+          primaryMode = "INSERT"; // Always show "INSERT" regardless of submode
           colorKey = "insert";
-          details.push(`Mode: ${state.substate.mode}`);
+          if (state.substate.mode !== "insert") {
+            details.push(`Mode: ${state.substate.mode}`);
+          }
           break;
         case "visual":
           if (state.substate.mode === "character") {

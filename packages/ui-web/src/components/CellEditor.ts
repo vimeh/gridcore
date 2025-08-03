@@ -139,6 +139,7 @@ export class CellEditor {
     this.isEditing = true;
 
     // Start editing mode in SpreadsheetModeStateMachine with the specified edit mode
+    // This will go directly to insert mode if editMode is provided
     this.modeStateMachine?.transition({
       type: "START_EDITING",
       editMode: mode as InsertMode,
@@ -167,29 +168,17 @@ export class CellEditor {
 
     // Set text in vim behavior
     this.vimBehavior.setText(initialValue);
-    // Start in appropriate mode
+    // Handle mode-specific initialization
     if (mode === "replace") {
-      // For replace mode, clear text and start in insert mode
+      // For replace mode, clear text and set cursor at start
       this.editorDiv.textContent = "";
       this.vimBehavior.setText("", 0);
-      this.modeStateMachine?.transition({
-        type: "ENTER_INSERT_MODE",
-        mode: "replace",
-      });
     } else if (mode === "append") {
       // Set text first, then append mode will move cursor to end
       this.vimBehavior.setText(initialValue, initialValue.length);
-      this.modeStateMachine?.transition({
-        type: "ENTER_INSERT_MODE",
-        mode: "append",
-      });
     } else {
       // For insert mode, enter insert mode at current position
       this.vimBehavior.setText(initialValue, initialValue.length);
-      this.modeStateMachine?.transition({
-        type: "ENTER_INSERT_MODE",
-        mode: "insert",
-      });
     }
     // Focus and set cursor
     this.editorDiv.focus();
@@ -384,8 +373,22 @@ export class CellEditor {
       currentMode = newState.substate.type;
     }
 
-    // Update mode indicator
-    this.modeIndicator.textContent = currentMode.toUpperCase();
+    // Update mode indicator with proper text format
+    let modeText = currentMode.toUpperCase();
+    if (currentMode === "insert") {
+      // Check if in replace mode
+      const state = this.modeStateMachine?.getState();
+      if (state?.type === "editing" && state.substate.type === "insert" && state.substate.mode === "replace") {
+        modeText = "INSERT - ESC to normal mode"; // Show INSERT for replace mode too
+      } else {
+        modeText = "INSERT - ESC to normal mode";
+      }
+    } else if (currentMode === "visual") {
+      modeText = "VISUAL";
+    } else if (currentMode === "normal") {
+      modeText = "NORMAL";
+    }
+    this.modeIndicator.textContent = modeText;
     // Set ignore blur flag when changing contentEditable
     this.ignoreNextBlur = true;
 
@@ -417,7 +420,11 @@ export class CellEditor {
 
     // Handle navigation state (exit editing)
     if (newState.type === "navigation") {
-      // Editing was stopped externally, hide the editor
+      // Editing was stopped externally, save content and hide the editor
+      if (this.currentCell && this.isEditing) {
+        const value = this.editorDiv.textContent || "";
+        this.callbacks.onCommit(this.currentCell, value);
+      }
       this.hideEditor();
       return;
     }
