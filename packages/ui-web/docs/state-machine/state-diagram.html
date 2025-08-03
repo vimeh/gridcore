@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spreadsheet State Machine Diagram</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      color: #333;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .stat-card {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      border-left: 4px solid #007bff;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #007bff;
+    }
+    .stat-label {
+      color: #666;
+      font-size: 14px;
+    }
+    #diagram {
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+      background: #fafafa;
+      padding: 20px;
+      border-radius: 4px;
+    }
+    .actions-list {
+      columns: 2;
+      column-gap: 20px;
+    }
+    .actions-list li {
+      break-inside: avoid;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Spreadsheet State Machine</h1>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value">19</div>
+        <div class="stat-label">Total Transitions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">6</div>
+        <div class="stat-label">Unique States</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">13</div>
+        <div class="stat-label">Unique Actions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">3.17</div>
+        <div class="stat-label">Avg Transitions/State</div>
+      </div>
+    </div>
+
+    <h2>State Diagram</h2>
+    <div id="diagram">
+      <pre class="mermaid">
+stateDiagram-v2
+    [*] --> navigation
+    navigation --> editing: START_EDITING
+    state editing {
+        [*] --> normal
+        normal --> insert: ENTER_INSERT_MODE
+        normal --> visual: ENTER_VISUAL_MODE
+        normal --> visual: ENTER_VISUAL_BLOCK_MODE
+        normal --> resize: ENTER_RESIZE_MODE
+        insert --> normal: EXIT_INSERT_MODE
+        insert --> normal: ESCAPE
+        visual --> normal: EXIT_VISUAL_MODE
+        visual --> normal: ESCAPE
+        resize --> normal: EXIT_RESIZE_MODE
+        resize --> normal: ESCAPE
+    }
+    editing --> navigation: STOP_EDITING
+    editing --> navigation: ESCAPE
+      </pre>
+    </div>
+
+    <h2>Available Actions</h2>
+    <ul class="actions-list">
+      <li><code>ENTER_INSERT_MODE</code></li>
+      <li><code>ENTER_RESIZE_MODE</code></li>
+      <li><code>ENTER_VISUAL_BLOCK_MODE</code></li>
+      <li><code>ENTER_VISUAL_MODE</code></li>
+      <li><code>ESCAPE</code></li>
+      <li><code>EXIT_INSERT_MODE</code></li>
+      <li><code>EXIT_RESIZE_MODE</code></li>
+      <li><code>EXIT_VISUAL_MODE</code></li>
+      <li><code>SET_EDIT_MODE</code></li>
+      <li><code>SET_INTERACTION_MODE</code></li>
+      <li><code>START_EDITING</code></li>
+      <li><code>STOP_EDITING</code></li>
+      <li><code>TOGGLE_INTERACTION_MODE</code></li>
+    </ul>
+
+    <h2>States</h2>
+    <ul>
+      <li><code>editing</code></li>
+      <li><code>editing.insert</code></li>
+      <li><code>editing.normal</code></li>
+      <li><code>editing.resize</code></li>
+      <li><code>editing.visual</code></li>
+      <li><code>navigation</code></li>
+    </ul>
+
+    <footer style="margin-top: 40px; text-align: center; color: #666;">
+      Generated on 8/2/2025, 8:37:38 PM
+    </footer>
+  </div>
+
+  <script>
+    mermaid.initialize({ 
+      startOnLoad: true,
+      theme: 'default',
+      securityLevel: 'loose',
+    });
+  </script>
+</body>
+</html>

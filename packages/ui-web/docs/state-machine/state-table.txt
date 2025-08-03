@@ -1,0 +1,38 @@
+State Machine Transitions
+========================
+
+editing:
+  - STOP_EDITING → navigation
+  - ESCAPE → navigation
+  - TOGGLE_INTERACTION_MODE ↻ editing
+  - SET_INTERACTION_MODE ↻ editing
+
+editing.insert:
+  - EXIT_INSERT_MODE → editing.normal
+  - ESCAPE → editing.normal
+  - SET_EDIT_MODE ↻ editing.insert
+
+editing.normal:
+  - ENTER_INSERT_MODE → editing.insert
+  - ESCAPE ↻ editing.normal
+  - ENTER_VISUAL_MODE → editing.visual
+  - ENTER_VISUAL_BLOCK_MODE → editing.visual
+  - ENTER_RESIZE_MODE → editing.resize
+
+editing.resize:
+  - EXIT_RESIZE_MODE → editing.normal
+  - ESCAPE → editing.normal
+
+editing.visual:
+  - EXIT_VISUAL_MODE → editing.normal
+  - ESCAPE → editing.normal
+
+navigation:
+  - START_EDITING → editing
+  - TOGGLE_INTERACTION_MODE ↻ navigation
+  - SET_INTERACTION_MODE ↻ navigation
+
+Notes:
+- TOGGLE_INTERACTION_MODE and SET_INTERACTION_MODE work in all states
+- ESCAPE generally returns to the previous state or navigation
+- ↻ indicates the state remains unchanged
