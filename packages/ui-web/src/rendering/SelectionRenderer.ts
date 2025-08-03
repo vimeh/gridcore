@@ -1,4 +1,4 @@
-import type { CellAddress, CellRange } from "@gridcore/core";
+import type { CellRange } from "@gridcore/core";
 import { parseCellAddress } from "@gridcore/core";
 import type { Viewport as GridViewport } from "../components/Viewport";
 import type { GridTheme } from "./GridTheme";

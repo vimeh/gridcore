@@ -99,7 +99,7 @@ describe("Viewport", () => {
     test("should scroll to cell - top position", () => {
       viewport.scrollToCell({ row: 20, col: 10 }, "top");
       const cellPos = viewport.getCellPosition({ row: 20, col: 10 });
-      const scrollPos = viewport.getScrollPosition();
+      const _scrollPos = viewport.getScrollPosition();
       // Cell should be at top of viewport
       expect(cellPos.y).toBe(0);
     });

@@ -4,11 +4,11 @@ export * from "./formula/evaluator";
 export * from "./formula/parser";
 export * from "./formula/tokenizer";
 export * from "./Grid";
+export * from "./pivot";
 export * from "./SpreadsheetEngine";
 export * from "./types";
 export * from "./types/SpreadsheetState";
 export * from "./utils/cellAddress";
-export * from "./pivot";
 
 export class GridCore {
   private name: string = "GridCore Engine";

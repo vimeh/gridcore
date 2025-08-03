@@ -260,7 +260,7 @@ export class FormulaParser {
 
     if (this.match("SHEET_CELL")) {
       const reference = this.previous().value;
-      
+
       // Parse sheet name and cell reference
       const match = reference.match(/^(.*?)!(.+)$/);
       if (!match) {
@@ -277,7 +277,9 @@ export class FormulaParser {
 
       const address = parseCellAddress(cellRef.replace(/\$/g, ""));
       if (!address) {
-        throw this.error(`Invalid cell reference in sheet reference: ${cellRef}`);
+        throw this.error(
+          `Invalid cell reference in sheet reference: ${cellRef}`,
+        );
       }
 
       // Parse absolute references
@@ -298,7 +300,7 @@ export class FormulaParser {
 
     if (this.match("SHEET_RANGE")) {
       const reference = this.previous().value;
-      
+
       // Parse sheet name and range reference
       const match = reference.match(/^(.*?)!(.+)$/);
       if (!match) {
@@ -315,7 +317,9 @@ export class FormulaParser {
 
       const range = parseCellRange(rangeRef.replace(/\$/g, ""));
       if (!range) {
-        throw this.error(`Invalid range reference in sheet reference: ${rangeRef}`);
+        throw this.error(
+          `Invalid range reference in sheet reference: ${rangeRef}`,
+        );
       }
 
       return {

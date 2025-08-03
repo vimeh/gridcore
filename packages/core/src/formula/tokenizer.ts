@@ -220,7 +220,10 @@ export class Tokenizer {
 
       // Check if it's a range
       this.skipWhitespace();
-      if (this.position < this.input.length && this.input[this.position] === ":") {
+      if (
+        this.position < this.input.length &&
+        this.input[this.position] === ":"
+      ) {
         this.position++; // Skip :
         this.skipWhitespace();
 
@@ -315,51 +318,59 @@ export class Tokenizer {
 
   private isQuotedSheetName(): boolean {
     if (this.input[this.position] !== "'") return false;
-    
+
     // Look for closing quote followed by !
     let pos = this.position + 1;
     while (pos < this.input.length && this.input[pos] !== "'") {
       pos++;
     }
-    
+
     if (pos >= this.input.length) return false;
-    
+
     // Check if there's a ! after the closing quote
     pos++;
     while (pos < this.input.length && /\s/.test(this.input[pos])) {
       pos++;
     }
-    
+
     return pos < this.input.length && this.input[pos] === "!";
   }
 
   private readSheetReference(): void {
     const start = this.position;
-    
+
     // Read quoted sheet name
     this.position++; // Skip opening quote
-    while (this.position < this.input.length && this.input[this.position] !== "'") {
+    while (
+      this.position < this.input.length &&
+      this.input[this.position] !== "'"
+    ) {
       this.position++;
     }
-    
+
     if (this.position >= this.input.length) {
       throw new Error(`Unterminated sheet name starting at position ${start}`);
     }
-    
+
     this.position++; // Skip closing quote
     const sheetName = this.input.slice(start, this.position);
-    
+
     // Skip whitespace
     this.skipWhitespace();
-    
+
     // Check for !
-    if (this.position >= this.input.length || this.input[this.position] !== "!") {
-      throw new Error(`Expected '!' after sheet name at position ${this.position}`);
+    if (
+      this.position >= this.input.length ||
+      this.input[this.position] !== "!"
+    ) {
+      throw new Error(
+        `Expected '!' after sheet name at position ${this.position}`,
+      );
     }
-    
+
     this.position++; // Skip !
     this.skipWhitespace();
-    
+
     // Read cell or range reference
     const refStart = this.position;
     while (
@@ -370,20 +381,25 @@ export class Tokenizer {
     ) {
       this.position++;
     }
-    
+
     const cellRef = this.input.slice(refStart, this.position);
-    
+
     // Validate that we got a valid reference
     if (!cellRef) {
-      throw new Error(`Expected cell reference after '!' at position ${this.position}`);
+      throw new Error(
+        `Expected cell reference after '!' at position ${this.position}`,
+      );
     }
-    
+
     // Check if it's a range
     this.skipWhitespace();
-    if (this.position < this.input.length && this.input[this.position] === ":") {
+    if (
+      this.position < this.input.length &&
+      this.input[this.position] === ":"
+    ) {
       this.position++; // Skip :
       this.skipWhitespace();
-      
+
       const rangeEndStart = this.position;
       while (
         this.position < this.input.length &&
@@ -393,7 +409,7 @@ export class Tokenizer {
       ) {
         this.position++;
       }
-      
+
       const rangeEnd = this.input.slice(rangeEndStart, this.position);
       const fullReference = `${sheetName}!${cellRef}:${rangeEnd}`;
       this.addToken("SHEET_RANGE", fullReference, start);

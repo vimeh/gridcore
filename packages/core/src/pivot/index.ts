@@ -1,16 +1,16 @@
-export { PivotTable } from "./PivotTable"
-export { PivotTransformer } from "./PivotTransformer"
-export { aggregators, getAggregator } from "./PivotAggregators"
+export { aggregators, getAggregator } from "./PivotAggregators";
+export { PivotTable } from "./PivotTable";
+export { PivotTransformer } from "./PivotTransformer";
 export type {
+  AggregatorDefinition,
+  AggregatorFunction,
   AggregatorType,
+  PivotDataPoint,
   PivotField,
-  PivotValueField,
   PivotFilterField,
   PivotSortConfig,
   PivotTableConfig,
-  PivotTableOutput,
-  PivotDataPoint,
   PivotTableMetadata,
-  AggregatorFunction,
-  AggregatorDefinition
-} from "./PivotTypes"
+  PivotTableOutput,
+  PivotValueField,
+} from "./PivotTypes";

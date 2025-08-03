@@ -9,8 +9,15 @@ export interface EvaluationContext {
   getCellValue: CellGetter;
   getRangeValues: RangeGetter;
   currentCell?: CellAddress;
-  getSheetCellValue?: (sheetName: string, address: CellAddress) => Cell | undefined;
-  getSheetRangeValues?: (sheetName: string, start: CellAddress, end: CellAddress) => Cell[];
+  getSheetCellValue?: (
+    sheetName: string,
+    address: CellAddress,
+  ) => Cell | undefined;
+  getSheetRangeValues?: (
+    sheetName: string,
+    start: CellAddress,
+    end: CellAddress,
+  ) => Cell[];
 }
 
 export interface EvaluationResult {
@@ -82,7 +89,9 @@ export class FormulaEvaluator {
 
       case "sheet_cell": {
         if (!context.getSheetCellValue) {
-          throw new Error("Cross-sheet references not supported in this context");
+          throw new Error(
+            "Cross-sheet references not supported in this context",
+          );
         }
         const cell = context.getSheetCellValue(node.sheetName, node.address);
         if (!cell) return 0;
@@ -208,7 +217,11 @@ export class FormulaEvaluator {
       if (!context.getSheetRangeValues) {
         throw new Error("Cross-sheet references not supported in this context");
       }
-      return context.getSheetRangeValues(arg.sheetName, arg.range.start, arg.range.end);
+      return context.getSheetRangeValues(
+        arg.sheetName,
+        arg.range.start,
+        arg.range.end,
+      );
     }
     return [];
   }

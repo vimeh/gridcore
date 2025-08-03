@@ -1,8 +1,4 @@
-import {
-  type Cell,
-  type CellAddress,
-  cellAddressToString,
-} from "@gridcore/core";
+import type { Cell, CellAddress } from "@gridcore/core";
 import type { Viewport, ViewportBounds } from "../components/Viewport";
 import { PIXEL_PERFECT_OFFSET } from "../constants";
 import type { GridTheme } from "./GridTheme";

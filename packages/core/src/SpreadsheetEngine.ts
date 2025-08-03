@@ -3,14 +3,14 @@ import type { ASTNode } from "./formula/ast";
 import { type EvaluationContext, FormulaEvaluator } from "./formula/evaluator";
 import { FormulaParser } from "./formula/parser";
 import { Grid } from "./Grid";
+import { PivotTable } from "./pivot/PivotTable";
+import type { PivotTableConfig, PivotTableOutput } from "./pivot/PivotTypes";
 import type { Cell, CellAddress, CellValueType, GridDimensions } from "./types";
 import type {
   SpreadsheetState,
   SpreadsheetStateOptions,
 } from "./types/SpreadsheetState";
 import { cellAddressToString, parseCellAddress } from "./utils/cellAddress";
-import { PivotTable } from "./pivot/PivotTable";
-import type { PivotTableConfig, PivotTableOutput } from "./pivot/PivotTypes";
 
 export interface SpreadsheetChangeEvent {
   type: "cell-change" | "batch-change";
@@ -27,7 +27,10 @@ export class SpreadsheetEngine {
   private listeners: Set<SpreadsheetChangeListener>;
   private isCalculating: boolean = false;
   private calculationQueue: Set<string> = new Set();
-  private pivotTables: Map<string, { table: PivotTable; outputCell: CellAddress }> = new Map();
+  private pivotTables: Map<
+    string,
+    { table: PivotTable; outputCell: CellAddress }
+  > = new Map();
 
   constructor(rows: number = 1000, cols: number = 26) {
     this.grid = new Grid(rows, cols);
@@ -484,7 +487,7 @@ export class SpreadsheetEngine {
   addPivotTable(
     id: string,
     config: PivotTableConfig,
-    outputCell: CellAddress
+    outputCell: CellAddress,
   ): PivotTable {
     const pivotTable = new PivotTable(config);
     this.pivotTables.set(id, { table: pivotTable, outputCell });
@@ -504,7 +507,7 @@ export class SpreadsheetEngine {
         for (let col = 0; col < dimensions.cols; col++) {
           this.clearCell({
             row: topLeft.row + row,
-            col: topLeft.col + col
+            col: topLeft.col + col,
           });
         }
       }
@@ -533,7 +536,7 @@ export class SpreadsheetEngine {
         for (let col = 0; col < dimensions.cols; col++) {
           const address = {
             row: topLeft.row + row,
-            col: topLeft.col + col
+            col: topLeft.col + col,
           };
           if (!output.cells.has(this.grid.getCellKey(address))) {
             this.clearCell(address);
@@ -566,7 +569,10 @@ export class SpreadsheetEngine {
     }
   }
 
-  getAllPivotTables(): Map<string, { table: PivotTable; outputCell: CellAddress }> {
+  getAllPivotTables(): Map<
+    string,
+    { table: PivotTable; outputCell: CellAddress }
+  > {
     return new Map(this.pivotTables);
   }
 }

@@ -1,52 +1,56 @@
-import { transitions, type Action, type SpreadsheetState } from "../src/state/SpreadsheetStateMachine"
-import { writeFileSync } from "fs"
-import { join } from "path"
-import { exec } from "child_process"
-import { promisify } from "util"
+import { exec } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import { transitions } from "../src/state/SpreadsheetStateMachine";
 
-const execAsync = promisify(exec)
+const execAsync = promisify(exec);
 
 /**
  * Parses transition keys and builds a state hierarchy
  */
 function parseTransitions() {
-  const stateHierarchy = new Map<string, Set<string>>()
-  const transitionMap = new Map<string, Map<string, string>>()
-  const allActions = new Set<string>()
+  const stateHierarchy = new Map<string, Set<string>>();
+  const transitionMap = new Map<string, Map<string, string>>();
+  const allActions = new Set<string>();
 
   for (const key of Object.keys(transitions)) {
-    const parts = key.split(".")
-    const action = parts[parts.length - 1]
-    allActions.add(action)
+    const parts = key.split(".");
+    const action = parts[parts.length - 1];
+    allActions.add(action);
 
     if (parts.length === 2) {
       // Top-level state transition (e.g., "navigation.START_EDITING")
-      const [state] = parts
+      const [state] = parts;
       if (!stateHierarchy.has(state)) {
-        stateHierarchy.set(state, new Set())
+        stateHierarchy.set(state, new Set());
       }
       if (!transitionMap.has(state)) {
-        transitionMap.set(state, new Map())
+        transitionMap.set(state, new Map());
       }
-      transitionMap.get(state)!.set(action, determineTargetState(state, action))
+      transitionMap
+        .get(state)
+        ?.set(action, determineTargetState(state, action));
     } else if (parts.length === 3) {
       // Substate transition (e.g., "editing.normal.ENTER_INSERT_MODE")
-      const [parentState, substate] = parts
-      const fullState = `${parentState}.${substate}`
-      
+      const [parentState, substate] = parts;
+      const fullState = `${parentState}.${substate}`;
+
       if (!stateHierarchy.has(parentState)) {
-        stateHierarchy.set(parentState, new Set())
+        stateHierarchy.set(parentState, new Set());
       }
-      stateHierarchy.get(parentState)!.add(substate)
-      
+      stateHierarchy.get(parentState)?.add(substate);
+
       if (!transitionMap.has(fullState)) {
-        transitionMap.set(fullState, new Map())
+        transitionMap.set(fullState, new Map());
       }
-      transitionMap.get(fullState)!.set(action, determineTargetState(fullState, action))
+      transitionMap
+        .get(fullState)
+        ?.set(action, determineTargetState(fullState, action));
     }
   }
 
-  return { stateHierarchy, transitionMap, allActions }
+  return { stateHierarchy, transitionMap, allActions };
 }
 
 /**
@@ -68,106 +72,107 @@ function determineTargetState(fromState: string, action: string): string {
     TOGGLE_INTERACTION_MODE: fromState, // Stays in same state
     SET_INTERACTION_MODE: fromState, // Stays in same state
     SET_EDIT_MODE: fromState, // Stays in same state
-  }
+  };
 
-  return actionTargets[action] || fromState
+  return actionTargets[action] || fromState;
 }
 
 /**
  * Generates a Mermaid diagram of the state machine transitions
  */
 export function generateStateDiagram(): string {
-  const { stateHierarchy, transitionMap } = parseTransitions()
-  const lines: string[] = ["stateDiagram-v2"]
+  const { stateHierarchy, transitionMap } = parseTransitions();
+  const lines: string[] = ["stateDiagram-v2"];
 
   // Add initial state
-  lines.push("    [*] --> navigation")
-  
+  lines.push("    [*] --> navigation");
+
   // Process each top-level state
   for (const [state, substates] of stateHierarchy) {
     if (substates.size > 0) {
-      lines.push(`    state ${state} {`)
-      lines.push(`        [*] --> normal`)
-      
+      lines.push(`    state ${state} {`);
+      lines.push(`        [*] --> normal`);
+
       // Add substates
       for (const substate of substates) {
-        const fullState = `${state}.${substate}`
-        const transitions = transitionMap.get(fullState) || new Map()
-        
+        const fullState = `${state}.${substate}`;
+        const transitions = transitionMap.get(fullState) || new Map();
+
         for (const [action, target] of transitions) {
-          const targetParts = target.split(".")
-          const targetState = targetParts.length > 1 ? targetParts[1] : target
-          
+          const targetParts = target.split(".");
+          const targetState = targetParts.length > 1 ? targetParts[1] : target;
+
           if (target !== fullState) {
-            lines.push(`        ${substate} --> ${targetState}: ${action}`)
+            lines.push(`        ${substate} --> ${targetState}: ${action}`);
           }
         }
       }
-      
-      lines.push("    }")
+
+      lines.push("    }");
     }
-    
+
     // Add top-level transitions
-    const topTransitions = transitionMap.get(state) || new Map()
+    const topTransitions = transitionMap.get(state) || new Map();
     for (const [action, target] of topTransitions) {
       if (target !== state) {
-        lines.push(`    ${state} --> ${target}: ${action}`)
+        lines.push(`    ${state} --> ${target}: ${action}`);
       }
     }
   }
 
-  return lines.join("\n")
+  return lines.join("\n");
 }
 
 /**
  * Generates a simplified ASCII representation of valid state transitions
  */
 export function generateStateTable(): string {
-  const { transitionMap } = parseTransitions()
-  let output = "State Machine Transitions\n"
-  output += "========================\n\n"
+  const { transitionMap } = parseTransitions();
+  let output = "State Machine Transitions\n";
+  output += "========================\n\n";
 
   // Sort states for consistent output
-  const sortedStates = Array.from(transitionMap.keys()).sort()
+  const sortedStates = Array.from(transitionMap.keys()).sort();
 
   for (const state of sortedStates) {
-    const transitions = transitionMap.get(state)!
-    if (transitions.size === 0) continue
+    const transitions = transitionMap.get(state)!;
+    if (transitions.size === 0) continue;
 
-    output += `${state}:\n`
+    output += `${state}:\n`;
     for (const [action, target] of transitions) {
-      const arrow = target === state ? "↻" : "→"
-      output += `  - ${action} ${arrow} ${target}\n`
+      const arrow = target === state ? "↻" : "→";
+      output += `  - ${action} ${arrow} ${target}\n`;
     }
-    output += "\n"
+    output += "\n";
   }
 
-  output += "Notes:\n"
-  output += "- TOGGLE_INTERACTION_MODE and SET_INTERACTION_MODE work in all states\n"
-  output += "- ESCAPE generally returns to the previous state or navigation\n"
-  output += "- ↻ indicates the state remains unchanged\n"
+  output += "Notes:\n";
+  output +=
+    "- TOGGLE_INTERACTION_MODE and SET_INTERACTION_MODE work in all states\n";
+  output += "- ESCAPE generally returns to the previous state or navigation\n";
+  output += "- ↻ indicates the state remains unchanged\n";
 
-  return output
+  return output;
 }
 
 /**
  * Analyzes the state machine and returns statistics
  */
 export function analyzeStateMachine() {
-  const { stateHierarchy, transitionMap, allActions } = parseTransitions()
-  const transitionCount = Object.keys(transitions).length
-  
-  const allStates = new Set<string>()
+  const { stateHierarchy, transitionMap, allActions } = parseTransitions();
+  const transitionCount = Object.keys(transitions).length;
+
+  const allStates = new Set<string>();
   for (const [state, substates] of stateHierarchy) {
-    allStates.add(state)
+    allStates.add(state);
     for (const substate of substates) {
-      allStates.add(`${state}.${substate}`)
+      allStates.add(`${state}.${substate}`);
     }
   }
 
-  const transitionsByState = new Map<string, number>()
+  const transitionsByState = new Map<string, number>();
   for (const [state, trans] of transitionMap) {
-    transitionsByState.set(state, trans.size)
+    transitionsByState.set(state, trans.size);
   }
 
   return {
@@ -176,59 +181,60 @@ export function analyzeStateMachine() {
     uniqueActions: allActions.size,
     statesList: Array.from(allStates).sort(),
     actionsList: Array.from(allActions).sort(),
-    averageTransitionsPerState: Math.round((transitionCount / allStates.size) * 100) / 100,
+    averageTransitionsPerState:
+      Math.round((transitionCount / allStates.size) * 100) / 100,
     transitionsByState: Object.fromEntries(transitionsByState),
-  }
+  };
 }
 
 /**
  * Generates a PlantUML diagram as an alternative to Mermaid
  */
 export function generatePlantUMLDiagram(): string {
-  const { stateHierarchy, transitionMap } = parseTransitions()
-  const lines: string[] = ["@startuml", "[*] --> navigation"]
+  const { stateHierarchy, transitionMap } = parseTransitions();
+  const lines: string[] = ["@startuml", "[*] --> navigation"];
 
   for (const [state, substates] of stateHierarchy) {
     if (substates.size > 0) {
-      lines.push(`state ${state} {`)
-      lines.push(`  [*] --> normal`)
-      
+      lines.push(`state ${state} {`);
+      lines.push(`  [*] --> normal`);
+
       for (const substate of substates) {
-        const fullState = `${state}.${substate}`
-        const transitions = transitionMap.get(fullState) || new Map()
-        
+        const fullState = `${state}.${substate}`;
+        const transitions = transitionMap.get(fullState) || new Map();
+
         for (const [action, target] of transitions) {
-          const targetParts = target.split(".")
-          const targetState = targetParts.length > 1 ? targetParts[1] : target
-          
+          const targetParts = target.split(".");
+          const targetState = targetParts.length > 1 ? targetParts[1] : target;
+
           if (target !== fullState && targetParts[0] === state) {
-            lines.push(`  ${substate} --> ${targetState} : ${action}`)
+            lines.push(`  ${substate} --> ${targetState} : ${action}`);
           }
         }
       }
-      
-      lines.push("}")
+
+      lines.push("}");
     }
-    
-    const topTransitions = transitionMap.get(state) || new Map()
+
+    const topTransitions = transitionMap.get(state) || new Map();
     for (const [action, target] of topTransitions) {
       if (target !== state && !target.startsWith(`${state}.`)) {
-        lines.push(`${state} --> ${target} : ${action}`)
+        lines.push(`${state} --> ${target} : ${action}`);
       }
     }
   }
 
-  lines.push("@enduml")
-  return lines.join("\n")
+  lines.push("@enduml");
+  return lines.join("\n");
 }
 
 /**
  * Generates an HTML page with embedded Mermaid diagram
  */
 export function generateHTMLPage(outputPath?: string): string {
-  const diagram = generateStateDiagram()
-  const analysis = analyzeStateMachine()
-  
+  const diagram = generateStateDiagram();
+  const analysis = analyzeStateMachine();
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -393,13 +399,13 @@ ${diagram}
       <div>
         <h3>Available Actions</h3>
         <ul>
-          ${analysis.actionsList.map(action => `<li>${action}</li>`).join('\n          ')}
+          ${analysis.actionsList.map((action) => `<li>${action}</li>`).join("\n          ")}
         </ul>
       </div>
       <div>
         <h3>States</h3>
         <ul>
-          ${analysis.statesList.map(state => `<li>${state}</li>`).join('\n          ')}
+          ${analysis.statesList.map((state) => `<li>${state}</li>`).join("\n          ")}
         </ul>
       </div>
     </div>
@@ -420,43 +426,45 @@ ${diagram}
     }
   </script>
 </body>
-</html>`
+</html>`;
 
   if (outputPath) {
-    writeFileSync(outputPath, html)
+    writeFileSync(outputPath, html);
   }
 
-  return html
+  return html;
 }
 
 /**
  * Opens the state diagram in the default browser
  */
 export async function openInBrowser(htmlPath?: string): Promise<void> {
-  const path = htmlPath || join(import.meta.dir, "../docs/state-machine/state-diagram.html")
-  
+  const path =
+    htmlPath ||
+    join(import.meta.dir, "../docs/state-machine/state-diagram.html");
+
   // Generate HTML if it doesn't exist
-  generateHTMLPage(path)
-  
+  generateHTMLPage(path);
+
   // Open in browser based on platform
-  const platform = process.platform
-  let command: string
-  
+  const platform = process.platform;
+  let command: string;
+
   if (platform === "darwin") {
-    command = `open "${path}"`
+    command = `open "${path}"`;
   } else if (platform === "win32") {
-    command = `start "${path}"`
+    command = `start "${path}"`;
   } else {
     // Linux
-    command = `xdg-open "${path}"`
+    command = `xdg-open "${path}"`;
   }
-  
+
   try {
-    await execAsync(command)
-    console.log(`✅ Opened state diagram in browser: ${path}`)
+    await execAsync(command);
+    console.log(`✅ Opened state diagram in browser: ${path}`);
   } catch (error) {
-    console.error("Failed to open browser:", error)
-    console.log(`You can manually open: ${path}`)
+    console.error("Failed to open browser:", error);
+    console.log(`You can manually open: ${path}`);
   }
 }
 
@@ -464,20 +472,29 @@ export async function openInBrowser(htmlPath?: string): Promise<void> {
  * Exports the Mermaid diagram to SVG using mermaid-cli
  */
 export async function exportToSVG(outputPath?: string): Promise<void> {
-  const mermaidPath = join(import.meta.dir, "../docs/state-machine/state-diagram.mmd")
-  const svgPath = outputPath || join(import.meta.dir, "../docs/state-machine/state-diagram.svg")
-  
+  const mermaidPath = join(
+    import.meta.dir,
+    "../docs/state-machine/state-diagram.mmd",
+  );
+  const svgPath =
+    outputPath ||
+    join(import.meta.dir, "../docs/state-machine/state-diagram.svg");
+
   // Write mermaid diagram to file
-  const diagram = generateStateDiagram()
-  writeFileSync(mermaidPath, diagram)
-  
+  const diagram = generateStateDiagram();
+  writeFileSync(mermaidPath, diagram);
+
   try {
     // Use mermaid-cli to generate SVG
-    await execAsync(`mmdc -i "${mermaidPath}" -o "${svgPath}" -t dark -b transparent`)
-    console.log(`✅ Generated SVG: ${svgPath}`)
+    await execAsync(
+      `mmdc -i "${mermaidPath}" -o "${svgPath}" -t dark -b transparent`,
+    );
+    console.log(`✅ Generated SVG: ${svgPath}`);
   } catch (error) {
-    console.error("Failed to generate SVG:", error)
-    console.log("Make sure mermaid-cli is installed: bun add -D @mermaid-js/mermaid-cli")
+    console.error("Failed to generate SVG:", error);
+    console.log(
+      "Make sure mermaid-cli is installed: bun add -D @mermaid-js/mermaid-cli",
+    );
   }
 }
 
@@ -485,30 +502,39 @@ export async function exportToSVG(outputPath?: string): Promise<void> {
  * Exports the Mermaid diagram to PNG using mermaid-cli
  */
 export async function exportToPNG(outputPath?: string): Promise<void> {
-  const mermaidPath = join(import.meta.dir, "../docs/state-machine/state-diagram.mmd")
-  const pngPath = outputPath || join(import.meta.dir, "../docs/state-machine/state-diagram.png")
-  
+  const mermaidPath = join(
+    import.meta.dir,
+    "../docs/state-machine/state-diagram.mmd",
+  );
+  const pngPath =
+    outputPath ||
+    join(import.meta.dir, "../docs/state-machine/state-diagram.png");
+
   // Write mermaid diagram to file
-  const diagram = generateStateDiagram()
-  writeFileSync(mermaidPath, diagram)
-  
+  const diagram = generateStateDiagram();
+  writeFileSync(mermaidPath, diagram);
+
   try {
     // Use mermaid-cli to generate PNG
-    await execAsync(`mmdc -i "${mermaidPath}" -o "${pngPath}" -t dark -b transparent`)
-    console.log(`✅ Generated PNG: ${pngPath}`)
+    await execAsync(
+      `mmdc -i "${mermaidPath}" -o "${pngPath}" -t dark -b transparent`,
+    );
+    console.log(`✅ Generated PNG: ${pngPath}`);
   } catch (error) {
-    console.error("Failed to generate PNG:", error)
-    console.log("Make sure mermaid-cli is installed: bun add -D @mermaid-js/mermaid-cli")
+    console.error("Failed to generate PNG:", error);
+    console.log(
+      "Make sure mermaid-cli is installed: bun add -D @mermaid-js/mermaid-cli",
+    );
   }
 }
 
 // Example usage:
 if (import.meta.main) {
-  console.log(generateStateTable())
-  console.log("\nState Machine Analysis:")
-  console.log(analyzeStateMachine())
-  console.log("\nMermaid Diagram:")
-  console.log(generateStateDiagram())
-  console.log("\nPlantUML Diagram:")
-  console.log(generatePlantUMLDiagram())
+  console.log(generateStateTable());
+  console.log("\nState Machine Analysis:");
+  console.log(analyzeStateMachine());
+  console.log("\nMermaid Diagram:");
+  console.log(generateStateDiagram());
+  console.log("\nPlantUML Diagram:");
+  console.log(generatePlantUMLDiagram());
 }
