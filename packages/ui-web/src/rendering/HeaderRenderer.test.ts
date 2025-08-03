@@ -53,9 +53,12 @@ describe("HeaderRenderer Resize Handle Detection", () => {
       }),
     };
 
-    rowHeaderCanvas.getContext = () => mockContext as unknown as CanvasRenderingContext2D;
-    colHeaderCanvas.getContext = () => mockContext as unknown as CanvasRenderingContext2D;
-    cornerCanvas.getContext = () => mockContext as unknown as CanvasRenderingContext2D;
+    rowHeaderCanvas.getContext = () =>
+      mockContext as unknown as CanvasRenderingContext2D;
+    colHeaderCanvas.getContext = () =>
+      mockContext as unknown as CanvasRenderingContext2D;
+    cornerCanvas.getContext = () =>
+      mockContext as unknown as CanvasRenderingContext2D;
 
     // Set canvas dimensions
     rowHeaderCanvas.width = defaultTheme.rowHeaderWidth;

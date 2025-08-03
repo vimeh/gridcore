@@ -16,11 +16,11 @@ export class ModeIndicator {
     this.element = this.createElement();
     const modeText = this.element.querySelector(".mode-text");
     const detailText = this.element.querySelector(".mode-detail");
-    
+
     if (!modeText || !detailText) {
       throw new Error("Failed to create mode indicator elements");
     }
-    
+
     this.modeText = modeText;
     this.detailText = detailText;
     this.container.appendChild(this.element);

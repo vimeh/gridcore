@@ -54,7 +54,9 @@ function createMockViewport() {
 }
 
 // Mock canvas element
-function createMockCanvas(ctx: ReturnType<typeof createMockContext>): HTMLCanvasElement {
+function createMockCanvas(
+  ctx: ReturnType<typeof createMockContext>,
+): HTMLCanvasElement {
   return {
     getContext: () => ctx,
   } as unknown as HTMLCanvasElement;
@@ -70,7 +72,11 @@ describe("SelectionRenderer", () => {
     ctx = createMockContext();
     viewport = createMockViewport();
     canvas = createMockCanvas(ctx);
-    renderer = new SelectionRenderer(canvas, defaultTheme, viewport as unknown as Viewport);
+    renderer = new SelectionRenderer(
+      canvas,
+      defaultTheme,
+      viewport as unknown as Viewport,
+    );
   });
 
   test("should not render anything when no cells are selected", () => {
