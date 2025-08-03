@@ -78,7 +78,9 @@ export class Workbook {
   }
 
   getAllSheets(): Sheet[] {
-    return this.sheetOrder.map((id) => this.sheets.get(id)!).filter(Boolean);
+    return this.sheetOrder
+      .map((id) => this.sheets.get(id))
+      .filter((sheet): sheet is Sheet => sheet !== undefined);
   }
 
   getSheetCount(): number {

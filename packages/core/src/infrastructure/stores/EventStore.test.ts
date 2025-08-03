@@ -8,6 +8,23 @@ import { Cell } from "../../domain/models/Cell";
 import { CellAddress } from "../../domain/models/CellAddress";
 import { EventStore } from "./EventStore";
 
+// Test event types
+interface TestEvent extends DomainEvent {
+  type: "TestEvent";
+}
+
+interface Event1 extends DomainEvent {
+  type: "Event1";
+}
+
+interface Event2 extends DomainEvent {
+  type: "Event2";
+}
+
+interface Event3 extends DomainEvent {
+  type: "Event3";
+}
+
 describe("EventStore", () => {
   let eventStore: EventStore;
 
@@ -17,7 +34,7 @@ describe("EventStore", () => {
 
   describe("emit", () => {
     test("adds timestamp if not present", () => {
-      const event: DomainEvent = { type: "TestEvent" } as any;
+      const event: TestEvent = { type: "TestEvent" } as unknown as TestEvent;
       eventStore.emit(event);
 
       expect(event.timestamp).toBeInstanceOf(Date);
@@ -25,10 +42,10 @@ describe("EventStore", () => {
 
     test("preserves existing timestamp", () => {
       const originalTimestamp = new Date("2024-01-01");
-      const event: DomainEvent = {
+      const event: TestEvent = {
         type: "TestEvent",
         timestamp: originalTimestamp,
-      } as any;
+      };
 
       eventStore.emit(event);
 
@@ -36,8 +53,8 @@ describe("EventStore", () => {
     });
 
     test("stores events in history", () => {
-      const event1: DomainEvent = { type: "Event1" } as any;
-      const event2: DomainEvent = { type: "Event2" } as any;
+      const event1: Event1 = { type: "Event1" } as unknown as Event1;
+      const event2: Event2 = { type: "Event2" } as unknown as Event2;
 
       eventStore.emit(event1);
       eventStore.emit(event2);
@@ -52,7 +69,10 @@ describe("EventStore", () => {
       const smallStore = new EventStore(3);
 
       for (let i = 0; i < 5; i++) {
-        smallStore.emit({ type: `Event${i}` } as any);
+        smallStore.emit({
+          type: `Event${i}`,
+          timestamp: new Date(),
+        } as DomainEvent);
       }
 
       const history = smallStore.getHistory();
@@ -70,7 +90,7 @@ describe("EventStore", () => {
       };
 
       eventStore.on("TestEvent", handler);
-      eventStore.emit({ type: "TestEvent" } as any);
+      eventStore.emit({ type: "TestEvent" } as unknown as TestEvent);
 
       expect(called).toBe(true);
     });
@@ -82,7 +102,7 @@ describe("EventStore", () => {
 
       eventStore.on("TestEvent", handler1);
       eventStore.on("TestEvent", handler2);
-      eventStore.emit({ type: "TestEvent" } as any);
+      eventStore.emit({ type: "TestEvent" } as unknown as TestEvent);
 
       expect(count).toBe(2);
     });
@@ -100,7 +120,7 @@ describe("EventStore", () => {
       eventStore.on("TestEvent", handler1);
       eventStore.on("TestEvent", handler2);
       eventStore.off("TestEvent", handler1);
-      eventStore.emit({ type: "TestEvent" } as any);
+      eventStore.emit({ type: "TestEvent" } as unknown as TestEvent);
 
       expect(called1).toBe(false);
       expect(called2).toBe(true);
@@ -114,7 +134,7 @@ describe("EventStore", () => {
       };
 
       eventStore.on("TestEvent", handler);
-      eventStore.emit({ type: "TestEvent" } as any);
+      eventStore.emit({ type: "TestEvent" } as unknown as TestEvent);
 
       await new Promise((resolve) => setTimeout(resolve, 20));
       expect(resolved).toBe(true);
@@ -129,7 +149,7 @@ describe("EventStore", () => {
 
       // Should not throw
       expect(() => {
-        eventStore.emit({ type: "TestEvent" } as any);
+        eventStore.emit({ type: "TestEvent" } as unknown as TestEvent);
       }).not.toThrow();
     });
 
@@ -142,7 +162,7 @@ describe("EventStore", () => {
 
       // Should not throw
       expect(() => {
-        eventStore.emit({ type: "TestEvent" } as any);
+        eventStore.emit({ type: "TestEvent" } as unknown as TestEvent);
       }).not.toThrow();
     });
   });
@@ -199,12 +219,12 @@ describe("EventStore", () => {
       };
 
       eventStore.on("TestEvent", handler);
-      eventStore.emit({ type: "TestEvent" } as any);
+      eventStore.emit({ type: "TestEvent" } as unknown as TestEvent);
 
       eventStore.clear();
 
       called = false;
-      eventStore.emit({ type: "TestEvent" } as any);
+      eventStore.emit({ type: "TestEvent" } as unknown as TestEvent);
 
       expect(called).toBe(false);
       // After clearing, new events are still recorded in history
@@ -214,10 +234,10 @@ describe("EventStore", () => {
 
   describe("getHistoryByType", () => {
     test("filters history by event type", () => {
-      eventStore.emit({ type: "Event1" } as any);
-      eventStore.emit({ type: "Event2" } as any);
-      eventStore.emit({ type: "Event1" } as any);
-      eventStore.emit({ type: "Event3" } as any);
+      eventStore.emit({ type: "Event1" } as unknown as Event1);
+      eventStore.emit({ type: "Event2" } as unknown as Event2);
+      eventStore.emit({ type: "Event1" } as unknown as Event1);
+      eventStore.emit({ type: "Event3" } as unknown as Event3);
 
       const event1History = eventStore.getHistoryByType("Event1");
       expect(event1History).toHaveLength(2);

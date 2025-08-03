@@ -65,7 +65,7 @@ export class FormulaEvaluator implements IFormulaEvaluator {
         }
         const values = context.getRangeValues(node.range);
         // Range values are handled specially by functions
-        return ok(values as any);
+        return ok(values);
       }
 
       case "function":
@@ -92,7 +92,9 @@ export class FormulaEvaluator implements IFormulaEvaluator {
         return this.evaluateUnaryOp(node.operator || "", node.operand, context);
 
       default:
-        return err(`Unknown AST node type: ${(node as any).type}`);
+        return err(
+          `Unknown AST node type: ${(node as unknown as { type: string }).type}`,
+        );
     }
   }
 

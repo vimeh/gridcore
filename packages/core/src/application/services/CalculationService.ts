@@ -42,7 +42,10 @@ export class CalculationService implements ICalculationService {
 
     // Check cache
     if (this.calculationCache.has(key)) {
-      return ok(this.calculationCache.get(key)!);
+      const cachedValue = this.calculationCache.get(key);
+      if (cachedValue !== undefined) {
+        return ok(cachedValue);
+      }
     }
 
     // Get the cell
@@ -107,10 +110,12 @@ export class CalculationService implements ICalculationService {
       };
 
       // Evaluate the formula
-      const evalResult = this.formulaService.evaluateFormula(
-        cell.formula!,
-        context,
-      );
+      const formula = cell.formula;
+      if (!formula) {
+        this.calculatingCells.delete(key);
+        return err("Cell has no formula");
+      }
+      const evalResult = this.formulaService.evaluateFormula(formula, context);
 
       let newCell: Cell;
       if (!evalResult.ok) {

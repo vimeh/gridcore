@@ -5,7 +5,7 @@ import type {
 } from "../../domain/interfaces/IEventService";
 
 export class EventStore implements IEventService {
-  private handlers = new Map<string, Set<EventHandler<any>>>();
+  private handlers = new Map<string, Set<EventHandler<DomainEvent>>>();
   private eventHistory: DomainEvent[] = [];
   private maxHistorySize: number;
 

@@ -151,7 +151,9 @@ export class TabBar {
         this.draggedTab = tab;
         this.draggedSheetId = tab.dataset.sheetId || null;
         tab.classList.add("dragging");
-        e.dataTransfer!.effectAllowed = "move";
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = "move";
+        }
       }
     });
 
@@ -202,18 +204,23 @@ export class TabBar {
       ...container.querySelectorAll(".tab:not(.dragging)"),
     ];
 
-    return draggableElements.reduce(
+    interface ClosestElement {
+      offset: number;
+      element: Element | null;
+    }
+
+    return draggableElements.reduce<ClosestElement>(
       (closest, child) => {
         const box = child.getBoundingClientRect();
         const offset = x - box.left - box.width / 2;
 
-        if (offset < 0 && offset > (closest as any).offset) {
+        if (offset < 0 && offset > closest.offset) {
           return { offset: offset, element: child };
         } else {
           return closest;
         }
       },
-      { offset: Number.NEGATIVE_INFINITY, element: null } as any,
+      { offset: Number.NEGATIVE_INFINITY, element: null },
     ).element;
   }
 

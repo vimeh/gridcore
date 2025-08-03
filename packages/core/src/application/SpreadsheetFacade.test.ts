@@ -308,7 +308,10 @@ describe("SpreadsheetFacade", () => {
       facade.setCellValue(c1, "=B1+A1");
 
       // Change A1 without triggering automatic recalc
-      const cell = cellRepository.get(a1)!;
+      const cell = cellRepository.get(a1);
+      if (!cell) {
+        throw new Error("Cell A1 not found");
+      }
       cellRepository.set(a1, cell.withComputedValue(20));
 
       // Recalculate all
