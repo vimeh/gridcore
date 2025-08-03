@@ -29,19 +29,19 @@ describe("Viewport", () => {
       viewport.setViewportSize(800, 600);
       // Reset scroll position first
       viewport.setScrollPosition(0, 0);
-      
+
       // Debug: check actual grid dimensions
       const totalWidth = viewport.getTotalGridWidth();
       const totalHeight = viewport.getTotalGridHeight();
-      
+
       // Verify through scroll behavior - scroll position should be clamped
       viewport.scrollBy(50000, 50000);
       const pos = viewport.getScrollPosition();
-      
+
       // Max scroll X = totalWidth - viewportWidth
       const expectedMaxX = Math.max(0, totalWidth - 800);
       expect(pos.x).toBe(expectedMaxX);
-      
+
       // Max scroll Y = totalHeight - viewportHeight
       const expectedMaxY = Math.max(0, totalHeight - 600);
       expect(pos.y).toBe(expectedMaxY);
@@ -299,7 +299,7 @@ describe("Viewport", () => {
       // Row 2: 124-147 (height 24)
       // Row 3: 148-171 (height 24)
       // Position 150 is in row 3
-      
+
       const cell2 = customViewport.getCellAtPosition(250, 150);
       expect(cell2).toEqual({ row: 3, col: 1 });
     });
