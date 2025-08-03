@@ -37,6 +37,7 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 
 - `bun test` - Run all tests
 - `bun test <file>` - Run specific test file (e.g., `bun test src/animation/Timeline.test.ts`)
+- `bun run check` - Run linting and type checking
 
 ## Code Style
 
@@ -50,3 +51,27 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 - **Comments**: Minimal comments, focus on JSDoc for public APIs only
 - **File Structure**: Index files for clean exports, group related functionality
 - **Testing**: Bun test framework, descriptive test names, use beforeEach/afterEach for setup
+
+## TypeScript Linting Rules
+
+IMPORTANT: Always run `bun run check` before committing to ensure code passes linting.
+
+### Avoid `any` type
+- **NEVER** use `any` type - use `unknown` or proper type annotations instead
+- For test mocks: use proper type assertions like `as unknown as TargetType`
+- For global assignments in tests: prefer type-safe approaches or use `unknown`
+- For function parameters: always specify proper types, even in test utilities
+
+### Avoid non-null assertions (`!`)
+- **NEVER** use non-null assertion operator (`!`)
+- Use proper type guards instead: `.filter((x): x is Type => x !== undefined)`
+- Check for null/undefined before use: `if (value) { ... }`
+- For optional chaining results, wrap in conditional: `if (obj?.prop) { ... }`
+
+### Safe optional chaining
+- Don't use optional chaining in for...of loops: `for (const x of obj?.array)`
+- Instead use: `if (obj?.array) { for (const x of obj.array) { ... } }`
+
+### Type imports
+- Always import types explicitly: `import type { TypeName } from "./module"`
+- For mixed imports: `import { func, type TypeName } from "./module"`
