@@ -5,7 +5,7 @@
   "identifier": "com.gridcore.desktop",
   "build": {
     "frontendDist": "../../ui-web/dist",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://localhost:3000",
     "beforeDevCommand": "cd ../ui-web && bun run dev",
     "beforeBuildCommand": "cd ../ui-web && bun run build"
   },
