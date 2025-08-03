@@ -76,13 +76,7 @@ export class CanvasRenderer {
         );
         const isBeingEdited = isActive && (isEditing || false);
 
-        this.renderCell(
-          position,
-          cell,
-          address,
-          isActive,
-          isBeingEdited,
-        );
+        this.renderCell(position, cell, address, isActive, isBeingEdited);
       }
     }
 

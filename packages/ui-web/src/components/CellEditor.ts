@@ -344,7 +344,7 @@ export class CellEditor {
     if (!this.modeStateMachine) return;
 
     switch (mode) {
-      case "normal":
+      case "normal": {
         // Check current mode to determine which exit transition to use
         const currentState = this.modeStateMachine.getState();
         if (currentState.type === "editing") {
@@ -355,6 +355,7 @@ export class CellEditor {
           }
         }
         break;
+      }
       case "insert":
         this.modeStateMachine.transition({
           type: "ENTER_INSERT_MODE",
@@ -394,7 +395,11 @@ export class CellEditor {
     if (currentMode === "insert") {
       // Check if in replace mode
       const state = this.modeStateMachine?.getState();
-      if (state?.type === "editing" && state.substate.type === "insert" && state.substate.mode === "replace") {
+      if (
+        state?.type === "editing" &&
+        state.substate.type === "insert" &&
+        state.substate.mode === "replace"
+      ) {
         modeText = "INSERT - ESC to normal mode"; // Show INSERT for replace mode too
       } else {
         modeText = "INSERT - ESC to normal mode";

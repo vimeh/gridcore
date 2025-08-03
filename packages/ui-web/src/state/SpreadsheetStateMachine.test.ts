@@ -108,15 +108,19 @@ describe("SpreadsheetStateMachine", () => {
     test("can toggle interaction mode while editing", () => {
       // Start with normal mode
       expect(stateMachine.getInteractionMode()).toBe("normal");
-      
+
       // Toggle to keyboard-only
-      const result1 = stateMachine.transition({ type: "TOGGLE_INTERACTION_MODE" });
+      const result1 = stateMachine.transition({
+        type: "TOGGLE_INTERACTION_MODE",
+      });
       expect(result1.ok).toBe(true);
       expect(stateMachine.isEditing()).toBe(true);
       expect(stateMachine.getInteractionMode()).toBe("keyboard-only");
-      
+
       // Toggle back to normal
-      const result2 = stateMachine.transition({ type: "TOGGLE_INTERACTION_MODE" });
+      const result2 = stateMachine.transition({
+        type: "TOGGLE_INTERACTION_MODE",
+      });
       expect(result2.ok).toBe(true);
       expect(stateMachine.isEditing()).toBe(true);
       expect(stateMachine.getInteractionMode()).toBe("normal");
@@ -129,7 +133,7 @@ describe("SpreadsheetStateMachine", () => {
         mode: "keyboard-only",
       });
       expect(stateMachine.getInteractionMode()).toBe("keyboard-only");
-      
+
       // Use escape to return to navigation
       const result = stateMachine.transition({ type: "ESCAPE" });
       expect(result.ok).toBe(true);

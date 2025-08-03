@@ -1,27 +1,34 @@
-import { describe, expect, test, beforeEach, mock } from "bun:test";
-import { SelectionRenderer } from "./SelectionRenderer";
-import { defaultTheme } from "./GridTheme";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CellAddress, CellRange } from "@gridcore/core";
 import { cellAddressToString } from "@gridcore/core";
+import { defaultTheme } from "./GridTheme";
+import { SelectionRenderer } from "./SelectionRenderer";
 
 // Mock canvas context
 function createMockContext() {
   const operations: string[] = [];
-  
+
   return {
     operations,
     save: mock(() => operations.push("save")),
     restore: mock(() => operations.push("restore")),
-    fillRect: mock((x: number, y: number, w: number, h: number) => 
-      operations.push(`fillRect(${x},${y},${w},${h})`)),
-    strokeRect: mock((x: number, y: number, w: number, h: number) => 
-      operations.push(`strokeRect(${x},${y},${w},${h})`)),
+    fillRect: mock((x: number, y: number, w: number, h: number) =>
+      operations.push(`fillRect(${x},${y},${w},${h})`),
+    ),
+    strokeRect: mock((x: number, y: number, w: number, h: number) =>
+      operations.push(`strokeRect(${x},${y},${w},${h})`),
+    ),
     beginPath: mock(() => operations.push("beginPath")),
-    moveTo: mock((x: number, y: number) => operations.push(`moveTo(${x},${y})`)),
-    lineTo: mock((x: number, y: number) => operations.push(`lineTo(${x},${y})`)),
+    moveTo: mock((x: number, y: number) =>
+      operations.push(`moveTo(${x},${y})`),
+    ),
+    lineTo: mock((x: number, y: number) =>
+      operations.push(`lineTo(${x},${y})`),
+    ),
     stroke: mock(() => operations.push("stroke")),
-    setLineDash: mock((segments: number[]) => 
-      operations.push(`setLineDash([${segments.join(",")}])`)),
+    setLineDash: mock((segments: number[]) =>
+      operations.push(`setLineDash([${segments.join(",")}])`),
+    ),
     canvas: {
       width: 800,
       height: 600,
@@ -67,9 +74,9 @@ describe("SelectionRenderer", () => {
 
   test("should not render anything when no cells are selected", () => {
     const selectedCells = new Set<string>();
-    
+
     renderer.renderSelection(selectedCells, null, null);
-    
+
     expect(ctx.operations.length).toBe(0);
   });
 
@@ -78,9 +85,9 @@ describe("SelectionRenderer", () => {
       cellAddressToString({ row: 0, col: 0 }),
       cellAddressToString({ row: 1, col: 1 }),
     ]);
-    
+
     renderer.renderSelection(selectedCells, null, null);
-    
+
     expect(ctx.operations).toContain("save");
     expect(ctx.operations).toContain("fillRect(0,0,100,30)");
     expect(ctx.operations).toContain("fillRect(100,30,100,30)");
@@ -95,9 +102,9 @@ describe("SelectionRenderer", () => {
       cellAddressToString({ row: 1, col: 0 }),
       cellAddressToString({ row: 1, col: 1 }),
     ]);
-    
+
     renderer.renderSelection(selectedCells, null, null);
-    
+
     // Should draw border around the selection
     expect(ctx.operations).toContain("strokeRect(0.5,0.5,199,59)");
   });
@@ -108,9 +115,9 @@ describe("SelectionRenderer", () => {
       start: { row: 1, col: 1 },
       end: { row: 3, col: 3 },
     };
-    
+
     renderer.renderSelection(selectedCells, selectionRange, null);
-    
+
     // Should draw border based on range
     expect(ctx.operations).toContain("strokeRect(100.5,30.5,299,89)");
   });
@@ -120,11 +127,11 @@ describe("SelectionRenderer", () => {
       cellAddressToString({ row: 0, col: 0 }),
       cellAddressToString({ row: 1, col: 1 }),
     ]);
-    
+
     // Test line mode (dashed border)
     renderer.renderSelection(selectedCells, null, "line");
     expect(ctx.operations).toContain("setLineDash([5,3])");
-    
+
     // Test block mode (thicker border)
     ctx.operations.length = 0;
     renderer.renderSelection(selectedCells, null, "block");
@@ -137,13 +144,15 @@ describe("SelectionRenderer", () => {
       cellAddressToString({ row: 0, col: 0 }),
       cellAddressToString({ row: 1, col: 1 }),
     ]);
-    
+
     renderer.renderSelection(selectedCells, null, "character");
-    
+
     // Check for corner indicator paths
-    const beginPathCount = ctx.operations.filter(op => op === "beginPath").length;
-    const strokeCount = ctx.operations.filter(op => op === "stroke").length;
-    
+    const beginPathCount = ctx.operations.filter(
+      (op) => op === "beginPath",
+    ).length;
+    const strokeCount = ctx.operations.filter((op) => op === "stroke").length;
+
     // Should have 4 corners + initial path = 5 beginPath calls
     expect(beginPathCount).toBeGreaterThanOrEqual(4);
     expect(strokeCount).toBeGreaterThanOrEqual(4);
@@ -151,7 +160,7 @@ describe("SelectionRenderer", () => {
 
   test("should handle empty selection gracefully", () => {
     const selectedCells = new Set<string>([]);
-    
+
     expect(() => {
       renderer.renderSelection(selectedCells, null, null);
     }).not.toThrow();
@@ -162,16 +171,16 @@ describe("SelectionRenderer", () => {
       ...defaultTheme,
       selectionBorderColor: "#ff0000",
     };
-    
+
     renderer.updateTheme(newTheme);
-    
+
     const selectedCells = new Set([
       cellAddressToString({ row: 0, col: 0 }),
       cellAddressToString({ row: 1, col: 1 }),
     ]);
-    
+
     renderer.renderSelection(selectedCells, null, null);
-    
+
     expect(ctx.strokeStyle).toBe("#ff0000");
   });
 
@@ -190,22 +199,24 @@ describe("SelectionRenderer", () => {
         };
       },
     };
-    
+
     const rendererWithBounds = new SelectionRenderer(
       canvas,
       defaultTheme,
       mockViewportWithBounds as any,
     );
-    
+
     const selectedCells = new Set([
       cellAddressToString({ row: 0, col: 0 }),
       cellAddressToString({ row: 100, col: 100 }), // Outside viewport
     ]);
-    
+
     rendererWithBounds.renderSelection(selectedCells, null, null);
-    
+
     // Should only render the visible cell
-    expect(ctx.operations.filter(op => op.startsWith("fillRect")).length).toBe(1);
+    expect(
+      ctx.operations.filter((op) => op.startsWith("fillRect")).length,
+    ).toBe(1);
   });
 
   test("should calculate correct bounds for non-contiguous selection", () => {
@@ -214,9 +225,9 @@ describe("SelectionRenderer", () => {
       cellAddressToString({ row: 5, col: 5 }),
       cellAddressToString({ row: 2, col: 3 }),
     ]);
-    
+
     renderer.renderSelection(selectedCells, null, "block");
-    
+
     // Should create bounds that encompass all cells (0,0) to (5,5)
     expect(ctx.operations).toContain("strokeRect(0.5,0.5,599,179)");
   });

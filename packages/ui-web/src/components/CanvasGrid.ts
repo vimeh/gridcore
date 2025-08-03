@@ -70,7 +70,11 @@ export class CanvasGrid {
       options.totalCols,
     );
     this.renderer = new CanvasRenderer(this.canvas, this.theme, this.viewport);
-    this.selectionRenderer = new SelectionRenderer(this.canvas, this.theme, this.viewport);
+    this.selectionRenderer = new SelectionRenderer(
+      this.canvas,
+      this.theme,
+      this.viewport,
+    );
     this.debugRenderer = new DebugRenderer(this.canvas);
     this.headerRenderer = new HeaderRenderer(
       this.rowHeaderCanvas,

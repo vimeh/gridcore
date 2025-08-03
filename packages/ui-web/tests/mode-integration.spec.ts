@@ -245,29 +245,29 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("i");
       await expect(getModeText(page)).toContainText("INSERT");
       await page.keyboard.type("Before");
-      
+
       // Exit to normal mode
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NORMAL");
-      
+
       // Now use 'a' - should still show INSERT mode
       await page.keyboard.press("a");
       await expect(getModeText(page)).toContainText("INSERT");
       await page.keyboard.type("After");
-      
+
       // Exit to normal again
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NORMAL");
-      
+
       // Use 'I' - insert at beginning, should still show INSERT
       await page.keyboard.press("I");
       await expect(getModeText(page)).toContainText("INSERT");
-      
+
       // Use 'A' - append at end, should still show INSERT
       await page.keyboard.press("Escape"); // Back to normal
       await page.keyboard.press("A");
       await expect(getModeText(page)).toContainText("INSERT");
-      
+
       // All insert variants should display as "INSERT" in the mode indicator
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
@@ -419,7 +419,7 @@ test.describe("Mode Integration", () => {
       // Exit editing mode to navigate to a different cell
       await page.keyboard.press("Escape"); // To navigation
       await expect(getModeText(page)).toContainText("NAVIGATION");
-      
+
       // Navigate to B3
       await page.keyboard.press("l"); // Move to B3
 
@@ -432,7 +432,7 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NAVIGATION");
-      
+
       // Verify content was saved
       await expect(page.locator(".formula-bar-input")).toHaveValue("modified");
     });
@@ -590,26 +590,26 @@ test.describe("Mode Integration", () => {
       // Test that 'v' in navigation mode correctly transitions to visual mode
       await page.keyboard.press("v");
       await expect(getModeText(page)).toContainText("VISUAL");
-      
+
       // Exit visual mode goes to normal (within editing)
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NORMAL");
-      
+
       // Test that visual mode doesn't accept insert commands
       await page.keyboard.press("v"); // Re-enter visual
       await expect(getModeText(page)).toContainText("VISUAL");
-      
+
       // Try to enter insert mode with 'i' - should not work in visual mode
       await page.keyboard.press("i");
       // Should still be in visual mode
       await expect(getModeText(page)).toContainText("VISUAL");
-      
+
       // Exit properly - visual -> normal -> navigation
       await page.keyboard.press("Escape"); // To normal
       await expect(getModeText(page)).toContainText("NORMAL");
       await page.keyboard.press("Escape"); // To navigation
       await expect(getModeText(page)).toContainText("NAVIGATION");
-      
+
       // Test rapid mode transitions to ensure state machine handles them correctly
       for (let i = 0; i < 3; i++) {
         await page.keyboard.press("i"); // Insert
@@ -618,7 +618,7 @@ test.describe("Mode Integration", () => {
         await page.keyboard.press("Escape"); // Normal
         await page.keyboard.press("Escape"); // Navigation
       }
-      
+
       // Should end up in navigation after all transitions
       await expect(getModeText(page)).toContainText("NAVIGATION");
     });

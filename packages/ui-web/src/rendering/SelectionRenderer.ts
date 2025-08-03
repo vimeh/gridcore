@@ -1,7 +1,7 @@
 import type { CellAddress, CellRange } from "@gridcore/core";
-import type { GridTheme } from "./GridTheme";
-import type { Viewport as GridViewport } from "../components/Viewport";
 import { parseCellAddress } from "@gridcore/core";
+import type { Viewport as GridViewport } from "../components/Viewport";
+import type { GridTheme } from "./GridTheme";
 
 export interface SelectionBounds {
   x: number;
@@ -28,7 +28,8 @@ export class SelectionRenderer {
     this.ctx = ctx;
     this.theme = theme;
     this.viewport = viewport;
-    this.devicePixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    this.devicePixelRatio =
+      typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
   }
 
   renderSelection(
@@ -45,7 +46,10 @@ export class SelectionRenderer {
 
     // Render selection border
     if (selectionRange || selectedCells.size > 1) {
-      const bounds = this.calculateSelectionBounds(selectedCells, selectionRange);
+      const bounds = this.calculateSelectionBounds(
+        selectedCells,
+        selectionRange,
+      );
       if (bounds) {
         this.renderSelectionBorder(bounds, visualMode);
       }
@@ -60,11 +64,16 @@ export class SelectionRenderer {
     for (const cellKey of selectedCells) {
       const cellAddress = parseCellAddress(cellKey);
       if (!cellAddress) continue;
-      
+
       const position = this.viewport.getCellPosition(cellAddress);
-      
+
       if (position && this.isCellVisible(position)) {
-        this.ctx.fillRect(position.x, position.y, position.width, position.height);
+        this.ctx.fillRect(
+          position.x,
+          position.y,
+          position.width,
+          position.height,
+        );
       }
     }
 
@@ -78,7 +87,8 @@ export class SelectionRenderer {
     this.ctx.save();
 
     // Set border style based on visual mode
-    this.ctx.strokeStyle = this.theme.selectionBorderColor || this.theme.activeCellBorderColor;
+    this.ctx.strokeStyle =
+      this.theme.selectionBorderColor || this.theme.activeCellBorderColor;
     this.ctx.lineWidth = 2;
 
     if (visualMode === "line") {
@@ -112,7 +122,8 @@ export class SelectionRenderer {
   private drawCornerIndicators(bounds: SelectionBounds): void {
     const cornerSize = 8;
     this.ctx.lineWidth = 3;
-    this.ctx.strokeStyle = this.theme.selectionBorderColor || this.theme.activeCellBorderColor;
+    this.ctx.strokeStyle =
+      this.theme.selectionBorderColor || this.theme.activeCellBorderColor;
 
     // Top-left corner
     this.ctx.beginPath();
@@ -137,9 +148,15 @@ export class SelectionRenderer {
 
     // Bottom-right corner
     this.ctx.beginPath();
-    this.ctx.moveTo(bounds.x + bounds.width - cornerSize, bounds.y + bounds.height);
+    this.ctx.moveTo(
+      bounds.x + bounds.width - cornerSize,
+      bounds.y + bounds.height,
+    );
     this.ctx.lineTo(bounds.x + bounds.width, bounds.y + bounds.height);
-    this.ctx.lineTo(bounds.x + bounds.width, bounds.y + bounds.height - cornerSize);
+    this.ctx.lineTo(
+      bounds.x + bounds.width,
+      bounds.y + bounds.height - cornerSize,
+    );
     this.ctx.stroke();
   }
 
@@ -163,7 +180,7 @@ export class SelectionRenderer {
       for (const cellKey of selectedCells) {
         const cellAddress = parseCellAddress(cellKey);
         if (!cellAddress) continue;
-        
+
         minRow = Math.min(minRow, cellAddress.row);
         maxRow = Math.max(maxRow, cellAddress.row);
         minCol = Math.min(minCol, cellAddress.col);
@@ -177,7 +194,10 @@ export class SelectionRenderer {
 
     // Get positions for corner cells
     const topLeft = this.viewport.getCellPosition({ row: minRow, col: minCol });
-    const bottomRight = this.viewport.getCellPosition({ row: maxRow, col: maxCol });
+    const bottomRight = this.viewport.getCellPosition({
+      row: maxRow,
+      col: maxCol,
+    });
 
     if (!topLeft || !bottomRight) {
       return null;
@@ -191,7 +211,12 @@ export class SelectionRenderer {
     };
   }
 
-  private isCellVisible(position: { x: number; y: number; width: number; height: number }): boolean {
+  private isCellVisible(position: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): boolean {
     const canvasWidth = this.ctx.canvas.width / this.devicePixelRatio;
     const canvasHeight = this.ctx.canvas.height / this.devicePixelRatio;
 
