@@ -5,10 +5,14 @@ export * from "./formula/parser";
 export * from "./formula/tokenizer";
 export * from "./Grid";
 export * from "./pivot";
+export * from "./Sheet";
 export * from "./SpreadsheetEngine";
 export * from "./types";
 export * from "./types/SpreadsheetState";
+export * from "./types/WorkbookState";
 export * from "./utils/cellAddress";
+export * from "./Workbook";
+export * from "./WorkbookFormulaEngine";
 
 export class GridCore {
   private name: string = "GridCore Engine";
