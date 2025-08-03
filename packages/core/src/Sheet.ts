@@ -1,5 +1,6 @@
 import { SpreadsheetEngine } from "./SpreadsheetEngine"
 import type { GridDimensions } from "./types"
+import type { SheetState } from "./types/WorkbookState"
 
 export interface SheetMetadata {
   createdAt: Date
@@ -111,6 +112,28 @@ export class Sheet {
         modifiedAt: this.metadata.modifiedAt.toISOString(),
       },
     }
+  }
+
+  toState(): SheetState {
+    const engineState = this.engine.toState()
+    return {
+      ...engineState,
+      id: this.id,
+      name: this.name,
+      index: this.metadata.index,
+      hidden: this.metadata.hidden,
+      protected: this.metadata.protected,
+    }
+  }
+
+  static fromState(state: SheetState): Sheet {
+    const sheet = new Sheet(state.name)
+    sheet.id = state.id
+    sheet.engine = SpreadsheetEngine.fromState(state)
+    sheet.metadata.index = state.index
+    if (state.hidden !== undefined) sheet.metadata.hidden = state.hidden
+    if (state.protected !== undefined) sheet.metadata.protected = state.protected
+    return sheet
   }
 
   static fromJSON(data: ReturnType<Sheet["toJSON"]>, preserveId: boolean = true): Sheet {

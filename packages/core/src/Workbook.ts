@@ -1,10 +1,9 @@
 import { Sheet } from "./Sheet"
+import type { WorkbookState, WorkbookMetadata as WorkbookMetadataType, WorkbookStateOptions } from "./types/WorkbookState"
 
-export interface WorkbookMetadata {
-  title?: string
+export interface WorkbookMetadata extends Omit<WorkbookMetadataType, "createdAt" | "modifiedAt"> {
   createdAt: Date
   modifiedAt: Date
-  author?: string
 }
 
 export class Workbook {
@@ -286,6 +285,67 @@ export class Workbook {
     
     // Re-index sheets to ensure consistency
     workbook.reindexSheets()
+    
+    return workbook
+  }
+
+  toState(options: WorkbookStateOptions = {}): WorkbookState {
+    const sheets = this.getAllSheets()
+    const sheetStates = options.includeHiddenSheets
+      ? sheets.map(sheet => sheet.toState())
+      : sheets.filter(sheet => !sheet.isHidden()).map(sheet => sheet.toState())
+
+    const state: WorkbookState = {
+      version: "2.0",
+      sheets: sheetStates,
+      activeSheetId: this.activeSheetId,
+      sheetOrder: this.sheetOrder,
+    }
+
+    if (options.includeMetadata !== false) {
+      state.metadata = {
+        ...this.metadata,
+        createdAt: this.metadata.createdAt.toISOString(),
+        modifiedAt: this.metadata.modifiedAt.toISOString(),
+      }
+    }
+
+    return state
+  }
+
+  static fromState(state: WorkbookState): Workbook {
+    const workbook = new Workbook()
+    
+    // Only proceed if there are sheets to restore
+    if (state.sheets.length > 0) {
+      // Remove default sheet
+      workbook.sheets.clear()
+      workbook.sheetOrder = []
+      
+      // Restore sheets
+      for (const sheetState of state.sheets) {
+        const sheet = Sheet.fromState(sheetState)
+        workbook.sheets.set(sheet.getId(), sheet)
+        workbook.sheetOrder.push(sheet.getId())
+      }
+      
+      // Restore active sheet
+      if (state.activeSheetId && workbook.sheets.has(state.activeSheetId)) {
+        workbook.activeSheetId = state.activeSheetId
+      } else if (workbook.sheetOrder.length > 0) {
+        workbook.activeSheetId = workbook.sheetOrder[0]
+      }
+    }
+    // If no sheets in state, keep the default sheet
+    
+    // Restore metadata
+    if (state.metadata) {
+      workbook.metadata = {
+        ...state.metadata,
+        createdAt: new Date(state.metadata.createdAt),
+        modifiedAt: new Date(state.metadata.modifiedAt),
+      }
+    }
     
     return workbook
   }
