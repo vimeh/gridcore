@@ -2,7 +2,7 @@ import { SpreadsheetEngine } from "@gridcore/core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
 import { ModeIndicator } from "./components/ModeIndicator";
-import { SpreadsheetModeStateMachine } from "./state/SpreadsheetMode";
+import { SpreadsheetStateMachine } from "./state/SpreadsheetStateMachine";
 import "./style.css";
 
 // Initialize the app
@@ -36,7 +36,7 @@ const GRID_COLS = 52; // A-Z, AA-AZ
 const engine = new SpreadsheetEngine(GRID_ROWS, GRID_COLS);
 
 // Create state machine
-const modeStateMachine = new SpreadsheetModeStateMachine();
+const modeStateMachine = new SpreadsheetStateMachine();
 
 // Add some sample data
 engine.setCellByReference("A1", "Hello");

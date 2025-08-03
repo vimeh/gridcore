@@ -2,7 +2,7 @@ import type { CellAddress } from "@gridcore/core";
 import { KEY_CODES } from "../constants";
 import type { Viewport } from "./Viewport";
 import { VimBehavior, type VimBehaviorCallbacks } from "../interaction/VimMode";
-import type { CellMode, EditMode, SpreadsheetState, SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
+import type { SpreadsheetStateMachine, SpreadsheetState, InsertMode } from "../state/SpreadsheetStateMachine";
 
 export interface CellEditorCallbacks {
   onCommit: (address: CellAddress, value: string) => void;
@@ -13,7 +13,7 @@ export interface CellEditorCallbacks {
 }
 
 export interface CellEditorOptions extends CellEditorCallbacks {
-  modeStateMachine?: SpreadsheetModeStateMachine;
+  modeStateMachine?: SpreadsheetStateMachine;
 }
 
 export class CellEditor {
@@ -24,7 +24,7 @@ export class CellEditor {
   private modeIndicator: HTMLDivElement;
   private blockCursor: HTMLDivElement;
   private ignoreNextBlur: boolean = false;
-  private modeStateMachine?: SpreadsheetModeStateMachine;
+  private modeStateMachine?: SpreadsheetStateMachine;
   private callbacks: CellEditorCallbacks;
   private unsubscribeModeChange?: () => void;
 
@@ -58,7 +58,7 @@ export class CellEditor {
     
     // Subscribe to mode changes if SpreadsheetModeStateMachine is available
     if (this.modeStateMachine) {
-      this.unsubscribeModeChange = this.modeStateMachine.onModeChange(
+      this.unsubscribeModeChange = this.modeStateMachine.subscribe(
         this.handleModeStateChange.bind(this)
       );
     }
@@ -136,7 +136,7 @@ export class CellEditor {
     this.isEditing = true;
 
     // Start editing mode in SpreadsheetModeStateMachine with the specified edit mode
-    this.modeStateMachine?.transition({ type: "START_EDITING", editMode: mode as EditMode });
+    this.modeStateMachine?.transition({ type: "START_EDITING", editMode: mode as InsertMode });
 
     // Notify that editing has started
     this.callbacks.onEditStart?.();
@@ -166,15 +166,15 @@ export class CellEditor {
       // For replace mode, clear text and start in insert mode
       this.editorDiv.textContent = "";
       this.vimBehavior.setText("", 0);
-      this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE", editMode: "replace" });
+      this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE", mode: "replace" });
     } else if (mode === "append") {
       // Set text first, then append mode will move cursor to end
       this.vimBehavior.setText(initialValue, initialValue.length);
-      this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE", editMode: "append" });
+      this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE", mode: "append" });
     } else {
       // For insert mode, enter insert mode at current position
       this.vimBehavior.setText(initialValue, initialValue.length);
-      this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE", editMode: "insert" });
+      this.modeStateMachine?.transition({ type: "ENTER_INSERT_MODE", mode: "insert" });
     }
     // Focus and set cursor
     this.editorDiv.focus();
@@ -196,13 +196,13 @@ export class CellEditor {
 
     const value = this.editorDiv.textContent || "";
     this.callbacks.onCommit(this.currentCell, value);
-    this.modeStateMachine?.transition({ type: "STOP_EDITING", commit: true });
+    this.modeStateMachine?.transition({ type: "STOP_EDITING" });
     this.hideEditor();
   }
 
   private cancelEdit(): void {
     this.callbacks.onCancel();
-    this.modeStateMachine?.transition({ type: "STOP_EDITING", commit: false });
+    this.modeStateMachine?.transition({ type: "STOP_EDITING" });
     this.hideEditor();
   }
 
@@ -325,7 +325,7 @@ export class CellEditor {
   /**
    * Handle vim behavior mode change requests by delegating to ModeManager
    */
-  private handleVimModeChangeRequest(mode: CellMode, editMode?: EditMode): void {
+  private handleVimModeChangeRequest(mode: string, editMode?: InsertMode): void {
     if (!this.modeStateMachine) return;
     
     switch (mode) {
@@ -333,7 +333,7 @@ export class CellEditor {
         this.modeStateMachine.transition({ type: "EXIT_INSERT_MODE" });
         break;
       case "insert":
-        this.modeStateMachine.transition({ type: "ENTER_INSERT_MODE", editMode });
+        this.modeStateMachine.transition({ type: "ENTER_INSERT_MODE", mode: editMode });
         break;
       case "visual":
         this.modeStateMachine.transition({ type: "ENTER_VISUAL_MODE", visualType: "character" });
@@ -347,19 +347,23 @@ export class CellEditor {
   /**
    * Handle mode state changes from ModeManager
    */
-  private handleModeStateChange(newState: SpreadsheetState, previousState: SpreadsheetState): void {
+  private handleModeStateChange(newState: SpreadsheetState): void {
     // Only handle changes when we're actively editing
     if (!this.isEditing) return;
     
-    const currentCellMode = newState.cellMode;
+    // Get current mode from state
+    let currentMode = "normal";
+    if (newState.type === "editing") {
+      currentMode = newState.substate.type;
+    }
     
     // Update mode indicator
-    this.modeIndicator.textContent = currentCellMode.toUpperCase();
+    this.modeIndicator.textContent = currentMode.toUpperCase();
     // Set ignore blur flag when changing contentEditable
     this.ignoreNextBlur = true;
     
-    // Update UI based on cell mode
-    switch (currentCellMode) {
+    // Update UI based on mode
+    switch (currentMode) {
       case "normal":
         this.modeIndicator.style.backgroundColor = "#666";
         this.editorDiv.style.borderColor = "#666";
@@ -382,17 +386,10 @@ export class CellEditor {
         this.editorDiv.contentEditable = "true";
         this.blockCursor.style.display = "none";
         break;
-      case "visual-line":
-        this.modeIndicator.style.backgroundColor = "#ff6600";
-        this.editorDiv.style.borderColor = "#ff6600";
-        // Keep contentEditable true for selection
-        this.editorDiv.contentEditable = "true";
-        this.blockCursor.style.display = "none";
-        break;
     }
     
-    // Handle grid mode changes (e.g., exit editing)
-    if (newState.gridMode === "navigation" && previousState.gridMode === "editing") {
+    // Handle navigation state (exit editing)
+    if (newState.type === "navigation") {
       // Editing was stopped externally, hide the editor
       this.hideEditor();
       return;
@@ -411,8 +408,10 @@ export class CellEditor {
   /**
    * Get current cell mode from ModeManager or fallback to normal
    */
-  private getCurrentCellMode(): CellMode {
-    return this.modeStateMachine?.getCellMode() ?? "normal";
+  private getCurrentCellMode(): string {
+    const state = this.modeStateMachine?.getState();
+    if (!state || state.type === "navigation") return "normal";
+    return state.substate.type;
   }
 
   private handleTextChange(text: string, cursor: number): void {

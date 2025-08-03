@@ -1,4 +1,4 @@
-import { CellMode, EditMode } from "../state/SpreadsheetMode"
+// Types are now part of the component itself, no need for external imports
 
 export type VimModeType = "normal" | "insert" | "visual" | "visual-line";
 

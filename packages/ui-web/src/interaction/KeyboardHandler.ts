@@ -3,7 +3,7 @@ import type { CanvasGrid } from "../components/CanvasGrid";
 import type { CellEditor } from "../components/CellEditor";
 import { KEY_CODES } from "../constants";
 import type { SelectionManager } from "./SelectionManager";
-import type { SpreadsheetModeStateMachine } from "../state/SpreadsheetMode";
+import type { SpreadsheetStateMachine } from "../state/SpreadsheetStateMachine";
 import { GridVimBehavior, type GridVimCallbacks } from "./GridVimBehavior";
 import { ResizeBehavior } from "./ResizeBehavior";
 
@@ -18,7 +18,7 @@ export class KeyboardHandler {
     private cellEditor: CellEditor,
     private grid: SpreadsheetEngine,
     private canvasGrid?: CanvasGrid,
-    private modeStateMachine?: SpreadsheetModeStateMachine,
+    private modeStateMachine?: SpreadsheetStateMachine,
   ) {
     this.setupEventListeners();
     this.initializeVimBehaviors();
@@ -151,7 +151,11 @@ export class KeyboardHandler {
 
       this.gridVimBehavior = new GridVimBehavior(
         callbacks,
-        () => this.modeStateMachine!.getCellMode(),
+        () => {
+          const state = this.modeStateMachine!.getState();
+          if (state.type === "navigation") return "normal";
+          return state.substate.type;
+        },
         this.selectionManager,
         this.canvasGrid.getViewport(),
       );
@@ -166,7 +170,7 @@ export class KeyboardHandler {
   private handleKeyDown(event: KeyboardEvent): void {
     // Check if we're in navigation mode
     const isNavigationMode =
-      !this.modeStateMachine || this.modeStateMachine.isInNavigationMode();
+      !this.modeStateMachine || this.modeStateMachine.isNavigating();
     const isResizeMode = this.modeStateMachine?.isInResizeMode();
 
     // Handle resize mode

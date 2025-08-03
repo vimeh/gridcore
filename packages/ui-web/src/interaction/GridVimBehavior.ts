@@ -1,6 +1,6 @@
 import type { CellAddress } from "@gridcore/core";
 import type { Viewport } from "../components/Viewport";
-import type { CellMode } from "../state/SpreadsheetMode";
+// CellMode is no longer needed - we'll use string mode names directly
 import type { SelectionManager } from "./SelectionManager";
 
 export interface GridVimCallbacks {
@@ -32,7 +32,7 @@ export class GridVimBehavior {
 
   constructor(
     private callbacks: GridVimCallbacks,
-    private getCurrentMode: () => CellMode,
+    private getCurrentMode: () => string,
     private selectionManager: SelectionManager,
     private viewport: Viewport,
   ) {}

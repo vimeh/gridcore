@@ -1,4 +1,4 @@
-import type { SpreadsheetState, SpreadsheetModeStateMachine } from "../state/SpreadsheetMode"
+import type { SpreadsheetStateMachine, SpreadsheetState } from "../state/SpreadsheetStateMachine"
 
 export class ModeIndicator {
   private element: HTMLDivElement
@@ -8,7 +8,7 @@ export class ModeIndicator {
   
   constructor(
     private container: HTMLElement,
-    private modeStateMachine: SpreadsheetModeStateMachine
+    private modeStateMachine: SpreadsheetStateMachine
   ) {
     this.element = this.createElement();
     this.modeText = this.element.querySelector(".mode-text")!;
@@ -16,7 +16,7 @@ export class ModeIndicator {
     this.container.appendChild(this.element);
 
     // Subscribe to mode changes
-    this.unsubscribe = this.modeStateMachine.onModeChange(this.handleModeChange.bind(this))
+    this.unsubscribe = this.modeStateMachine.subscribe(this.handleModeChange.bind(this))
     
     // Set initial state
     this.updateDisplay(this.modeStateMachine.getState())
@@ -67,10 +67,7 @@ export class ModeIndicator {
     return div
   }
 
-  private handleModeChange(
-    state: SpreadsheetState,
-    previousState: SpreadsheetState,
-  ): void {
+  private handleModeChange(state: SpreadsheetState): void {
     this.updateDisplay(state);
 
     // Add animation effect on mode change
@@ -94,86 +91,57 @@ export class ModeIndicator {
     // Determine primary mode and color
     let primaryMode: string
     let colorKey: keyof typeof colors
+    let details: string[] = []
     
-    if (state.gridMode === "navigation") {
+    if (state.type === "navigation") {
       primaryMode = "NAVIGATION"
       colorKey = "navigation"
     } else {
-      // In editing mode, use cell mode for coloring
-      switch (state.cellMode) {
+      // In editing mode, check substate
+      switch (state.substate.type) {
+        case "normal":
+          primaryMode = "NORMAL"
+          colorKey = "normal"
+          break
         case "insert":
-          primaryMode = state.editMode ? `${state.editMode.toUpperCase()}` : "INSERT"
+          primaryMode = state.substate.mode.toUpperCase()
           colorKey = "insert"
+          details.push(`Mode: ${state.substate.mode}`)
           break
         case "visual":
-          primaryMode = "VISUAL"
-          colorKey = "visual"
-          break
-        case "visual-line":
-          primaryMode = "VISUAL LINE"
-          colorKey = "visual-line"
-          break
-        case "visual-block":
-          primaryMode = "VISUAL BLOCK"
-          colorKey = "visual-block"
+          if (state.substate.mode === "character") {
+            primaryMode = "VISUAL"
+            colorKey = "visual"
+          } else if (state.substate.mode === "line") {
+            primaryMode = "VISUAL LINE"
+            colorKey = "visual-line"
+          } else {
+            primaryMode = "VISUAL BLOCK"
+            colorKey = "visual-block"
+          }
           break
         case "resize":
           primaryMode = "RESIZE"
           colorKey = "resize"
+          details.push(`${state.substate.target.type} ${state.substate.target.index}`)
           break
-        default:
-          primaryMode = "NORMAL"
-          colorKey = "normal"
       }
     }
     
     // Set primary mode text
     this.modeText.textContent = primaryMode
     
-    // Build detailed mode information
-    const details: string[] = []
-    
-    // Grid mode (always show when editing)
-    if (state.gridMode === "editing") {
-      details.push(`Grid: ${state.gridMode}`)
-    }
-    
-    // Cell mode (show when editing and not redundant with primary mode)
-    if (state.gridMode === "editing" && state.cellMode !== "insert") {
-      details.push(`Cell: ${state.cellMode}`)
-    }
-    
-    // Edit mode (show when in insert mode and different from primary)
-    if (state.cellMode === "insert" && state.editMode && state.editMode !== "insert") {
-      details.push(`Edit: ${state.editMode}`)
-    }
-    
-    // Pending edit mode (show when there's a pending edit mode)
-    if (state.pendingEditMode && state.pendingEditMode !== state.editMode) {
-      details.push(`Pending: ${state.pendingEditMode}`)
-    }
-    
     // Interaction mode (show when not normal)
     if (state.interactionMode !== "normal") {
       details.push(`Input: ${state.interactionMode}`)
     }
     
-    // Visual mode details
-    if (state.visualAnchor && state.visualCursor) {
-      details.push(`Selection: ${state.visualAnchor.row},${state.visualAnchor.col} to ${state.visualCursor.row},${state.visualCursor.col}`)
-    }
-    
-    // Resize mode details
-    if (state.resizeTarget) {
-      details.push(`Target: ${state.resizeTarget.type} ${state.resizeTarget.index}`)
-    }
-    
     // Add helpful hints based on current mode
     let hints: string[] = []
-    if (state.gridMode === "navigation") {
+    if (state.type === "navigation") {
       hints = ["hjkl to move", "i/a to edit", "v for visual"]
     } else {
-      switch (state.cellMode) {
+      switch (state.substate.type) {
         case "normal":
           hints = ["i/a to insert", "v for visual", "ESC to exit"]
           break
@@ -181,8 +149,6 @@ export class ModeIndicator {
           hints = ["ESC to normal", "text editing active"]
           break
         case "visual":
-        case "visual-line":
-        case "visual-block":
           hints = ["hjkl to select", "ESC to exit"]
           break
         case "resize":

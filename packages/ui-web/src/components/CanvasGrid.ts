@@ -11,7 +11,7 @@ import { CanvasRenderer } from "../rendering/CanvasRenderer";
 import { DebugRenderer } from "../rendering/DebugRenderer";
 import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
 import { HeaderRenderer } from "../rendering/HeaderRenderer";
-import type { SpreadsheetModeStateMachine, InteractionMode } from "../state/SpreadsheetMode";
+import type { SpreadsheetStateMachine, InteractionMode } from "../state/SpreadsheetStateMachine";
 import { CellEditor } from "./CellEditor";
 import { Viewport } from "./Viewport";
 
@@ -20,7 +20,7 @@ export interface CanvasGridOptions {
   theme?: GridTheme;
   totalRows?: number;
   totalCols?: number;
-  modeStateMachine?: SpreadsheetModeStateMachine;
+  modeStateMachine?: SpreadsheetStateMachine;
 }
 
 export class CanvasGrid {
@@ -45,7 +45,7 @@ export class CanvasGrid {
   private animationFrameId: number | null = null;
   private debugRenderer!: DebugRenderer;
   private interactionModeToggle!: HTMLInputElement;
-  private modeStateMachine?: SpreadsheetModeStateMachine;
+  private modeStateMachine?: SpreadsheetStateMachine;
   private modeChangeUnsubscribe?: () => void;
 
   constructor(
@@ -303,8 +303,8 @@ export class CanvasGrid {
 
   private setupModeChangeSubscription(): void {
     if (this.modeStateMachine) {
-      this.modeChangeUnsubscribe = this.modeStateMachine.onModeChange(
-        (newState, previousState) => {
+      this.modeChangeUnsubscribe = this.modeStateMachine.subscribe(
+        (newState) => {
           // Update mouse handler based on interaction mode
           this.mouseHandler.setEnabled(newState.interactionMode === "normal");
           
@@ -512,7 +512,7 @@ export class CanvasGrid {
 
       // Render the grid
       const isNavigationMode =
-        this.modeStateMachine?.isInNavigationMode() ?? true;
+        this.modeStateMachine?.isNavigating() ?? true;
       const cellsRendered = this.renderer.renderGrid(
         (address) => this.grid.getCell(address),
         this.selectionManager.getSelectedCells(),
