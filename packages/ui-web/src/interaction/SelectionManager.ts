@@ -25,10 +25,13 @@ export class SelectionManager {
   private viewport: Viewport | null = null; // Will be injected
 
   setActiveCell(cell: CellAddress): void {
-    this.clearSelection();
+    // Don't clear selection if in visual mode
+    if (!this.visualMode) {
+      this.clearSelection();
+      this.state.selectedCells.add(cellAddressToString(cell));
+      this.state.selectionRange = null;
+    }
     this.state.activeCell = cell;
-    this.state.selectedCells.add(cellAddressToString(cell));
-    this.state.selectionRange = null;
   }
 
   getActiveCell(): CellAddress | null {

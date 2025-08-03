@@ -44,6 +44,7 @@ export class KeyboardHandler {
               this.modeStateMachine?.transition({
                 type: "ENTER_VISUAL_MODE",
                 visualType: "character",
+                anchor: activeCell,
               });
               this.selectionManager.startVisualSelection(
                 activeCell,
@@ -56,6 +57,7 @@ export class KeyboardHandler {
               this.modeStateMachine?.transition({
                 type: "ENTER_VISUAL_MODE",
                 visualType: "line",
+                anchor: activeCell,
               });
               this.selectionManager.startVisualSelection(activeCell, "line");
             }
@@ -64,6 +66,7 @@ export class KeyboardHandler {
             if (activeCell) {
               this.modeStateMachine?.transition({
                 type: "ENTER_VISUAL_BLOCK_MODE",
+                anchor: activeCell,
               });
               this.selectionManager.startVisualSelection(activeCell, "block");
             }
@@ -316,6 +319,7 @@ export class KeyboardHandler {
             this.modeStateMachine?.transition({
               type: "ENTER_VISUAL_MODE",
               visualType: "character",
+              anchor: activeCell,
             });
             this.selectionManager.startVisualSelection(activeCell, "character");
           }
@@ -331,6 +335,7 @@ export class KeyboardHandler {
             this.modeStateMachine?.transition({
               type: "ENTER_VISUAL_MODE",
               visualType: "line",
+              anchor: cell,
             });
             this.selectionManager.startVisualSelection(cell, "line");
           }
@@ -499,6 +504,7 @@ export class KeyboardHandler {
               this.modeStateMachine?.transition({ type: "START_EDITING" });
               this.modeStateMachine?.transition({
                 type: "ENTER_VISUAL_BLOCK_MODE",
+                anchor: activeCell,
               });
               this.selectionManager.startVisualSelection(activeCell, "block");
             }
