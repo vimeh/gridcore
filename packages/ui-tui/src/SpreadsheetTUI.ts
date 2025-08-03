@@ -11,6 +11,7 @@ import {
   Renderable,
   Terminal,
 } from "./framework";
+import { VimBehavior, type VimMode } from "./vim";
 
 export type Mode = "normal" | "edit" | "command" | "visual";
 
@@ -29,6 +30,10 @@ export interface TUIState {
   };
   editingValue?: string;
   commandValue?: string;
+  vimMode?: VimMode;
+  vimCommandBuffer?: string;
+  vimNumberBuffer?: string;
+  visualType?: "character" | "line" | "block";
 }
 
 export class SpreadsheetTUI extends Renderable {
@@ -37,6 +42,8 @@ export class SpreadsheetTUI extends Renderable {
   private engine: SpreadsheetEngine;
   private state: TUIState;
   private running = false;
+  private vimBehavior: VimBehavior;
+  private useVim = true;
 
   // Child components
   private gridComponent: GridComponent;
@@ -51,6 +58,7 @@ export class SpreadsheetTUI extends Renderable {
     this.buffer = new OptimizedBuffer(width, height);
 
     this.engine = new SpreadsheetEngine();
+    this.vimBehavior = new VimBehavior();
 
     this.state = {
       mode: "normal",
@@ -130,25 +138,275 @@ export class SpreadsheetTUI extends Renderable {
       return;
     }
 
-    switch (this.state.mode) {
-      case "normal":
-        this.handleNormalMode(key, meta);
-        break;
-      case "edit":
-        this.handleEditMode(key, meta);
-        break;
-      case "visual":
-        this.handleVisualMode(key, meta);
-        break;
-      case "command":
-        this.handleCommandMode(key, meta);
-        break;
+    // Use vim keybindings if enabled
+    if (
+      this.useVim &&
+      (this.state.mode === "normal" || this.state.mode === "visual")
+    ) {
+      const vimAction = this.vimBehavior.handleKeyPress(key, meta, this.state);
+      this.handleVimAction(vimAction);
+
+      // Update mode from vim state
+      const vimMode = this.vimBehavior.getMode();
+      if (
+        vimMode === "normal" ||
+        vimMode === "visual" ||
+        vimMode === "edit" ||
+        vimMode === "command"
+      ) {
+        this.state.mode = vimMode;
+      }
+
+      // Update visual selection if in visual mode
+      if (this.state.mode === "visual" && this.vimBehavior.getAnchor()) {
+        const anchor = this.vimBehavior.getAnchor()!;
+        this.state.selectedRange = {
+          start: {
+            row: Math.min(anchor.row, this.state.cursor.row),
+            col: Math.min(anchor.col, this.state.cursor.col),
+          },
+          end: {
+            row: Math.max(anchor.row, this.state.cursor.row),
+            col: Math.max(anchor.col, this.state.cursor.col),
+          },
+        };
+      }
+
+      // Update vim state info for status bar
+      const vimState = this.vimBehavior.getVimState();
+      this.state.vimMode = vimState.mode;
+      this.state.vimCommandBuffer = vimState.commandBuffer;
+      this.state.vimNumberBuffer = vimState.numberBuffer;
+      this.state.visualType = vimState.visualType;
+    } else {
+      switch (this.state.mode) {
+        case "normal":
+          this.handleNormalMode(key, meta);
+          break;
+        case "edit":
+          this.handleEditMode(key, meta);
+          break;
+        case "visual":
+          this.handleVisualMode(key, meta);
+          break;
+        case "command":
+          this.handleCommandMode(key, meta);
+          break;
+      }
     }
 
     // Re-render after handling input
     this.buffer.clear();
     this.render(this.buffer);
     this.terminal.renderBuffer(this.buffer);
+  }
+
+  private handleVimAction(
+    action: ReturnType<VimBehavior["handleKeyPress"]>,
+  ): void {
+    switch (action.type) {
+      case "move": {
+        const count = action.count || 1;
+        for (let i = 0; i < count; i++) {
+          switch (action.direction) {
+            case "up":
+              if (this.state.cursor.row > 0) {
+                this.state.cursor.row--;
+              }
+              break;
+            case "down":
+              this.state.cursor.row++;
+              break;
+            case "left":
+              if (this.state.cursor.col > 0) {
+                this.state.cursor.col--;
+              }
+              break;
+            case "right":
+              this.state.cursor.col++;
+              break;
+          }
+        }
+        this.ensureCursorInViewport();
+        break;
+      }
+
+      case "moveTo": {
+        switch (action.target) {
+          case "firstColumn":
+            this.state.cursor.col = 0;
+            break;
+          case "lastColumn":
+            this.state.cursor.col = Math.max(0, this.state.viewport.cols - 1);
+            break;
+          case "firstRow":
+            this.state.cursor.row = 0;
+            break;
+          case "lastRow":
+            this.state.cursor.row = action.count ? action.count - 1 : 999999;
+            break;
+        }
+        this.ensureCursorInViewport();
+        break;
+      }
+
+      case "moveWord": {
+        // Simple word movement - move to next/prev non-empty cell
+        const count = action.count || 1;
+        for (let i = 0; i < count; i++) {
+          if (action.direction === "forward" || action.direction === "end") {
+            this.state.cursor.col++;
+          } else {
+            if (this.state.cursor.col > 0) {
+              this.state.cursor.col--;
+            }
+          }
+        }
+        this.ensureCursorInViewport();
+        break;
+      }
+
+      case "changeMode": {
+        this.state.mode = action.mode as Mode;
+        if (action.editVariant) {
+          const currentValue = this.engine.getCellValue(this.state.cursor);
+          this.state.editingValue = currentValue?.toString() || "";
+
+          switch (action.editVariant) {
+            case "a":
+              // Append - cursor at end
+              break;
+            case "A":
+              // Append at end of line - move to last column first
+              this.state.cursor.col = Math.max(0, this.state.viewport.cols - 1);
+              break;
+            case "I":
+              // Insert at beginning of line
+              this.state.cursor.col = 0;
+              break;
+            case "o":
+              // Open line below
+              this.state.cursor.row++;
+              this.state.editingValue = "";
+              break;
+            case "O":
+              // Open line above
+              if (this.state.cursor.row > 0) {
+                this.state.cursor.row--;
+              }
+              this.state.editingValue = "";
+              break;
+          }
+          this.ensureCursorInViewport();
+        }
+        break;
+      }
+
+      case "delete": {
+        if (this.state.selectedRange) {
+          // Delete visual selection
+          const start = this.state.selectedRange.start;
+          const end = this.state.selectedRange.end;
+          for (let row = start.row; row <= end.row; row++) {
+            for (let col = start.col; col <= end.col; col++) {
+              this.engine.setCellValue({ row, col }, "");
+            }
+          }
+          this.state.selectedRange = undefined;
+        } else if (action.motion === "line") {
+          // Delete entire row
+          for (let col = 0; col < this.state.viewport.cols; col++) {
+            this.engine.setCellValue({ row: this.state.cursor.row, col }, "");
+          }
+        } else {
+          // Delete current cell
+          this.engine.setCellValue(this.state.cursor, "");
+        }
+        break;
+      }
+
+      case "change": {
+        this.handleVimAction({ type: "delete", motion: action.motion });
+        this.state.mode = "edit";
+        this.state.editingValue = "";
+        break;
+      }
+
+      case "yank": {
+        // TODO: Implement yank
+        break;
+      }
+
+      case "paste": {
+        // TODO: Implement paste
+        break;
+      }
+
+      case "scroll": {
+        const viewportRows = this.state.viewport.rows;
+        switch (action.direction) {
+          case "halfDown":
+            this.state.viewport.startRow += Math.floor(viewportRows / 2);
+            break;
+          case "halfUp":
+            this.state.viewport.startRow = Math.max(
+              0,
+              this.state.viewport.startRow - Math.floor(viewportRows / 2),
+            );
+            break;
+          case "pageDown":
+            this.state.viewport.startRow += viewportRows;
+            break;
+          case "pageUp":
+            this.state.viewport.startRow = Math.max(
+              0,
+              this.state.viewport.startRow - viewportRows,
+            );
+            break;
+          case "down":
+            this.state.viewport.startRow++;
+            break;
+          case "up":
+            this.state.viewport.startRow = Math.max(
+              0,
+              this.state.viewport.startRow - 1,
+            );
+            break;
+        }
+        break;
+      }
+
+      case "center": {
+        const viewportRows = this.state.viewport.rows;
+        switch (action.position) {
+          case "center":
+            this.state.viewport.startRow = Math.max(
+              0,
+              this.state.cursor.row - Math.floor(viewportRows / 2),
+            );
+            break;
+          case "top":
+            this.state.viewport.startRow = this.state.cursor.row;
+            break;
+          case "bottom":
+            this.state.viewport.startRow = Math.max(
+              0,
+              this.state.cursor.row - viewportRows + 1,
+            );
+            break;
+        }
+        break;
+      }
+
+      case "setAnchor": {
+        this.vimBehavior.setAnchor(this.state.cursor);
+        this.state.selectedRange = {
+          start: { ...this.state.cursor },
+          end: { ...this.state.cursor },
+        };
+        break;
+      }
+    }
   }
 
   private handleNormalMode(key: string, meta: KeyMeta): void {

@@ -30,16 +30,15 @@ describe("VimBehavior", () => {
 
     test("enters visual mode with 'v'", () => {
       const action = vim.handleKeyPress("v", meta("v"), {} as any);
-      expect(action.type).toBe("changeMode");
-      expect(action.mode).toBe("visual");
+      expect(action.type).toBe("setAnchor");
       expect(vim.getMode()).toBe("visual");
       expect(vim.getVimState().visualType).toBe("character");
     });
 
     test("enters visual line mode with 'V'", () => {
       const action = vim.handleKeyPress("V", meta("V"), {} as any);
-      expect(action.type).toBe("changeMode");
-      expect(action.mode).toBe("visual");
+      expect(action.type).toBe("setAnchor");
+      expect(vim.getMode()).toBe("visual");
       expect(vim.getVimState().visualType).toBe("line");
     });
 
@@ -49,8 +48,8 @@ describe("VimBehavior", () => {
         { ...meta("v"), ctrl: true },
         {} as any,
       );
-      expect(action.type).toBe("changeMode");
-      expect(action.mode).toBe("visual");
+      expect(action.type).toBe("setAnchor");
+      expect(vim.getMode()).toBe("visual");
       expect(vim.getVimState().visualType).toBe("block");
     });
 
@@ -121,6 +120,35 @@ describe("VimBehavior", () => {
       expect(action.type).toBe("moveTo");
       expect(action.target).toBe("lastRow");
       expect(action.count).toBe(5);
+    });
+
+    test("w moves word forward", () => {
+      const action = vim.handleKeyPress("w", meta("w"), {} as any);
+      expect(action.type).toBe("moveWord");
+      expect(action.direction).toBe("forward");
+      expect(action.count).toBe(1);
+    });
+
+    test("b moves word backward", () => {
+      const action = vim.handleKeyPress("b", meta("b"), {} as any);
+      expect(action.type).toBe("moveWord");
+      expect(action.direction).toBe("backward");
+      expect(action.count).toBe(1);
+    });
+
+    test("e moves to end of word", () => {
+      const action = vim.handleKeyPress("e", meta("e"), {} as any);
+      expect(action.type).toBe("moveWord");
+      expect(action.direction).toBe("end");
+      expect(action.count).toBe(1);
+    });
+
+    test("3w moves 3 words forward", () => {
+      vim.handleKeyPress("3", meta("3"), {} as any);
+      const action = vim.handleKeyPress("w", meta("w"), {} as any);
+      expect(action.type).toBe("moveWord");
+      expect(action.direction).toBe("forward");
+      expect(action.count).toBe(3);
     });
   });
 
@@ -359,6 +387,37 @@ describe("VimBehavior", () => {
       vim.setClipboard("test content", "cell");
       const clipboard = vim.getClipboard();
       expect(clipboard).toEqual({ content: "test content", type: "cell" });
+    });
+  });
+
+  describe("Visual Mode Selection", () => {
+    test("set and get anchor", () => {
+      const anchor = { row: 5, col: 10 };
+      vim.setAnchor(anchor);
+      expect(vim.getAnchor()).toEqual(anchor);
+    });
+
+    test("get visual type", () => {
+      vim.handleKeyPress("v", meta("v"), {} as any);
+      expect(vim.getVisualType()).toBe("character");
+
+      vim.handleKeyPress("escape", meta("escape"), {} as any);
+      vim.handleKeyPress("V", meta("V"), {} as any);
+      expect(vim.getVisualType()).toBe("line");
+
+      vim.handleKeyPress("escape", meta("escape"), {} as any);
+      vim.handleKeyPress("v", { ...meta("v"), ctrl: true }, {} as any);
+      expect(vim.getVisualType()).toBe("block");
+    });
+
+    test("escape clears anchor and visual type", () => {
+      vim.setAnchor({ row: 1, col: 1 });
+      vim.handleKeyPress("v", meta("v"), {} as any);
+
+      const action = vim.handleKeyPress("escape", meta("escape"), {} as any);
+      expect(action.type).toBe("changeMode");
+      expect(vim.getAnchor()).toBeUndefined();
+      expect(vim.getVisualType()).toBeUndefined();
     });
   });
 });

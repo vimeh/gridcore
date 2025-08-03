@@ -41,11 +41,25 @@ export class StatusBarComponent extends Renderable {
     );
 
     // Draw mode indicator
-    const modeText = ` ${mode.toUpperCase()} `;
+    const modeDisplay = this.getModeDisplay(state);
+    const modeText = ` ${modeDisplay} `;
     const modeBg = this.colors.modeBg[mode];
     buffer.setText(pos.x, pos.y, modeText, this.colors.modeFg, modeBg);
 
     let currentX = pos.x + modeText.length + 1;
+
+    // Show vim command/number buffer if present
+    if (state.vimNumberBuffer || state.vimCommandBuffer) {
+      const vimInfo = state.vimNumberBuffer + state.vimCommandBuffer;
+      buffer.setText(
+        currentX,
+        pos.y,
+        vimInfo,
+        this.colors.command,
+        this.colors.bg,
+      );
+      currentX += vimInfo.length + 1;
+    }
 
     // Show command input in command mode
     if (mode === "command" && commandValue !== undefined) {
@@ -103,18 +117,44 @@ export class StatusBarComponent extends Renderable {
     return `Grid: ${usedRows}R x ${usedCols}C`;
   }
 
-  private getShortcuts(mode: TUIState["mode"]): string {
-    switch (mode) {
-      case "normal":
-        return "i:Edit  v:Visual  ::Cmd  ^Q:Quit";
-      case "edit":
-        return "ESC:Cancel  ENTER:Save";
-      case "visual":
-        return "ESC:Cancel  y:Copy  d:Delete";
-      case "command":
-        return "ESC:Cancel  ENTER:Execute";
-      default:
-        return "";
+  private getModeDisplay(state: TUIState): string {
+    if (state.vimMode) {
+      switch (state.vimMode) {
+        case "normal":
+          return "NORMAL";
+        case "visual": {
+          if (state.visualType === "line") {
+            return "VISUAL LINE";
+          } else if (state.visualType === "block") {
+            return "VISUAL BLOCK";
+          }
+          return "VISUAL";
+        }
+        case "edit":
+          return "INSERT";
+        case "command":
+          return "COMMAND";
+        case "operator-pending":
+          return "OPERATOR";
+        case "resize":
+          return "RESIZE";
+        default:
+          return state.mode.toUpperCase();
+      }
     }
+    return state.mode.toUpperCase();
+  }
+
+  private getShortcuts(mode: TUIState["mode"]): string {
+    if (mode === "normal") {
+      return "hjkl:Move  i:Insert  v:Visual  ::Cmd  ^Q:Quit";
+    } else if (mode === "edit") {
+      return "ESC:Normal  ^C:Cancel";
+    } else if (mode === "visual") {
+      return "ESC:Normal  y:Yank  d:Delete  c:Change";
+    } else if (mode === "command") {
+      return "ESC:Cancel  ENTER:Execute";
+    }
+    return "";
   }
 }

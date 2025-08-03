@@ -30,6 +30,11 @@ export type VimAction =
       count?: number;
     }
   | {
+      type: "moveWord";
+      direction: "forward" | "backward" | "end";
+      count?: number;
+    }
+  | {
       type: "changeMode";
       mode: VimMode;
       editVariant?: "i" | "a" | "A" | "I" | "o" | "O";
@@ -44,6 +49,7 @@ export type VimAction =
     }
   | { type: "center"; position: "center" | "top" | "bottom" }
   | { type: "resize"; direction: "increase" | "decrease" | "autoFit" }
+  | { type: "setAnchor" }
   | { type: "none" };
 
 export class VimBehavior {
@@ -152,12 +158,12 @@ export class VimBehavior {
         this.clearBuffers();
         this.vimState.mode = "visual";
         this.vimState.visualType = "character";
-        return { type: "changeMode", mode: "visual" };
+        return { type: "setAnchor" };
       case "V":
         this.clearBuffers();
         this.vimState.mode = "visual";
         this.vimState.visualType = "line";
-        return { type: "changeMode", mode: "visual" };
+        return { type: "setAnchor" };
 
       case "g":
       case "z":
@@ -176,6 +182,16 @@ export class VimBehavior {
       case "G":
         this.clearBuffers();
         return { type: "moveTo", target: "lastRow", count };
+
+      case "w":
+        this.clearBuffers();
+        return { type: "moveWord", direction: "forward", count };
+      case "b":
+        this.clearBuffers();
+        return { type: "moveWord", direction: "backward", count };
+      case "e":
+        this.clearBuffers();
+        return { type: "moveWord", direction: "end", count };
 
       case "x":
         this.clearBuffers();
@@ -319,7 +335,7 @@ export class VimBehavior {
       case "v":
         this.vimState.mode = "visual";
         this.vimState.visualType = "block";
-        return { type: "changeMode", mode: "visual" };
+        return { type: "setAnchor" };
       default:
         return { type: "none" };
     }
@@ -412,5 +428,17 @@ export class VimBehavior {
     | { content: string; type: "cell" | "row" | "block" }
     | undefined {
     return this.vimState.clipboard;
+  }
+
+  setAnchor(address: CellAddress): void {
+    this.vimState.anchor = { ...address };
+  }
+
+  getAnchor(): CellAddress | undefined {
+    return this.vimState.anchor;
+  }
+
+  getVisualType(): "character" | "line" | "block" | undefined {
+    return this.vimState.visualType;
   }
 }
