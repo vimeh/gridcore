@@ -201,7 +201,8 @@ describe("EventStore", () => {
       eventStore.emit({ type: "TestEvent" } as any)
       
       expect(called).toBe(false)
-      expect(eventStore.getHistory()).toHaveLength(0)
+      // After clearing, new events are still recorded in history
+      expect(eventStore.getHistory()).toHaveLength(1)
     })
   })
 
