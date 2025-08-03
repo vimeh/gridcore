@@ -3,6 +3,8 @@ export type TokenType =
   | "STRING"
   | "CELL"
   | "RANGE"
+  | "SHEET_CELL"
+  | "SHEET_RANGE"
   | "FUNCTION"
   | "OPERATOR"
   | "LPAREN"
@@ -49,8 +51,15 @@ export class Tokenizer {
           this.isDigit(this.input[this.position + 1]))
       ) {
         this.readNumber();
-      } else if (char === '"' || char === "'") {
+      } else if (char === '"') {
         this.readString();
+      } else if (char === "'") {
+        // Check if it's a quoted sheet name
+        if (this.isQuotedSheetName()) {
+          this.readSheetReference();
+        } else {
+          this.readString();
+        }
       } else if (this.isLetter(char) || char === "$") {
         this.readIdentifier();
       } else if (this.isOperator(char)) {
@@ -184,11 +193,55 @@ export class Tokenizer {
       return;
     }
 
-    // Check if it's followed by a colon (range) or is a cell reference
+    // Check if it's followed by a colon (range), exclamation mark (sheet reference), or is a cell reference
     const savedPos = this.position;
     this.skipWhitespace();
 
     if (
+      this.position < this.input.length &&
+      this.input[this.position] === "!"
+    ) {
+      // It's a sheet reference
+      this.position++; // Skip !
+      this.skipWhitespace();
+
+      // Read the cell/range reference after sheet name
+      const refStart = this.position;
+      while (
+        this.position < this.input.length &&
+        (this.isLetter(this.input[this.position]) ||
+          this.isDigit(this.input[this.position]) ||
+          this.input[this.position] === "$")
+      ) {
+        this.position++;
+      }
+
+      const cellRef = this.input.slice(refStart, this.position);
+
+      // Check if it's a range
+      this.skipWhitespace();
+      if (this.position < this.input.length && this.input[this.position] === ":") {
+        this.position++; // Skip :
+        this.skipWhitespace();
+
+        const rangeEndStart = this.position;
+        while (
+          this.position < this.input.length &&
+          (this.isLetter(this.input[this.position]) ||
+            this.isDigit(this.input[this.position]) ||
+            this.input[this.position] === "$")
+        ) {
+          this.position++;
+        }
+
+        const rangeEnd = this.input.slice(rangeEndStart, this.position);
+        const fullReference = `${identifier}!${cellRef}:${rangeEnd}`;
+        this.addToken("SHEET_RANGE", fullReference, start);
+      } else {
+        const fullReference = `${identifier}!${cellRef}`;
+        this.addToken("SHEET_CELL", fullReference, start);
+      }
+    } else if (
       this.position < this.input.length &&
       this.input[this.position] === ":"
     ) {
@@ -252,11 +305,101 @@ export class Tokenizer {
     return /^\$?[A-Z]+\$?\d+$/.test(str);
   }
 
-  private addToken(type: TokenType, value: string): void {
+  private addToken(type: TokenType, value: string, position?: number): void {
     this.tokens.push({
       type,
       value,
-      position: this.position - value.length,
+      position: position ?? this.position - value.length,
     });
+  }
+
+  private isQuotedSheetName(): boolean {
+    if (this.input[this.position] !== "'") return false;
+    
+    // Look for closing quote followed by !
+    let pos = this.position + 1;
+    while (pos < this.input.length && this.input[pos] !== "'") {
+      pos++;
+    }
+    
+    if (pos >= this.input.length) return false;
+    
+    // Check if there's a ! after the closing quote
+    pos++;
+    while (pos < this.input.length && /\s/.test(this.input[pos])) {
+      pos++;
+    }
+    
+    return pos < this.input.length && this.input[pos] === "!";
+  }
+
+  private readSheetReference(): void {
+    const start = this.position;
+    
+    // Read quoted sheet name
+    this.position++; // Skip opening quote
+    while (this.position < this.input.length && this.input[this.position] !== "'") {
+      this.position++;
+    }
+    
+    if (this.position >= this.input.length) {
+      throw new Error(`Unterminated sheet name starting at position ${start}`);
+    }
+    
+    this.position++; // Skip closing quote
+    const sheetName = this.input.slice(start, this.position);
+    
+    // Skip whitespace
+    this.skipWhitespace();
+    
+    // Check for !
+    if (this.position >= this.input.length || this.input[this.position] !== "!") {
+      throw new Error(`Expected '!' after sheet name at position ${this.position}`);
+    }
+    
+    this.position++; // Skip !
+    this.skipWhitespace();
+    
+    // Read cell or range reference
+    const refStart = this.position;
+    while (
+      this.position < this.input.length &&
+      (this.isLetter(this.input[this.position]) ||
+        this.isDigit(this.input[this.position]) ||
+        this.input[this.position] === "$")
+    ) {
+      this.position++;
+    }
+    
+    const cellRef = this.input.slice(refStart, this.position);
+    
+    // Validate that we got a valid reference
+    if (!cellRef) {
+      throw new Error(`Expected cell reference after '!' at position ${this.position}`);
+    }
+    
+    // Check if it's a range
+    this.skipWhitespace();
+    if (this.position < this.input.length && this.input[this.position] === ":") {
+      this.position++; // Skip :
+      this.skipWhitespace();
+      
+      const rangeEndStart = this.position;
+      while (
+        this.position < this.input.length &&
+        (this.isLetter(this.input[this.position]) ||
+          this.isDigit(this.input[this.position]) ||
+          this.input[this.position] === "$")
+      ) {
+        this.position++;
+      }
+      
+      const rangeEnd = this.input.slice(rangeEndStart, this.position);
+      const fullReference = `${sheetName}!${cellRef}:${rangeEnd}`;
+      this.addToken("SHEET_RANGE", fullReference, start);
+    } else {
+      const fullReference = `${sheetName}!${cellRef}`;
+      this.addToken("SHEET_CELL", fullReference, start);
+    }
   }
 }

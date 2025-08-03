@@ -6,6 +6,8 @@ export type ASTNode =
   | BooleanLiteral
   | CellReferenceNode
   | RangeReference
+  | SheetCellReference
+  | SheetRangeReference
   | FunctionCall
   | BinaryOperation
   | UnaryOperation
@@ -38,6 +40,24 @@ export interface CellReferenceNode {
 
 export interface RangeReference {
   type: "range";
+  range: CellRange;
+  reference: string;
+}
+
+export interface SheetCellReference {
+  type: "sheet_cell";
+  sheetName: string;
+  address: CellAddress;
+  reference: string;
+  absolute?: {
+    row: boolean;
+    col: boolean;
+  };
+}
+
+export interface SheetRangeReference {
+  type: "sheet_range";
+  sheetName: string;
   range: CellRange;
   reference: string;
 }

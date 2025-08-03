@@ -9,6 +9,8 @@ export interface EvaluationContext {
   getCellValue: CellGetter;
   getRangeValues: RangeGetter;
   currentCell?: CellAddress;
+  getSheetCellValue?: (sheetName: string, address: CellAddress) => Cell | undefined;
+  getSheetRangeValues?: (sheetName: string, start: CellAddress, end: CellAddress) => Cell[];
 }
 
 export interface EvaluationResult {
@@ -76,6 +78,20 @@ export class FormulaEvaluator {
 
       case "range": {
         throw new Error("Range references must be used within functions");
+      }
+
+      case "sheet_cell": {
+        if (!context.getSheetCellValue) {
+          throw new Error("Cross-sheet references not supported in this context");
+        }
+        const cell = context.getSheetCellValue(node.sheetName, node.address);
+        if (!cell) return 0;
+        if (cell.error) throw new Error(cell.error);
+        return cell.computedValue ?? cell.rawValue ?? 0;
+      }
+
+      case "sheet_range": {
+        throw new Error("Sheet range references must be used within functions");
       }
 
       case "binary": {
@@ -185,6 +201,18 @@ export class FormulaEvaluator {
     return func.call(this, args, context);
   }
 
+  private getRangeCells(arg: ASTNode, context: EvaluationContext): Cell[] {
+    if (arg.type === "range") {
+      return context.getRangeValues(arg.range.start, arg.range.end);
+    } else if (arg.type === "sheet_range") {
+      if (!context.getSheetRangeValues) {
+        throw new Error("Cross-sheet references not supported in this context");
+      }
+      return context.getSheetRangeValues(arg.sheetName, arg.range.start, arg.range.end);
+    }
+    return [];
+  }
+
   private toNumber(value: CellValueType): number {
     if (typeof value === "number") return value;
     if (typeof value === "boolean") return value ? 1 : 0;
@@ -201,8 +229,8 @@ export class FormulaEvaluator {
     this.functions.set("SUM", (args: ASTNode[], context: EvaluationContext) => {
       let sum = 0;
       for (const arg of args) {
-        if (arg.type === "range") {
-          const cells = context.getRangeValues(arg.range.start, arg.range.end);
+        if (arg.type === "range" || arg.type === "sheet_range") {
+          const cells = this.getRangeCells(arg, context);
           for (const cell of cells) {
             if (cell && !cell.error) {
               const value = cell.computedValue ?? cell.rawValue;
@@ -222,11 +250,8 @@ export class FormulaEvaluator {
         let sum = 0;
         let count = 0;
         for (const arg of args) {
-          if (arg.type === "range") {
-            const cells = context.getRangeValues(
-              arg.range.start,
-              arg.range.end,
-            );
+          if (arg.type === "range" || arg.type === "sheet_range") {
+            const cells = this.getRangeCells(arg, context);
             for (const cell of cells) {
               if (cell && !cell.error) {
                 const value = cell.computedValue ?? cell.rawValue;
@@ -256,11 +281,8 @@ export class FormulaEvaluator {
       (args: ASTNode[], context: EvaluationContext) => {
         let count = 0;
         for (const arg of args) {
-          if (arg.type === "range") {
-            const cells = context.getRangeValues(
-              arg.range.start,
-              arg.range.end,
-            );
+          if (arg.type === "range" || arg.type === "sheet_range") {
+            const cells = this.getRangeCells(arg, context);
             for (const cell of cells) {
               if (cell && !cell.error) {
                 const value = cell.computedValue ?? cell.rawValue;
@@ -286,8 +308,8 @@ export class FormulaEvaluator {
       let max = -Infinity;
       let hasValue = false;
       for (const arg of args) {
-        if (arg.type === "range") {
-          const cells = context.getRangeValues(arg.range.start, arg.range.end);
+        if (arg.type === "range" || arg.type === "sheet_range") {
+          const cells = this.getRangeCells(arg, context);
           for (const cell of cells) {
             if (cell && !cell.error) {
               const value = cell.computedValue ?? cell.rawValue;
@@ -313,8 +335,8 @@ export class FormulaEvaluator {
       let min = Infinity;
       let hasValue = false;
       for (const arg of args) {
-        if (arg.type === "range") {
-          const cells = context.getRangeValues(arg.range.start, arg.range.end);
+        if (arg.type === "range" || arg.type === "sheet_range") {
+          const cells = this.getRangeCells(arg, context);
           for (const cell of cells) {
             if (cell && !cell.error) {
               const value = cell.computedValue ?? cell.rawValue;

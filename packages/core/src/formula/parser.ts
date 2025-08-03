@@ -258,6 +258,74 @@ export class FormulaParser {
       };
     }
 
+    if (this.match("SHEET_CELL")) {
+      const reference = this.previous().value;
+      
+      // Parse sheet name and cell reference
+      const match = reference.match(/^(.*?)!(.+)$/);
+      if (!match) {
+        throw this.error(`Invalid sheet cell reference: ${reference}`);
+      }
+
+      let sheetName = match[1];
+      const cellRef = match[2];
+
+      // Remove quotes from sheet name if present
+      if (sheetName.startsWith("'") && sheetName.endsWith("'")) {
+        sheetName = sheetName.slice(1, -1);
+      }
+
+      const address = parseCellAddress(cellRef.replace(/\$/g, ""));
+      if (!address) {
+        throw this.error(`Invalid cell reference in sheet reference: ${cellRef}`);
+      }
+
+      // Parse absolute references
+      const colMatch = cellRef.match(/^(\$?)([A-Z]+)/);
+      const rowMatch = cellRef.match(/([A-Z]+)(\$?)(\d+)$/);
+
+      return {
+        type: "sheet_cell",
+        sheetName,
+        address,
+        reference,
+        absolute: {
+          row: rowMatch ? rowMatch[2] === "$" : false,
+          col: colMatch ? colMatch[1] === "$" : false,
+        },
+      };
+    }
+
+    if (this.match("SHEET_RANGE")) {
+      const reference = this.previous().value;
+      
+      // Parse sheet name and range reference
+      const match = reference.match(/^(.*?)!(.+)$/);
+      if (!match) {
+        throw this.error(`Invalid sheet range reference: ${reference}`);
+      }
+
+      let sheetName = match[1];
+      const rangeRef = match[2];
+
+      // Remove quotes from sheet name if present
+      if (sheetName.startsWith("'") && sheetName.endsWith("'")) {
+        sheetName = sheetName.slice(1, -1);
+      }
+
+      const range = parseCellRange(rangeRef.replace(/\$/g, ""));
+      if (!range) {
+        throw this.error(`Invalid range reference in sheet reference: ${rangeRef}`);
+      }
+
+      return {
+        type: "sheet_range",
+        sheetName,
+        range,
+        reference,
+      };
+    }
+
     if (this.match("FUNCTION")) {
       const name = this.previous().value.toUpperCase();
       this.consume("LPAREN", `Expected '(' after function name '${name}'`);
