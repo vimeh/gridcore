@@ -1,8 +1,8 @@
 import { expect, test, describe, beforeEach } from "bun:test"
-import { GridVimBehavior } from "../src/interaction/GridVimBehavior"
-import { SelectionManager } from "../src/interaction/SelectionManager"
-import type { GridVimCallbacks } from "../src/interaction/GridVimBehavior"
-import type { Viewport } from "../src/components/Viewport"
+import { GridVimBehavior } from "../GridVimBehavior"
+import { SelectionManager } from "../SelectionManager"
+import type { GridVimCallbacks } from "../GridVimBehavior"
+import type { Viewport } from "../../components/Viewport"
 
 describe("Visual Mode Edit Key Handling", () => {
   let selectionManager: SelectionManager

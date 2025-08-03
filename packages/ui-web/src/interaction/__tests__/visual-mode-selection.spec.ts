@@ -1,10 +1,10 @@
 import { expect, test, describe, beforeEach } from "bun:test"
-import { SelectionManager } from "../src/interaction/SelectionManager"
-import { GridVimBehavior } from "../src/interaction/GridVimBehavior"
+import { SelectionManager } from "../SelectionManager"
+import { GridVimBehavior } from "../GridVimBehavior"
 import { cellAddressToString } from "@gridcore/core"
 import type { CellAddress } from "@gridcore/core"
-import type { GridVimCallbacks } from "../src/interaction/GridVimBehavior"
-import type { Viewport } from "../src/components/Viewport"
+import type { GridVimCallbacks } from "../GridVimBehavior"
+import type { Viewport } from "../../components/Viewport"
 
 describe("Visual Mode Selection", () => {
   let selectionManager: SelectionManager
