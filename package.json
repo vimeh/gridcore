@@ -7,7 +7,11 @@
   ],
   "scripts": {
     "dev": "bun run --filter '*' dev",
+    "dev:web": "bun run --filter '@gridcore/ui-web' dev",
+    "dev:core": "bun run --filter '@gridcore/core' dev",
+    "dev:desktop": "bun run --filter '@gridcore/ui-desktop' dev",
     "build": "bun run --filter '*' build",
+    "build:web": "bun run --filter '@gridcore/ui-web' build",
     "test": "bun test packages/core && bun test packages/ui-web/src",
     "test:all": "bun test packages/core && bun test packages/ui-web/src && bun run --cwd packages/ui-web test:e2e",
     "typecheck": "bun run --filter '*' typecheck",
