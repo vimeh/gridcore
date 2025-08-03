@@ -10,7 +10,7 @@ export class Grid {
     this.dimensions = { rows, cols };
   }
 
-  private getCellKey(address: CellAddress): string {
+  getCellKey(address: CellAddress): string {
     return `${address.row},${address.col}`;
   }
 

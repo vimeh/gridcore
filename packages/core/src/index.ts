@@ -8,6 +8,7 @@ export * from "./SpreadsheetEngine";
 export * from "./types";
 export * from "./types/SpreadsheetState";
 export * from "./utils/cellAddress";
+export * from "./pivot";
 
 export class GridCore {
   private name: string = "GridCore Engine";

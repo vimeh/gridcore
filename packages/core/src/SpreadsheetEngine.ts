@@ -9,6 +9,8 @@ import type {
   SpreadsheetStateOptions,
 } from "./types/SpreadsheetState";
 import { cellAddressToString, parseCellAddress } from "./utils/cellAddress";
+import { PivotTable } from "./pivot/PivotTable";
+import type { PivotTableConfig, PivotTableOutput } from "./pivot/PivotTypes";
 
 export interface SpreadsheetChangeEvent {
   type: "cell-change" | "batch-change";
@@ -25,6 +27,7 @@ export class SpreadsheetEngine {
   private listeners: Set<SpreadsheetChangeListener>;
   private isCalculating: boolean = false;
   private calculationQueue: Set<string> = new Set();
+  private pivotTables: Map<string, { table: PivotTable; outputCell: CellAddress }> = new Map();
 
   constructor(rows: number = 1000, cols: number = 26) {
     this.grid = new Grid(rows, cols);
@@ -475,5 +478,95 @@ export class SpreadsheetEngine {
 
   updateCellStyle(address: CellAddress, style: Partial<Cell["style"]>): void {
     this.grid.updateCellStyle(address, style);
+  }
+
+  // Pivot table methods
+  addPivotTable(
+    id: string,
+    config: PivotTableConfig,
+    outputCell: CellAddress
+  ): PivotTable {
+    const pivotTable = new PivotTable(config);
+    this.pivotTables.set(id, { table: pivotTable, outputCell });
+    this.refreshPivotTable(id);
+    return pivotTable;
+  }
+
+  removePivotTable(id: string): boolean {
+    const pivot = this.pivotTables.get(id);
+    if (!pivot) return false;
+
+    // Clear the output area
+    const output = pivot.table.getLastOutput();
+    if (output) {
+      const { topLeft, dimensions } = output;
+      for (let row = 0; row < dimensions.rows; row++) {
+        for (let col = 0; col < dimensions.cols; col++) {
+          this.clearCell({
+            row: topLeft.row + row,
+            col: topLeft.col + col
+          });
+        }
+      }
+    }
+
+    this.pivotTables.delete(id);
+    return true;
+  }
+
+  getPivotTable(id: string): PivotTable | undefined {
+    return this.pivotTables.get(id)?.table;
+  }
+
+  refreshPivotTable(id: string): PivotTableOutput | null {
+    const pivot = this.pivotTables.get(id);
+    if (!pivot) return null;
+
+    // Generate the pivot table
+    const output = pivot.table.generate(this.grid, pivot.outputCell);
+
+    // Clear the old output area if it exists
+    const lastOutput = pivot.table.getLastOutput();
+    if (lastOutput && lastOutput !== output) {
+      const { topLeft, dimensions } = lastOutput;
+      for (let row = 0; row < dimensions.rows; row++) {
+        for (let col = 0; col < dimensions.cols; col++) {
+          const address = {
+            row: topLeft.row + row,
+            col: topLeft.col + col
+          };
+          if (!output.cells.has(this.grid.getCellKey(address))) {
+            this.clearCell(address);
+          }
+        }
+      }
+    }
+
+    // Write the pivot table output to the grid
+    const changes: Array<{
+      address: CellAddress;
+      value: CellValueType;
+    }> = [];
+
+    for (const [key, value] of output.cells) {
+      const [row, col] = key.split(",").map(Number);
+      const address = { row, col };
+      changes.push({ address, value });
+    }
+
+    // Apply all changes in batch
+    this.setCells(changes);
+
+    return output;
+  }
+
+  refreshAllPivotTables(): void {
+    for (const [id] of this.pivotTables) {
+      this.refreshPivotTable(id);
+    }
+  }
+
+  getAllPivotTables(): Map<string, { table: PivotTable; outputCell: CellAddress }> {
+    return new Map(this.pivotTables);
   }
 }

@@ -47,6 +47,40 @@ engine.setCellByReference("C2", "=A2+B2", "=A2+B2");
 engine.setCellByReference("D2", "=SUM(A2:B2)", "=SUM(A2:B2)");
 engine.setCellByReference("E2", "=AVERAGE(A2:D2)", "=AVERAGE(A2:D2)");
 
+// Add sample data for pivot table demo
+engine.setCellByReference("A5", "Category");
+engine.setCellByReference("B5", "Product");
+engine.setCellByReference("C5", "Month");
+engine.setCellByReference("D5", "Sales");
+engine.setCellByReference("E5", "Quantity");
+
+const sampleData = [
+  ["Electronics", "Laptop", "January", 1200, 2],
+  ["Electronics", "Phone", "January", 800, 3],
+  ["Electronics", "Laptop", "February", 1500, 3],
+  ["Furniture", "Chair", "January", 200, 5],
+  ["Furniture", "Desk", "January", 500, 2],
+  ["Furniture", "Chair", "February", 250, 6],
+  ["Electronics", "Phone", "February", 900, 4],
+];
+
+sampleData.forEach((row, i) => {
+  row.forEach((value, j) => {
+    engine.setCell({ row: i + 6, col: j }, value);
+  });
+});
+
+// Create a pivot table
+engine.addPivotTable("demo-pivot", {
+  sourceRange: "A5:E12",
+  rowFields: ["Category"],
+  columnFields: ["Month"],
+  valueFields: [{ fieldName: "Sales", aggregator: "SUM" }],
+  showRowTotals: true,
+  showColumnTotals: true,
+  showGrandTotals: true
+}, { row: 14, col: 0 });
+
 // Create Formula Bar
 const formulaBar = new FormulaBar(formulaBarContainer, {
   onValueChange: (address, value) => {
