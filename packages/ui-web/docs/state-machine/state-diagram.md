@@ -14,6 +14,7 @@ stateDiagram-v2
         insert --> normal: ESCAPE
         visual --> normal: EXIT_VISUAL_MODE
         visual --> normal: ESCAPE
+        visual --> insert: ENTER_INSERT_MODE
         resize --> normal: EXIT_RESIZE_MODE
         resize --> normal: ESCAPE
     }

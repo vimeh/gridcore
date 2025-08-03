@@ -1,12 +1,12 @@
 # State Machine Analysis
 
-Generated on: 2025-08-03T04:34:08.849Z
+Generated on: 2025-08-03T04:51:56.824Z
 
 ## Summary
-- Total Transitions: 19
+- Total Transitions: 20
 - Unique States: 6
 - Unique Actions: 13
-- Average Transitions per State: 3.17
+- Average Transitions per State: 3.33
 
 ## States
 - editing
@@ -36,5 +36,5 @@ Generated on: 2025-08-03T04:34:08.849Z
 - editing: 4 transitions
 - editing.normal: 5 transitions
 - editing.insert: 3 transitions
-- editing.visual: 2 transitions
+- editing.visual: 3 transitions
 - editing.resize: 2 transitions

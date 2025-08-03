@@ -26,6 +26,7 @@ editing.resize:
 editing.visual:
   - EXIT_VISUAL_MODE → editing.normal
   - ESCAPE → editing.normal
+  - ENTER_INSERT_MODE → editing.insert
 
 navigation:
   - START_EDITING → editing
