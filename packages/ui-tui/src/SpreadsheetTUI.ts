@@ -1,6 +1,7 @@
 import { Renderable, Terminal, OptimizedBuffer, type KeyMeta } from './framework'
 import { SpreadsheetEngine } from '@gridcore/core'
 import type { CellAddress } from '@gridcore/core'
+import { GridComponent, FormulaBarComponent, StatusBarComponent } from './components'
 
 export type Mode = 'normal' | 'edit' | 'command' | 'visual'
 
@@ -28,10 +29,10 @@ export class SpreadsheetTUI extends Renderable {
   private state: TUIState
   private running = false
 
-  // Child components will be added here
-  private gridComponent?: Renderable
-  private formulaBarComponent?: Renderable
-  private statusBarComponent?: Renderable
+  // Child components
+  private gridComponent: GridComponent
+  private formulaBarComponent: FormulaBarComponent
+  private statusBarComponent: StatusBarComponent
 
   constructor() {
     super('SpreadsheetTUI')
@@ -54,6 +55,31 @@ export class SpreadsheetTUI extends Renderable {
     }
 
     this.setSize(width, height)
+
+    // Create child components
+    this.formulaBarComponent = new FormulaBarComponent(
+      this.engine,
+      () => this.state
+    )
+    this.formulaBarComponent.setPosition(0, 1)
+    this.formulaBarComponent.setSize(width, 2)
+    this.addChild(this.formulaBarComponent)
+
+    this.gridComponent = new GridComponent(
+      this.engine,
+      () => this.state
+    )
+    this.gridComponent.setPosition(0, 3)
+    this.gridComponent.setSize(width, height - 5) // Leave room for formula bar and status bar
+    this.addChild(this.gridComponent)
+
+    this.statusBarComponent = new StatusBarComponent(
+      this.engine,
+      () => this.state
+    )
+    this.statusBarComponent.setPosition(0, height - 1)
+    this.statusBarComponent.setSize(width, 1)
+    this.addChild(this.statusBarComponent)
   }
 
   async start(): Promise<void> {
@@ -71,6 +97,8 @@ export class SpreadsheetTUI extends Renderable {
       this.buffer.resize(width, height)
       this.setSize(width, height)
       this.updateViewport()
+      this.updateComponentSizes(width, height)
+      this.buffer.clear()
       this.render(this.buffer)
       this.terminal.renderBuffer(this.buffer)
     })
@@ -252,19 +280,28 @@ export class SpreadsheetTUI extends Renderable {
 
   private updateViewport(): void {
     const { width, height } = this.terminal.getSize()
-    this.state.viewport.rows = Math.floor(height * 0.8)
+    this.state.viewport.rows = Math.floor((height - 5) * 0.9) // Account for UI elements
     this.state.viewport.cols = Math.floor(width / 10)
   }
 
+  private updateComponentSizes(width: number, height: number): void {
+    this.formulaBarComponent.setSize(width, 2)
+    this.gridComponent.setPosition(0, 3)
+    this.gridComponent.setSize(width, height - 5)
+    this.statusBarComponent.setPosition(0, height - 1)
+    this.statusBarComponent.setSize(width, 1)
+  }
+
   protected renderSelf(buffer: OptimizedBuffer): void {
-    // For now, just render a basic layout
-    // Child components will handle their own rendering
+    // Draw title bar
+    const titleBg = { r: 0, g: 48, b: 96, a: 255 }
+    const titleFg = { r: 255, g: 255, b: 255, a: 255 }
     
-    // Draw a title
-    buffer.setText(2, 0, 'GridCore TUI - Spreadsheet', 
-      { r: 255, g: 255, b: 255, a: 255 },
-      { r: 0, g: 0, b: 128, a: 255 }
-    )
+    buffer.fillRect(0, 0, this.width, 1, ' ', titleFg, titleBg)
+    
+    const title = 'GridCore TUI - Spreadsheet'
+    const titleX = Math.floor((this.width - title.length) / 2)
+    buffer.setText(titleX, 0, title, titleFg, titleBg)
   }
 
   getState(): TUIState {

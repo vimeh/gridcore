@@ -1,4 +1,29 @@
-import { GridCore } from "@gridcore/core";
+import { SpreadsheetTUI } from './SpreadsheetTUI'
 
-const core = new GridCore();
-console.log(`TUI running with GridCore v${core.getVersion()}`);
+async function main() {
+  console.log('Starting GridCore TUI...')
+  
+  const tui = new SpreadsheetTUI()
+  
+  // Handle process exit
+  process.on('SIGINT', () => {
+    tui.stop()
+  })
+  
+  process.on('SIGTERM', () => {
+    tui.stop()
+  })
+  
+  // Start the TUI
+  await tui.start()
+}
+
+// Run if this is the main module
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error('Error starting TUI:', error)
+    process.exit(1)
+  })
+}
+
+export { SpreadsheetTUI }
