@@ -75,3 +75,28 @@ IMPORTANT: Always run `bun run check` before committing to ensure code passes li
 ### Type imports
 - Always import types explicitly: `import type { TypeName } from "./module"`
 - For mixed imports: `import { func, type TypeName } from "./module"`
+
+### Test environment types
+- Create proper type declarations for test globals instead of using `(global as any)`
+- Use a `test-utils/global.d.ts` file to declare test environment globals:
+  ```ts
+  declare global {
+    var window: Window;
+    var document: Document;
+    // ... other test globals
+  }
+  ```
+- For mock objects, use proper type assertions: `mockObject as unknown as TargetType`
+
+### Timeout and timer types
+- Use `ReturnType<typeof setTimeout>` instead of `any` for timeout variables
+- This provides proper typing for both Node.js and browser environments
+
+### DOM element queries
+- When using `querySelector`, check for null results before use:
+  ```ts
+  const element = container.querySelector('.selector');
+  if (!element) {
+    throw new Error('Element not found');
+  }
+  ```
