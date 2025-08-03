@@ -113,9 +113,11 @@ export class Sheet {
     }
   }
 
-  static fromJSON(data: ReturnType<Sheet["toJSON"]>): Sheet {
+  static fromJSON(data: ReturnType<Sheet["toJSON"]>, preserveId: boolean = true): Sheet {
     const sheet = new Sheet(data.name)
-    sheet.id = data.id
+    if (preserveId) {
+      sheet.id = data.id
+    }
     sheet.engine = SpreadsheetEngine.fromJSON(data.engine)
     sheet.metadata = {
       ...data.metadata,
