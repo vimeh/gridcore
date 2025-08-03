@@ -1,6 +1,7 @@
 // Types are now part of the component itself, no need for external imports
 
 export type VimModeType = "normal" | "insert" | "visual" | "visual-line";
+export type EditMode = "insert" | "append" | "replace";
 
 export interface VimState {
   mode: VimModeType;
@@ -23,7 +24,7 @@ export interface VimCallbacks {
  * Callbacks for the stateless VimBehavior class to communicate with the mode system
  */
 export interface VimBehaviorCallbacks {
-  onModeChangeRequest: (mode: CellMode, editMode?: EditMode) => void;
+  onModeChangeRequest: (mode: string, editMode?: EditMode) => void;
   onCursorMove: (position: number) => void;
   onTextChange: (text: string, cursor: number) => void;
 }
@@ -53,9 +54,9 @@ export class VimBehavior {
 
   private text: string = "";
   private callbacks: VimBehaviorCallbacks;
-  private getCurrentMode: () => CellMode;
+  private getCurrentMode: () => string;
 
-  constructor(callbacks: VimBehaviorCallbacks, getCurrentMode: () => CellMode) {
+  constructor(callbacks: VimBehaviorCallbacks, getCurrentMode: () => string) {
     this.callbacks = callbacks;
     this.getCurrentMode = getCurrentMode;
   }
@@ -87,7 +88,7 @@ export class VimBehavior {
     return this.state.cursor;
   }
 
-  getMode(): CellMode {
+  getMode(): string {
     return this.getCurrentMode();
   }
 
@@ -723,7 +724,7 @@ export class VimMode {
 
     // Create VimBehavior with callbacks that sync with our internal state
     const behaviorCallbacks: VimBehaviorCallbacks = {
-      onModeChangeRequest: (mode: CellMode, _editMode?: EditMode) => {
+      onModeChangeRequest: (mode: string, _editMode?: EditMode) => {
         this.setMode(mode as VimModeType);
       },
       onCursorMove: (position: number) => {
@@ -739,7 +740,7 @@ export class VimMode {
     // Create VimBehavior that gets current mode from our state
     this.vimBehavior = new VimBehavior(
       behaviorCallbacks,
-      () => this.state.mode as CellMode,
+      () => this.state.mode as string,
     );
   }
 

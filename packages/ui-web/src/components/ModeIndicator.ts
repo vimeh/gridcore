@@ -21,8 +21,8 @@ export class ModeIndicator {
       throw new Error("Failed to create mode indicator elements");
     }
 
-    this.modeText = modeText;
-    this.detailText = detailText;
+    this.modeText = modeText as HTMLSpanElement;
+    this.detailText = detailText as HTMLSpanElement;
     this.container.appendChild(this.element);
 
     // Subscribe to mode changes

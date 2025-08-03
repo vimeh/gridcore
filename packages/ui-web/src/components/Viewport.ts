@@ -35,6 +35,10 @@ export class Viewport {
     return this.totalCols;
   }
 
+  getTheme(): GridTheme {
+    return this.theme;
+  }
+
   setViewportSize(width: number, height: number): void {
     this.viewportWidth = width;
     this.viewportHeight = height;

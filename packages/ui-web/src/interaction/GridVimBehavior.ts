@@ -28,6 +28,7 @@ export class GridVimBehavior {
   private numberBuffer: string = ""; // For count prefixes
   private lastCommand: string = ""; // For command sequences like 'gg', 'zz'
   private commandTimeout: ReturnType<typeof setTimeout> | null = null;
+  private visualAnchor: CellAddress | null = null;
 
   constructor(
     private callbacks: GridVimCallbacks,

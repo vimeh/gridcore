@@ -1,6 +1,10 @@
 import type { CellAddress } from "@gridcore/core";
 import { KEY_CODES } from "../constants";
-import { VimBehavior, type VimBehaviorCallbacks } from "../interaction/VimMode";
+import {
+  type EditMode,
+  VimBehavior,
+  type VimBehaviorCallbacks,
+} from "../interaction/VimMode";
 import type {
   InsertMode,
   SpreadsheetState,
@@ -42,7 +46,7 @@ export class CellEditor {
 
     // Create VimBehavior with callbacks that connect to ModeManager
     const vimCallbacks: VimBehaviorCallbacks = {
-      onModeChangeRequest: (mode: CellMode, editMode?: EditMode) => {
+      onModeChangeRequest: (mode: string, editMode?: EditMode) => {
         this.handleVimModeChangeRequest(mode, editMode);
       },
       onCursorMove: this.updateCursorPosition.bind(this),

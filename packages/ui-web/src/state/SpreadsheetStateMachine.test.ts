@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import {
-  createSpreadsheetStateMachine,
   type SpreadsheetState,
   SpreadsheetStateMachine,
 } from "./SpreadsheetStateMachine";
@@ -32,7 +31,7 @@ describe("SpreadsheetStateMachine", () => {
     });
 
     test("factory function works", () => {
-      const sm = createSpreadsheetStateMachine();
+      const sm = new SpreadsheetStateMachine();
       expect(sm).toBeInstanceOf(SpreadsheetStateMachine);
     });
   });
@@ -60,7 +59,7 @@ describe("SpreadsheetStateMachine", () => {
         type: "TOGGLE_INTERACTION_MODE",
       });
       expect(result.ok).toBe(true);
-      expect(stateMachine.isInKeyboardOnlyMode()).toBe(true);
+      expect(stateMachine.getInteractionMode()).toBe("keyboard-only");
     });
 
     test("can set interaction mode", () => {
@@ -75,7 +74,9 @@ describe("SpreadsheetStateMachine", () => {
     test("invalid transitions return error", () => {
       const result = stateMachine.transition({ type: "EXIT_INSERT_MODE" });
       expect(result.ok).toBe(false);
-      expect(result.error).toContain("Invalid transition");
+      if (!result.ok) {
+        expect(result.error).toContain("Invalid transition");
+      }
     });
   });
 
@@ -328,7 +329,8 @@ describe("SpreadsheetStateMachine", () => {
 
       stateMachine.transition({ type: "START_EDITING" });
       expect(notificationCount).toBe(1);
-      expect(lastState?.type).toBe("editing");
+      expect(lastState).toBeTruthy();
+      expect(lastState!.type).toBe("editing");
 
       stateMachine.transition({ type: "ENTER_INSERT_MODE" });
       expect(notificationCount).toBe(2);
@@ -354,7 +356,9 @@ describe("SpreadsheetStateMachine", () => {
     test("provides meaningful error messages", () => {
       const result = stateMachine.transition({ type: "EXIT_INSERT_MODE" });
       expect(result.ok).toBe(false);
-      expect(result.error).toContain("Invalid transition");
+      if (!result.ok) {
+        expect(result.error).toContain("Invalid transition");
+      }
     });
 
     test("prevents invalid substate transitions", () => {
@@ -366,7 +370,9 @@ describe("SpreadsheetStateMachine", () => {
         visualType: "character",
       });
       expect(result.ok).toBe(false);
-      expect(result.error).toContain("Invalid transition");
+      if (!result.ok) {
+        expect(result.error).toContain("Invalid transition");
+      }
     });
   });
 });

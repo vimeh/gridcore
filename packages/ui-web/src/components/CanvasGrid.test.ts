@@ -1,25 +1,18 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { SpreadsheetEngine } from "@gridcore/core";
-import { Window } from "happy-dom";
+import { mockCanvasContext, setupTestEnvironment } from "../test-utils/setup";
 import { CanvasGrid } from "./CanvasGrid";
-import "../test-utils/global";
 
 describe("CanvasGrid Initial Load", () => {
   let container: HTMLElement;
-  let window: Window;
-  let document: Document;
+  let window: any;
+  let document: any;
 
   beforeEach(() => {
     // Setup DOM environment
-    window = new Window();
-    document = window.document;
-    global.window = window;
-    global.document = document;
-    global.devicePixelRatio = 1;
-    global.requestAnimationFrame = ((cb: FrameRequestCallback) =>
-      setTimeout(cb, 0)) as typeof requestAnimationFrame;
-    global.cancelAnimationFrame = ((id: number) =>
-      clearTimeout(id)) as typeof cancelAnimationFrame;
+    const env = setupTestEnvironment();
+    window = env.window;
+    document = env.document;
 
     // Mock canvas context
     const mockContext = {
@@ -48,9 +41,12 @@ describe("CanvasGrid Initial Load", () => {
     };
 
     // Mock canvas
-    const _originalGetContext = window.HTMLCanvasElement.prototype.getContext;
-    window.HTMLCanvasElement.prototype.getContext = () =>
-      mockContext as unknown as CanvasRenderingContext2D;
+    const canvasElement = document.createElement("canvas");
+    const originalGetContext = canvasElement.getContext;
+    if (canvasElement.constructor && canvasElement.constructor.prototype) {
+      canvasElement.constructor.prototype.getContext = (() =>
+        mockContext) as any;
+    }
 
     // Create container
     container = document.createElement("div");
@@ -182,15 +178,9 @@ describe("CanvasGrid Scrolling", () => {
 
   beforeEach(() => {
     // Setup DOM environment
-    window = new Window();
-    document = window.document;
-    global.window = window;
-    global.document = document;
-    global.devicePixelRatio = 1;
-    global.requestAnimationFrame = ((cb: FrameRequestCallback) =>
-      setTimeout(cb, 0)) as typeof requestAnimationFrame;
-    global.cancelAnimationFrame = ((id: number) =>
-      clearTimeout(id)) as typeof cancelAnimationFrame;
+    const env = setupTestEnvironment();
+    window = env.window;
+    document = env.document;
 
     // Mock canvas context
     const mockContext = {
@@ -219,9 +209,12 @@ describe("CanvasGrid Scrolling", () => {
     };
 
     // Mock canvas
-    const _originalGetContext = window.HTMLCanvasElement.prototype.getContext;
-    window.HTMLCanvasElement.prototype.getContext = () =>
-      mockContext as unknown as CanvasRenderingContext2D;
+    const canvasElement = document.createElement("canvas");
+    const originalGetContext = canvasElement.getContext;
+    if (canvasElement.constructor && canvasElement.constructor.prototype) {
+      canvasElement.constructor.prototype.getContext = (() =>
+        mockContext) as any;
+    }
 
     // Create container
     container = document.createElement("div");
@@ -397,11 +390,13 @@ describe("CanvasGrid Scrolling", () => {
     const rowHeaderTop = parseInt(rowHeaderCanvas.style.top);
 
     // Column header should start after row header width
-    expect(colHeaderLeft).toBe(canvasGrid.getViewport().theme.rowHeaderWidth);
+    expect(colHeaderLeft).toBe(
+      canvasGrid.getViewport().getTheme().rowHeaderWidth,
+    );
 
     // Row header should start after column header height + toolbar
     expect(rowHeaderTop).toBe(
-      canvasGrid.getViewport().theme.columnHeaderHeight + 40,
+      canvasGrid.getViewport().getTheme().columnHeaderHeight + 40,
     );
   });
 

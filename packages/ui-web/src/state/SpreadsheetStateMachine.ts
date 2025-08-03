@@ -57,7 +57,9 @@ type TransitionHandler<S extends SpreadsheetState = SpreadsheetState> = (
 // Declarative transition map
 export const transitions: Record<string, TransitionHandler> = {
   // Navigation state transitions
-  "navigation.START_EDITING": (state: NavigationState, action: Action) => {
+  "navigation.START_EDITING": (state: SpreadsheetState, action: Action) => {
+    if (state.type !== "navigation")
+      return { ok: false, error: "Invalid state type" };
     if (action.type !== "START_EDITING")
       return { ok: false, error: "Invalid action" };
 
@@ -71,52 +73,87 @@ export const transitions: Record<string, TransitionHandler> = {
     return { ok: true, value: newState };
   },
 
-  "navigation.TOGGLE_INTERACTION_MODE": (state: NavigationState) => ({
-    ok: true,
-    value: {
-      ...state,
-      interactionMode:
-        state.interactionMode === "normal" ? "keyboard-only" : "normal",
-    },
-  }),
+  "navigation.TOGGLE_INTERACTION_MODE": (state: SpreadsheetState) => {
+    if (state.type !== "navigation")
+      return { ok: false, error: "Invalid state type" };
+
+    return {
+      ok: true,
+      value: {
+        ...state,
+        interactionMode:
+          state.interactionMode === "normal" ? "keyboard-only" : "normal",
+      },
+    };
+  },
 
   "navigation.SET_INTERACTION_MODE": (
-    state: NavigationState,
+    state: SpreadsheetState,
     action: Action,
   ) => {
+    if (state.type !== "navigation")
+      return { ok: false, error: "Invalid state type" };
     if (action.type !== "SET_INTERACTION_MODE")
       return { ok: false, error: "Invalid action" };
     return { ok: true, value: { ...state, interactionMode: action.mode } };
   },
 
   // Editing state transitions
-  "editing.STOP_EDITING": (state: EditingState) => ({
-    ok: true,
-    value: { type: "navigation", interactionMode: state.interactionMode },
-  }),
+  "editing.STOP_EDITING": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
 
-  "editing.ESCAPE": (state: EditingState) => ({
-    ok: true,
-    value: { type: "navigation", interactionMode: state.interactionMode },
-  }),
+    return {
+      ok: true,
+      value: {
+        type: "navigation",
+        interactionMode: state.interactionMode,
+      } as NavigationState,
+    };
+  },
 
-  "editing.TOGGLE_INTERACTION_MODE": (state: EditingState) => ({
-    ok: true,
-    value: {
-      ...state,
-      interactionMode:
-        state.interactionMode === "normal" ? "keyboard-only" : "normal",
-    },
-  }),
+  "editing.ESCAPE": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
 
-  "editing.SET_INTERACTION_MODE": (state: EditingState, action: Action) => {
+    return {
+      ok: true,
+      value: {
+        type: "navigation",
+        interactionMode: state.interactionMode,
+      } as NavigationState,
+    };
+  },
+
+  "editing.TOGGLE_INTERACTION_MODE": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
+
+    return {
+      ok: true,
+      value: {
+        ...state,
+        interactionMode:
+          state.interactionMode === "normal" ? "keyboard-only" : "normal",
+      },
+    };
+  },
+
+  "editing.SET_INTERACTION_MODE": (state: SpreadsheetState, action: Action) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (action.type !== "SET_INTERACTION_MODE")
       return { ok: false, error: "Invalid action" };
     return { ok: true, value: { ...state, interactionMode: action.mode } };
   },
 
   // Normal editing substate transitions
-  "editing.normal.ENTER_INSERT_MODE": (state: EditingState, action: Action) => {
+  "editing.normal.ENTER_INSERT_MODE": (
+    state: SpreadsheetState,
+    action: Action,
+  ) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (action.type !== "ENTER_INSERT_MODE")
       return { ok: false, error: "Invalid action" };
     if (state.substate.type !== "normal")
@@ -131,17 +168,27 @@ export const transitions: Record<string, TransitionHandler> = {
     };
   },
 
-  "editing.normal.ESCAPE": (state: EditingState) => {
+  "editing.normal.ESCAPE": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (state.substate.type !== "normal")
       return { ok: false, error: "Not in normal mode" };
     // Escape in normal mode exits to navigation
     return {
       ok: true,
-      value: { type: "navigation", interactionMode: state.interactionMode },
+      value: {
+        type: "navigation",
+        interactionMode: state.interactionMode,
+      } as NavigationState,
     };
   },
 
-  "editing.normal.ENTER_VISUAL_MODE": (state: EditingState, action: Action) => {
+  "editing.normal.ENTER_VISUAL_MODE": (
+    state: SpreadsheetState,
+    action: Action,
+  ) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (action.type !== "ENTER_VISUAL_MODE")
       return { ok: false, error: "Invalid action" };
     if (state.substate.type !== "normal")
@@ -161,9 +208,11 @@ export const transitions: Record<string, TransitionHandler> = {
   },
 
   "editing.normal.ENTER_VISUAL_BLOCK_MODE": (
-    state: EditingState,
+    state: SpreadsheetState,
     action: Action,
   ) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (action.type !== "ENTER_VISUAL_BLOCK_MODE")
       return { ok: false, error: "Invalid action" };
     if (state.substate.type !== "normal")
@@ -178,7 +227,12 @@ export const transitions: Record<string, TransitionHandler> = {
     };
   },
 
-  "editing.normal.ENTER_RESIZE_MODE": (state: EditingState, action: Action) => {
+  "editing.normal.ENTER_RESIZE_MODE": (
+    state: SpreadsheetState,
+    action: Action,
+  ) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (action.type !== "ENTER_RESIZE_MODE")
       return { ok: false, error: "Invalid action" };
     if (state.substate.type !== "normal")
@@ -191,19 +245,25 @@ export const transitions: Record<string, TransitionHandler> = {
   },
 
   // Insert mode transitions
-  "editing.insert.EXIT_INSERT_MODE": (state: EditingState) => {
+  "editing.insert.EXIT_INSERT_MODE": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (state.substate.type !== "insert")
       return { ok: false, error: "Not in insert mode" };
     return { ok: true, value: { ...state, substate: { type: "normal" } } };
   },
 
-  "editing.insert.ESCAPE": (state: EditingState) => {
+  "editing.insert.ESCAPE": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (state.substate.type !== "insert")
       return { ok: false, error: "Not in insert mode" };
     return { ok: true, value: { ...state, substate: { type: "normal" } } };
   },
 
-  "editing.insert.SET_EDIT_MODE": (state: EditingState, action: Action) => {
+  "editing.insert.SET_EDIT_MODE": (state: SpreadsheetState, action: Action) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (action.type !== "SET_EDIT_MODE")
       return { ok: false, error: "Invalid action" };
     if (state.substate.type !== "insert")
@@ -216,26 +276,54 @@ export const transitions: Record<string, TransitionHandler> = {
   },
 
   // Visual mode transitions
-  "editing.visual.EXIT_VISUAL_MODE": (state: EditingState) => {
+  "editing.visual.EXIT_VISUAL_MODE": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (state.substate.type !== "visual")
       return { ok: false, error: "Not in visual mode" };
     return { ok: true, value: { ...state, substate: { type: "normal" } } };
   },
 
-  "editing.visual.ESCAPE": (state: EditingState) => {
+  "editing.visual.ESCAPE": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (state.substate.type !== "visual")
       return { ok: false, error: "Not in visual mode" };
     return { ok: true, value: { ...state, substate: { type: "normal" } } };
+  },
+
+  "editing.visual.ENTER_INSERT_MODE": (
+    state: SpreadsheetState,
+    action: Action,
+  ) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
+    if (action.type !== "ENTER_INSERT_MODE")
+      return { ok: false, error: "Invalid action" };
+    if (state.substate.type !== "visual")
+      return { ok: false, error: "Not in visual mode" };
+
+    return {
+      ok: true,
+      value: {
+        ...state,
+        substate: { type: "insert", mode: action.mode || "insert" },
+      },
+    };
   },
 
   // Resize mode transitions
-  "editing.resize.EXIT_RESIZE_MODE": (state: EditingState) => {
+  "editing.resize.EXIT_RESIZE_MODE": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (state.substate.type !== "resize")
       return { ok: false, error: "Not in resize mode" };
     return { ok: true, value: { ...state, substate: { type: "normal" } } };
   },
 
-  "editing.resize.ESCAPE": (state: EditingState) => {
+  "editing.resize.ESCAPE": (state: SpreadsheetState) => {
+    if (state.type !== "editing")
+      return { ok: false, error: "Invalid state type" };
     if (state.substate.type !== "resize")
       return { ok: false, error: "Not in resize mode" };
     return { ok: true, value: { ...state, substate: { type: "normal" } } };
@@ -310,7 +398,55 @@ export class SpreadsheetStateMachine {
     this.listeners.forEach((listener) => listener(this.state));
   }
 
-  // Query methods
+  // Helper methods for common transitions
+  startEditing(editMode?: InsertMode): Result<SpreadsheetState> {
+    return this.transition({ type: "START_EDITING", editMode });
+  }
+
+  stopEditing(): Result<SpreadsheetState> {
+    return this.transition({ type: "STOP_EDITING" });
+  }
+
+  enterInsertMode(mode?: InsertMode): Result<SpreadsheetState> {
+    return this.transition({ type: "ENTER_INSERT_MODE", mode });
+  }
+
+  exitInsertMode(): Result<SpreadsheetState> {
+    return this.transition({ type: "EXIT_INSERT_MODE" });
+  }
+
+  enterVisualMode(
+    visualType: VisualMode,
+    anchor?: CellAddress,
+  ): Result<SpreadsheetState> {
+    return this.transition({ type: "ENTER_VISUAL_MODE", visualType, anchor });
+  }
+
+  exitVisualMode(): Result<SpreadsheetState> {
+    return this.transition({ type: "EXIT_VISUAL_MODE" });
+  }
+
+  enterResizeMode(target: ResizeTarget): Result<SpreadsheetState> {
+    return this.transition({ type: "ENTER_RESIZE_MODE", target });
+  }
+
+  exitResizeMode(): Result<SpreadsheetState> {
+    return this.transition({ type: "EXIT_RESIZE_MODE" });
+  }
+
+  toggleInteractionMode(): Result<SpreadsheetState> {
+    return this.transition({ type: "TOGGLE_INTERACTION_MODE" });
+  }
+
+  setInteractionMode(mode: InteractionMode): Result<SpreadsheetState> {
+    return this.transition({ type: "SET_INTERACTION_MODE", mode });
+  }
+
+  escape(): Result<SpreadsheetState> {
+    return this.transition({ type: "ESCAPE" });
+  }
+
+  // Helper query methods
   isNavigating(): boolean {
     return this.state.type === "navigation";
   }
@@ -343,6 +479,10 @@ export class SpreadsheetStateMachine {
     );
   }
 
+  getInteractionMode(): InteractionMode {
+    return this.state.interactionMode;
+  }
+
   getInsertMode(): InsertMode | undefined {
     if (
       this.state.type === "editing" &&
@@ -363,37 +503,20 @@ export class SpreadsheetStateMachine {
     return undefined;
   }
 
-  getInteractionMode(): InteractionMode {
-    return this.state.interactionMode;
-  }
-
-  isInKeyboardOnlyMode(): boolean {
-    return this.state.interactionMode === "keyboard-only";
-  }
-
-  // Convenience method for getting a string representation
   getModeString(): string {
     if (this.state.type === "navigation") {
       return "navigation";
     }
 
-    const { substate } = this.state;
-    switch (substate.type) {
+    switch (this.state.substate.type) {
       case "normal":
-        return "editing:normal";
+        return "normal";
       case "insert":
-        return `editing:insert:${substate.mode}`;
+        return `insert:${this.state.substate.mode}`;
       case "visual":
-        return `editing:visual:${substate.mode}`;
+        return `visual:${this.state.substate.mode}`;
       case "resize":
-        return `editing:resize:${substate.target.type}`;
+        return "resize";
     }
   }
-}
-
-// Factory function
-export function createSpreadsheetStateMachine(
-  initialState?: SpreadsheetState,
-): SpreadsheetStateMachine {
-  return new SpreadsheetStateMachine(initialState);
 }

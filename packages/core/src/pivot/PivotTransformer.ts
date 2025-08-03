@@ -91,6 +91,8 @@ export class PivotTransformer {
     }
 
     return data.filter((record) => {
+      if (!this.config.filterFields) return true;
+
       for (const filter of this.config.filterFields) {
         const value = record[filter.fieldName];
         const matches = filter.values.includes(value);

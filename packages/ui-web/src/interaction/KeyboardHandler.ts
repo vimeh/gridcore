@@ -96,25 +96,25 @@ export class KeyboardHandler {
             // This would need implementation in ResizeBehavior
           } else {
             if (type === "column") {
-              const current = this.canvasGrid
-                ?.getViewport()
-                .getColumnWidth(index);
-              this.canvasGrid
-                ?.getViewport()
-                .setColumnWidth(index, current + delta);
+              const viewport = this.canvasGrid?.getViewport();
+              if (viewport) {
+                const current = viewport.getColumnWidth(index);
+                viewport.setColumnWidth(index, current + delta);
+              }
             } else {
-              const current = this.canvasGrid
-                ?.getViewport()
-                .getRowHeight(index);
-              this.canvasGrid
-                ?.getViewport()
-                .setRowHeight(index, current + delta);
+              const viewport = this.canvasGrid?.getViewport();
+              if (viewport) {
+                const current = viewport.getRowHeight(index);
+                viewport.setRowHeight(index, current + delta);
+              }
             }
           }
           this.canvasGrid?.render();
         },
         onScrollRequest: (direction, amount) => {
           const viewport = this.canvasGrid?.getViewport();
+          if (!viewport) return;
+
           const pageSize = viewport.getPageSize();
           const scrollAmount =
             amount === 0.5
@@ -153,7 +153,7 @@ export class KeyboardHandler {
         callbacks,
         () => {
           const state = this.modeStateMachine?.getState();
-          if (state.type === "navigation") return "normal";
+          if (!state || state.type === "navigation") return "normal";
           return state.substate.type;
         },
         this.selectionManager,
