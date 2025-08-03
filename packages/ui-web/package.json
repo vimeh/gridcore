@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "bun run generate:state-docs && tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
@@ -12,12 +12,17 @@
     "test:e2e": "playwright test",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "generate:state-docs": "bun scripts/generateStateDocs.ts",
+    "view:state-diagram": "bun scripts/viewStateDiagram.ts",
+    "export:state-svg": "bun scripts/exportStateSVG.ts",
+    "export:state-png": "bun scripts/exportStatePNG.ts"
   },
   "dependencies": {
     "@gridcore/core": "workspace:*"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.9.0",
     "@playwright/test": "^1.48.0",
     "@types/bun": "^1.2.19",
     "happy-dom": "^18.0.1",
