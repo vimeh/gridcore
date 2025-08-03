@@ -1,7 +1,7 @@
 import type { CellAddress, CellRange } from "@gridcore/core";
 import type { GridTheme } from "./GridTheme";
 import type { Viewport as GridViewport } from "../components/Viewport";
-import { cellAddressToString } from "@gridcore/core";
+import { parseCellAddress } from "@gridcore/core";
 
 export interface SelectionBounds {
   x: number;
@@ -14,6 +14,7 @@ export class SelectionRenderer {
   private ctx: CanvasRenderingContext2D;
   private theme: GridTheme;
   private viewport: GridViewport;
+  private devicePixelRatio: number;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -27,6 +28,7 @@ export class SelectionRenderer {
     this.ctx = ctx;
     this.theme = theme;
     this.viewport = viewport;
+    this.devicePixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
   }
 
   renderSelection(
@@ -34,10 +36,12 @@ export class SelectionRenderer {
     selectionRange: CellRange | null,
     visualMode: "character" | "line" | "block" | null,
   ): void {
-    if (selectedCells.size === 0) return;
+    if (selectedCells.size === 0 && !selectionRange) return;
 
     // Render cell highlights
-    this.renderSelectionHighlight(selectedCells);
+    if (selectedCells.size > 0) {
+      this.renderSelectionHighlight(selectedCells);
+    }
 
     // Render selection border
     if (selectionRange || selectedCells.size > 1) {
@@ -54,8 +58,10 @@ export class SelectionRenderer {
     this.ctx.globalAlpha = 0.3;
 
     for (const cellKey of selectedCells) {
-      const [row, col] = cellKey.split(",").map(Number);
-      const position = this.viewport.getCellPosition({ row, col });
+      const cellAddress = parseCellAddress(cellKey);
+      if (!cellAddress) continue;
+      
+      const position = this.viewport.getCellPosition(cellAddress);
       
       if (position && this.isCellVisible(position)) {
         this.ctx.fillRect(position.x, position.y, position.width, position.height);
@@ -155,11 +161,13 @@ export class SelectionRenderer {
     } else {
       // Calculate bounds from selected cells
       for (const cellKey of selectedCells) {
-        const [row, col] = cellKey.split(",").map(Number);
-        minRow = Math.min(minRow, row);
-        maxRow = Math.max(maxRow, row);
-        minCol = Math.min(minCol, col);
-        maxCol = Math.max(maxCol, col);
+        const cellAddress = parseCellAddress(cellKey);
+        if (!cellAddress) continue;
+        
+        minRow = Math.min(minRow, cellAddress.row);
+        maxRow = Math.max(maxRow, cellAddress.row);
+        minCol = Math.min(minCol, cellAddress.col);
+        maxCol = Math.max(maxCol, cellAddress.col);
       }
     }
 
@@ -184,8 +192,8 @@ export class SelectionRenderer {
   }
 
   private isCellVisible(position: { x: number; y: number; width: number; height: number }): boolean {
-    const canvasWidth = this.ctx.canvas.width / (window.devicePixelRatio || 1);
-    const canvasHeight = this.ctx.canvas.height / (window.devicePixelRatio || 1);
+    const canvasWidth = this.ctx.canvas.width / this.devicePixelRatio;
+    const canvasHeight = this.ctx.canvas.height / this.devicePixelRatio;
 
     return !(
       position.x + position.width < 0 ||
