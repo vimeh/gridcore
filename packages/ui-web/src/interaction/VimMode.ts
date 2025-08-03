@@ -360,7 +360,10 @@ export class VimBehavior {
     _ctrl: boolean,
     _shift: boolean,
   ): boolean {
-    const operator = this.state.operator!;
+    const operator = this.state.operator;
+    if (!operator) {
+      return false;
+    }
 
     // Handle operator + motion combinations
     if (operator === key) {
