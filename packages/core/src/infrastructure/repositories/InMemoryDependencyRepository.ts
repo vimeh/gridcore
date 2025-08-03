@@ -12,12 +12,12 @@ export class InMemoryDependencyRepository implements IDependencyRepository {
     if (!this.dependencies.has(fromKey)) {
       this.dependencies.set(fromKey, new Set());
     }
-    this.dependencies.get(fromKey)!.add(toKey);
+    this.dependencies.get(fromKey)?.add(toKey);
 
     if (!this.dependents.has(toKey)) {
       this.dependents.set(toKey, new Set());
     }
-    this.dependents.get(toKey)!.add(fromKey);
+    this.dependents.get(toKey)?.add(fromKey);
   }
 
   removeDependency(from: CellAddress, to: CellAddress): void {

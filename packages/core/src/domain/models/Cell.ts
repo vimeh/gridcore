@@ -1,6 +1,6 @@
 import { err, ok, type Result } from "../../shared/types/Result";
 import type { CellAddress } from "./CellAddress";
-import { type CellValue, isStringValue } from "./CellValue";
+import type { CellValue } from "./CellValue";
 import { Formula } from "./Formula";
 
 export class Cell {
@@ -72,20 +72,22 @@ export class Cell {
   }
 
   equals(other: Cell): boolean {
-    if (this.rawValue !== other.rawValue ||
-        this.computedValue !== other.computedValue ||
-        this.error !== other.error) {
+    if (
+      this.rawValue !== other.rawValue ||
+      this.computedValue !== other.computedValue ||
+      this.error !== other.error
+    ) {
       return false;
     }
-    
+
     if (this.formula === undefined && other.formula === undefined) {
       return true;
     }
-    
+
     if (this.formula === undefined || other.formula === undefined) {
       return false;
     }
-    
+
     return this.formula.equals(other.formula);
   }
 

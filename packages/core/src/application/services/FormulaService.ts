@@ -1,54 +1,59 @@
-import type { IFormulaParser, ParsedFormula } from "../../domain/interfaces/IFormulaParser"
-import type { IFormulaEvaluator, EvaluationContext } from "../../domain/interfaces/IFormulaEvaluator"
-import { Result, ok, err } from "../../shared/types/Result"
-import { CellValue } from "../../domain/models/CellValue"
-import { CellAddress } from "../../domain/models/CellAddress"
-import { Formula } from "../../domain/models/Formula"
+import type {
+  EvaluationContext,
+  IFormulaEvaluator,
+} from "../../domain/interfaces/IFormulaEvaluator";
+import type {
+  IFormulaParser,
+  ParsedFormula,
+} from "../../domain/interfaces/IFormulaParser";
+import type { CellValue } from "../../domain/models/CellValue";
+import type { Formula } from "../../domain/models/Formula";
+import { err, ok, type Result } from "../../shared/types/Result";
 
 export interface IFormulaService {
-  parseFormula(expression: string): Result<ParsedFormula>
+  parseFormula(expression: string): Result<ParsedFormula>;
   evaluateFormula(
     formula: Formula,
-    context: EvaluationContext
-  ): Result<CellValue>
-  getDependencies(formula: Formula): Set<string>
+    context: EvaluationContext,
+  ): Result<CellValue>;
+  getDependencies(formula: Formula): Set<string>;
 }
 
 export class FormulaService implements IFormulaService {
   constructor(
     private readonly parser: IFormulaParser,
-    private readonly evaluator: IFormulaEvaluator
+    private readonly evaluator: IFormulaEvaluator,
   ) {}
 
   parseFormula(expression: string): Result<ParsedFormula> {
-    return this.parser.parse(expression)
+    return this.parser.parse(expression);
   }
 
   evaluateFormula(
     formula: Formula,
-    context: EvaluationContext
+    context: EvaluationContext,
   ): Result<CellValue> {
     // Parse the formula
-    const parseResult = this.parser.parse(formula.expression)
+    const parseResult = this.parser.parse(formula.expression);
     if (!parseResult.ok) {
-      return err(`Parse error: ${parseResult.error}`)
+      return err(`Parse error: ${parseResult.error}`);
     }
 
     // Evaluate the parsed AST
-    const evalResult = this.evaluator.evaluate(parseResult.value.ast, context)
+    const evalResult = this.evaluator.evaluate(parseResult.value.ast, context);
     if (!evalResult.ok) {
-      return err(`Evaluation error: ${evalResult.error}`)
+      return err(`Evaluation error: ${evalResult.error}`);
     }
 
-    return ok(evalResult.value)
+    return ok(evalResult.value);
   }
 
   getDependencies(formula: Formula): Set<string> {
-    const parseResult = this.parser.parse(formula.expression)
+    const parseResult = this.parser.parse(formula.expression);
     if (!parseResult.ok) {
-      return new Set()
+      return new Set();
     }
 
-    return parseResult.value.dependencies
+    return parseResult.value.dependencies;
   }
 }

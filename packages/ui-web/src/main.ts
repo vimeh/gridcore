@@ -1,4 +1,8 @@
-import { Workbook } from "@gridcore/core";
+import {
+  cellAddressToString,
+  parseCellAddress,
+  Workbook,
+} from "@gridcore/core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
 import { ModeIndicator } from "./components/ModeIndicator";
@@ -38,27 +42,45 @@ const GRID_COLS = 52; // A-Z, AA-AZ
 // Create Workbook instance
 const workbook = new Workbook();
 
-// Get the engine for the active sheet
-let engine = workbook.getActiveSheet().getEngine();
+// Get the facade for the active sheet
+let activeSheet = workbook.getActiveSheet();
+if (!activeSheet) {
+  throw new Error("No active sheet found");
+}
+let facade = activeSheet.getFacade();
 
 // Create state machine
 const modeStateMachine = new SpreadsheetStateMachine();
 
 // Add some sample data
-engine.setCellByReference("A1", "Hello");
-engine.setCellByReference("B1", "World");
-engine.setCellByReference("A2", 42);
-engine.setCellByReference("B2", 123);
-engine.setCellByReference("C2", "=A2+B2", "=A2+B2");
-engine.setCellByReference("D2", "=SUM(A2:B2)", "=SUM(A2:B2)");
-engine.setCellByReference("E2", "=AVERAGE(A2:D2)", "=AVERAGE(A2:D2)");
+const a1 = parseCellAddress("A1");
+const b1 = parseCellAddress("B1");
+const a2 = parseCellAddress("A2");
+const b2 = parseCellAddress("B2");
+const c2 = parseCellAddress("C2");
+const d2 = parseCellAddress("D2");
+const e2 = parseCellAddress("E2");
+
+if (a1) facade.setCellValue(a1, "Hello");
+if (b1) facade.setCellValue(b1, "World");
+if (a2) facade.setCellValue(a2, 42);
+if (b2) facade.setCellValue(b2, 123);
+if (c2) facade.setCellValue(c2, "=A2+B2");
+if (d2) facade.setCellValue(d2, "=SUM(A2:B2)");
+if (e2) facade.setCellValue(e2, "=AVERAGE(A2:D2)");
 
 // Add sample data for pivot table demo
-engine.setCellByReference("A5", "Category");
-engine.setCellByReference("B5", "Product");
-engine.setCellByReference("C5", "Month");
-engine.setCellByReference("D5", "Sales");
-engine.setCellByReference("E5", "Quantity");
+const a5 = parseCellAddress("A5");
+const b5 = parseCellAddress("B5");
+const c5 = parseCellAddress("C5");
+const d5 = parseCellAddress("D5");
+const e5 = parseCellAddress("E5");
+
+if (a5) facade.setCellValue(a5, "Category");
+if (b5) facade.setCellValue(b5, "Product");
+if (c5) facade.setCellValue(c5, "Month");
+if (d5) facade.setCellValue(d5, "Sales");
+if (e5) facade.setCellValue(e5, "Quantity");
 
 const sampleData = [
   ["Electronics", "Laptop", "January", 1200, 2],
@@ -72,7 +94,10 @@ const sampleData = [
 
 sampleData.forEach((row, i) => {
   row.forEach((value, j) => {
-    engine.setCell({ row: i + 6, col: j }, value);
+    const addr = parseCellAddress(cellAddressToString({ row: i + 6, col: j }));
+    if (addr) {
+      facade.setCellValue(addr, value);
+    }
   });
 });
 
@@ -91,17 +116,14 @@ sampleData.forEach((row, i) => {
 // Create Formula Bar
 const formulaBar = new FormulaBar(formulaBarContainer, {
   onValueChange: (address, value) => {
-    const sheetId = workbook.getActiveSheet().getId();
-    if (value.startsWith("=")) {
-      workbook.setCell(sheetId, address, value, value);
-    } else {
-      const numValue = parseFloat(value);
-      if (!Number.isNaN(numValue) && value.trim() !== "") {
-        workbook.setCell(sheetId, address, numValue);
-      } else {
-        workbook.setCell(sheetId, address, value);
-      }
-    }
+    const activeSheet = workbook.getActiveSheet();
+    if (!activeSheet) return;
+
+    const facade = activeSheet.getFacade();
+    const cellAddr = parseCellAddress(cellAddressToString(address));
+    if (!cellAddr) return;
+
+    facade.setCellValue(cellAddr, value);
   },
   onImport: () => {
     const input = document.createElement("input");
@@ -115,71 +137,10 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
         if (file.name.endsWith(".json")) {
           // Import JSON format with workbook state
           try {
-            const state = JSON.parse(text);
+            const _state = JSON.parse(text);
 
-            // If it's a workbook state
-            if (state.sheets && state.activeSheetId) {
-              const newWorkbook = Workbook.fromState(state);
-
-              // Replace the current workbook (need to update references)
-              workbook.getAllSheets().forEach((sheet) => {
-                workbook.removeSheet(sheet.getId());
-              });
-
-              // Add all sheets from imported workbook
-              newWorkbook.getAllSheets().forEach((sheet) => {
-                const newSheet = workbook.addSheet(sheet.getName());
-                const sourceEngine = sheet.getEngine();
-                const targetEngine = newSheet.getEngine();
-
-                // Copy all cells
-                const cells = sourceEngine.getAllCells();
-                cells.forEach((cell, key) => {
-                  const addr = sourceEngine.parseCellKey(key);
-                  targetEngine.setCell(addr, cell.rawValue || "", cell.formula);
-                });
-              });
-
-              // Set active sheet
-              if (state.activeSheetId) {
-                const sheets = workbook.getAllSheets();
-                if (sheets.length > 0) {
-                  workbook.setActiveSheet(sheets[0].getId());
-                }
-              }
-
-              // Refresh UI
-              tabBar.refresh();
-              engine = workbook.getActiveSheet().getEngine();
-              canvasGrid.destroy();
-              canvasGrid = new CanvasGrid(gridContainer, engine, {
-                totalRows: GRID_ROWS,
-                totalCols: GRID_COLS,
-                modeStateMachine,
-              });
-              grid = canvasGrid;
-              canvasGrid.onCellClick = (cell) => {
-                const cellData = engine.getCell(cell);
-                formulaBar.setActiveCell(cell, cellData);
-              };
-              canvasGrid.render();
-            } else {
-              // Legacy single sheet format
-              const newEngine = SpreadsheetEngine.fromState(state);
-
-              // Clear current sheet and copy data
-              engine.clear();
-              const cells = newEngine.getAllCells();
-              cells.forEach((cell, key) => {
-                const addr = newEngine.parseCellKey(key);
-                engine.setCell(addr, cell.rawValue || "", cell.formula);
-              });
-
-              // Apply view state
-              if (state.view) {
-                grid.setViewState(state.view);
-              }
-            }
+            // TODO: Implement workbook JSON import
+            alert("JSON import not yet implemented for new architecture");
           } catch (error) {
             console.error("Failed to import JSON:", error);
             alert("Failed to import file. Please check the format.");
@@ -187,10 +148,15 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
         } else {
           // Import CSV format
           const rows = text.split("\n").map((row) => row.split(","));
-          engine.clear();
+          // TODO: Add clear functionality to facade
           rows.forEach((row, r) => {
             row.forEach((cellValue, c) => {
-              engine.setCell({ row: r, col: c }, cellValue);
+              const addr = parseCellAddress(
+                cellAddressToString({ row: r, col: c }),
+              );
+              if (addr) {
+                facade.setCellValue(addr, cellValue);
+              }
             });
           });
         }
@@ -205,40 +171,44 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
       : "csv";
 
     if (format === "json") {
-      // Export as JSON with workbook state
-      const state = workbook.toState({
-        includeMetadata: true,
-        includeView: true,
-      });
-
-      const blob = new Blob([JSON.stringify(state, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "workbook.json";
-      a.click();
-      URL.revokeObjectURL(url);
+      // TODO: Implement JSON export for new architecture
+      alert("JSON export not yet implemented for new architecture");
+      return;
     } else {
       // Export as CSV
-      const data = engine.getAllCells();
       let csvContent = "";
+      let maxRow = 0;
+      let maxCol = 0;
 
-      const keys = Array.from(data.keys());
-      if (keys.length === 0) {
-        return;
+      // Find the bounds of the data
+      for (let i = 0; i < GRID_ROWS; i++) {
+        for (let j = 0; j < GRID_COLS; j++) {
+          const addr = parseCellAddress(
+            cellAddressToString({ row: i, col: j }),
+          );
+          if (addr) {
+            const cellResult = facade.getCell(addr);
+            if (cellResult.ok && cellResult.value.value !== undefined) {
+              maxRow = Math.max(maxRow, i);
+              maxCol = Math.max(maxCol, j);
+            }
+          }
+        }
       }
-
-      const addresses = keys.map((key) => engine.parseCellKey(key));
-      const maxRow = Math.max(...addresses.map((addr) => addr.row));
-      const maxCol = Math.max(...addresses.map((addr) => addr.col));
 
       for (let i = 0; i <= maxRow; i++) {
         const row = [];
         for (let j = 0; j <= maxCol; j++) {
-          const cell = engine.getCell({ row: i, col: j });
-          const value = cell?.rawValue ?? "";
+          const addr = parseCellAddress(
+            cellAddressToString({ row: i, col: j }),
+          );
+          let value = "";
+          if (addr) {
+            const cellResult = facade.getCell(addr);
+            if (cellResult.ok) {
+              value = cellResult.value.value?.toString() ?? "";
+            }
+          }
           // Escape commas and quotes
           const escapedValue =
             String(value).includes(",") || String(value).includes('"')
@@ -267,36 +237,43 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
 });
 
 // Create Canvas Grid
-let canvasGrid = new CanvasGrid(gridContainer, engine, {
+let canvasGrid = new CanvasGrid(gridContainer, facade, {
   totalRows: GRID_ROWS,
   totalCols: GRID_COLS,
   modeStateMachine,
 });
 
 // Create alias for grid (used in import/export)
-let grid = canvasGrid;
+let _grid = canvasGrid;
 
 // Create TabBar
 const tabBar = new TabBar({
   container: tabBarContainer,
   workbook,
-  onTabChange: (sheetId) => {
-    // Update the active engine
-    engine = workbook.getActiveSheet().getEngine();
+  onTabChange: (_sheetId) => {
+    // Update the active facade
+    activeSheet = workbook.getActiveSheet();
+    if (!activeSheet) return;
+    facade = activeSheet.getFacade();
 
     // Create new grid for the sheet
     canvasGrid.destroy();
-    canvasGrid = new CanvasGrid(gridContainer, engine, {
+    canvasGrid = new CanvasGrid(gridContainer, facade, {
       totalRows: GRID_ROWS,
       totalCols: GRID_COLS,
       modeStateMachine,
     });
-    grid = canvasGrid;
+    _grid = canvasGrid;
 
     // Reconnect event handlers
     canvasGrid.onCellClick = (cell) => {
-      const cellData = engine.getCell(cell);
-      formulaBar.setActiveCell(cell, cellData);
+      const cellAddr = parseCellAddress(cellAddressToString(cell));
+      if (cellAddr) {
+        const cellResult = facade.getCell(cellAddr);
+        if (cellResult.ok) {
+          formulaBar.setActiveCell(cell, cellResult.value);
+        }
+      }
     };
 
     // Re-set sheet navigation callbacks
@@ -308,8 +285,13 @@ const tabBar = new TabBar({
     // Update formula bar with current selection
     const selection = canvasGrid.getSelection();
     if (selection) {
-      const cellData = engine.getCell(selection.start);
-      formulaBar.setActiveCell(selection.start, cellData);
+      const cellAddr = parseCellAddress(cellAddressToString(selection.start));
+      if (cellAddr) {
+        const cellResult = facade.getCell(cellAddr);
+        if (cellResult.ok) {
+          formulaBar.setActiveCell(selection.start, cellResult.value);
+        }
+      }
     }
   },
   onTabAdd: () => {
@@ -330,8 +312,13 @@ const tabBar = new TabBar({
 
 // Connect grid selection to formula bar
 canvasGrid.onCellClick = (cell) => {
-  const cellData = engine.getCell(cell);
-  formulaBar.setActiveCell(cell, cellData);
+  const cellAddr = parseCellAddress(cellAddressToString(cell));
+  if (cellAddr) {
+    const cellResult = facade.getCell(cellAddr);
+    if (cellResult.ok) {
+      formulaBar.setActiveCell(cell, cellResult.value);
+    }
+  }
 };
 
 // Function to set up sheet navigation keyboard shortcuts
@@ -375,11 +362,20 @@ setupSheetNavigationCallbacks();
 
 // Initialize formula bar with A1
 const initialCell = { row: 0, col: 0 };
-const initialCellData = engine.getCell(initialCell);
-formulaBar.setActiveCell(initialCell, initialCellData);
+const initialCellAddr = parseCellAddress(cellAddressToString(initialCell));
+if (initialCellAddr) {
+  const initialCellResult = facade.getCell(initialCellAddr);
+  if (initialCellResult.ok) {
+    formulaBar.setActiveCell(initialCell, initialCellResult.value);
+  }
+}
 
-// Listen for changes from the engine
-engine.addEventListener((_event) => {
+// Listen for changes from the facade
+const eventService = facade.getEventService();
+eventService.on("CellValueChanged", () => {
+  canvasGrid.render();
+});
+eventService.on("CellCalculated", () => {
   canvasGrid.render();
 });
 

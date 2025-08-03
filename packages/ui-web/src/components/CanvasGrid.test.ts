@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { SpreadsheetEngine } from "@gridcore/core";
+import {
+  cellAddressToString,
+  parseCellAddress,
+  Sheet,
+  type SpreadsheetFacade,
+} from "@gridcore/core";
 import { setupTestEnvironment } from "../test-utils/setup";
 import { CanvasGrid } from "./CanvasGrid";
 
@@ -78,8 +83,9 @@ describe("CanvasGrid Initial Load", () => {
   });
 
   test("should set correct dimensions on initial load to prevent over-scrolling", () => {
-    // Create grid
-    const grid = new SpreadsheetEngine(100, 50);
+    // Create sheet and get facade
+    const sheet = new Sheet("TestSheet", 100, 50);
+    const facade = sheet.getFacade();
 
     // Mock getBoundingClientRect for all child elements
     const mockGetBoundingClientRect = () => ({
@@ -104,7 +110,7 @@ describe("CanvasGrid Initial Load", () => {
       return element;
     };
 
-    const canvasGrid = new CanvasGrid(container, grid, {
+    const canvasGrid = new CanvasGrid(container, facade, {
       totalRows: 100,
       totalCols: 50,
     });
@@ -171,7 +177,8 @@ describe("CanvasGrid Initial Load", () => {
 
 describe("CanvasGrid Scrolling", () => {
   let container: HTMLElement;
-  let grid: SpreadsheetEngine;
+  let sheet: Sheet;
+  let facade: SpreadsheetFacade;
   let canvasGrid: CanvasGrid;
   let window: Window & typeof globalThis;
   let document: Document;
@@ -243,16 +250,20 @@ describe("CanvasGrid Scrolling", () => {
 
     document.body.appendChild(container);
 
-    // Create grid with test data
-    grid = new SpreadsheetEngine(100, 50);
+    // Create sheet and facade with test data
+    sheet = new Sheet("TestSheet", 100, 50);
+    facade = sheet.getFacade();
     for (let row = 0; row < 100; row++) {
       for (let col = 0; col < 50; col++) {
-        grid.setCell({ row, col }, `R${row}C${col}`);
+        const addr = parseCellAddress(cellAddressToString({ row, col }));
+        if (addr) {
+          facade.setCellValue(addr, `R${row}C${col}`);
+        }
       }
     }
 
     // Create canvas grid
-    canvasGrid = new CanvasGrid(container, grid, {
+    canvasGrid = new CanvasGrid(container, facade, {
       totalRows: 100,
       totalCols: 50,
     });
@@ -402,8 +413,9 @@ describe("CanvasGrid Scrolling", () => {
 
   test("should handle grids smaller than viewport without over-scrolling", () => {
     // Create a small grid
-    const smallGrid = new SpreadsheetEngine(5, 5);
-    const smallCanvasGrid = new CanvasGrid(container, smallGrid, {
+    const smallSheet = new Sheet("SmallSheet", 5, 5);
+    const smallFacade = smallSheet.getFacade();
+    const smallCanvasGrid = new CanvasGrid(container, smallFacade, {
       totalRows: 5,
       totalCols: 5,
     });

@@ -1,16 +1,21 @@
 import type {
-  IFormulaEvaluator,
-  FormulaAST,
   EvaluationContext,
+  FormulaAST,
   FormulaFunction,
-} from "../../domain/interfaces/IFormulaEvaluator"
-import { Result, ok, err } from "../../shared/types/Result"
-import { CellValue, isNumericValue, isStringValue } from "../../domain/models/CellValue"
-import { CellAddress } from "../../domain/models/CellAddress"
-import { CellRange } from "../../domain/models/CellRange"
+  IFormulaEvaluator,
+} from "../../domain/interfaces/IFormulaEvaluator";
+import {
+  type CellValue,
+  isNumericValue,
+  isStringValue,
+} from "../../domain/models/CellValue";
+import { err, ok, type Result } from "../../shared/types/Result";
 
 export class FormulaEvaluator implements IFormulaEvaluator {
-  private readonly builtinFunctions: Map<string, (args: CellValue[]) => Result<CellValue>>
+  private readonly builtinFunctions: Map<
+    string,
+    (args: CellValue[]) => Result<CellValue>
+  >;
 
   constructor() {
     this.builtinFunctions = new Map([
@@ -24,313 +29,330 @@ export class FormulaEvaluator implements IFormulaEvaluator {
       ["LEN", this.lenFunction],
       ["UPPER", this.upperFunction],
       ["LOWER", this.lowerFunction],
-    ])
+    ]);
   }
 
   evaluate(ast: FormulaAST, context: EvaluationContext): Result<CellValue> {
     try {
-      const result = this.evaluateNode(ast, context)
-      return result
+      const result = this.evaluateNode(ast, context);
+      return result;
     } catch (error) {
-      return err(error instanceof Error ? error.message : "Unknown evaluation error")
+      return err(
+        error instanceof Error ? error.message : "Unknown evaluation error",
+      );
     }
   }
 
-  private evaluateNode(node: FormulaAST, context: EvaluationContext): Result<CellValue> {
+  private evaluateNode(
+    node: FormulaAST,
+    context: EvaluationContext,
+  ): Result<CellValue> {
     switch (node.type) {
       case "literal":
-        return ok(node.value as CellValue)
+        return ok(node.value as CellValue);
 
-      case "cellRef":
+      case "cellRef": {
         if (!node.address) {
-          return err("Cell reference missing address")
+          return err("Cell reference missing address");
         }
-        const cellValue = context.getCellValue(node.address)
-        return ok(cellValue)
+        const cellValue = context.getCellValue(node.address);
+        return ok(cellValue);
+      }
 
-      case "rangeRef":
+      case "rangeRef": {
         if (!node.range) {
-          return err("Range reference missing range")
+          return err("Range reference missing range");
         }
-        const values = context.getRangeValues(node.range)
+        const values = context.getRangeValues(node.range);
         // Range values are handled specially by functions
-        return ok(values as any)
+        return ok(values as any);
+      }
 
       case "function":
         if (!node.name || !node.arguments) {
-          return err("Function missing name or arguments")
+          return err("Function missing name or arguments");
         }
-        return this.evaluateFunction(node.name, node.arguments, context)
+        return this.evaluateFunction(node.name, node.arguments, context);
 
       case "binaryOp":
         if (!node.left || !node.right) {
-          return err("Binary operation missing operands")
+          return err("Binary operation missing operands");
         }
-        return this.evaluateBinaryOp(node.operator || "", node.left, node.right, context)
+        return this.evaluateBinaryOp(
+          node.operator || "",
+          node.left,
+          node.right,
+          context,
+        );
 
       case "unaryOp":
         if (!node.operand) {
-          return err("Unary operation missing operand")
+          return err("Unary operation missing operand");
         }
-        return this.evaluateUnaryOp(node.operator || "", node.operand, context)
+        return this.evaluateUnaryOp(node.operator || "", node.operand, context);
 
       default:
-        return err(`Unknown AST node type: ${(node as any).type}`)
+        return err(`Unknown AST node type: ${(node as any).type}`);
     }
   }
 
   private evaluateFunction(
     name: string,
     args: FormulaAST[],
-    context: EvaluationContext
+    context: EvaluationContext,
   ): Result<CellValue> {
     // Evaluate arguments
-    const evaluatedArgs: CellValue[] = []
+    const evaluatedArgs: CellValue[] = [];
     for (const arg of args) {
-      const result = this.evaluateNode(arg, context)
+      const result = this.evaluateNode(arg, context);
       if (!result.ok) {
-        return err(result.error)
+        return err(result.error);
       }
-      
+
       // If the result is an array (from range), flatten it
       if (Array.isArray(result.value)) {
-        evaluatedArgs.push(...result.value)
+        evaluatedArgs.push(...result.value);
       } else {
-        evaluatedArgs.push(result.value)
+        evaluatedArgs.push(result.value);
       }
     }
 
     // Get function implementation
-    const func = this.builtinFunctions.get(name.toUpperCase())
+    const func = this.builtinFunctions.get(name.toUpperCase());
     if (!func) {
-      return err(`Unknown function: ${name}`)
+      return err(`Unknown function: ${name}`);
     }
 
-    return func.call(this, evaluatedArgs)
+    return func.call(this, evaluatedArgs);
   }
 
   private evaluateBinaryOp(
     operator: string,
     left: FormulaAST,
     right: FormulaAST,
-    context: EvaluationContext
+    context: EvaluationContext,
   ): Result<CellValue> {
-    const leftResult = this.evaluateNode(left, context)
+    const leftResult = this.evaluateNode(left, context);
     if (!leftResult.ok) {
-      return err(leftResult.error)
+      return err(leftResult.error);
     }
 
-    const rightResult = this.evaluateNode(right, context)
+    const rightResult = this.evaluateNode(right, context);
     if (!rightResult.ok) {
-      return err(rightResult.error)
+      return err(rightResult.error);
     }
 
-    const leftValue = leftResult.value
-    const rightValue = rightResult.value
+    const leftValue = leftResult.value;
+    const rightValue = rightResult.value;
 
     switch (operator) {
       case "+":
         if (isNumericValue(leftValue) && isNumericValue(rightValue)) {
-          return ok(leftValue + rightValue)
+          return ok(leftValue + rightValue);
         }
-        return err("Addition requires numeric operands")
+        return err("Addition requires numeric operands");
 
       case "-":
         if (isNumericValue(leftValue) && isNumericValue(rightValue)) {
-          return ok(leftValue - rightValue)
+          return ok(leftValue - rightValue);
         }
-        return err("Subtraction requires numeric operands")
+        return err("Subtraction requires numeric operands");
 
       case "*":
         if (isNumericValue(leftValue) && isNumericValue(rightValue)) {
-          return ok(leftValue * rightValue)
+          return ok(leftValue * rightValue);
         }
-        return err("Multiplication requires numeric operands")
+        return err("Multiplication requires numeric operands");
 
       case "/":
         if (isNumericValue(leftValue) && isNumericValue(rightValue)) {
           if (rightValue === 0) {
-            return err("Division by zero")
+            return err("Division by zero");
           }
-          return ok(leftValue / rightValue)
+          return ok(leftValue / rightValue);
         }
-        return err("Division requires numeric operands")
+        return err("Division requires numeric operands");
 
       case "^":
         if (isNumericValue(leftValue) && isNumericValue(rightValue)) {
-          return ok(Math.pow(leftValue, rightValue))
+          return ok(leftValue ** rightValue);
         }
-        return err("Exponentiation requires numeric operands")
+        return err("Exponentiation requires numeric operands");
 
       case "=":
-        return ok(leftValue === rightValue)
+        return ok(leftValue === rightValue);
 
       case "<>":
-        return ok(leftValue !== rightValue)
+        return ok(leftValue !== rightValue);
 
       case "<":
         if (isNumericValue(leftValue) && isNumericValue(rightValue)) {
-          return ok(leftValue < rightValue)
+          return ok(leftValue < rightValue);
         }
-        return err("Less than requires numeric operands")
+        return err("Less than requires numeric operands");
 
       case ">":
         if (isNumericValue(leftValue) && isNumericValue(rightValue)) {
-          return ok(leftValue > rightValue)
+          return ok(leftValue > rightValue);
         }
-        return err("Greater than requires numeric operands")
+        return err("Greater than requires numeric operands");
 
       case "<=":
         if (isNumericValue(leftValue) && isNumericValue(rightValue)) {
-          return ok(leftValue <= rightValue)
+          return ok(leftValue <= rightValue);
         }
-        return err("Less than or equal requires numeric operands")
+        return err("Less than or equal requires numeric operands");
 
       case ">=":
         if (isNumericValue(leftValue) && isNumericValue(rightValue)) {
-          return ok(leftValue >= rightValue)
+          return ok(leftValue >= rightValue);
         }
-        return err("Greater than or equal requires numeric operands")
+        return err("Greater than or equal requires numeric operands");
 
       default:
-        return err(`Unknown operator: ${operator}`)
+        return err(`Unknown operator: ${operator}`);
     }
   }
 
   private evaluateUnaryOp(
     operator: string,
     operand: FormulaAST,
-    context: EvaluationContext
+    context: EvaluationContext,
   ): Result<CellValue> {
-    const operandResult = this.evaluateNode(operand, context)
+    const operandResult = this.evaluateNode(operand, context);
     if (!operandResult.ok) {
-      return err(operandResult.error)
+      return err(operandResult.error);
     }
 
-    const value = operandResult.value
+    const value = operandResult.value;
 
     switch (operator) {
       case "-":
         if (isNumericValue(value)) {
-          return ok(-value)
+          return ok(-value);
         }
-        return err("Negation requires numeric operand")
+        return err("Negation requires numeric operand");
 
       case "+":
         if (isNumericValue(value)) {
-          return ok(value)
+          return ok(value);
         }
-        return err("Unary plus requires numeric operand")
+        return err("Unary plus requires numeric operand");
 
       default:
-        return err(`Unknown unary operator: ${operator}`)
+        return err(`Unknown unary operator: ${operator}`);
     }
   }
 
   // Built-in functions
   private sumFunction(args: CellValue[]): Result<CellValue> {
-    let sum = 0
+    let sum = 0;
     for (const arg of args) {
       if (isNumericValue(arg)) {
-        sum += arg
+        sum += arg;
       }
     }
-    return ok(sum)
+    return ok(sum);
   }
 
   private averageFunction(args: CellValue[]): Result<CellValue> {
-    const numericArgs = args.filter(isNumericValue)
+    const numericArgs = args.filter(isNumericValue);
     if (numericArgs.length === 0) {
-      return err("AVERAGE requires at least one numeric value")
+      return err("AVERAGE requires at least one numeric value");
     }
-    const sum = numericArgs.reduce((acc, val) => acc + val, 0)
-    return ok(sum / numericArgs.length)
+    const sum = numericArgs.reduce((acc, val) => acc + val, 0);
+    return ok(sum / numericArgs.length);
   }
 
   private countFunction(args: CellValue[]): Result<CellValue> {
-    const count = args.filter(arg => arg !== null && arg !== undefined).length
-    return ok(count)
+    const count = args.filter(
+      (arg) => arg !== null && arg !== undefined,
+    ).length;
+    return ok(count);
   }
 
   private maxFunction(args: CellValue[]): Result<CellValue> {
-    const numericArgs = args.filter(isNumericValue)
+    const numericArgs = args.filter(isNumericValue);
     if (numericArgs.length === 0) {
-      return err("MAX requires at least one numeric value")
+      return err("MAX requires at least one numeric value");
     }
-    return ok(Math.max(...numericArgs))
+    return ok(Math.max(...numericArgs));
   }
 
   private minFunction(args: CellValue[]): Result<CellValue> {
-    const numericArgs = args.filter(isNumericValue)
+    const numericArgs = args.filter(isNumericValue);
     if (numericArgs.length === 0) {
-      return err("MIN requires at least one numeric value")
+      return err("MIN requires at least one numeric value");
     }
-    return ok(Math.min(...numericArgs))
+    return ok(Math.min(...numericArgs));
   }
 
   private ifFunction(args: CellValue[]): Result<CellValue> {
     if (args.length !== 3) {
-      return err("IF requires exactly 3 arguments")
+      return err("IF requires exactly 3 arguments");
     }
-    const [condition, trueValue, falseValue] = args
-    
+    const [condition, trueValue, falseValue] = args;
+
     // Evaluate condition as truthy/falsy
-    const isTrue = condition === true || 
-                   (isNumericValue(condition) && condition !== 0) ||
-                   (isStringValue(condition) && condition.length > 0)
-    
-    return ok(isTrue ? trueValue : falseValue)
+    const isTrue =
+      condition === true ||
+      (isNumericValue(condition) && condition !== 0) ||
+      (isStringValue(condition) && condition.length > 0);
+
+    return ok(isTrue ? trueValue : falseValue);
   }
 
   private concatFunction(args: CellValue[]): Result<CellValue> {
-    const stringArgs = args.map(arg => 
-      arg === null || arg === undefined ? "" : String(arg)
-    )
-    return ok(stringArgs.join(""))
+    const stringArgs = args.map((arg) =>
+      arg === null || arg === undefined ? "" : String(arg),
+    );
+    return ok(stringArgs.join(""));
   }
 
   private lenFunction(args: CellValue[]): Result<CellValue> {
     if (args.length !== 1) {
-      return err("LEN requires exactly 1 argument")
+      return err("LEN requires exactly 1 argument");
     }
-    const value = args[0]
+    const value = args[0];
     if (value === null || value === undefined) {
-      return ok(0)
+      return ok(0);
     }
-    return ok(String(value).length)
+    return ok(String(value).length);
   }
 
   private upperFunction(args: CellValue[]): Result<CellValue> {
     if (args.length !== 1) {
-      return err("UPPER requires exactly 1 argument")
+      return err("UPPER requires exactly 1 argument");
     }
-    const value = args[0]
+    const value = args[0];
     if (value === null || value === undefined) {
-      return ok("")
+      return ok("");
     }
-    return ok(String(value).toUpperCase())
+    return ok(String(value).toUpperCase());
   }
 
   private lowerFunction(args: CellValue[]): Result<CellValue> {
     if (args.length !== 1) {
-      return err("LOWER requires exactly 1 argument")
+      return err("LOWER requires exactly 1 argument");
     }
-    const value = args[0]
+    const value = args[0];
     if (value === null || value === undefined) {
-      return ok("")
+      return ok("");
     }
-    return ok(String(value).toLowerCase())
+    return ok(String(value).toLowerCase());
   }
 
   registerFunction(func: FormulaFunction): void {
-    this.builtinFunctions.set(func.name.toUpperCase(), (args: CellValue[]) => func.evaluate(args, {} as EvaluationContext))
+    this.builtinFunctions.set(func.name.toUpperCase(), (args: CellValue[]) =>
+      func.evaluate(args, {} as EvaluationContext),
+    );
   }
 
   unregisterFunction(name: string): void {
-    this.builtinFunctions.delete(name.toUpperCase())
+    this.builtinFunctions.delete(name.toUpperCase());
   }
 
   hasFunction(name: string): boolean {
-    return this.builtinFunctions.has(name.toUpperCase())
+    return this.builtinFunctions.has(name.toUpperCase());
   }
 }

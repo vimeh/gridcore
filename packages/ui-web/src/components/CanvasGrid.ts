@@ -1,7 +1,8 @@
 import {
   type CellAddress,
+  cellAddressToString,
   parseCellAddress,
-  type SpreadsheetEngine,
+  type SpreadsheetFacade,
 } from "@gridcore/core";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
 import { MouseHandler } from "../interaction/MouseHandler";
@@ -33,7 +34,7 @@ export class CanvasGrid {
   private colHeaderCanvas!: HTMLCanvasElement;
   private cornerCanvas!: HTMLCanvasElement;
   private scrollContainer!: HTMLElement;
-  private grid: SpreadsheetEngine;
+  private facade: SpreadsheetFacade;
   private theme: GridTheme;
 
   private viewport: Viewport;
@@ -54,11 +55,11 @@ export class CanvasGrid {
 
   constructor(
     container: HTMLElement,
-    grid: SpreadsheetEngine,
+    facade: SpreadsheetFacade,
     options: CanvasGridOptions = {},
   ) {
     this.container = container;
-    this.grid = grid;
+    this.facade = facade;
     this.theme = options.theme || defaultTheme;
     this.modeStateMachine = options.modeStateMachine;
 
@@ -360,24 +361,23 @@ export class CanvasGrid {
   public onCellClick?: (cell: CellAddress) => void;
 
   private handleCellDoubleClick(cell: CellAddress): void {
-    const cellData = this.grid.getCell(cell);
-    const initialValue = cellData?.formula || String(cellData?.rawValue || "");
+    const cellAddr = parseCellAddress(cellAddressToString(cell));
+    if (!cellAddr) return;
+
+    const cellResult = this.facade.getCell(cellAddr);
+    let initialValue = "";
+    if (cellResult.ok) {
+      const cellData = cellResult.value;
+      initialValue = cellData.formula || String(cellData.value || "");
+    }
     this.cellEditor.startEditing(cell, initialValue);
   }
 
   private handleCellCommit(address: CellAddress, value: string): void {
-    const isFormula = value.startsWith("=");
+    const cellAddr = parseCellAddress(cellAddressToString(address));
+    if (!cellAddr) return;
 
-    if (isFormula) {
-      this.grid.setCell(address, value, value);
-    } else {
-      const numValue = parseFloat(value);
-      if (!Number.isNaN(numValue) && value.trim() !== "") {
-        this.grid.setCell(address, numValue);
-      } else {
-        this.grid.setCell(address, value);
-      }
-    }
+    this.facade.setCellValue(cellAddr, value);
 
     this.render();
     this.container.focus();
@@ -523,7 +523,18 @@ export class CanvasGrid {
       // Render the grid
       const isNavigationMode = this.modeStateMachine?.isNavigating() ?? true;
       const cellsRendered = this.renderer.renderGrid(
-        (address) => this.grid.getCell(address),
+        (address) => {
+          const cellAddr = parseCellAddress(cellAddressToString(address));
+          if (!cellAddr) return undefined;
+          const result = this.facade.getCell(cellAddr);
+          if (!result.ok) return undefined;
+          // Convert from new Cell format to old format expected by renderer
+          return {
+            rawValue: result.value.value,
+            value: result.value.value,
+            formula: result.value.formula,
+          };
+        },
         this.selectionManager.getActiveCell(),
         this.cellEditor.isCurrentlyEditing(),
         isNavigationMode,
@@ -570,8 +581,8 @@ export class CanvasGrid {
     this.container.innerHTML = "";
   }
 
-  getGrid(): SpreadsheetEngine {
-    return this.grid;
+  getFacade(): SpreadsheetFacade {
+    return this.facade;
   }
 
   getViewport(): Viewport {

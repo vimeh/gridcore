@@ -75,7 +75,7 @@ export class TabBar {
     index: number,
   ): HTMLElement {
     const tab = document.createElement("div");
-    tab.className = "tab" + (isActive ? " active" : "");
+    tab.className = `tab${isActive ? " active" : ""}`;
     tab.dataset.sheetId = sheet.getId();
     tab.dataset.index = index.toString();
     tab.draggable = true;
@@ -170,7 +170,7 @@ export class TabBar {
       }
     });
 
-    this.tabContainer.addEventListener("dragend", (e) => {
+    this.tabContainer.addEventListener("dragend", (_e) => {
       if (this.draggedTab) {
         this.draggedTab.classList.remove("dragging");
 
@@ -271,7 +271,7 @@ export class TabBar {
     input.type = "text";
     input.className = "tab-rename-input";
     input.value = sheet.getName();
-    input.style.width = nameSpan.offsetWidth + "px";
+    input.style.width = `${nameSpan.offsetWidth}px`;
 
     const finishRename = () => {
       const newName = input.value.trim();
@@ -343,7 +343,7 @@ export class TabBar {
         this.hideContextMenu();
         item.action();
       };
-      this.contextMenu!.appendChild(menuItem);
+      this.contextMenu?.appendChild(menuItem);
     });
 
     document.body.appendChild(this.contextMenu);

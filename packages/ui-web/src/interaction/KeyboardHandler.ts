@@ -1,4 +1,8 @@
-import { parseCellAddress, type SpreadsheetEngine } from "@gridcore/core";
+import {
+  cellAddressToString,
+  parseCellAddress,
+  type SpreadsheetFacade,
+} from "@gridcore/core";
 import type { CanvasGrid } from "../components/CanvasGrid";
 import type { CellEditor } from "../components/CellEditor";
 import { KEY_CODES } from "../constants";
@@ -23,7 +27,7 @@ export class KeyboardHandler {
     private container: HTMLElement,
     private selectionManager: SelectionManager,
     private cellEditor: CellEditor,
-    private grid: SpreadsheetEngine,
+    private facade: SpreadsheetFacade,
     private canvasGrid?: CanvasGrid,
     private modeStateMachine?: SpreadsheetStateMachine,
   ) {
@@ -159,17 +163,13 @@ export class KeyboardHandler {
           }
         },
         onUndo: (count) => {
-          for (let i = 0; i < count; i++) {
-            if (!this.grid.canUndo()) break;
-            this.grid.undo();
-          }
+          // TODO: Implement undo functionality in new architecture
+          console.log(`Undo ${count} times - not yet implemented`);
           this.canvasGrid?.render();
         },
         onRedo: (count) => {
-          for (let i = 0; i < count; i++) {
-            if (!this.grid.canRedo()) break;
-            this.grid.redo();
-          }
+          // TODO: Implement redo functionality in new architecture
+          console.log(`Redo ${count} times - not yet implemented`);
           this.canvasGrid?.render();
         },
       };
@@ -612,15 +612,21 @@ export class KeyboardHandler {
       editMode = "replace"; // When typing to start, replace content
     }
 
-    const cellData = this.grid.getCell(activeCell);
+    const cellAddr = parseCellAddress(cellAddressToString(activeCell));
     let initialValue = "";
 
-    if (mode === "replace") {
-      initialValue = cellData?.formula || String(cellData?.rawValue || "");
-    } else if (initialChar && mode === false) {
-      initialValue = initialChar;
-    } else {
-      initialValue = cellData?.formula || String(cellData?.rawValue || "");
+    if (cellAddr) {
+      const cellResult = this.facade.getCell(cellAddr);
+      if (cellResult.ok) {
+        const cellData = cellResult.value;
+        if (mode === "replace") {
+          initialValue = cellData.formula || String(cellData.value || "");
+        } else if (initialChar && mode === false) {
+          initialValue = initialChar;
+        } else {
+          initialValue = cellData.formula || String(cellData.value || "");
+        }
+      }
     }
 
     // CellEditor.startEditing will handle the state machine transition
@@ -633,7 +639,10 @@ export class KeyboardHandler {
     // If only one cell is selected (the active cell) or no cells are selected
     const activeCell = this.selectionManager.getActiveCell();
     if (selectedCells.size <= 1 && activeCell) {
-      this.grid.clearCell(activeCell);
+      const cellAddr = parseCellAddress(cellAddressToString(activeCell));
+      if (cellAddr) {
+        this.facade.setCellValue(cellAddr, "");
+      }
       // Update the canvas grid to reflect the change
       this.canvasGrid?.render();
       // Trigger cell click callback to update formula bar
@@ -641,9 +650,9 @@ export class KeyboardHandler {
     } else if (selectedCells.size > 1) {
       // Delete all selected cells
       for (const cellKey of selectedCells) {
-        const address = parseCellAddress(cellKey);
-        if (address) {
-          this.grid.clearCell(address);
+        const cellAddr = parseCellAddress(cellKey);
+        if (cellAddr) {
+          this.facade.setCellValue(cellAddr, "");
         }
       }
       this.canvasGrid?.render();
@@ -675,15 +684,15 @@ export class KeyboardHandler {
   }
 
   private undo(): void {
-    if (this.grid.undo()) {
-      this.canvasGrid?.render();
-    }
+    // TODO: Implement undo functionality in new architecture
+    console.log("Undo not yet implemented");
+    this.canvasGrid?.render();
   }
 
   private redo(): void {
-    if (this.grid.redo()) {
-      this.canvasGrid?.render();
-    }
+    // TODO: Implement redo functionality in new architecture
+    console.log("Redo not yet implemented");
+    this.canvasGrid?.render();
   }
 
   private toggleInteractionMode(): void {

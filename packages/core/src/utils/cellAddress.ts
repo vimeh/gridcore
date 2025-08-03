@@ -56,7 +56,7 @@ export function parseCellRange(rangeStr: string): CellRange | null {
 
   const startResult = CellAddress.create(startRow, startCol);
   const endResult = CellAddress.create(endRow, endCol);
-  
+
   if (!startResult.ok || !endResult.ok) return null;
 
   const result = CellRange.create(startResult.value, endResult.value);
