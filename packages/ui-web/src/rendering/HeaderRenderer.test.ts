@@ -3,6 +3,7 @@ import { Window } from "happy-dom";
 import { Viewport } from "../components/Viewport";
 import { defaultTheme } from "./GridTheme";
 import { HeaderRenderer } from "./HeaderRenderer";
+import "../test-utils/global";
 
 describe("HeaderRenderer Resize Handle Detection", () => {
   let headerRenderer: HeaderRenderer;
@@ -11,14 +12,14 @@ describe("HeaderRenderer Resize Handle Detection", () => {
   let colHeaderCanvas: HTMLCanvasElement;
   let cornerCanvas: HTMLCanvasElement;
   let window: Window;
-  let document: any;
+  let document: Document;
 
   beforeEach(() => {
     // Setup DOM environment
     window = new Window();
     document = window.document;
-    (global as any).window = window;
-    (global as any).document = document;
+    global.window = window;
+    global.document = document;
     global.devicePixelRatio = 1;
 
     // Create mock canvases
@@ -52,9 +53,9 @@ describe("HeaderRenderer Resize Handle Detection", () => {
       }),
     };
 
-    rowHeaderCanvas.getContext = () => mockContext as any;
-    colHeaderCanvas.getContext = () => mockContext as any;
-    cornerCanvas.getContext = () => mockContext as any;
+    rowHeaderCanvas.getContext = () => mockContext as unknown as CanvasRenderingContext2D;
+    colHeaderCanvas.getContext = () => mockContext as unknown as CanvasRenderingContext2D;
+    cornerCanvas.getContext = () => mockContext as unknown as CanvasRenderingContext2D;
 
     // Set canvas dimensions
     rowHeaderCanvas.width = defaultTheme.rowHeaderWidth;

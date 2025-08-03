@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { SpreadsheetEngine } from "@gridcore/core";
 import { Window } from "happy-dom";
 import { CanvasGrid } from "./CanvasGrid";
+import "../test-utils/global";
 
 describe("CanvasGrid Initial Load", () => {
   let container: HTMLElement;
@@ -12,8 +13,8 @@ describe("CanvasGrid Initial Load", () => {
     // Setup DOM environment
     window = new Window();
     document = window.document;
-    (global as any).window = window;
-    (global as any).document = document;
+    global.window = window;
+    global.document = document;
     global.devicePixelRatio = 1;
     global.requestAnimationFrame = ((cb: FrameRequestCallback) =>
       setTimeout(cb, 0)) as typeof requestAnimationFrame;
@@ -183,8 +184,8 @@ describe("CanvasGrid Scrolling", () => {
     // Setup DOM environment
     window = new Window();
     document = window.document;
-    (global as any).window = window;
-    (global as any).document = document;
+    global.window = window;
+    global.document = document;
     global.devicePixelRatio = 1;
     global.requestAnimationFrame = ((cb: FrameRequestCallback) =>
       setTimeout(cb, 0)) as typeof requestAnimationFrame;

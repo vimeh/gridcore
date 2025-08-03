@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CellAddress, CellRange } from "@gridcore/core";
 import { cellAddressToString } from "@gridcore/core";
+import type { Viewport } from "../components/Viewport";
 import { defaultTheme } from "./GridTheme";
 import { SelectionRenderer } from "./SelectionRenderer";
 
@@ -53,10 +54,10 @@ function createMockViewport() {
 }
 
 // Mock canvas element
-function createMockCanvas(ctx: any): HTMLCanvasElement {
+function createMockCanvas(ctx: ReturnType<typeof createMockContext>): HTMLCanvasElement {
   return {
     getContext: () => ctx,
-  } as any;
+  } as unknown as HTMLCanvasElement;
 }
 
 describe("SelectionRenderer", () => {
@@ -69,7 +70,7 @@ describe("SelectionRenderer", () => {
     ctx = createMockContext();
     viewport = createMockViewport();
     canvas = createMockCanvas(ctx);
-    renderer = new SelectionRenderer(canvas, defaultTheme, viewport as any);
+    renderer = new SelectionRenderer(canvas, defaultTheme, viewport as unknown as Viewport);
   });
 
   test("should not render anything when no cells are selected", () => {
@@ -203,7 +204,7 @@ describe("SelectionRenderer", () => {
     const rendererWithBounds = new SelectionRenderer(
       canvas,
       defaultTheme,
-      mockViewportWithBounds as any,
+      mockViewportWithBounds as unknown as Viewport,
     );
 
     const selectedCells = new Set([
