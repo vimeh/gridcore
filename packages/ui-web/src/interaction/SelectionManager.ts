@@ -3,6 +3,7 @@ import {
   type CellRange,
   cellAddressToString,
 } from "@gridcore/core";
+import type { Viewport } from "../components/Viewport";
 
 export interface SelectionState {
   activeCell: CellAddress | null;
@@ -21,7 +22,7 @@ export class SelectionManager {
   private isSelecting: boolean = false;
   private visualAnchor: CellAddress | null = null;
   private visualMode: "character" | "line" | "block" | null = null;
-  private viewport: any = null; // Will be injected
+  private viewport: Viewport | null = null; // Will be injected
 
   setActiveCell(cell: CellAddress): void {
     this.clearSelection();
@@ -120,7 +121,7 @@ export class SelectionManager {
   public onActiveCellChange?: (cell: CellAddress) => void;
 
   // Visual mode methods
-  setViewport(viewport: any): void {
+  setViewport(viewport: Viewport): void {
     this.viewport = viewport;
   }
 

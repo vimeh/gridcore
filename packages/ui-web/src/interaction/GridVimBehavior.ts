@@ -27,7 +27,7 @@ export class GridVimBehavior {
   private resizeAccumulator: string = ""; // For number prefixes in resize mode
   private numberBuffer: string = ""; // For count prefixes
   private lastCommand: string = ""; // For command sequences like 'gg', 'zz'
-  private commandTimeout: any = null;
+  private commandTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private callbacks: GridVimCallbacks,

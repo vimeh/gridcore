@@ -135,8 +135,8 @@ export function generateStateTable(): string {
   const sortedStates = Array.from(transitionMap.keys()).sort();
 
   for (const state of sortedStates) {
-    const transitions = transitionMap.get(state)!;
-    if (transitions.size === 0) continue;
+    const transitions = transitionMap.get(state);
+    if (!transitions || transitions.size === 0) continue;
 
     output += `${state}:\n`;
     for (const [action, target] of transitions) {
