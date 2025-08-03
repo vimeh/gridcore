@@ -360,6 +360,19 @@ export class GridVimBehavior {
           return true;
         }
         return false;
+
+      // Edit mode keys - exit visual mode first
+      case "i":
+      case "I":
+      case "a":
+      case "A":
+      case "o":
+      case "O":
+        this.numberBuffer = "";
+        // Exit visual mode
+        this.callbacks.onModeChangeRequest("normal");
+        // Let the key fall through to normal mode handling
+        return false;
     }
 
     this.numberBuffer = "";
