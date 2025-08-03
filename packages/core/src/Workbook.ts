@@ -1,9 +1,11 @@
 import { Sheet } from "./Sheet";
+import type { CellAddress, CellValueType } from "./types";
 import type {
   WorkbookMetadata as WorkbookMetadataType,
   WorkbookState,
   WorkbookStateOptions,
 } from "./types/WorkbookState";
+import { WorkbookFormulaEngine } from "./WorkbookFormulaEngine";
 
 export interface WorkbookMetadata
   extends Omit<WorkbookMetadataType, "createdAt" | "modifiedAt"> {
@@ -16,6 +18,7 @@ export class Workbook {
   private activeSheetId: string;
   private metadata: WorkbookMetadata;
   private sheetOrder: string[];
+  private formulaEngine: WorkbookFormulaEngine;
 
   constructor() {
     this.sheets = new Map();
@@ -24,6 +27,7 @@ export class Workbook {
       createdAt: new Date(),
       modifiedAt: new Date(),
     };
+    this.formulaEngine = new WorkbookFormulaEngine(this);
 
     // Create default sheet
     const defaultSheet = this.addSheet("Sheet1");
@@ -359,5 +363,54 @@ export class Workbook {
     }
 
     return workbook;
+  }
+
+  // Cell operations with cross-sheet support
+  setCell(
+    sheetId: string,
+    address: CellAddress,
+    value: CellValueType,
+    formula?: string,
+  ): void {
+    const sheet = this.sheets.get(sheetId);
+    if (!sheet) {
+      throw new Error(`Sheet ${sheetId} not found`);
+    }
+
+    const engine = sheet.getEngine();
+
+    // Clear existing cross-sheet dependencies for this cell
+    this.formulaEngine.removeCrossSheetDependencies(sheetId, address);
+
+    // If it's a formula that might contain cross-sheet references, use the workbook context
+    if (formula?.startsWith("=") && formula.includes("!")) {
+      const context = this.formulaEngine.createEvaluationContext(
+        sheetId,
+        address,
+      );
+      engine.setCell(address, value, formula);
+      engine.evaluateFormulaWithContext(address, formula, context);
+
+      // Trigger recalculation of cross-sheet dependents
+      this.formulaEngine.recalculateCrossSheetDependents(sheetId, address);
+    } else {
+      // Normal cell update
+      engine.setCell(address, value, formula);
+
+      // Still need to recalculate cross-sheet dependents
+      this.formulaEngine.recalculateCrossSheetDependents(sheetId, address);
+    }
+  }
+
+  setCellInActiveSheet(
+    address: CellAddress,
+    value: CellValueType,
+    formula?: string,
+  ): void {
+    this.setCell(this.activeSheetId, address, value, formula);
+  }
+
+  getFormulaEngine(): WorkbookFormulaEngine {
+    return this.formulaEngine;
   }
 }

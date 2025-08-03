@@ -7,10 +7,17 @@ import { GridVimBehavior, type GridVimCallbacks } from "./GridVimBehavior";
 import { ResizeBehavior } from "./ResizeBehavior";
 import type { SelectionManager } from "./SelectionManager";
 
+export interface SheetNavigationCallbacks {
+  onNextSheet?: () => void;
+  onPreviousSheet?: () => void;
+  onNewSheet?: () => void;
+}
+
 export class KeyboardHandler {
   private gridVimBehavior?: GridVimBehavior;
   private resizeBehavior?: ResizeBehavior;
   private lastKey: string = "";
+  private sheetNavigationCallbacks?: SheetNavigationCallbacks;
 
   constructor(
     private container: HTMLElement,
@@ -22,6 +29,10 @@ export class KeyboardHandler {
   ) {
     this.setupEventListeners();
     this.initializeVimBehaviors();
+  }
+
+  setSheetNavigationCallbacks(callbacks: SheetNavigationCallbacks): void {
+    this.sheetNavigationCallbacks = callbacks;
   }
 
   private setupEventListeners(): void {
@@ -190,6 +201,27 @@ export class KeyboardHandler {
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
+    // Handle sheet navigation shortcuts
+    if (this.sheetNavigationCallbacks) {
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === "PageDown") {
+          event.preventDefault();
+          this.sheetNavigationCallbacks.onNextSheet?.();
+          return;
+        } else if (event.key === "PageUp") {
+          event.preventDefault();
+          this.sheetNavigationCallbacks.onPreviousSheet?.();
+          return;
+        }
+      }
+
+      if (event.altKey && event.shiftKey && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        this.sheetNavigationCallbacks.onNewSheet?.();
+        return;
+      }
+    }
+
     // Check if we're in navigation mode
     const isNavigationMode =
       !this.modeStateMachine || this.modeStateMachine.isNavigating();

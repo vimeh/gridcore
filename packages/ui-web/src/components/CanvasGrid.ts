@@ -578,6 +578,10 @@ export class CanvasGrid {
     return this.viewport;
   }
 
+  getKeyboardHandler(): KeyboardHandler {
+    return this.keyboardHandler;
+  }
+
   setDebugMode(enabled: boolean): void {
     this.debugRenderer.setEnabled(enabled);
     this.render(); // Re-render to show/hide debug overlay

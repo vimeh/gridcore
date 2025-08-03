@@ -116,6 +116,15 @@ export class SpreadsheetEngine {
   }
 
   private evaluateFormula(address: CellAddress, formula: string): void {
+    const context = this.createEvaluationContext(address);
+    this.evaluateFormulaWithContext(address, formula, context);
+  }
+
+  evaluateFormulaWithContext(
+    address: CellAddress,
+    formula: string,
+    context: EvaluationContext,
+  ): void {
     try {
       // Parse the formula to extract dependencies
       const parseResult = this.parser.parse(formula);
@@ -148,22 +157,6 @@ export class SpreadsheetEngine {
         this.dependencyGraph.addDependency(address, dep);
       }
 
-      // Create evaluation context
-      const context: EvaluationContext = {
-        getCellValue: (addr: CellAddress) => this.grid.getCell(addr),
-        getRangeValues: (start: CellAddress, end: CellAddress) => {
-          const cells: Cell[] = [];
-          for (let row = start.row; row <= end.row; row++) {
-            for (let col = start.col; col <= end.col; col++) {
-              const cell = this.grid.getCell({ row, col });
-              if (cell) cells.push(cell);
-            }
-          }
-          return cells;
-        },
-        currentCell: address,
-      };
-
       // Evaluate the formula
       const result = this.evaluator.evaluate(formula, context);
       const cell = this.grid.getCell(address);
@@ -184,6 +177,23 @@ export class SpreadsheetEngine {
         cell.computedValue = cell.error;
       }
     }
+  }
+
+  private createEvaluationContext(address: CellAddress): EvaluationContext {
+    return {
+      getCellValue: (addr: CellAddress) => this.grid.getCell(addr),
+      getRangeValues: (start: CellAddress, end: CellAddress) => {
+        const cells: Cell[] = [];
+        for (let row = start.row; row <= end.row; row++) {
+          for (let col = start.col; col <= end.col; col++) {
+            const cell = this.grid.getCell({ row, col });
+            if (cell) cells.push(cell);
+          }
+        }
+        return cells;
+      },
+      currentCell: address,
+    };
   }
 
   private extractDependencies(node: ASTNode): CellAddress[] {

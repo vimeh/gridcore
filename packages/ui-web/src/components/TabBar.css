@@ -1,0 +1,165 @@
+.tab-bar {
+  height: 30px;
+  background: #f5f5f5;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+.tab-container {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f5f5f5;
+}
+
+.tab-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tab-container::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+.tab-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.tab-container::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 4px 12px;
+  padding-right: 8px;
+  min-width: 80px;
+  max-width: 200px;
+  height: 100%;
+  border-right: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tab:hover {
+  background: #f0f0f0;
+}
+
+.tab.active {
+  background: #1976d2;
+  color: white;
+}
+
+.tab.dragging {
+  opacity: 0.5;
+  cursor: move;
+}
+
+.tab-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  margin-right: 4px;
+}
+
+.tab-close-button {
+  display: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin-left: 4px;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 16px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 2px;
+  opacity: 0.7;
+  transition:
+    opacity 0.2s,
+    background-color 0.2s;
+}
+
+.tab:hover .tab-close-button {
+  display: block;
+}
+
+.tab-close-button:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.tab.active .tab-close-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tab-add-button {
+  width: 30px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-right: 1px solid #ddd;
+  background: #fff;
+  font-size: 16px;
+  color: #666;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.tab-add-button:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.tab-rename-input {
+  border: 1px solid #ddd;
+  padding: 2px 4px;
+  font-size: 13px;
+  font-family: inherit;
+  background: white;
+  color: black;
+  outline: none;
+  border-radius: 2px;
+}
+
+.tab-context-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  z-index: 10000;
+  min-width: 120px;
+}
+
+.tab-context-menu-item {
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tab-context-menu-item:hover {
+  background: #f0f0f0;
+}
+
+.tab-context-menu-item + .tab-context-menu-item {
+  border-top: 1px solid #eee;
+}
