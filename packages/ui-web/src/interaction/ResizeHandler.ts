@@ -108,7 +108,7 @@ export class ResizeHandler {
     const scrollPos = this.viewport.getScrollPosition();
 
     const result = this.headerRenderer.getColumnAtPosition(x, scrollPos.x);
-    if (result && result.isResizeHandle) {
+    if (result?.isResizeHandle) {
       event.preventDefault();
       this.startResize("column", result.col, event.clientX);
     }
@@ -122,7 +122,7 @@ export class ResizeHandler {
     const scrollPos = this.viewport.getScrollPosition();
 
     const result = this.headerRenderer.getRowAtPosition(y, scrollPos.y);
-    if (result && result.isResizeHandle) {
+    if (result?.isResizeHandle) {
       event.preventDefault();
       this.startResize("row", result.row, event.clientY);
     }
@@ -136,7 +136,7 @@ export class ResizeHandler {
     const scrollPos = this.viewport.getScrollPosition();
 
     const result = this.headerRenderer.getColumnAtPosition(x, scrollPos.x);
-    if (result && result.isResizeHandle) {
+    if (result?.isResizeHandle) {
       this.colHeaderCanvas.style.cursor = "col-resize";
     } else {
       this.colHeaderCanvas.style.cursor = "pointer";
@@ -151,7 +151,7 @@ export class ResizeHandler {
     const scrollPos = this.viewport.getScrollPosition();
 
     const result = this.headerRenderer.getRowAtPosition(y, scrollPos.y);
-    if (result && result.isResizeHandle) {
+    if (result?.isResizeHandle) {
       this.rowHeaderCanvas.style.cursor = "row-resize";
     } else {
       this.rowHeaderCanvas.style.cursor = "pointer";

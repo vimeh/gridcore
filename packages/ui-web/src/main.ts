@@ -204,7 +204,7 @@ window.addEventListener("resize", () => {
 });
 
 // Create mode indicator
-const modeIndicator = new ModeIndicator(app, modeStateMachine);
+const _modeIndicator = new ModeIndicator(app, modeStateMachine);
 
 // Initial focus
 gridContainer.focus();

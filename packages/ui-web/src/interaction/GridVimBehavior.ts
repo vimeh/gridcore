@@ -24,7 +24,6 @@ export interface GridVimCallbacks {
 }
 
 export class GridVimBehavior {
-  private visualAnchor: CellAddress | null = null;
   private resizeAccumulator: string = ""; // For number prefixes in resize mode
   private numberBuffer: string = ""; // For count prefixes
   private lastCommand: string = ""; // For command sequences like 'gg', 'zz'
@@ -76,7 +75,7 @@ export class GridVimBehavior {
   private handleNormalMode(
     key: string,
     ctrl: boolean,
-    shift: boolean,
+    _shift: boolean,
   ): boolean {
     // Handle number accumulation for counts
     if (
@@ -255,9 +254,9 @@ export class GridVimBehavior {
   private handleVisualMode(
     key: string,
     ctrl: boolean,
-    shift: boolean,
+    _shift: boolean,
   ): boolean {
-    const mode = this.getCurrentMode();
+    const _mode = this.getCurrentMode();
     const activeCell = this.selectionManager.getActiveCell();
 
     if (!activeCell) return false;
@@ -359,7 +358,7 @@ export class GridVimBehavior {
   private handleResizeMode(
     key: string,
     ctrl: boolean,
-    shift: boolean,
+    _shift: boolean,
   ): boolean {
     if (key === "Escape" || (ctrl && key === "[")) {
       this.resizeAccumulator = "";

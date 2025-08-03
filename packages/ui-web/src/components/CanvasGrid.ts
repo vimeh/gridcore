@@ -11,10 +11,12 @@ import { CanvasRenderer } from "../rendering/CanvasRenderer";
 import { DebugRenderer } from "../rendering/DebugRenderer";
 import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
 import { HeaderRenderer } from "../rendering/HeaderRenderer";
-import type { SpreadsheetStateMachine, InteractionMode } from "../state/SpreadsheetStateMachine";
+import type {
+  InteractionMode,
+  SpreadsheetStateMachine,
+} from "../state/SpreadsheetStateMachine";
 import { CellEditor } from "./CellEditor";
 import { Viewport } from "./Viewport";
-
 
 export interface CanvasGridOptions {
   theme?: GridTheme;
@@ -132,7 +134,7 @@ export class CanvasGrid {
 
     // Do an immediate resize to set initial dimensions correctly
     this.resize();
-    
+
     // Then do another resize in next frame to handle any layout changes
     requestAnimationFrame(() => {
       this.resize();
@@ -307,18 +309,19 @@ export class CanvasGrid {
         (newState) => {
           // Update mouse handler based on interaction mode
           this.mouseHandler.setEnabled(newState.interactionMode === "normal");
-          
+
           // Update resize handler based on interaction mode
           this.resizeHandler.setEnabled(newState.interactionMode === "normal");
-          
+
           // Update toggle checkbox state
           if (this.interactionModeToggle) {
-            this.interactionModeToggle.checked = newState.interactionMode === "keyboard-only";
+            this.interactionModeToggle.checked =
+              newState.interactionMode === "keyboard-only";
           }
-          
+
           // Re-render to update any visual indicators
           this.render();
-        }
+        },
       );
     }
   }
@@ -387,7 +390,7 @@ export class CanvasGrid {
     const rect = this.container.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
-    
+
     // Early return if container has no dimensions yet
     if (width === 0 || height === 0) {
       return;
@@ -416,8 +419,8 @@ export class CanvasGrid {
     this.colHeaderCanvas.style.width = `${width - this.theme.rowHeaderWidth - scrollbarWidth}px`;
     this.rowHeaderCanvas.style.height = `${height - this.theme.columnHeaderHeight - scrollbarHeight}px`;
 
-    const scrollWidth = width - this.theme.rowHeaderWidth;
-    const scrollHeight = height - this.theme.columnHeaderHeight;
+    const _scrollWidth = width - this.theme.rowHeaderWidth;
+    const _scrollHeight = height - this.theme.columnHeaderHeight;
 
     // Get the actual client dimensions (excluding scrollbars)
     const clientWidth = this.scrollContainer.clientWidth;
@@ -511,8 +514,7 @@ export class CanvasGrid {
       }
 
       // Render the grid
-      const isNavigationMode =
-        this.modeStateMachine?.isNavigating() ?? true;
+      const isNavigationMode = this.modeStateMachine?.isNavigating() ?? true;
       const cellsRendered = this.renderer.renderGrid(
         (address) => this.grid.getCell(address),
         this.selectionManager.getSelectedCells(),
@@ -558,7 +560,7 @@ export class CanvasGrid {
   getGrid(): SpreadsheetEngine {
     return this.grid;
   }
-  
+
   getViewport(): Viewport {
     return this.viewport;
   }
@@ -640,23 +642,23 @@ export class CanvasGrid {
   // Set interaction mode
   setInteractionMode(mode: InteractionMode): void {
     if (this.getInteractionMode() === mode) return;
-    
-    this.modeStateMachine?.transition({ 
-      type: "SET_INTERACTION_MODE", 
-      mode 
+
+    this.modeStateMachine?.transition({
+      type: "SET_INTERACTION_MODE",
+      mode,
     });
-    
+
     // Update mouse handler
     this.mouseHandler.setEnabled(mode === "normal");
-    
+
     // Update resize handler
     this.resizeHandler.setEnabled(mode === "normal");
-    
+
     // Update toggle checkbox state
     if (this.interactionModeToggle) {
       this.interactionModeToggle.checked = mode === "keyboard-only";
     }
-    
+
     // Re-render to update any visual indicators
     this.render();
   }

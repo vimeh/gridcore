@@ -2,10 +2,10 @@ import { parseCellAddress, type SpreadsheetEngine } from "@gridcore/core";
 import type { CanvasGrid } from "../components/CanvasGrid";
 import type { CellEditor } from "../components/CellEditor";
 import { KEY_CODES } from "../constants";
-import type { SelectionManager } from "./SelectionManager";
 import type { SpreadsheetStateMachine } from "../state/SpreadsheetStateMachine";
 import { GridVimBehavior, type GridVimCallbacks } from "./GridVimBehavior";
 import { ResizeBehavior } from "./ResizeBehavior";
+import type { SelectionManager } from "./SelectionManager";
 
 export class KeyboardHandler {
   private gridVimBehavior?: GridVimBehavior;
@@ -36,7 +36,7 @@ export class KeyboardHandler {
     // Initialize GridVimBehavior if we have mode state machine
     if (this.modeStateMachine && this.canvasGrid) {
       const callbacks: GridVimCallbacks = {
-        onModeChangeRequest: (mode, editMode) => {
+        onModeChangeRequest: (mode, _editMode) => {
           // Handle mode transitions
           if (mode === "visual") {
             const activeCell = this.selectionManager.getActiveCell();
@@ -87,7 +87,7 @@ export class KeyboardHandler {
             }
           }
         },
-        onRangeSelectionRequest: (anchor, cursor) => {
+        onRangeSelectionRequest: (_anchor, cursor) => {
           this.selectionManager.updateVisualSelection(cursor);
         },
         onResizeRequest: (type, index, delta) => {
@@ -96,25 +96,25 @@ export class KeyboardHandler {
             // This would need implementation in ResizeBehavior
           } else {
             if (type === "column") {
-              const current =
-                this.canvasGrid!.getViewport().getColumnWidth(index);
-              this.canvasGrid!.getViewport().setColumnWidth(
-                index,
-                current + delta,
-              );
+              const current = this.canvasGrid
+                ?.getViewport()
+                .getColumnWidth(index);
+              this.canvasGrid
+                ?.getViewport()
+                .setColumnWidth(index, current + delta);
             } else {
-              const current =
-                this.canvasGrid!.getViewport().getRowHeight(index);
-              this.canvasGrid!.getViewport().setRowHeight(
-                index,
-                current + delta,
-              );
+              const current = this.canvasGrid
+                ?.getViewport()
+                .getRowHeight(index);
+              this.canvasGrid
+                ?.getViewport()
+                .setRowHeight(index, current + delta);
             }
           }
           this.canvasGrid?.render();
         },
         onScrollRequest: (direction, amount) => {
-          const viewport = this.canvasGrid!.getViewport();
+          const viewport = this.canvasGrid?.getViewport();
           const pageSize = viewport.getPageSize();
           const scrollAmount =
             amount === 0.5
@@ -152,7 +152,7 @@ export class KeyboardHandler {
       this.gridVimBehavior = new GridVimBehavior(
         callbacks,
         () => {
-          const state = this.modeStateMachine!.getState();
+          const state = this.modeStateMachine?.getState();
           if (state.type === "navigation") return "normal";
           return state.substate.type;
         },
