@@ -104,6 +104,9 @@ export type CellVimAction =
   | {
       type: "exitVisualMode";
     }
+  | {
+      type: "exitEditing";
+    }
   | { type: "none" };
 
 interface VimInternalState {

@@ -135,6 +135,12 @@ export class CellVimBehavior {
         this.clearBuffers();
         return { type: "enterVisualMode", visualType: "character" };
 
+      // Exit to navigation
+      case "Escape":
+      case "\x1b":
+        this.clearBuffers();
+        return { type: "exitEditing" };
+
       // Delete
       case "x": {
         this.clearBuffers();

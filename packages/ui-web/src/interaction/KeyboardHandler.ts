@@ -182,6 +182,7 @@ export class KeyboardHandler {
     if (activeCell) {
       this.facade.setCellValue(activeCell, "");
       this.canvasGrid?.render();
+    }
   }
 
   destroy(): void {
