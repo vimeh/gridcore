@@ -12,7 +12,8 @@
     "dev": "bun run build --watch",
     "build": "bun build ./src/index.ts --outdir ./dist --target node && bunx tsc --emitDeclarationOnly",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "clean": "rm -rf dist node_modules coverage"
   },
   "devDependencies": {
     "@types/bun": "latest",

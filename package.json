@@ -11,11 +11,15 @@
     "dev:core": "bun run --filter '@gridcore/core' dev",
     "dev:desktop": "bun run --filter '@gridcore/ui-desktop' dev",
     "build": "bun run --filter '*' build",
+    "build:core": "bun run --filter '@gridcore/core' build",
     "build:web": "bun run --filter '@gridcore/ui-web' build",
+    "build:tui": "bun run --filter '@gridcore/ui-tui' build",
+    "build:desktop": "bun run --filter '@gridcore/ui-desktop' build",
     "test": "bun test packages/core && bun test packages/ui-web/src",
     "test:all": "bun test packages/core && bun test packages/ui-web/src && bun run --cwd packages/ui-web test:e2e",
     "typecheck": "bun run --filter '*' typecheck",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "clean": "rm -rf node_modules && bun run --filter '*' clean"
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.3",

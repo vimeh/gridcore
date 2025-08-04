@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bun build ./src/index.ts --outdir ./dist --target node",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules coverage"
   },
   "dependencies": {
     "@gridcore/core": "workspace:*"
