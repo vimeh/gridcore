@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test"
-import { CellAddress, SpreadsheetFacade } from "@gridcore/core"
+import { CellAddress, Workbook } from "@gridcore/core"
 import {
   SpreadsheetController,
   type ViewportManager,
@@ -41,17 +41,20 @@ class MockViewportManager implements ViewportManager {
 }
 
 describe("WebStateAdapter", () => {
-  let facade: SpreadsheetFacade
+  let workbook: Workbook
   let viewportManager: ViewportManager
   let controller: SpreadsheetController
   let adapter: WebStateAdapter
 
   beforeEach(() => {
-    // Create facade with empty data
-    facade = new SpreadsheetFacade()
+    // Create workbook which initializes a sheet with proper facade
+    workbook = new Workbook()
+    const sheet = workbook.getActiveSheet()
+    if (!sheet) throw new Error("No active sheet")
+    
     viewportManager = new MockViewportManager()
     controller = new SpreadsheetController({
-      facade,
+      facade: sheet.facade,
       viewportManager,
     })
     adapter = new WebStateAdapter(controller)

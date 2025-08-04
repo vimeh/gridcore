@@ -34,6 +34,7 @@ export class SpreadsheetTUI extends Renderable {
   private facade: SpreadsheetFacade
   private controller: SpreadsheetController
   private viewportManager: TUIViewportManager
+  private running = false
 
   // Child components
   private gridComponent: GridComponent
