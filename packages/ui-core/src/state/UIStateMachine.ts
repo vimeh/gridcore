@@ -7,11 +7,15 @@ import {
   createEditingState,
   createNavigationState,
   createResizeState,
+  createSpreadsheetVisualState,
   type InsertMode,
   isCommandMode,
   isEditingMode,
   isNavigationMode,
   isResizeMode,
+  isSpreadsheetVisualMode,
+  type Selection,
+  type SpreadsheetVisualMode,
   type UIState,
   type VisualMode,
 } from "./UIState";
@@ -29,6 +33,13 @@ export type Action =
   | { type: "EXIT_INSERT_MODE" }
   | { type: "ENTER_VISUAL_MODE"; visualType: VisualMode; anchor?: number }
   | { type: "EXIT_VISUAL_MODE" }
+  | {
+      type: "ENTER_SPREADSHEET_VISUAL_MODE";
+      visualMode: SpreadsheetVisualMode;
+      selection: Selection;
+    }
+  | { type: "EXIT_SPREADSHEET_VISUAL_MODE" }
+  | { type: "UPDATE_SELECTION"; selection: Selection }
   | { type: "ENTER_COMMAND_MODE" }
   | { type: "EXIT_COMMAND_MODE" }
   | {
@@ -76,6 +87,9 @@ export class UIStateMachine {
       ["navigation.START_EDITING", this.startEditing.bind(this)],
       ["navigation.ENTER_COMMAND_MODE", this.enterCommandMode.bind(this)],
       ["navigation.ENTER_RESIZE_MODE", this.enterResizeMode.bind(this)],
+      ["navigation.ENTER_SPREADSHEET_VISUAL_MODE", this.enterSpreadsheetVisualMode.bind(this)],
+      ["visual.EXIT_SPREADSHEET_VISUAL_MODE", this.exitSpreadsheetVisualMode.bind(this)],
+      ["visual.UPDATE_SELECTION", this.updateSelection.bind(this)],
       ["editing.EXIT_TO_NAVIGATION", this.exitToNavigation.bind(this)],
       ["editing.normal.ENTER_INSERT_MODE", this.enterInsertMode.bind(this)],
       ["editing.insert.EXIT_INSERT_MODE", this.exitInsertMode.bind(this)],
@@ -136,6 +150,21 @@ export class UIStateMachine {
 
   exitEditingMode(): Result<UIState> {
     return this.transition({ type: "EXIT_TO_NAVIGATION" });
+  }
+
+  enterSpreadsheetVisualMode(
+    visualMode: SpreadsheetVisualMode,
+    selection: Selection,
+  ): Result<UIState> {
+    return this.transition({
+      type: "ENTER_SPREADSHEET_VISUAL_MODE",
+      visualMode,
+      selection,
+    });
+  }
+
+  exitSpreadsheetVisualMode(): Result<UIState> {
+    return this.transition({ type: "EXIT_SPREADSHEET_VISUAL_MODE" });
   }
 
   getState(): Readonly<UIState> {
@@ -201,10 +230,11 @@ export class UIStateMachine {
     if (
       !isEditingMode(state) &&
       !isCommandMode(state) &&
-      !isResizeMode(state)
+      !isResizeMode(state) &&
+      !isSpreadsheetVisualMode(state)
     ) {
       return err(
-        "Can only exit to navigation from editing, command, or resize mode",
+        "Can only exit to navigation from editing, command, resize, or visual mode",
       );
     }
 
@@ -264,6 +294,45 @@ export class UIStateMachine {
       cellMode: "normal",
       visualType: undefined,
       visualStart: undefined,
+    });
+  }
+
+  private enterSpreadsheetVisualMode(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "ENTER_SPREADSHEET_VISUAL_MODE") {
+      return err("Invalid action type");
+    }
+    if (!isNavigationMode(state)) {
+      return err("Can only enter spreadsheet visual mode from navigation mode");
+    }
+
+    return ok(createSpreadsheetVisualState(
+      state.cursor,
+      state.viewport,
+      action.visualMode,
+      state.cursor, // anchor starts at current cursor
+      action.selection,
+    ));
+  }
+
+  private exitSpreadsheetVisualMode(state: UIState): Result<UIState> {
+    if (!isSpreadsheetVisualMode(state)) {
+      return err("Can only exit spreadsheet visual mode when in visual mode");
+    }
+
+    return ok(createNavigationState(state.cursor, state.viewport, state.selection));
+  }
+
+  private updateSelection(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "UPDATE_SELECTION") {
+      return err("Invalid action type");
+    }
+    if (!isSpreadsheetVisualMode(state)) {
+      return err("Can only update selection in spreadsheet visual mode");
+    }
+
+    return ok({
+      ...state,
+      selection: action.selection,
     });
   }
 
@@ -387,6 +456,10 @@ export class UIStateMachine {
       }
       // Exit editing mode entirely
       return this.exitToNavigation(state);
+    }
+
+    if (isSpreadsheetVisualMode(state)) {
+      return this.exitSpreadsheetVisualMode(state);
     }
 
     if (isCommandMode(state) || isResizeMode(state)) {
