@@ -49,10 +49,10 @@ export class HeaderRenderer {
     ].forEach(({ canvas, ctx, name }) => {
       const rect = canvas.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) {
-        console.warn(
-          `HeaderRenderer: ${name} canvas has zero dimensions`,
-          rect,
-        );
+        //   console.warn(
+        //     `HeaderRenderer: ${name} canvas has zero dimensions`,
+        //     rect,
+        //   );
       }
       canvas.width = rect.width * this.devicePixelRatio;
       canvas.height = rect.height * this.devicePixelRatio;
