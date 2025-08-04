@@ -5,12 +5,16 @@ import {
   createEditingState,
   createNavigationState,
   createResizeState,
+  createSpreadsheetVisualState,
+  isCellVisualMode,
   isCommandMode,
   isEditingMode,
   isInsertMode,
   isNavigationMode,
   isResizeMode,
+  isSpreadsheetVisualMode,
   isVisualMode,
+  type Selection,
   type UIState,
 } from "./UIState";
 
@@ -66,6 +70,29 @@ describe("UIState", () => {
       expect(state.originalSize).toBe(100);
       expect(state.currentSize).toBe(100);
     });
+
+    test("createSpreadsheetVisualState", () => {
+      const anchor = CellAddress.create(1, 1).value;
+      const selection: Selection = {
+        type: { type: "column", columns: [1, 2] },
+        anchor,
+      };
+      
+      const state = createSpreadsheetVisualState(
+        defaultCursor,
+        defaultViewport,
+        "column",
+        anchor,
+        selection,
+      );
+      
+      expect(state.spreadsheetMode).toBe("visual");
+      expect(state.visualMode).toBe("column");
+      expect(state.anchor).toEqual(anchor);
+      expect(state.selection).toEqual(selection);
+      expect(state.cursor).toEqual(defaultCursor);
+      expect(state.viewport).toEqual(defaultViewport);
+    });
   });
 
   describe("type guards", () => {
@@ -106,6 +133,27 @@ describe("UIState", () => {
       expect(isResizeMode(navState)).toBe(false);
       expect(isResizeMode(resizeState)).toBe(true);
     });
+
+    test("isSpreadsheetVisualMode", () => {
+      const navState = createNavigationState(defaultCursor, defaultViewport);
+      const editState = createEditingState(defaultCursor, defaultViewport);
+      const anchor = CellAddress.create(1, 1).value;
+      const selection: Selection = {
+        type: { type: "row", rows: [0, 1] },
+        anchor,
+      };
+      const visualState = createSpreadsheetVisualState(
+        defaultCursor,
+        defaultViewport,
+        "row",
+        anchor,
+        selection,
+      );
+
+      expect(isSpreadsheetVisualMode(navState)).toBe(false);
+      expect(isSpreadsheetVisualMode(editState)).toBe(false);
+      expect(isSpreadsheetVisualMode(visualState)).toBe(true);
+    });
   });
 
   describe("editing mode helpers", () => {
@@ -127,7 +175,7 @@ describe("UIState", () => {
       expect(isInsertMode(insertEditState)).toBe(true);
     });
 
-    test("isVisualMode", () => {
+    test("isCellVisualMode", () => {
       const navState = createNavigationState(defaultCursor, defaultViewport);
       const normalEditState = createEditingState(
         defaultCursor,
@@ -140,19 +188,37 @@ describe("UIState", () => {
         visualStart: 0,
       };
 
+      expect(isCellVisualMode(navState)).toBe(false);
+      expect(isCellVisualMode(normalEditState)).toBe(false);
+      expect(isCellVisualMode(visualEditState)).toBe(true);
+    });
+
+    test("isVisualMode (legacy)", () => {
+      const navState = createNavigationState(defaultCursor, defaultViewport);
+      const visualEditState: UIState = {
+        ...createEditingState(defaultCursor, defaultViewport, "visual"),
+        visualType: "character",
+        visualStart: 0,
+      };
+
       expect(isVisualMode(navState)).toBe(false);
-      expect(isVisualMode(normalEditState)).toBe(false);
       expect(isVisualMode(visualEditState)).toBe(true);
     });
   });
 
   describe("state properties", () => {
     test("all states have cursor and viewport", () => {
+      const anchor = CellAddress.create(1, 1).value;
+      const selection: Selection = {
+        type: { type: "cell", address: defaultCursor },
+      };
+      
       const states: UIState[] = [
         createNavigationState(defaultCursor, defaultViewport),
         createEditingState(defaultCursor, defaultViewport),
         createCommandState(defaultCursor, defaultViewport),
         createResizeState(defaultCursor, defaultViewport, "column", 0, 100),
+        createSpreadsheetVisualState(defaultCursor, defaultViewport, "char", anchor, selection),
       ];
 
       states.forEach((state) => {
@@ -192,6 +258,88 @@ describe("UIState", () => {
 
       expect(isInsertMode(state)).toBe(true);
       expect(state.editVariant).toBe("a");
+    });
+
+    test("spreadsheet visual state with different visual modes", () => {
+      const anchor = CellAddress.create(1, 1).value;
+      const cursor = CellAddress.create(2, 3).value;
+
+      // Test column selection
+      const columnSelection: Selection = {
+        type: { type: "column", columns: [1, 2, 3] },
+        anchor,
+      };
+      const columnState = createSpreadsheetVisualState(
+        cursor,
+        defaultViewport,
+        "column",
+        anchor,
+        columnSelection,
+      );
+
+      expect(isSpreadsheetVisualMode(columnState)).toBe(true);
+      expect(columnState.visualMode).toBe("column");
+      expect(columnState.selection.type.type).toBe("column");
+      expect(columnState.selection.type.columns).toEqual([1, 2, 3]);
+
+      // Test row selection
+      const rowSelection: Selection = {
+        type: { type: "row", rows: [0, 1] },
+        anchor,
+      };
+      const rowState = createSpreadsheetVisualState(
+        cursor,
+        defaultViewport,
+        "row",
+        anchor,
+        rowSelection,
+      );
+
+      expect(rowState.visualMode).toBe("row");
+      expect(rowState.selection.type.type).toBe("row");
+      expect(rowState.selection.type.rows).toEqual([0, 1]);
+
+      // Test range selection
+      const rangeSelection: Selection = {
+        type: { 
+          type: "range", 
+          start: anchor, 
+          end: cursor,
+        },
+        anchor,
+      };
+      const rangeState = createSpreadsheetVisualState(
+        cursor,
+        defaultViewport,
+        "block",
+        anchor,
+        rangeSelection,
+      );
+
+      expect(rangeState.visualMode).toBe("block");
+      expect(rangeState.selection.type.type).toBe("range");
+      expect(rangeState.selection.type.start).toEqual(anchor);
+      expect(rangeState.selection.type.end).toEqual(cursor);
+    });
+
+    test("navigation state with optional selection", () => {
+      const selection: Selection = {
+        type: { type: "cell", address: defaultCursor },
+      };
+
+      const stateWithSelection = createNavigationState(
+        defaultCursor,
+        defaultViewport,
+        selection,
+      );
+
+      const stateWithoutSelection = createNavigationState(
+        defaultCursor,
+        defaultViewport,
+      );
+
+      expect(stateWithSelection.selection).toEqual(selection);
+      expect(stateWithoutSelection.selection).toBeUndefined();
     });
   });
 });
