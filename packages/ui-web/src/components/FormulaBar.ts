@@ -12,6 +12,7 @@ export class FormulaBar {
   private addressInput!: HTMLInputElement;
   private formulaInput!: HTMLInputElement;
   private currentCell: CellAddress | null = null;
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used in setEditingState method
   private isEditingExternally = false;
 
   constructor(
