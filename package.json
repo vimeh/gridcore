@@ -10,7 +10,7 @@
     "dev:web": "bun run --filter '@gridcore/ui-web' dev",
     "dev:core": "bun run --filter '@gridcore/core' dev",
     "dev:desktop": "bun run --filter '@gridcore/ui-desktop' dev",
-    "build": "bun run --filter '*' build",
+    "build": "bun run build:core && bun run --filter '@gridcore/ui-core' build && bun run --filter '*' --filter '!@gridcore/core' --filter '!@gridcore/ui-core' build",
     "build:core": "bun run --filter '@gridcore/core' build",
     "build:web": "bun run --filter '@gridcore/ui-web' build",
     "build:tui": "bun run --filter '@gridcore/ui-tui' build",
