@@ -18,7 +18,7 @@ import {
 
 // Action types for state transitions
 export type Action =
-  | { type: "START_EDITING"; editMode?: InsertMode }
+  | { type: "START_EDITING"; editMode?: InsertMode; initialValue?: string; cursorPosition?: number }
   | { type: "EXIT_TO_NAVIGATION" }
   | { type: "ENTER_INSERT_MODE"; mode?: InsertMode }
   | { type: "EXIT_INSERT_MODE" }
@@ -116,8 +116,8 @@ export class UIStateMachine {
   }
 
   // Helper methods for common transitions
-  startEditingMode(editMode?: InsertMode): Result<UIState> {
-    return this.transition({ type: "START_EDITING", editMode });
+  startEditingMode(editMode?: InsertMode, initialValue?: string, cursorPosition?: number): Result<UIState> {
+    return this.transition({ type: "START_EDITING", editMode, initialValue, cursorPosition });
   }
 
   exitEditingMode(): Result<UIState> {
@@ -157,9 +157,26 @@ export class UIStateMachine {
 
     // Preserve the edit variant if we're entering insert mode
     if (action.editMode && isEditingMode(newState)) {
-      return ok({
+      const editingState = {
         ...newState,
         editVariant: action.editMode,
+      };
+      
+      // If initial value and cursor position are provided, set them
+      if (action.initialValue !== undefined) {
+        editingState.editingValue = action.initialValue;
+        editingState.cursorPosition = action.cursorPosition ?? 0;
+      }
+      
+      return ok(editingState);
+    }
+
+    // If initial value is provided for normal mode
+    if (action.initialValue !== undefined && isEditingMode(newState)) {
+      return ok({
+        ...newState,
+        editingValue: action.initialValue,
+        cursorPosition: action.cursorPosition ?? 0,
       });
     }
 

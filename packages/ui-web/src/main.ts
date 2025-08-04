@@ -252,6 +252,23 @@ const controller = new SpreadsheetController({
   viewportManager,
 });
 
+// Subscribe to controller state changes to update formula bar during editing
+controller.subscribe((event) => {
+  if (event.type === "stateChanged") {
+    const state = event.state;
+    if (state.spreadsheetMode === "editing") {
+      // Update formula bar with editing value
+      formulaBar.setActiveCell(state.cursor, {
+        rawValue: state.editingValue,
+      } as any);
+      formulaBar.setEditingState(true);
+    } else {
+      // Re-enable formula bar when not editing
+      formulaBar.setEditingState(false);
+    }
+  }
+});
+
 // Recreate the grid with the controller
 canvasGrid.destroy();
 canvasGrid = new CanvasGrid(gridContainer, facade, {
@@ -279,6 +296,23 @@ const tabBar = new TabBar({
     const newController = new SpreadsheetController({
       facade,
       viewportManager: viewportManager!,
+    });
+    
+    // Subscribe to controller state changes to update formula bar during editing
+    newController.subscribe((event) => {
+      if (event.type === "stateChanged") {
+        const state = event.state;
+        if (state.spreadsheetMode === "editing") {
+          // Update formula bar with editing value
+          formulaBar.setActiveCell(state.cursor, {
+            rawValue: state.editingValue,
+          } as any);
+          formulaBar.setEditingState(true);
+        } else {
+          // Re-enable formula bar when not editing
+          formulaBar.setEditingState(false);
+        }
+      }
     });
     
     canvasGrid = new CanvasGrid(gridContainer, facade, {

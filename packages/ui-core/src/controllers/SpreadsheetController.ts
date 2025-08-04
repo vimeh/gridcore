@@ -389,16 +389,11 @@ export class SpreadsheetController {
       editMode = undefined;
     }
 
-    // Start editing
-    const result = this.stateMachine.transition({
-      type: "START_EDITING",
-      editMode: editMode,
-    });
-    if (!result.ok) return result;
-
     // Determine initial value and cursor position
     let value = currentValue;
     let cursorPosition = 0;
+    
+    console.log("startEditing: currentValue =", currentValue, "variant =", variant);
 
     if (variant === "replace" && initialChar) {
       // Replace mode: clear content and start with the typed character
@@ -422,10 +417,11 @@ export class SpreadsheetController {
       cursorPosition = 0;
     }
 
-    // Update with initial value
+    // Start editing with initial value and cursor position in a single transition
     return this.stateMachine.transition({
-      type: "UPDATE_EDITING_VALUE",
-      value: value,
+      type: "START_EDITING",
+      editMode: editMode,
+      initialValue: value,
       cursorPosition: cursorPosition,
     });
   }

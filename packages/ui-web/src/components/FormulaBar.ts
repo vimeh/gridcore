@@ -12,6 +12,7 @@ export class FormulaBar {
   private addressInput!: HTMLInputElement;
   private formulaInput!: HTMLInputElement;
   private currentCell: CellAddress | null = null;
+  private isEditingExternally: boolean = false;
 
   constructor(
     container: HTMLElement,
@@ -158,6 +159,20 @@ export class FormulaBar {
     } else {
       this.addressInput.value = "";
       this.formulaInput.value = "";
+    }
+  }
+
+  setEditingState(isEditing: boolean): void {
+    this.isEditingExternally = isEditing;
+    // Make formula input read-only when cell editor is active
+    this.formulaInput.readOnly = isEditing;
+    // Optionally disable the input styling
+    if (isEditing) {
+      this.formulaInput.style.opacity = "0.7";
+      this.formulaInput.style.cursor = "not-allowed";
+    } else {
+      this.formulaInput.style.opacity = "1";
+      this.formulaInput.style.cursor = "text";
     }
   }
 

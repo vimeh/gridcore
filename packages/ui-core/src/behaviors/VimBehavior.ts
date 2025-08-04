@@ -173,8 +173,8 @@ export class VimBehavior {
     meta: KeyMeta,
     _state: UIState,
   ): VimAction {
-    // Handle number accumulation
-    if (/\d/.test(key) && (this.internalState.numberBuffer || key !== "0")) {
+    // Handle number accumulation (only for pure digits, not F1, F2, etc.)
+    if (/^\d$/.test(key) && (this.internalState.numberBuffer || key !== "0")) {
       this.internalState.numberBuffer += key;
       return { type: "none" };
     }
