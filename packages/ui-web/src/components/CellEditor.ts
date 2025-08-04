@@ -88,43 +88,6 @@ export class CellEditor {
     this.editorDiv.style.height = `${position.height}px`;
     this.editorDiv.style.display = "block";
 
-    // Debug logging
-    console.log("CellEditor.startEditing:", {
-      cell,
-      initialValue,
-      cursorPosition,
-      position,
-      editorVisible: this.editorDiv.style.display,
-      editorPosition: {
-        left: this.editorDiv.style.left,
-        top: this.editorDiv.style.top,
-        width: this.editorDiv.style.width,
-        height: this.editorDiv.style.height,
-      },
-      isEditing: this.isEditing,
-    });
-
-    // Add mutation observer to track style changes
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-          console.log('Editor style changed:', {
-            display: this.editorDiv.style.display,
-            oldValue: mutation.oldValue,
-            stack: new Error().stack
-          });
-        }
-      });
-    });
-    observer.observe(this.editorDiv, { 
-      attributes: true, 
-      attributeOldValue: true, 
-      attributeFilter: ['style'] 
-    });
-    
-    // Disconnect observer after 2 seconds
-    setTimeout(() => observer.disconnect(), 2000);
-
     // Set initial text
     this.editorDiv.textContent = initialValue;
 
@@ -164,25 +127,6 @@ export class CellEditor {
   }
 
   private hideEditor(): void {
-    console.log('CellEditor.hideEditor called:', {
-      isEditing: this.isEditing,
-      currentCell: this.currentCell,
-      stack: new Error().stack
-    });
-    
-    // DEBUG: Check if we have a controller and if it's in editing mode
-    if (this.controller) {
-      const state = this.controller.getState();
-      if (state.spreadsheetMode === "editing") {
-        console.warn('WARNING: Attempting to hide editor while controller is in editing mode!', {
-          controllerState: state,
-          editorState: { isEditing: this.isEditing }
-        });
-        // Don't hide if controller thinks we should be editing
-        return;
-      }
-    }
-    
     this.isEditing = false;
     this.currentCell = null;
     this.editorDiv.style.display = "none";
@@ -211,13 +155,9 @@ export class CellEditor {
         
         // Check if we should exit editing
         if (state.spreadsheetMode !== "editing") {
-          // If we were in normal mode when escape was pressed, save the edit
-          // If we were in insert mode, it would have transitioned to normal (not navigation)
-          if (prevState.spreadsheetMode === "editing" && prevState.cellMode === "normal") {
-            this.commitEdit();
-          } else {
-            this.cancelEdit();
-          }
+          // Always commit the edit when exiting from editing mode
+          // The controller handles saving the value when needed
+          this.commitEdit();
           return;
         }
 
@@ -251,7 +191,7 @@ export class CellEditor {
   }
 
   private handleInput(_event: Event): void {
-    // Input handling is now done through the controller in handleKeyDown
+    // Input handling is done through the controller in handleKeyDown
     // This method is kept for any browser-specific input events
   }
 
@@ -263,11 +203,6 @@ export class CellEditor {
   }
 
   private handleBlur(): void {
-    console.log('CellEditor.handleBlur called', {
-      isEditing: this.isEditing,
-      ignoreNextBlur: this.ignoreNextBlur
-    });
-    
     // Ignore blur if we're transitioning modes
     if (this.ignoreNextBlur) {
       this.ignoreNextBlur = false;
@@ -277,7 +212,6 @@ export class CellEditor {
     // Delay to allow click events to fire first
     setTimeout(() => {
       if (this.isEditing) {
-        console.log('Blur timeout: committing edit');
         this.commitEdit();
       }
     }, 100);
