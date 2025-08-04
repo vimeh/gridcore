@@ -340,7 +340,8 @@ export class VimBehavior {
           key.length === 1 &&
           !meta.ctrl &&
           !meta.alt &&
-          /^[^\x00-\x1F\x7F]$/.test(key)
+          key.charCodeAt(0) >= 32 &&
+          key.charCodeAt(0) !== 127
         ) {
           this.clearBuffers();
           return { type: "startEditing", editVariant: "i", initialChar: key };

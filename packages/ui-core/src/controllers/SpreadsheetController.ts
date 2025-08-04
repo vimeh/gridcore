@@ -1,6 +1,7 @@
 import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
 import { type ResizeAction, ResizeBehavior } from "../behaviors/ResizeBehavior";
+import type { CellVimAction } from "../behaviors/VimBehavior";
 import {
   type KeyMeta,
   type VimAction,
@@ -154,7 +155,7 @@ export class SpreadsheetController {
 
   // Process cell vim actions from editing mode
   private processCellVimAction(
-    action: VimAction | any,
+    action: VimAction | CellVimAction,
     state: UIState,
   ): Result<UIState> {
     if (!isEditingMode(state)) {
@@ -325,7 +326,7 @@ export class SpreadsheetController {
   // Cell operations
   private handleCellOperation(
     operation: string,
-    _action: any,
+    _action: VimAction,
     state: UIState,
   ): Result<UIState> {
     // These would interact with the facade to perform actual operations
