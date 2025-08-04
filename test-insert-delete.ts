@@ -2,6 +2,7 @@
 // This is a simple functional test to verify our new state modes work
 
 import { CellAddress } from "./packages/core/src/domain/models/CellAddress";
+import { ReferenceAdjuster, ReferenceParser } from "./packages/core/src/references";
 import { 
   createInsertState, 
   createDeleteState, 
@@ -69,6 +70,15 @@ function testInsertDeleteStates() {
   console.log("✓ isInsertMode correctly returns false for delete state");
 
   console.log("All tests passed! ✅");
+
+  // Test reference system availability
+  console.log("\nTesting Reference System...");
+  const parser = new ReferenceParser();
+  const adjuster = new ReferenceAdjuster();
+  
+  console.log("✓ ReferenceParser instantiated");
+  console.log("✓ ReferenceAdjuster instantiated");
+  console.log("✅ Reference system is available!");
 }
 
 // Run the test
