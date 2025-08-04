@@ -1,5 +1,4 @@
-import type { CellAddress } from "@gridcore/core";
-import { SpreadsheetEngine } from "@gridcore/core";
+import { CellAddress, Workbook, Sheet, type SpreadsheetFacade, type ISpreadsheetFacade } from "@gridcore/core";
 import {
   FormulaBarComponent,
   GridComponent,
@@ -39,7 +38,9 @@ export interface TUIState {
 export class SpreadsheetTUI extends Renderable {
   private terminal: Terminal;
   private buffer: OptimizedBuffer;
-  private engine: SpreadsheetEngine;
+  private workbook: Workbook;
+  private sheet: Sheet;
+  private facade: SpreadsheetFacade;
   private state: TUIState;
   private running = false;
   private vimBehavior: VimBehavior;
@@ -57,12 +58,19 @@ export class SpreadsheetTUI extends Renderable {
     const { width, height } = this.terminal.getSize();
     this.buffer = new OptimizedBuffer(width, height);
 
-    this.engine = new SpreadsheetEngine();
+    // Initialize workbook and sheet
+    this.workbook = new Workbook();
+    this.sheet = this.workbook.getActiveSheet()!;
+    this.facade = this.sheet.getFacade();
+    
     this.vimBehavior = new VimBehavior();
 
+    // Create initial cursor address
+    const initialCursor = CellAddress.create(0, 0);
+    
     this.state = {
       mode: "normal",
-      cursor: { row: 0, col: 0 },
+      cursor: initialCursor.ok ? initialCursor.value : { row: 0, col: 0 } as CellAddress,
       viewport: {
         startRow: 0,
         startCol: 0,
@@ -75,20 +83,20 @@ export class SpreadsheetTUI extends Renderable {
 
     // Create child components
     this.formulaBarComponent = new FormulaBarComponent(
-      this.engine,
+      this.facade,
       () => this.state,
     );
     this.formulaBarComponent.setPosition(0, 1);
     this.formulaBarComponent.setSize(width, 2);
     this.addChild(this.formulaBarComponent);
 
-    this.gridComponent = new GridComponent(this.engine, () => this.state);
+    this.gridComponent = new GridComponent(this.facade, () => this.state);
     this.gridComponent.setPosition(0, 3);
     this.gridComponent.setSize(width, height - 5); // Leave room for formula bar and status bar
     this.addChild(this.gridComponent);
 
     this.statusBarComponent = new StatusBarComponent(
-      this.engine,
+      this.facade,
       () => this.state,
     );
     this.statusBarComponent.setPosition(0, height - 1);
@@ -269,7 +277,8 @@ export class SpreadsheetTUI extends Renderable {
       case "changeMode": {
         this.state.mode = action.mode as Mode;
         if (action.editVariant) {
-          const currentValue = this.engine.getCellValue(this.state.cursor);
+          const cellResult = this.facade.getCell(this.state.cursor);
+          const currentValue = cellResult.ok ? cellResult.value.value : undefined;
           this.state.editingValue = currentValue?.toString() || "";
 
           switch (action.editVariant) {
@@ -309,18 +318,24 @@ export class SpreadsheetTUI extends Renderable {
           const end = this.state.selectedRange.end;
           for (let row = start.row; row <= end.row; row++) {
             for (let col = start.col; col <= end.col; col++) {
-              this.engine.setCellValue({ row, col }, "");
+              const addr = CellAddress.create(row, col);
+              if (addr.ok) {
+                this.facade.setCellValue(addr.value, "");
+              }
             }
           }
           this.state.selectedRange = undefined;
         } else if (action.motion === "line") {
           // Delete entire row
           for (let col = 0; col < this.state.viewport.cols; col++) {
-            this.engine.setCellValue({ row: this.state.cursor.row, col }, "");
+            const addr = CellAddress.create(this.state.cursor.row, col);
+            if (addr.ok) {
+              this.facade.setCellValue(addr.value, "");
+            }
           }
         } else {
           // Delete current cell
-          this.engine.setCellValue(this.state.cursor, "");
+          this.facade.setCellValue(this.state.cursor, "");
         }
         break;
       }
@@ -438,7 +453,8 @@ export class SpreadsheetTUI extends Renderable {
       case "enter":
       case "i": {
         this.state.mode = "edit";
-        const currentValue = this.engine.getCellValue(this.state.cursor);
+        const cellResult = this.facade.getCell(this.state.cursor);
+        const currentValue = cellResult.ok ? cellResult.value.value : undefined;
         this.state.editingValue = currentValue?.toString() || "";
         break;
       }
@@ -465,7 +481,7 @@ export class SpreadsheetTUI extends Renderable {
 
     if (meta.key === "enter") {
       if (this.state.editingValue !== undefined) {
-        this.engine.setCellValue(this.state.cursor, this.state.editingValue);
+        this.facade.setCellValue(this.state.cursor, this.state.editingValue);
       }
       this.state.mode = "normal";
       this.state.editingValue = undefined;
@@ -573,7 +589,7 @@ export class SpreadsheetTUI extends Renderable {
     return this.state;
   }
 
-  getEngine(): SpreadsheetEngine {
-    return this.engine;
+  getFacade(): ISpreadsheetFacade {
+    return this.facade;
   }
 }

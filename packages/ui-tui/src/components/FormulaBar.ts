@@ -1,4 +1,4 @@
-import type { SpreadsheetEngine } from "@gridcore/core";
+import type { ISpreadsheetFacade } from "@gridcore/core";
 import { type OptimizedBuffer, Renderable, type RGBA } from "../framework";
 import type { TUIState } from "../SpreadsheetTUI";
 
@@ -13,7 +13,7 @@ export class FormulaBarComponent extends Renderable {
   };
 
   constructor(
-    private engine: SpreadsheetEngine,
+    private facade: ISpreadsheetFacade,
     private getState: () => TUIState,
   ) {
     super("formulaBar");
@@ -64,8 +64,9 @@ export class FormulaBarComponent extends Renderable {
       // Add cursor for editing mode
       displayValue += "█";
     } else {
-      const cellValue = this.engine.getCellValue(cursor);
-      const cellFormula = this.engine.getCellFormula(cursor);
+      const cellResult = this.facade.getCell(cursor);
+      const cellValue = cellResult.ok ? cellResult.value.value : undefined;
+      const cellFormula = cellResult.ok ? cellResult.value.formula : undefined;
 
       if (cellFormula) {
         displayValue = cellFormula;

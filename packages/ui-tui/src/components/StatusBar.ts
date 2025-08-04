@@ -1,4 +1,4 @@
-import type { SpreadsheetEngine } from "@gridcore/core";
+import type { ISpreadsheetFacade } from "@gridcore/core";
 import { type OptimizedBuffer, Renderable, type RGBA } from "../framework";
 import type { TUIState } from "../SpreadsheetTUI";
 
@@ -18,7 +18,7 @@ export class StatusBarComponent extends Renderable {
   };
 
   constructor(
-    private engine: SpreadsheetEngine,
+    private facade: ISpreadsheetFacade,
     private getState: () => TUIState,
   ) {
     super("statusBar");

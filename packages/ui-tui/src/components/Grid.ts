@@ -1,4 +1,4 @@
-import type { CellAddress, SpreadsheetEngine } from "@gridcore/core";
+import { CellAddress, type ISpreadsheetFacade } from "@gridcore/core";
 import { type OptimizedBuffer, Renderable, type RGBA } from "../framework";
 import type { TUIState } from "../SpreadsheetTUI";
 
@@ -18,7 +18,7 @@ export class GridComponent extends Renderable {
   };
 
   constructor(
-    private engine: SpreadsheetEngine,
+    private facade: ISpreadsheetFacade,
     private getState: () => TUIState,
   ) {
     super("grid");
@@ -49,7 +49,9 @@ export class GridComponent extends Renderable {
       let x = pos.x + this.rowHeaderWidth + 1;
       for (let col = 0; col < viewport.cols; col++) {
         const absoluteCol = viewport.startCol + col;
-        const cellAddr: CellAddress = { row: absoluteRow, col: absoluteCol };
+        const cellAddrResult = CellAddress.create(absoluteRow, absoluteCol);
+        if (!cellAddrResult.ok) continue;
+        const cellAddr = cellAddrResult.value;
 
         // Determine cell colors based on cursor and selection
         let fg = this.colors.cellFg;
@@ -152,7 +154,8 @@ export class GridComponent extends Renderable {
     }
 
     // Get cell value
-    const value = this.engine.getCellValue(addr);
+    const cellResult = this.facade.getCell(addr);
+    const value = cellResult.ok ? cellResult.value.value : undefined;
     let displayValue = "";
 
     if (value !== null && value !== undefined) {
