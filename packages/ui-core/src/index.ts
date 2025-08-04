@@ -11,6 +11,13 @@ export {
   VimBehavior,
 } from "./behaviors/VimBehavior";
 
+// Managers
+export {
+  type SelectionBounds,
+  type SelectionManager,
+  DefaultSelectionManager,
+} from "./managers/SelectionManager";
+
 // VimMode - unified interface for vim text editing
 export {
   type EditMode,
@@ -32,13 +39,19 @@ export {
   createEditingState,
   createNavigationState,
   createResizeState,
+  createSpreadsheetVisualState,
   type InsertMode,
+  isCellVisualMode,
   isCommandMode,
   isEditingMode,
   isInsertMode,
   isNavigationMode,
   isResizeMode,
+  isSpreadsheetVisualMode,
   isVisualMode,
+  type Selection,
+  type SelectionType,
+  type SpreadsheetVisualMode,
   type UIState,
   type ViewportInfo,
   type VisualMode,
