@@ -1,7 +1,7 @@
 import {
-  type CellAddress,
-  type CellRange,
-  cellAddressToString,
+  CellAddress,
+  CellRange,
+  type Result,
 } from "@gridcore/core";
 import type { Viewport } from "../components/Viewport";
 
@@ -28,7 +28,7 @@ export class SelectionManager {
     // Don't clear selection if in visual mode
     if (!this.visualMode) {
       this.clearSelection();
-      this.state.selectedCells.add(cellAddressToString(cell));
+      this.state.selectedCells.add(cell.toString());
       this.state.selectionRange = null;
     }
     this.state.activeCell = cell;
@@ -49,24 +49,27 @@ export class SelectionManager {
 
     this.state.selectedCells.clear();
 
-    const range: CellRange = {
-      start: {
-        row: Math.min(this.selectionStart.row, cell.row),
-        col: Math.min(this.selectionStart.col, cell.col),
-      },
-      end: {
-        row: Math.max(this.selectionStart.row, cell.row),
-        col: Math.max(this.selectionStart.col, cell.col),
-      },
-    };
+    // Create start and end addresses for the range
+    const startResult = CellAddress.create(
+      Math.min(this.selectionStart.row, cell.row),
+      Math.min(this.selectionStart.col, cell.col)
+    );
+    const endResult = CellAddress.create(
+      Math.max(this.selectionStart.row, cell.row),
+      Math.max(this.selectionStart.col, cell.col)
+    );
 
-    this.state.selectionRange = range;
+    if (!startResult.ok || !endResult.ok) return;
+
+    const rangeResult = CellRange.create(startResult.value, endResult.value);
+    if (!rangeResult.ok) return;
+
+    this.state.selectionRange = rangeResult.value;
 
     // Add all cells in range to selection
-    for (let row = range.start.row; row <= range.end.row; row++) {
-      for (let col = range.start.col; col <= range.end.col; col++) {
-        this.state.selectedCells.add(cellAddressToString({ row, col }));
-      }
+    const cells = Array.from(rangeResult.value.cells());
+    for (const cellAddress of cells) {
+      this.state.selectedCells.add(cellAddress.toString());
     }
   }
 
@@ -88,36 +91,43 @@ export class SelectionManager {
   }
 
   isSelected(cell: CellAddress): boolean {
-    return this.state.selectedCells.has(cellAddressToString(cell));
+    return this.state.selectedCells.has(cell.toString());
   }
 
   moveActiveCell(direction: "up" | "down" | "left" | "right"): void {
     if (!this.state.activeCell) {
-      this.setActiveCell({ row: 0, col: 0 });
+      const initialCellResult = CellAddress.create(0, 0);
+      if (initialCellResult.ok) {
+        this.setActiveCell(initialCellResult.value);
+      }
       return;
     }
 
-    const newCell = { ...this.state.activeCell };
+    let newRow = this.state.activeCell.row;
+    let newCol = this.state.activeCell.col;
 
     switch (direction) {
       case "up":
-        if (newCell.row > 0) newCell.row--;
+        if (newRow > 0) newRow--;
         break;
       case "down":
-        newCell.row++;
+        newRow++;
         break;
       case "left":
-        if (newCell.col > 0) newCell.col--;
+        if (newCol > 0) newCol--;
         break;
       case "right":
-        newCell.col++;
+        newCol++;
         break;
     }
 
-    this.setActiveCell(newCell);
+    const newCellResult = CellAddress.create(newRow, newCol);
+    if (!newCellResult.ok) return;
+
+    this.setActiveCell(newCellResult.value);
 
     // Notify listeners of the change
-    this.onActiveCellChange?.(newCell);
+    this.onActiveCellChange?.(newCellResult.value);
   }
 
   // Callback for when active cell changes
@@ -156,7 +166,10 @@ export class SelectionManager {
 
       for (let row = startRow; row <= endRow; row++) {
         for (let col = 0; col < totalCols; col++) {
-          this.state.selectedCells.add(cellAddressToString({ row, col }));
+          const cellResult = CellAddress.create(row, col);
+          if (cellResult.ok) {
+            this.state.selectedCells.add(cellResult.value.toString());
+          }
         }
       }
     } else if (this.visualMode === "block") {
@@ -168,27 +181,32 @@ export class SelectionManager {
 
       for (let row = startRow; row <= endRow; row++) {
         for (let col = startCol; col <= endCol; col++) {
-          this.state.selectedCells.add(cellAddressToString({ row, col }));
+          const cellResult = CellAddress.create(row, col);
+          if (cellResult.ok) {
+            this.state.selectedCells.add(cellResult.value.toString());
+          }
         }
       }
     } else {
       // Character mode - normal range selection
-      const range: CellRange = {
-        start: {
-          row: Math.min(this.visualAnchor.row, cursor.row),
-          col: Math.min(this.visualAnchor.col, cursor.col),
-        },
-        end: {
-          row: Math.max(this.visualAnchor.row, cursor.row),
-          col: Math.max(this.visualAnchor.col, cursor.col),
-        },
-      };
+      const startResult = CellAddress.create(
+        Math.min(this.visualAnchor.row, cursor.row),
+        Math.min(this.visualAnchor.col, cursor.col)
+      );
+      const endResult = CellAddress.create(
+        Math.max(this.visualAnchor.row, cursor.row),
+        Math.max(this.visualAnchor.col, cursor.col)
+      );
 
-      this.state.selectionRange = range;
+      if (startResult.ok && endResult.ok) {
+        const rangeResult = CellRange.create(startResult.value, endResult.value);
+        if (rangeResult.ok) {
+          this.state.selectionRange = rangeResult.value;
 
-      for (let row = range.start.row; row <= range.end.row; row++) {
-        for (let col = range.start.col; col <= range.end.col; col++) {
-          this.state.selectedCells.add(cellAddressToString({ row, col }));
+          const cells = Array.from(rangeResult.value.cells());
+          for (const cellAddress of cells) {
+            this.state.selectedCells.add(cellAddress.toString());
+          }
         }
       }
     }
@@ -211,5 +229,12 @@ export class SelectionManager {
 
   getVisualAnchor(): CellAddress | null {
     return this.visualAnchor;
+  }
+
+  // Helper method for migrating from plain objects to CellAddress
+  // This can be used by other components during the migration
+  static createCellAddress(row: number, col: number): CellAddress | null {
+    const result = CellAddress.create(row, col);
+    return result.ok ? result.value : null;
   }
 }

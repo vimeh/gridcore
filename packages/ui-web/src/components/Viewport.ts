@@ -1,4 +1,4 @@
-import type { CellAddress } from "@gridcore/core";
+import { CellAddress } from "@gridcore/core";
 import { DEFAULT_TOTAL_COLS, DEFAULT_TOTAL_ROWS } from "../constants";
 import type { GridTheme } from "../rendering/GridTheme";
 
@@ -255,7 +255,10 @@ export class Viewport {
     }
 
     if (row >= 0 && col >= 0) {
-      return { row, col };
+      const cellAddressResult = CellAddress.create(row, col);
+      if (cellAddressResult.ok) {
+        return cellAddressResult.value;
+      }
     }
 
     return null;

@@ -1,4 +1,4 @@
-import type { CellAddress } from "@gridcore/core";
+import { CellAddress } from "@gridcore/core";
 import type { Viewport } from "../components/Viewport";
 // CellMode is no longer needed - we'll use string mode names directly
 import type { SelectionManager } from "./SelectionManager";
@@ -160,10 +160,10 @@ export class GridVimBehavior {
         const targetRow = count === 1 ? Number.MAX_SAFE_INTEGER : count - 1;
         const currentCell = this.selectionManager.getActiveCell();
         if (currentCell) {
-          this.selectionManager.setActiveCell({
-            row: targetRow,
-            col: currentCell.col,
-          });
+          const newCellResult = CellAddress.create(targetRow, currentCell.col);
+          if (newCellResult.ok) {
+            this.selectionManager.setActiveCell(newCellResult.value);
+          }
         }
         return true;
       }
@@ -173,10 +173,10 @@ export class GridVimBehavior {
         // $ goes to last column
         const cell = this.selectionManager.getActiveCell();
         if (cell) {
-          this.selectionManager.setActiveCell({
-            row: cell.row,
-            col: Number.MAX_SAFE_INTEGER,
-          });
+          const newCellResult = CellAddress.create(cell.row, Number.MAX_SAFE_INTEGER);
+          if (newCellResult.ok) {
+            this.selectionManager.setActiveCell(newCellResult.value);
+          }
         }
         return true;
       }
@@ -186,7 +186,10 @@ export class GridVimBehavior {
           // 0 goes to first column
           const cell = this.selectionManager.getActiveCell();
           if (cell) {
-            this.selectionManager.setActiveCell({ row: cell.row, col: 0 });
+            const newCellResult = CellAddress.create(cell.row, 0);
+            if (newCellResult.ok) {
+              this.selectionManager.setActiveCell(newCellResult.value);
+            }
           }
           return true;
         }
@@ -200,7 +203,10 @@ export class GridVimBehavior {
           this.lastCommand = "";
           const cell = this.selectionManager.getActiveCell();
           if (cell) {
-            this.selectionManager.setActiveCell({ row: 0, col: cell.col });
+            const newCellResult = CellAddress.create(0, cell.col);
+            if (newCellResult.ok) {
+              this.selectionManager.setActiveCell(newCellResult.value);
+            }
           }
           return true;
         } else {
@@ -305,12 +311,14 @@ export class GridVimBehavior {
     switch (key) {
       case "h":
         this.numberBuffer = "";
-        currentCell = { ...activeCell };
+        currentCell = activeCell;
         for (let i = 0; i < count; i++) {
-          currentCell = {
-            ...currentCell,
-            col: Math.max(0, currentCell.col - 1),
-          };
+          const newCellResult = CellAddress.create(
+            currentCell.row,
+            Math.max(0, currentCell.col - 1)
+          );
+          if (!newCellResult.ok) break;
+          currentCell = newCellResult.value;
         }
         this.selectionManager.updateVisualSelection(currentCell);
         this.selectionManager.setActiveCell(currentCell);
@@ -318,9 +326,14 @@ export class GridVimBehavior {
 
       case "j":
         this.numberBuffer = "";
-        currentCell = { ...activeCell };
+        currentCell = activeCell;
         for (let i = 0; i < count; i++) {
-          currentCell = { ...currentCell, row: currentCell.row + 1 };
+          const newCellResult = CellAddress.create(
+            currentCell.row + 1,
+            currentCell.col
+          );
+          if (!newCellResult.ok) break;
+          currentCell = newCellResult.value;
         }
         this.selectionManager.updateVisualSelection(currentCell);
         this.selectionManager.setActiveCell(currentCell);
@@ -328,12 +341,14 @@ export class GridVimBehavior {
 
       case "k":
         this.numberBuffer = "";
-        currentCell = { ...activeCell };
+        currentCell = activeCell;
         for (let i = 0; i < count; i++) {
-          currentCell = {
-            ...currentCell,
-            row: Math.max(0, currentCell.row - 1),
-          };
+          const newCellResult = CellAddress.create(
+            Math.max(0, currentCell.row - 1),
+            currentCell.col
+          );
+          if (!newCellResult.ok) break;
+          currentCell = newCellResult.value;
         }
         this.selectionManager.updateVisualSelection(currentCell);
         this.selectionManager.setActiveCell(currentCell);
@@ -341,9 +356,14 @@ export class GridVimBehavior {
 
       case "l":
         this.numberBuffer = "";
-        currentCell = { ...activeCell };
+        currentCell = activeCell;
         for (let i = 0; i < count; i++) {
-          currentCell = { ...currentCell, col: currentCell.col + 1 };
+          const newCellResult = CellAddress.create(
+            currentCell.row,
+            currentCell.col + 1
+          );
+          if (!newCellResult.ok) break;
+          currentCell = newCellResult.value;
         }
         this.selectionManager.updateVisualSelection(currentCell);
         this.selectionManager.setActiveCell(currentCell);
@@ -354,7 +374,9 @@ export class GridVimBehavior {
         // Use viewport bounds or a reasonable max
         const maxRow = this.viewport?.getTotalRows?.() || 10000;
         const targetRow = count === 1 ? maxRow - 1 : count - 1;
-        const newCell = { ...activeCell, row: targetRow };
+        const newCellResult = CellAddress.create(targetRow, activeCell.col);
+        if (!newCellResult.ok) return true;
+        const newCell = newCellResult.value;
         this.selectionManager.updateVisualSelection(newCell);
         this.selectionManager.setActiveCell(newCell);
         return true;
@@ -364,7 +386,9 @@ export class GridVimBehavior {
         this.numberBuffer = "";
         // Use viewport bounds or a reasonable max
         const maxCol = this.viewport?.getTotalCols?.() || 10000;
-        const endCell = { ...activeCell, col: maxCol - 1 };
+        const newCellResult = CellAddress.create(activeCell.row, maxCol - 1);
+        if (!newCellResult.ok) return true;
+        const endCell = newCellResult.value;
         this.selectionManager.updateVisualSelection(endCell);
         this.selectionManager.setActiveCell(endCell);
         return true;
@@ -372,7 +396,9 @@ export class GridVimBehavior {
 
       case "0":
         if (this.numberBuffer === "") {
-          const startCell = { ...activeCell, col: 0 };
+          const newCellResult = CellAddress.create(activeCell.row, 0);
+          if (!newCellResult.ok) return true;
+          const startCell = newCellResult.value;
           this.selectionManager.updateVisualSelection(startCell);
           this.selectionManager.setActiveCell(startCell);
           return true;
@@ -449,19 +475,19 @@ export class GridVimBehavior {
       case "h":
         // Move to previous column
         if (resizeTarget.col > 0) {
-          this.selectionManager.setActiveCell({
-            ...resizeTarget,
-            col: resizeTarget.col - 1,
-          });
+          const newCellResult = CellAddress.create(resizeTarget.row, resizeTarget.col - 1);
+          if (newCellResult.ok) {
+            this.selectionManager.setActiveCell(newCellResult.value);
+          }
         }
         return true;
 
       case "l":
         // Move to next column
-        this.selectionManager.setActiveCell({
-          ...resizeTarget,
-          col: resizeTarget.col + 1,
-        });
+        const newCellResult = CellAddress.create(resizeTarget.row, resizeTarget.col + 1);
+        if (newCellResult.ok) {
+          this.selectionManager.setActiveCell(newCellResult.value);
+        }
         return true;
 
       case "j":

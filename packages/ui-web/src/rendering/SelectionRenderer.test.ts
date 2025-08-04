@@ -1,9 +1,22 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { CellAddress, CellRange } from "@gridcore/core";
-import { cellAddressToString } from "@gridcore/core";
+import { CellAddress, CellRange, cellAddressToString } from "@gridcore/core";
 import type { Viewport } from "../components/Viewport";
 import { defaultTheme } from "./GridTheme";
 import { SelectionRenderer } from "./SelectionRenderer";
+
+// Helper function to create CellAddress and convert to string for tests
+function createCellAddressString(row: number, col: number): string {
+  const result = CellAddress.create(row, col);
+  if (!result.ok) throw new Error(`Failed to create CellAddress: ${result.error}`);
+  return cellAddressToString(result.value);
+}
+
+// Helper function to create CellAddres for tests
+function createCellAddress(row: number, col: number): CellAddress {
+  const result = CellAddress.create(row, col);
+  if (!result.ok) throw new Error(`Failed to create CellAddress: ${result.error}`);
+  return result.value;
+}
 
 // Mock canvas context
 function createMockContext() {
@@ -28,7 +41,7 @@ function createMockContext() {
     ),
     stroke: mock(() => operations.push("stroke")),
     setLineDash: mock((segments: number[]) =>
-      operations.push(`setLineDash([${segments.join(",")}])`),
+      operations.push(`setLineDash([${segments.join(",")}])`)
     ),
     canvas: {
       width: 800,
@@ -89,8 +102,8 @@ describe("SelectionRenderer", () => {
 
   test("should render cell highlights for selected cells", () => {
     const selectedCells = new Set([
-      cellAddressToString({ row: 0, col: 0 }),
-      cellAddressToString({ row: 1, col: 1 }),
+      createCellAddressString(0, 0),
+      createCellAddressString(1, 1),
     ]);
 
     renderer.renderSelection(selectedCells, null, null);
@@ -104,10 +117,10 @@ describe("SelectionRenderer", () => {
 
   test("should render selection border for multiple cells", () => {
     const selectedCells = new Set([
-      cellAddressToString({ row: 0, col: 0 }),
-      cellAddressToString({ row: 0, col: 1 }),
-      cellAddressToString({ row: 1, col: 0 }),
-      cellAddressToString({ row: 1, col: 1 }),
+      createCellAddressString(0, 0),
+      createCellAddressString(0, 1),
+      createCellAddressString(1, 0),
+      createCellAddressString(1, 1),
     ]);
 
     renderer.renderSelection(selectedCells, null, null);
@@ -118,10 +131,12 @@ describe("SelectionRenderer", () => {
 
   test("should use selection range when provided", () => {
     const selectedCells = new Set<string>();
-    const selectionRange: CellRange = {
-      start: { row: 1, col: 1 },
-      end: { row: 3, col: 3 },
-    };
+    const selectionRangeResult = CellRange.create(
+      createCellAddress(1, 1),
+      createCellAddress(3, 3),
+    );
+    if (!selectionRangeResult.ok) throw new Error(`Failed to create CellRange: ${selectionRangeResult.error}`);
+    const selectionRange = selectionRangeResult.value;
 
     renderer.renderSelection(selectedCells, selectionRange, null);
 
@@ -131,8 +146,8 @@ describe("SelectionRenderer", () => {
 
   test("should apply different styles for visual modes", () => {
     const selectedCells = new Set([
-      cellAddressToString({ row: 0, col: 0 }),
-      cellAddressToString({ row: 1, col: 1 }),
+      createCellAddressString(0, 0),
+      createCellAddressString(1, 1),
     ]);
 
     // Test line mode (dashed border)
@@ -148,8 +163,8 @@ describe("SelectionRenderer", () => {
 
   test("should draw corner indicators for visual modes", () => {
     const selectedCells = new Set([
-      cellAddressToString({ row: 0, col: 0 }),
-      cellAddressToString({ row: 1, col: 1 }),
+      createCellAddressString(0, 0),
+      createCellAddressString(1, 1),
     ]);
 
     renderer.renderSelection(selectedCells, null, "character");
@@ -182,8 +197,8 @@ describe("SelectionRenderer", () => {
     renderer.updateTheme(newTheme);
 
     const selectedCells = new Set([
-      cellAddressToString({ row: 0, col: 0 }),
-      cellAddressToString({ row: 1, col: 1 }),
+      createCellAddressString(0, 0),
+      createCellAddressString(1, 1),
     ]);
 
     renderer.renderSelection(selectedCells, null, null);
@@ -214,8 +229,8 @@ describe("SelectionRenderer", () => {
     );
 
     const selectedCells = new Set([
-      cellAddressToString({ row: 0, col: 0 }),
-      cellAddressToString({ row: 100, col: 100 }), // Outside viewport
+      createCellAddressString(0, 0),
+      createCellAddressString(100, 100), // Outside viewport
     ]);
 
     rendererWithBounds.renderSelection(selectedCells, null, null);
@@ -228,9 +243,9 @@ describe("SelectionRenderer", () => {
 
   test("should calculate correct bounds for non-contiguous selection", () => {
     const selectedCells = new Set([
-      cellAddressToString({ row: 0, col: 0 }),
-      cellAddressToString({ row: 5, col: 5 }),
-      cellAddressToString({ row: 2, col: 3 }),
+      createCellAddressString(0, 0),
+      createCellAddressString(5, 5),
+      createCellAddressString(2, 3),
     ]);
 
     renderer.renderSelection(selectedCells, null, "block");

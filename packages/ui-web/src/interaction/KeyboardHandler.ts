@@ -1,6 +1,5 @@
 import {
-  cellAddressToString,
-  parseCellAddress,
+  CellAddress,
   type SpreadsheetFacade,
 } from "@gridcore/core";
 import type { CanvasGrid } from "../components/CanvasGrid";
@@ -195,7 +194,7 @@ export class KeyboardHandler {
 
       this.resizeBehavior = new ResizeBehavior(
         this.canvasGrid.getViewport(),
-        this.grid,
+        this.facade,
       );
     }
   }
@@ -400,10 +399,10 @@ export class KeyboardHandler {
           // G goes to last row
           const currentCell = this.selectionManager.getActiveCell();
           if (currentCell) {
-            this.selectionManager.setActiveCell({
-              row: Number.MAX_SAFE_INTEGER,
-              col: currentCell.col,
-            });
+            const newCellResult = CellAddress.create(Number.MAX_SAFE_INTEGER, currentCell.col);
+            if (newCellResult.ok) {
+              this.selectionManager.setActiveCell(newCellResult.value);
+            }
           }
         }
         break;
@@ -414,10 +413,10 @@ export class KeyboardHandler {
           // $ goes to last column
           const cell = this.selectionManager.getActiveCell();
           if (cell) {
-            this.selectionManager.setActiveCell({
-              row: cell.row,
-              col: Number.MAX_SAFE_INTEGER,
-            });
+            const newCellResult = CellAddress.create(cell.row, Number.MAX_SAFE_INTEGER);
+            if (newCellResult.ok) {
+              this.selectionManager.setActiveCell(newCellResult.value);
+            }
           }
         }
         break;
@@ -428,7 +427,10 @@ export class KeyboardHandler {
           // 0 goes to first column
           const cell = this.selectionManager.getActiveCell();
           if (cell) {
-            this.selectionManager.setActiveCell({ row: cell.row, col: 0 });
+            const newCellResult = CellAddress.create(cell.row, 0);
+            if (newCellResult.ok) {
+              this.selectionManager.setActiveCell(newCellResult.value);
+            }
           }
         }
         break;
@@ -442,7 +444,10 @@ export class KeyboardHandler {
             this.lastKey = "";
             const cell = this.selectionManager.getActiveCell();
             if (cell) {
-              this.selectionManager.setActiveCell({ row: 0, col: cell.col });
+              const newCellResult = CellAddress.create(0, cell.col);
+              if (newCellResult.ok) {
+                this.selectionManager.setActiveCell(newCellResult.value);
+              }
             }
           } else {
             event.preventDefault();
@@ -612,20 +617,18 @@ export class KeyboardHandler {
       editMode = "replace"; // When typing to start, replace content
     }
 
-    const cellAddr = parseCellAddress(cellAddressToString(activeCell));
+    // activeCell is already a CellAddress, no need to parse it
     let initialValue = "";
 
-    if (cellAddr) {
-      const cellResult = this.facade.getCell(cellAddr);
-      if (cellResult.ok) {
-        const cellData = cellResult.value;
-        if (mode === "replace") {
-          initialValue = cellData.formula || String(cellData.value || "");
-        } else if (initialChar && mode === false) {
-          initialValue = initialChar;
-        } else {
-          initialValue = cellData.formula || String(cellData.value || "");
-        }
+    const cellResult = this.facade.getCell(activeCell);
+    if (cellResult.ok) {
+      const cellData = cellResult.value;
+      if (mode === "replace") {
+        initialValue = cellData.formula ? cellData.formula.toString() : String(cellData.value || "");
+      } else if (initialChar && mode === false) {
+        initialValue = initialChar;
+      } else {
+        initialValue = cellData.formula ? cellData.formula.toString() : String(cellData.value || "");
       }
     }
 
@@ -639,10 +642,8 @@ export class KeyboardHandler {
     // If only one cell is selected (the active cell) or no cells are selected
     const activeCell = this.selectionManager.getActiveCell();
     if (selectedCells.size <= 1 && activeCell) {
-      const cellAddr = parseCellAddress(cellAddressToString(activeCell));
-      if (cellAddr) {
-        this.facade.setCellValue(cellAddr, "");
-      }
+      // activeCell is already a CellAddress, no need to parse it
+      this.facade.setCellValue(activeCell, "");
       // Update the canvas grid to reflect the change
       this.canvasGrid?.render();
       // Trigger cell click callback to update formula bar
@@ -650,9 +651,9 @@ export class KeyboardHandler {
     } else if (selectedCells.size > 1) {
       // Delete all selected cells
       for (const cellKey of selectedCells) {
-        const cellAddr = parseCellAddress(cellKey);
-        if (cellAddr) {
-          this.facade.setCellValue(cellAddr, "");
+        const cellAddrResult = CellAddress.fromString(cellKey);
+        if (cellAddrResult.ok) {
+          this.facade.setCellValue(cellAddrResult.value, "");
         }
       }
       this.canvasGrid?.render();

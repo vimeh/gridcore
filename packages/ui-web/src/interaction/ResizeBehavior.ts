@@ -1,4 +1,4 @@
-import type { SpreadsheetEngine } from "@gridcore/core";
+import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
 import type { Viewport } from "../components/Viewport";
 
 export class ResizeBehavior {
@@ -7,7 +7,7 @@ export class ResizeBehavior {
 
   constructor(
     private viewport: Viewport,
-    private engine: SpreadsheetEngine,
+    private facade: SpreadsheetFacade,
   ) {}
 
   setTarget(type: "column" | "row", index: number): void {
@@ -99,8 +99,11 @@ export class ResizeBehavior {
 
       // Check all cells in this column
       for (let row = 0; row < this.viewport.getTotalRows(); row++) {
-        const cell = this.engine.getCell({ row, col: this.resizeTarget.index });
-        if (cell) {
+        const cellResult = CellAddress.create(row, this.resizeTarget.index);
+        if (!cellResult.ok) continue;
+        const cellDataResult = this.facade.getCell(cellResult.value);
+        if (cellDataResult.ok) {
+          const cell = cellDataResult.value;
           // Estimate width based on content length
           const content =
             cell.computedValue?.toString() || cell.rawValue?.toString() || "";

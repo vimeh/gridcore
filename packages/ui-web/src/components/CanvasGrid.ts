@@ -1,7 +1,5 @@
 import {
-  type CellAddress,
-  cellAddressToString,
-  parseCellAddress,
+  CellAddress,
   type SpreadsheetFacade,
 } from "@gridcore/core";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
@@ -107,7 +105,7 @@ export class CanvasGrid {
       this.container,
       this.selectionManager,
       this.cellEditor,
-      this.grid,
+      this.facade,
       this,
       this.modeStateMachine,
     );
@@ -132,7 +130,10 @@ export class CanvasGrid {
     this.setupEventListeners();
     this.setupModeChangeSubscription();
 
-    this.selectionManager.setActiveCell({ row: 0, col: 0 });
+    const initialCell = CellAddress.create(0, 0);
+    if (initialCell.ok) {
+      this.selectionManager.setActiveCell(initialCell.value);
+    }
 
     this.selectionManager.onActiveCellChange = (cell) => {
       this.scrollToCell(cell);
@@ -361,23 +362,17 @@ export class CanvasGrid {
   public onCellClick?: (cell: CellAddress) => void;
 
   private handleCellDoubleClick(cell: CellAddress): void {
-    const cellAddr = parseCellAddress(cellAddressToString(cell));
-    if (!cellAddr) return;
-
-    const cellResult = this.facade.getCell(cellAddr);
+    const cellResult = this.facade.getCell(cell);
     let initialValue = "";
     if (cellResult.ok) {
       const cellData = cellResult.value;
-      initialValue = cellData.formula || String(cellData.value || "");
+      initialValue = cellData.formula?.toString() || String(cellData.value || "");
     }
     this.cellEditor.startEditing(cell, initialValue);
   }
 
   private handleCellCommit(address: CellAddress, value: string): void {
-    const cellAddr = parseCellAddress(cellAddressToString(address));
-    if (!cellAddr) return;
-
-    this.facade.setCellValue(cellAddr, value);
+    this.facade.setCellValue(address, value);
 
     this.render();
     this.container.focus();
@@ -502,7 +497,9 @@ export class CanvasGrid {
 
         for (let row = bounds.startRow; row <= bounds.endRow; row++) {
           for (let col = bounds.startCol; col <= bounds.endCol; col++) {
-            const pos = this.viewport.getCellPosition({ row, col });
+            const addrResult = CellAddress.create(row, col);
+            if (!addrResult.ok) continue;
+            const pos = this.viewport.getCellPosition(addrResult.value);
             minX = Math.min(minX, pos.x);
             minY = Math.min(minY, pos.y);
             maxX = Math.max(maxX, pos.x + pos.width);
@@ -524,16 +521,9 @@ export class CanvasGrid {
       const isNavigationMode = this.modeStateMachine?.isNavigating() ?? true;
       const cellsRendered = this.renderer.renderGrid(
         (address) => {
-          const cellAddr = parseCellAddress(cellAddressToString(address));
-          if (!cellAddr) return undefined;
-          const result = this.facade.getCell(cellAddr);
+          const result = this.facade.getCell(address);
           if (!result.ok) return undefined;
-          // Convert from new Cell format to old format expected by renderer
-          return {
-            rawValue: result.value.value,
-            value: result.value.value,
-            formula: result.value.formula,
-          };
+          return result.value;
         },
         this.selectionManager.getActiveCell(),
         this.cellEditor.isCurrentlyEditing(),
@@ -601,12 +591,17 @@ export class CanvasGrid {
   getSelectedCells(): CellAddress[] {
     const selected: CellAddress[] = [];
     for (const cellKey of this.selectionManager.getSelectedCells()) {
-      const address = parseCellAddress(cellKey);
-      if (address) {
-        selected.push(address);
+      const addressResult = CellAddress.fromString(cellKey);
+      if (addressResult.ok) {
+        selected.push(addressResult.value);
       }
     }
     return selected;
+  }
+
+  getSelection(): { start: CellAddress } | null {
+    const activeCell = this.selectionManager.getActiveCell();
+    return activeCell ? { start: activeCell } : null;
   }
 
   scrollToCell(address: CellAddress): void {

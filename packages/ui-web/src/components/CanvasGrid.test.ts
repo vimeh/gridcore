@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
+  CellAddress,
   cellAddressToString,
   parseCellAddress,
   Sheet,
@@ -255,9 +256,9 @@ describe("CanvasGrid Scrolling", () => {
     facade = sheet.getFacade();
     for (let row = 0; row < 100; row++) {
       for (let col = 0; col < 50; col++) {
-        const addr = parseCellAddress(cellAddressToString({ row, col }));
-        if (addr) {
-          facade.setCellValue(addr, `R${row}C${col}`);
+        const addrResult = CellAddress.create(row, col);
+        if (addrResult.ok) {
+          facade.setCellValue(addrResult.value, `R${row}C${col}`);
         }
       }
     }

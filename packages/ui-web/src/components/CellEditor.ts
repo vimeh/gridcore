@@ -1,4 +1,4 @@
-import type { CellAddress } from "@gridcore/core";
+import { CellAddress } from "@gridcore/core";
 import { KEY_CODES } from "../constants";
 import {
   type EditMode,

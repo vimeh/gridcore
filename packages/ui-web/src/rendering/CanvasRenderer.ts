@@ -1,4 +1,4 @@
-import type { Cell, CellAddress } from "@gridcore/core";
+import { Cell, CellAddress } from "@gridcore/core";
 import type { Viewport, ViewportBounds } from "../components/Viewport";
 import { PIXEL_PERFECT_OFFSET } from "../constants";
 import type { GridTheme } from "./GridTheme";
@@ -61,7 +61,9 @@ export class CanvasRenderer {
     for (let row = bounds.startRow; row <= bounds.endRow; row++) {
       for (let col = bounds.startCol; col <= bounds.endCol; col++) {
         cellsRendered++;
-        const address: CellAddress = { row, col };
+        const addressResult = CellAddress.create(row, col);
+        if (!addressResult.ok) continue;
+        const address = addressResult.value;
         const position = this.viewport.getCellPosition(address);
         const cell = getCellValue(address);
 
@@ -111,10 +113,11 @@ export class CanvasRenderer {
     }
 
     // Fill background if needed
-    if (cell?.style?.backgroundColor) {
-      this.ctx.fillStyle = cell.style.backgroundColor;
-      this.ctx.fillRect(x, y, width, height);
-    }
+    // TODO: Implement cell styling system
+    // if (cell?.style?.backgroundColor) {
+    //   this.ctx.fillStyle = cell.style.backgroundColor;
+    //   this.ctx.fillRect(x, y, width, height);
+    // }
 
     // Render text (skip if cell is being edited)
     if (
@@ -125,18 +128,17 @@ export class CanvasRenderer {
       this.ctx.save();
 
       // Set text styles
-      this.ctx.fillStyle = cell?.style?.color || this.theme.cellTextColor;
-      this.ctx.font = `${cell?.style?.fontSize || this.theme.cellFontSize}px ${
-        cell?.style?.fontFamily || this.theme.cellFontFamily
-      }`;
+      this.ctx.fillStyle = this.theme.cellTextColor; // TODO: Use cell?.style?.color when styling is implemented
+      this.ctx.font = `${this.theme.cellFontSize}px ${this.theme.cellFontFamily}`;
 
-      if (cell?.style?.bold) {
-        this.ctx.font = `bold ${this.ctx.font}`;
-      }
+      // TODO: Implement cell styling system
+      // if (cell?.style?.bold) {
+      //   this.ctx.font = `bold ${this.ctx.font}`;
+      // }
 
-      if (cell?.style?.italic) {
-        this.ctx.font = `italic ${this.ctx.font}`;
-      }
+      // if (cell?.style?.italic) {
+      //   this.ctx.font = `italic ${this.ctx.font}`;
+      // }
 
       // Clip to cell bounds
       this.ctx.beginPath();
@@ -156,16 +158,9 @@ export class CanvasRenderer {
         this.ctx.fillStyle = "#FF0000";
       }
 
-      if (cell?.style?.textAlign === "center") {
-        this.ctx.textAlign = "center";
-        this.ctx.fillText(text, x + width / 2, textY);
-      } else if (cell?.style?.textAlign === "right") {
-        this.ctx.textAlign = "right";
-        this.ctx.fillText(text, x + width - this.theme.cellPaddingLeft, textY);
-      } else {
-        this.ctx.textAlign = "left";
-        this.ctx.fillText(text, textX, textY);
-      }
+      // TODO: Implement text alignment from cell styles
+      this.ctx.textAlign = "left";
+      this.ctx.fillText(text, textX, textY);
 
       this.ctx.restore();
     }

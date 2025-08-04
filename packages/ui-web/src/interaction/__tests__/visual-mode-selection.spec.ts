@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { CellAddress } from "@gridcore/core";
-import { cellAddressToString } from "@gridcore/core";
+import { CellAddress as CellAddressClass, cellAddressToString } from "@gridcore/core";
+
+// Helper function to create CellAddress for tests
+function createCellAddress(row: number, col: number): CellAddress {
+  const result = CellAddressClass.create(row, col);
+  if (!result.ok) throw new Error(`Failed to create CellAddress: ${result.error}`);
+  return result.value;
+}
 import type { Viewport } from "../../components/Viewport";
 import type { GridVimCallbacks } from "../GridVimBehavior";
 import { GridVimBehavior } from "../GridVimBehavior";
@@ -43,12 +50,12 @@ describe("Visual Mode Selection", () => {
     );
 
     // Start with active cell at (5, 5)
-    selectionManager.setActiveCell({ row: 5, col: 5 });
+    selectionManager.setActiveCell(createCellAddress(5, 5));
   });
 
   describe("Visual Character Mode", () => {
     test("entering visual mode selects the starting cell", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
 
       const selectedCells = selectionManager.getSelectedCells();
@@ -57,7 +64,7 @@ describe("Visual Mode Selection", () => {
     });
 
     test("moving right in visual mode expands selection horizontally", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
 
@@ -66,16 +73,16 @@ describe("Visual Mode Selection", () => {
 
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(2);
-      expect(selectedCells.has(cellAddressToString({ row: 5, col: 5 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 5)))).toBe(
         true,
       );
-      expect(selectedCells.has(cellAddressToString({ row: 5, col: 6 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 6)))).toBe(
         true,
       );
     });
 
     test("moving down in visual mode expands selection vertically", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
 
@@ -84,16 +91,16 @@ describe("Visual Mode Selection", () => {
 
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(2);
-      expect(selectedCells.has(cellAddressToString({ row: 5, col: 5 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 5)))).toBe(
         true,
       );
-      expect(selectedCells.has(cellAddressToString({ row: 6, col: 5 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(6, 5)))).toBe(
         true,
       );
     });
 
     test("moving diagonally in visual mode creates rectangular selection", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
 
@@ -103,22 +110,22 @@ describe("Visual Mode Selection", () => {
 
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(4); // 2x2 rectangle
-      expect(selectedCells.has(cellAddressToString({ row: 5, col: 5 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 5)))).toBe(
         true,
       );
-      expect(selectedCells.has(cellAddressToString({ row: 5, col: 6 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 6)))).toBe(
         true,
       );
-      expect(selectedCells.has(cellAddressToString({ row: 6, col: 5 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(6, 5)))).toBe(
         true,
       );
-      expect(selectedCells.has(cellAddressToString({ row: 6, col: 6 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(6, 6)))).toBe(
         true,
       );
     });
 
     test("moving back towards anchor reduces selection", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
 
@@ -131,16 +138,16 @@ describe("Visual Mode Selection", () => {
 
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(2);
-      expect(selectedCells.has(cellAddressToString({ row: 5, col: 5 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 5)))).toBe(
         true,
       );
-      expect(selectedCells.has(cellAddressToString({ row: 5, col: 6 }))).toBe(
+      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 6)))).toBe(
         true,
       );
     });
 
     test("count prefixes work in visual mode", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
 
@@ -151,7 +158,7 @@ describe("Visual Mode Selection", () => {
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(4); // cells 5,6,7,8
       for (let col = 5; col <= 8; col++) {
-        expect(selectedCells.has(cellAddressToString({ row: 5, col }))).toBe(
+        expect(selectedCells.has(cellAddressToString(createCellAddress(5, col)))).toBe(
           true,
         );
       }
@@ -160,7 +167,7 @@ describe("Visual Mode Selection", () => {
 
   describe("Visual Line Mode", () => {
     test("entering visual line mode selects entire row", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "line");
 
       const selectedCells = selectionManager.getSelectedCells();
@@ -168,14 +175,14 @@ describe("Visual Mode Selection", () => {
       expect(selectedCells.size).toBe(100); // assuming 100 columns
 
       for (let col = 0; col < 100; col++) {
-        expect(selectedCells.has(cellAddressToString({ row: 5, col }))).toBe(
+        expect(selectedCells.has(cellAddressToString(createCellAddress(5, col)))).toBe(
           true,
         );
       }
     });
 
     test("moving down in visual line mode selects multiple rows", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "line");
       currentMode = "visual";
 
@@ -188,7 +195,7 @@ describe("Visual Mode Selection", () => {
       // Check both rows are selected
       for (let row = 5; row <= 6; row++) {
         for (let col = 0; col < 100; col++) {
-          expect(selectedCells.has(cellAddressToString({ row, col }))).toBe(
+          expect(selectedCells.has(cellAddressToString(createCellAddress(row, col)))).toBe(
             true,
           );
         }
@@ -198,7 +205,7 @@ describe("Visual Mode Selection", () => {
 
   describe("Visual Block Mode", () => {
     test("entering visual block mode selects single cell", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "block");
 
       const selectedCells = selectionManager.getSelectedCells();
@@ -207,7 +214,7 @@ describe("Visual Mode Selection", () => {
     });
 
     test("moving in visual block mode creates rectangular selection", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "block");
       currentMode = "visual";
 
@@ -222,7 +229,7 @@ describe("Visual Mode Selection", () => {
       // Check rectangular selection
       for (let row = 5; row <= 7; row++) {
         for (let col = 5; col <= 6; col++) {
-          expect(selectedCells.has(cellAddressToString({ row, col }))).toBe(
+          expect(selectedCells.has(cellAddressToString(createCellAddress(row, col)))).toBe(
             true,
           );
         }
@@ -232,7 +239,7 @@ describe("Visual Mode Selection", () => {
 
   describe("Visual Mode Navigation Special Keys", () => {
     test("$ in visual mode selects to end of row", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
 
@@ -241,10 +248,10 @@ describe("Visual Mode Selection", () => {
         selectionManager.updateVisualSelection.bind(selectionManager);
       selectionManager.updateVisualSelection = (cursor: CellAddress) => {
         // Clamp to reasonable values for testing
-        const clampedCursor = {
-          row: Math.min(cursor.row, 99),
-          col: Math.min(cursor.col, 99),
-        };
+        const clampedCursor = createCellAddress(
+          Math.min(cursor.row, 99),
+          Math.min(cursor.col, 99)
+        );
         originalUpdate(clampedCursor);
       };
 
@@ -258,7 +265,7 @@ describe("Visual Mode Selection", () => {
     });
 
     test("0 in visual mode selects to beginning of row", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
 
@@ -267,14 +274,14 @@ describe("Visual Mode Selection", () => {
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(6); // columns 0-5
       for (let col = 0; col <= 5; col++) {
-        expect(selectedCells.has(cellAddressToString({ row: 5, col }))).toBe(
+        expect(selectedCells.has(cellAddressToString(createCellAddress(5, col)))).toBe(
           true,
         );
       }
     });
 
     test("G in visual mode selects to last row", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
 
@@ -283,10 +290,10 @@ describe("Visual Mode Selection", () => {
         selectionManager.updateVisualSelection.bind(selectionManager);
       selectionManager.updateVisualSelection = (cursor: CellAddress) => {
         // Clamp to reasonable values for testing
-        const clampedCursor = {
-          row: Math.min(cursor.row, 99),
-          col: Math.min(cursor.col, 99),
-        };
+        const clampedCursor = createCellAddress(
+          Math.min(cursor.row, 99),
+          Math.min(cursor.col, 99)
+        );
         originalUpdate(clampedCursor);
       };
 
@@ -300,7 +307,7 @@ describe("Visual Mode Selection", () => {
     });
 
     test("5G in visual mode selects to specific row", () => {
-      const startCell = { row: 10, col: 5 };
+      const startCell = createCellAddress(10, 5);
       selectionManager.setActiveCell(startCell);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
@@ -311,7 +318,7 @@ describe("Visual Mode Selection", () => {
       const selectedCells = selectionManager.getSelectedCells();
       // Should select from row 4 (5G is 1-indexed) to row 10
       for (let row = 4; row <= 10; row++) {
-        expect(selectedCells.has(cellAddressToString({ row, col: 5 }))).toBe(
+        expect(selectedCells.has(cellAddressToString(createCellAddress(row, 5)))).toBe(
           true,
         );
       }
@@ -320,7 +327,7 @@ describe("Visual Mode Selection", () => {
 
   describe("Exiting Visual Mode", () => {
     test("Escape exits visual mode", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
       currentMode = "visual";
 
@@ -340,11 +347,11 @@ describe("Visual Mode Selection", () => {
     });
 
     test("exiting visual mode clears visual state", () => {
-      const startCell = { row: 5, col: 5 };
+      const startCell = createCellAddress(5, 5);
       selectionManager.startVisualSelection(startCell, "character");
 
       // Move to expand selection
-      selectionManager.updateVisualSelection({ row: 7, col: 7 });
+      selectionManager.updateVisualSelection(createCellAddress(7, 7));
 
       // Exit visual mode
       selectionManager.endVisualSelection();

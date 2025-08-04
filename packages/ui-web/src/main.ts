@@ -1,6 +1,5 @@
 import {
-  cellAddressToString,
-  parseCellAddress,
+  CellAddress,
   Workbook,
 } from "@gridcore/core";
 import { CanvasGrid } from "./components/CanvasGrid";
@@ -53,13 +52,21 @@ let facade = activeSheet.getFacade();
 const modeStateMachine = new SpreadsheetStateMachine();
 
 // Add some sample data
-const a1 = parseCellAddress("A1");
-const b1 = parseCellAddress("B1");
-const a2 = parseCellAddress("A2");
-const b2 = parseCellAddress("B2");
-const c2 = parseCellAddress("C2");
-const d2 = parseCellAddress("D2");
-const e2 = parseCellAddress("E2");
+const a1Result = CellAddress.fromString("A1");
+const b1Result = CellAddress.fromString("B1");
+const a2Result = CellAddress.fromString("A2");
+const b2Result = CellAddress.fromString("B2");
+const c2Result = CellAddress.fromString("C2");
+const d2Result = CellAddress.fromString("D2");
+const e2Result = CellAddress.fromString("E2");
+
+const a1 = a1Result.ok ? a1Result.value : null;
+const b1 = b1Result.ok ? b1Result.value : null;
+const a2 = a2Result.ok ? a2Result.value : null;
+const b2 = b2Result.ok ? b2Result.value : null;
+const c2 = c2Result.ok ? c2Result.value : null;
+const d2 = d2Result.ok ? d2Result.value : null;
+const e2 = e2Result.ok ? e2Result.value : null;
 
 if (a1) facade.setCellValue(a1, "Hello");
 if (b1) facade.setCellValue(b1, "World");
@@ -70,11 +77,17 @@ if (d2) facade.setCellValue(d2, "=SUM(A2:B2)");
 if (e2) facade.setCellValue(e2, "=AVERAGE(A2:D2)");
 
 // Add sample data for pivot table demo
-const a5 = parseCellAddress("A5");
-const b5 = parseCellAddress("B5");
-const c5 = parseCellAddress("C5");
-const d5 = parseCellAddress("D5");
-const e5 = parseCellAddress("E5");
+const a5Result = CellAddress.fromString("A5");
+const b5Result = CellAddress.fromString("B5");
+const c5Result = CellAddress.fromString("C5");
+const d5Result = CellAddress.fromString("D5");
+const e5Result = CellAddress.fromString("E5");
+
+const a5 = a5Result.ok ? a5Result.value : null;
+const b5 = b5Result.ok ? b5Result.value : null;
+const c5 = c5Result.ok ? c5Result.value : null;
+const d5 = d5Result.ok ? d5Result.value : null;
+const e5 = e5Result.ok ? e5Result.value : null;
 
 if (a5) facade.setCellValue(a5, "Category");
 if (b5) facade.setCellValue(b5, "Product");
@@ -94,9 +107,9 @@ const sampleData = [
 
 sampleData.forEach((row, i) => {
   row.forEach((value, j) => {
-    const addr = parseCellAddress(cellAddressToString({ row: i + 6, col: j }));
-    if (addr) {
-      facade.setCellValue(addr, value);
+    const addrResult = CellAddress.create(i + 6, j);
+    if (addrResult.ok) {
+      facade.setCellValue(addrResult.value, value);
     }
   });
 });
@@ -120,10 +133,7 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
     if (!activeSheet) return;
 
     const facade = activeSheet.getFacade();
-    const cellAddr = parseCellAddress(cellAddressToString(address));
-    if (!cellAddr) return;
-
-    facade.setCellValue(cellAddr, value);
+    facade.setCellValue(address, value);
   },
   onImport: () => {
     const input = document.createElement("input");
@@ -151,11 +161,9 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
           // TODO: Add clear functionality to facade
           rows.forEach((row, r) => {
             row.forEach((cellValue, c) => {
-              const addr = parseCellAddress(
-                cellAddressToString({ row: r, col: c }),
-              );
-              if (addr) {
-                facade.setCellValue(addr, cellValue);
+              const addrResult = CellAddress.create(r, c);
+              if (addrResult.ok) {
+                facade.setCellValue(addrResult.value, cellValue);
               }
             });
           });
@@ -183,11 +191,9 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
       // Find the bounds of the data
       for (let i = 0; i < GRID_ROWS; i++) {
         for (let j = 0; j < GRID_COLS; j++) {
-          const addr = parseCellAddress(
-            cellAddressToString({ row: i, col: j }),
-          );
-          if (addr) {
-            const cellResult = facade.getCell(addr);
+          const addrResult = CellAddress.create(i, j);
+          if (addrResult.ok) {
+            const cellResult = facade.getCell(addrResult.value);
             if (cellResult.ok && cellResult.value.value !== undefined) {
               maxRow = Math.max(maxRow, i);
               maxCol = Math.max(maxCol, j);
@@ -199,12 +205,10 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
       for (let i = 0; i <= maxRow; i++) {
         const row = [];
         for (let j = 0; j <= maxCol; j++) {
-          const addr = parseCellAddress(
-            cellAddressToString({ row: i, col: j }),
-          );
+          const addrResult = CellAddress.create(i, j);
           let value = "";
-          if (addr) {
-            const cellResult = facade.getCell(addr);
+          if (addrResult.ok) {
+            const cellResult = facade.getCell(addrResult.value);
             if (cellResult.ok) {
               value = cellResult.value.value?.toString() ?? "";
             }
@@ -222,7 +226,7 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      const sheetName = workbook.getActiveSheet().getName();
+      const sheetName = workbook.getActiveSheet()?.getName() || "sheet";
       link.setAttribute("href", url);
       link.setAttribute("download", `${sheetName}.csv`);
       link.style.visibility = "hidden";
@@ -267,12 +271,9 @@ const tabBar = new TabBar({
 
     // Reconnect event handlers
     canvasGrid.onCellClick = (cell) => {
-      const cellAddr = parseCellAddress(cellAddressToString(cell));
-      if (cellAddr) {
-        const cellResult = facade.getCell(cellAddr);
-        if (cellResult.ok) {
-          formulaBar.setActiveCell(cell, cellResult.value);
-        }
+      const cellResult = facade.getCell(cell);
+      if (cellResult.ok) {
+        formulaBar.setActiveCell(cell, cellResult.value);
       }
     };
 
@@ -285,12 +286,9 @@ const tabBar = new TabBar({
     // Update formula bar with current selection
     const selection = canvasGrid.getSelection();
     if (selection) {
-      const cellAddr = parseCellAddress(cellAddressToString(selection.start));
-      if (cellAddr) {
-        const cellResult = facade.getCell(cellAddr);
-        if (cellResult.ok) {
-          formulaBar.setActiveCell(selection.start, cellResult.value);
-        }
+      const cellResult = facade.getCell(selection.start);
+      if (cellResult.ok) {
+        formulaBar.setActiveCell(selection.start, cellResult.value);
       }
     }
   },
@@ -312,12 +310,9 @@ const tabBar = new TabBar({
 
 // Connect grid selection to formula bar
 canvasGrid.onCellClick = (cell) => {
-  const cellAddr = parseCellAddress(cellAddressToString(cell));
-  if (cellAddr) {
-    const cellResult = facade.getCell(cellAddr);
-    if (cellResult.ok) {
-      formulaBar.setActiveCell(cell, cellResult.value);
-    }
+  const cellResult = facade.getCell(cell);
+  if (cellResult.ok) {
+    formulaBar.setActiveCell(cell, cellResult.value);
   }
 };
 
@@ -326,33 +321,37 @@ const setupSheetNavigationCallbacks = () => {
   canvasGrid.getKeyboardHandler().setSheetNavigationCallbacks({
     onNextSheet: () => {
       const sheets = workbook.getAllSheets();
+      const activeSheet = workbook.getActiveSheet();
+      if (!activeSheet) return;
       const currentIndex = sheets.findIndex(
-        (s) => s.getId() === workbook.getActiveSheet().getId(),
+        (s) => s.getId() === activeSheet.getId(),
       );
       if (currentIndex < sheets.length - 1) {
         const nextSheet = sheets[currentIndex + 1];
         workbook.setActiveSheet(nextSheet.getId());
         tabBar.refresh();
-        tabBar.onTabChange?.(nextSheet.getId());
+        // TabBar will handle the change internally
       }
     },
     onPreviousSheet: () => {
       const sheets = workbook.getAllSheets();
+      const activeSheet = workbook.getActiveSheet();
+      if (!activeSheet) return;
       const currentIndex = sheets.findIndex(
-        (s) => s.getId() === workbook.getActiveSheet().getId(),
+        (s) => s.getId() === activeSheet.getId(),
       );
       if (currentIndex > 0) {
         const prevSheet = sheets[currentIndex - 1];
         workbook.setActiveSheet(prevSheet.getId());
         tabBar.refresh();
-        tabBar.onTabChange?.(prevSheet.getId());
+        // TabBar will handle the change internally
       }
     },
     onNewSheet: () => {
-      const newSheet = workbook.addSheet();
+      const newSheet = workbook.createSheet();
       workbook.setActiveSheet(newSheet.getId());
       tabBar.refresh();
-      tabBar.onTabChange?.(newSheet.getId());
+      // TabBar will handle the change internally
     },
   });
 };
@@ -361,23 +360,23 @@ const setupSheetNavigationCallbacks = () => {
 setupSheetNavigationCallbacks();
 
 // Initialize formula bar with A1
-const initialCell = { row: 0, col: 0 };
-const initialCellAddr = parseCellAddress(cellAddressToString(initialCell));
-if (initialCellAddr) {
-  const initialCellResult = facade.getCell(initialCellAddr);
-  if (initialCellResult.ok) {
-    formulaBar.setActiveCell(initialCell, initialCellResult.value);
+const initialCellResult = CellAddress.create(0, 0);
+if (initialCellResult.ok) {
+  const cellResult = facade.getCell(initialCellResult.value);
+  if (cellResult.ok) {
+    formulaBar.setActiveCell(initialCellResult.value, cellResult.value);
   }
 }
 
 // Listen for changes from the facade
-const eventService = facade.getEventService();
-eventService.on("CellValueChanged", () => {
-  canvasGrid.render();
-});
-eventService.on("CellCalculated", () => {
-  canvasGrid.render();
-});
+// TODO: Re-enable event handling when facade.getEventService() is available
+// const eventService = facade.getEventService();
+// eventService.on("CellValueChanged", () => {
+//   canvasGrid.render();
+// });
+// eventService.on("CellCalculated", () => {
+//   canvasGrid.render();
+// });
 
 // Handle window resize
 window.addEventListener("resize", () => {

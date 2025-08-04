@@ -1,4 +1,4 @@
-import type { CellAddress } from "@gridcore/core";
+import { CellAddress } from "@gridcore/core";
 import type { Viewport } from "../components/Viewport";
 import type { SelectionManager } from "./SelectionManager";
 
@@ -38,6 +38,10 @@ export class MouseHandler {
     this.setupEventListeners();
   }
 
+  private getCellAddressAtPosition(x: number, y: number): CellAddress | null {
+    return this.viewport.getCellAtPosition(x, y);
+  }
+
   private setupEventListeners(): void {
     if (!this.enabled) return;
 
@@ -73,7 +77,7 @@ export class MouseHandler {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    const cell = this.viewport.getCellAtPosition(x, y);
+    const cell = this.getCellAddressAtPosition(x, y);
     if (!cell) return;
 
     this.isDragging = true;
@@ -98,7 +102,7 @@ export class MouseHandler {
     // Auto-scroll if near edges
     this.handleAutoScroll(x, y, rect);
 
-    const cell = this.viewport.getCellAtPosition(x, y);
+    const cell = this.getCellAddressAtPosition(x, y);
     if (cell) {
       this.selectionManager.updateRangeSelection(cell);
     }
@@ -116,7 +120,7 @@ export class MouseHandler {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    const cell = this.viewport.getCellAtPosition(x, y);
+    const cell = this.getCellAddressAtPosition(x, y);
     if (cell) {
       this.onCellDoubleClick?.(cell);
     }

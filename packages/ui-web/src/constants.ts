@@ -25,10 +25,12 @@ export const KEY_CODES = {
   X: "x",
   Z: "z",
   M: "m",
+  R: "r",
   CAPITAL_A: "A",
   CAPITAL_C: "C",
   CAPITAL_V: "V",
   CAPITAL_X: "X",
   CAPITAL_Z: "Z",
   CAPITAL_M: "M",
+  CAPITAL_R: "R",
 };

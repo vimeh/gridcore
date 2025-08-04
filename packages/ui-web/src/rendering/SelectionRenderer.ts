@@ -1,5 +1,4 @@
-import type { CellRange } from "@gridcore/core";
-import { parseCellAddress } from "@gridcore/core";
+import { CellAddress, type CellRange } from "@gridcore/core";
 import type { Viewport as GridViewport } from "../components/Viewport";
 import type { GridTheme } from "./GridTheme";
 
@@ -62,8 +61,9 @@ export class SelectionRenderer {
     this.ctx.globalAlpha = 0.3;
 
     for (const cellKey of selectedCells) {
-      const cellAddress = parseCellAddress(cellKey);
-      if (!cellAddress) continue;
+      const cellAddressResult = CellAddress.fromString(cellKey);
+      if (!cellAddressResult.ok) continue;
+      const cellAddress = cellAddressResult.value;
 
       const position = this.viewport.getCellPosition(cellAddress);
 
@@ -178,8 +178,9 @@ export class SelectionRenderer {
     } else {
       // Calculate bounds from selected cells
       for (const cellKey of selectedCells) {
-        const cellAddress = parseCellAddress(cellKey);
-        if (!cellAddress) continue;
+        const cellAddressResult = CellAddress.fromString(cellKey);
+        if (!cellAddressResult.ok) continue;
+        const cellAddress = cellAddressResult.value;
 
         minRow = Math.min(minRow, cellAddress.row);
         maxRow = Math.max(maxRow, cellAddress.row);
@@ -193,11 +194,13 @@ export class SelectionRenderer {
     }
 
     // Get positions for corner cells
-    const topLeft = this.viewport.getCellPosition({ row: minRow, col: minCol });
-    const bottomRight = this.viewport.getCellPosition({
-      row: maxRow,
-      col: maxCol,
-    });
+    const topLeftResult = CellAddress.create(minRow, minCol);
+    const bottomRightResult = CellAddress.create(maxRow, maxCol);
+    if (!topLeftResult.ok || !bottomRightResult.ok) {
+      return null;
+    }
+    const topLeft = this.viewport.getCellPosition(topLeftResult.value);
+    const bottomRight = this.viewport.getCellPosition(bottomRightResult.value);
 
     if (!topLeft || !bottomRight) {
       return null;

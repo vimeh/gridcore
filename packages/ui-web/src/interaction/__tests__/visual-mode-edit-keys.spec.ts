@@ -1,8 +1,16 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import { CellAddress } from "@gridcore/core";
 import type { Viewport } from "../../components/Viewport";
 import type { GridVimCallbacks } from "../GridVimBehavior";
 import { GridVimBehavior } from "../GridVimBehavior";
 import { SelectionManager } from "../SelectionManager";
+
+// Helper function to create CellAddress for tests
+function createCellAddress(row: number, col: number) {
+  const result = CellAddress.create(row, col);
+  if (!result.ok) throw new Error(`Failed to create CellAddress: ${result.error}`);
+  return result.value;
+}
 
 describe("Visual Mode Edit Key Handling", () => {
   let selectionManager: SelectionManager;
@@ -44,8 +52,8 @@ describe("Visual Mode Edit Key Handling", () => {
     );
 
     // Start with active cell at (5, 5)
-    selectionManager.setActiveCell({ row: 5, col: 5 });
-    selectionManager.startVisualSelection({ row: 5, col: 5 }, "character");
+    selectionManager.setActiveCell(createCellAddress(5, 5));
+    selectionManager.startVisualSelection(createCellAddress(5, 5), "character");
   });
 
   describe("Edit keys in visual mode", () => {
@@ -101,7 +109,7 @@ describe("Visual Mode Edit Key Handling", () => {
 
     test("visual selection is maintained when pressing edit keys", () => {
       // Select some cells first
-      selectionManager.updateVisualSelection({ row: 7, col: 7 });
+      selectionManager.updateVisualSelection(createCellAddress(7, 7));
 
       const selectedBefore = selectionManager.getSelectedCells();
       expect(selectedBefore.size).toBeGreaterThan(1);

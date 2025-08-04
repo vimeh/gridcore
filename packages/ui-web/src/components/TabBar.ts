@@ -62,7 +62,7 @@ export class TabBar {
     sheets.forEach((sheet, index) => {
       const tab = this.createTab(
         sheet,
-        sheet.getId() === activeSheet.getId(),
+        sheet.getId() === activeSheet?.getId(),
         index,
       );
       this.tabContainer.appendChild(tab);
@@ -231,7 +231,7 @@ export class TabBar {
   }
 
   private handleAddSheet(): void {
-    const newSheet = this.workbook.addSheet();
+    const newSheet = this.workbook.createSheet();
     this.workbook.setActiveSheet(newSheet.getId());
     this.render();
     this.onTabAdd?.();
@@ -246,7 +246,7 @@ export class TabBar {
       return;
     }
 
-    const sheet = this.workbook.getSheetById(sheetId);
+    const sheet = this.workbook.getSheet(sheetId);
     if (sheet && confirm(`Remove sheet "${sheet.getName()}"?`)) {
       this.workbook.removeSheet(sheetId);
       this.render();
@@ -256,7 +256,8 @@ export class TabBar {
 
   private handleReorderTab(fromIndex: number, toIndex: number): void {
     if (this.draggedSheetId) {
-      this.workbook.moveSheet(this.draggedSheetId, toIndex);
+      // TODO: implement moveSheet functionality
+      console.warn('moveSheet not implemented yet');
       this.render();
       this.onTabReorder?.(fromIndex, toIndex);
     }
@@ -271,7 +272,7 @@ export class TabBar {
     const nameSpan = tab.querySelector(".tab-name") as HTMLElement;
     if (!nameSpan) return;
 
-    const sheet = this.workbook.getSheetById(sheetId);
+    const sheet = this.workbook.getSheet(sheetId);
     if (!sheet) return;
 
     const input = document.createElement("input");
@@ -313,7 +314,7 @@ export class TabBar {
   private showContextMenu(sheetId: string, event: MouseEvent): void {
     this.hideContextMenu();
 
-    const sheet = this.workbook.getSheetById(sheetId);
+    const sheet = this.workbook.getSheet(sheetId);
     if (!sheet) return;
 
     this.contextMenu = document.createElement("div");
@@ -327,7 +328,9 @@ export class TabBar {
       {
         label: "Duplicate",
         action: () => {
-          const newSheet = this.workbook.duplicateSheet(sheetId);
+          // TODO: implement duplicateSheet functionality
+          console.warn('duplicateSheet not implemented yet');
+          const newSheet = this.workbook.createSheet();
           this.workbook.setActiveSheet(newSheet.getId());
           this.render();
         },
