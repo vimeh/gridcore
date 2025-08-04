@@ -1,4 +1,4 @@
-import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
+import { CellAddress, type SpreadsheetFacade, StructuralEngine } from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
 import { type ResizeAction, ResizeBehavior } from "../behaviors/ResizeBehavior";
 import type { CellVimAction } from "../behaviors/VimBehavior";
@@ -53,6 +53,7 @@ export class SpreadsheetController {
   private resizeBehavior: ResizeBehavior;
   private facade: SpreadsheetFacade;
   private viewportManager: ViewportManager;
+  private structuralEngine: StructuralEngine;
   private listeners: Array<(event: ControllerEvent) => void> = [];
 
   constructor(options: SpreadsheetControllerOptions) {
@@ -63,6 +64,9 @@ export class SpreadsheetController {
     this.vimBehavior = new VimBehavior();
     this.cellVimBehavior = new CellVimBehavior();
     this.resizeBehavior = new ResizeBehavior();
+    
+    // Initialize structural engine
+    this.structuralEngine = new StructuralEngine();
 
     // Initialize state machine
     let initialState = options.initialState;
@@ -890,42 +894,180 @@ export class SpreadsheetController {
 
   // Structural operation methods
   insertRows(beforeRow: number, count: number = 1): Result<UIState> {
-    // TODO: Implement actual row insertion logic with facade
-    // For now, just emit an event
-    this.emit({
-      type: "commandExecuted",
-      command: `insertRows ${beforeRow} ${count}`,
-    });
+    const result = this.structuralEngine.insertRows(beforeRow, count);
+    
+    if (result.ok) {
+      const analysis = result.value;
+      
+      // Emit events about the operation
+      this.emit({
+        type: "commandExecuted",
+        command: `insertRows ${beforeRow} ${count}`,
+      });
+
+      // If there were warnings, emit them
+      if (analysis.warnings.length > 0) {
+        for (const warning of analysis.warnings) {
+          this.emit({
+            type: "error",
+            error: `Warning: ${warning.message}`,
+          });
+        }
+      }
+
+      // Update viewport if needed (rows were inserted before current view)
+      const state = this.getState();
+      if (beforeRow <= state.viewport.startRow) {
+        this.stateMachine.transition({
+          type: "UPDATE_VIEWPORT",
+          viewport: {
+            ...state.viewport,
+            startRow: state.viewport.startRow + count
+          }
+        });
+      }
+    } else {
+      this.emit({
+        type: "error",
+        error: `Failed to insert rows: ${result.error}`,
+      });
+    }
+
     return { ok: true, value: this.getState() };
   }
 
   insertColumns(beforeCol: number, count: number = 1): Result<UIState> {
-    // TODO: Implement actual column insertion logic with facade  
-    // For now, just emit an event
-    this.emit({
-      type: "commandExecuted", 
-      command: `insertColumns ${beforeCol} ${count}`,
-    });
+    const result = this.structuralEngine.insertColumns(beforeCol, count);
+    
+    if (result.ok) {
+      const analysis = result.value;
+      
+      // Emit events about the operation
+      this.emit({
+        type: "commandExecuted", 
+        command: `insertColumns ${beforeCol} ${count}`,
+      });
+
+      // If there were warnings, emit them
+      if (analysis.warnings.length > 0) {
+        for (const warning of analysis.warnings) {
+          this.emit({
+            type: "error",
+            error: `Warning: ${warning.message}`,
+          });
+        }
+      }
+
+      // Update viewport if needed (columns were inserted before current view)
+      const state = this.getState();
+      if (beforeCol <= state.viewport.startCol) {
+        this.stateMachine.transition({
+          type: "UPDATE_VIEWPORT",
+          viewport: {
+            ...state.viewport,
+            startCol: state.viewport.startCol + count
+          }
+        });
+      }
+    } else {
+      this.emit({
+        type: "error",
+        error: `Failed to insert columns: ${result.error}`,
+      });
+    }
+
     return { ok: true, value: this.getState() };
   }
 
   deleteRows(startRow: number, count: number = 1): Result<UIState> {
-    // TODO: Implement actual row deletion logic with facade
-    // For now, just emit an event
-    this.emit({
-      type: "commandExecuted",
-      command: `deleteRows ${startRow} ${count}`,
-    });
+    const result = this.structuralEngine.deleteRows(startRow, count);
+    
+    if (result.ok) {
+      const analysis = result.value;
+      
+      // Emit events about the operation
+      this.emit({
+        type: "commandExecuted",
+        command: `deleteRows ${startRow} ${count}`,
+      });
+
+      // If there were warnings, emit them
+      if (analysis.warnings.length > 0) {
+        for (const warning of analysis.warnings) {
+          this.emit({
+            type: "error",
+            error: `Warning: ${warning.message}`,
+          });
+        }
+      }
+
+      // Update viewport if needed (rows were deleted before/within current view)
+      const state = this.getState();
+      if (startRow < state.viewport.startRow + state.viewport.rows) {
+        const deletedInView = Math.min(count, Math.max(0, state.viewport.startRow + state.viewport.rows - startRow));
+        const deletedBeforeView = Math.min(count, Math.max(0, state.viewport.startRow - startRow));
+        
+        this.stateMachine.transition({
+          type: "UPDATE_VIEWPORT",
+          viewport: {
+            ...state.viewport,
+            startRow: Math.max(0, state.viewport.startRow - deletedBeforeView)
+          }
+        });
+      }
+    } else {
+      this.emit({
+        type: "error",
+        error: `Failed to delete rows: ${result.error}`,
+      });
+    }
+
     return { ok: true, value: this.getState() };
   }
 
   deleteColumns(startCol: number, count: number = 1): Result<UIState> {
-    // TODO: Implement actual column deletion logic with facade
-    // For now, just emit an event
-    this.emit({
-      type: "commandExecuted",
-      command: `deleteColumns ${startCol} ${count}`,
-    });
+    const result = this.structuralEngine.deleteColumns(startCol, count);
+    
+    if (result.ok) {
+      const analysis = result.value;
+      
+      // Emit events about the operation
+      this.emit({
+        type: "commandExecuted",
+        command: `deleteColumns ${startCol} ${count}`,
+      });
+
+      // If there were warnings, emit them
+      if (analysis.warnings.length > 0) {
+        for (const warning of analysis.warnings) {
+          this.emit({
+            type: "error",
+            error: `Warning: ${warning.message}`,
+          });
+        }
+      }
+
+      // Update viewport if needed (columns were deleted before/within current view)
+      const state = this.getState();
+      if (startCol < state.viewport.startCol + state.viewport.cols) {
+        const deletedInView = Math.min(count, Math.max(0, state.viewport.startCol + state.viewport.cols - startCol));
+        const deletedBeforeView = Math.min(count, Math.max(0, state.viewport.startCol - startCol));
+        
+        this.stateMachine.transition({
+          type: "UPDATE_VIEWPORT",
+          viewport: {
+            ...state.viewport,
+            startCol: Math.max(0, state.viewport.startCol - deletedBeforeView)
+          }
+        });
+      }
+    } else {
+      this.emit({
+        type: "error",
+        error: `Failed to delete columns: ${result.error}`,
+      });
+    }
+
     return { ok: true, value: this.getState() };
   }
 

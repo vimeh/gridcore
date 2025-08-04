@@ -50,6 +50,8 @@ export { InMemoryDependencyRepository } from "./infrastructure/repositories/InMe
 export { EventStore } from "./infrastructure/stores/EventStore";
 // References System
 export * from "./references";
+// Structural Operations System
+export * from "./structure";
 // High-level API
 export { Sheet } from "./Sheet";
 // Shared Types

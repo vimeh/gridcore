@@ -79,6 +79,19 @@ function testInsertDeleteStates() {
   console.log("✓ ReferenceParser instantiated");
   console.log("✓ ReferenceAdjuster instantiated");
   console.log("✅ Reference system is available!");
+
+  // Test Phase 2 structural system
+  console.log("\nTesting Phase 2 Structural System...");
+  const { StructuralEngine, ReferenceUpdater, SparseGrid } = require("./packages/core/src/structure");
+  
+  const structuralEngine = new StructuralEngine();
+  const referenceUpdater = new ReferenceUpdater();
+  const sparseGrid = new SparseGrid();
+  
+  console.log("✓ StructuralEngine instantiated");
+  console.log("✓ ReferenceUpdater instantiated");
+  console.log("✓ SparseGrid instantiated");
+  console.log("✅ Phase 2 structural system is available!");
 }
 
 // Run the test
