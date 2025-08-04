@@ -231,6 +231,7 @@ This design:
 The consolidated architecture maintains and enhances type safety through multiple layers:
 
 #### 1. **Compile-Time Safety**
+
 ```typescript
 // ✅ Valid state construction
 const navState: UIState = {
@@ -250,6 +251,7 @@ if (isEditingMode(state)) {
 ```
 
 #### 2. **Runtime Validation**
+
 ```typescript
 // State machine validates transitions at runtime
 const result = stateMachine.transition({
@@ -266,6 +268,7 @@ if (!result.ok) {
 ```
 
 #### 3. **Action Type Safety**
+
 ```typescript
 // Actions are strongly typed with discriminated unions
 type Action =
@@ -278,6 +281,7 @@ stateMachine.transition({ type: "INVALID_ACTION" }); // Error!
 ```
 
 #### 4. **Transition Safety**
+
 ```typescript
 // Each transition handler is type-checked
 private enterInsertMode(
@@ -359,6 +363,7 @@ export class UIStateMachine {
 ```
 
 Benefits of this approach:
+
 - **Type Safety**: Transitions are validated against the UIState types
 - **Debugging**: Clear trace of state changes via transition history
 - **Visualization**: Can generate state diagrams from the transition map
@@ -417,25 +422,29 @@ class WebStateAdapter {
 These features will be implemented once in ui-core and used by all UIs:
 
 1. **Vim Keybindings**
+
    - Mode management (normal, insert, visual, command)
    - Motion commands (h/j/k/l, w/b/e, 0/$, gg/G)
    - Operators (d/c/y/p)
    - Count prefixes and repeat commands
    - Both spreadsheet-level and cell-level vim behaviors
 
-2. **State Management**
+1. **State Management**
+
    - Type-safe UIState with discriminated unions
    - Lightweight state machine with transition validation
    - State visualization and documentation generation
    - Event-driven updates
 
-3. **Core Navigation**
+1. **Core Navigation**
+
    - Cell cursor movement
    - Selection management (single cell, ranges, visual modes)
    - Viewport scrolling
    - Jump-to navigation (Ctrl+G)
 
-4. **Editing Operations**
+1. **Editing Operations**
+
    - Cell value updates
    - Formula editing
    - Undo/redo coordination
@@ -444,33 +453,41 @@ These features will be implemented once in ui-core and used by all UIs:
 ### Platform-Specific Features
 
 #### Web UI Only
+
 1. **Mouse Interactions**
+
    - Click to select cells
    - Drag to select ranges
    - Column/row resize via drag
    - Context menus
 
-2. **InteractionMode**
+1. **InteractionMode**
+
    - Toggle between "normal" and "keyboard-only" modes
    - Affects how UI responds to mouse events
 
-3. **Resize Mode**
+1. **Resize Mode**
+
    - Interactive column/row resizing
    - Visual feedback during resize
    - Snap-to-grid behavior
 
-4. **Canvas Rendering**
+1. **Canvas Rendering**
+
    - Hardware-accelerated drawing
    - Smooth scrolling
    - Zoom levels
 
 #### TUI Only
+
 1. **Terminal Constraints**
+
    - Character-based rendering
    - Limited color palette
    - No mouse support (by design)
 
-2. **Terminal-Specific UI**
+1. **Terminal-Specific UI**
+
    - Box-drawing characters for grid
    - ASCII-based selection indicators
    - Terminal bell for alerts
@@ -497,14 +514,14 @@ interface PlatformAdapter {
 ### Phase 1: Extract Core Package (Week 1)
 
 1. Create `packages/ui-core` structure using Bun workspace
-2. Design nested `UIState` types with proper discriminated unions
-3. Implement lightweight `UIStateMachine` class with transition validation
-4. Move `VimBehavior` from TUI to ui-core (adapt to support two-level modes)
-5. Create `SpreadsheetController` base class that uses the state machine
-6. Implement separate `CellVimBehavior` for cell-level editing
-7. Port `StateVisualizer` from Web UI for diagram generation
-8. Set up package exports and dependencies
-9. Add @gridcore/core as dependency for SpreadsheetEngine
+1. Design nested `UIState` types with proper discriminated unions
+1. Implement lightweight `UIStateMachine` class with transition validation
+1. Move `VimBehavior` from TUI to ui-core (adapt to support two-level modes)
+1. Create `SpreadsheetController` base class that uses the state machine
+1. Implement separate `CellVimBehavior` for cell-level editing
+1. Port `StateVisualizer` from Web UI for diagram generation
+1. Set up package exports and dependencies
+1. Add @gridcore/core as dependency for SpreadsheetEngine
 
 ### Phase 2: Refactor TUI (Week 2)
 
@@ -533,11 +550,11 @@ interface PlatformAdapter {
 ### Immediate Benefits
 
 1. **Reduced Code Size**: ~40% reduction in vim-related code
-2. **Bug Fixes Once**: Fix vim behavior bugs in one place
-3. **Consistent Behavior**: Both UIs behave identically
-4. **Easier Testing**: Test core logic without UI concerns
-5. **Type Safety**: Nested state types prevent invalid state combinations
-6. **State Machine Benefits**:
+1. **Bug Fixes Once**: Fix vim behavior bugs in one place
+1. **Consistent Behavior**: Both UIs behave identically
+1. **Easier Testing**: Test core logic without UI concerns
+1. **Type Safety**: Nested state types prevent invalid state combinations
+1. **State Machine Benefits**:
    - **Formal Verification**: Only valid state transitions are possible
    - **Visual Documentation**: Auto-generated state diagrams
    - **Debugging**: Clear trace of how system reached current state
@@ -547,11 +564,11 @@ interface PlatformAdapter {
 ### Long-term Benefits
 
 1. **Faster Feature Development**: Add features to controller, get them in both UIs
-2. **Better Maintainability**: Single source of truth for business logic
-3. **Easier Onboarding**: New developers learn one system
-4. **Platform Flexibility**: Could add mobile UI, VS Code extension, etc.
-5. **Living Documentation**: State diagrams always match implementation
-6. **Confidence in Changes**: State machine catches invalid transitions early
+1. **Better Maintainability**: Single source of truth for business logic
+1. **Easier Onboarding**: New developers learn one system
+1. **Platform Flexibility**: Could add mobile UI, VS Code extension, etc.
+1. **Living Documentation**: State diagrams always match implementation
+1. **Confidence in Changes**: State machine catches invalid transitions early
 
 ## Risks and Mitigations
 
