@@ -100,3 +100,67 @@ IMPORTANT: Always run `bun run check` before committing to ensure code passes li
     throw new Error('Element not found');
   }
   ```
+
+### Avoid static-only classes
+- **NEVER** create classes that contain only static members
+- Convert static-only classes to standalone functions:
+  ```ts
+  // Bad
+  class Utils {
+    static formatName(name: string): string { ... }
+    static parseDate(date: string): Date { ... }
+  }
+  
+  // Good
+  export function formatName(name: string): string { ... }
+  export function parseDate(date: string): Date { ... }
+  ```
+
+### Unused parameters
+- Remove unused parameters from functions and callbacks
+- If a parameter must exist for interface compliance but isn't used, prefix with underscore:
+  ```ts
+  // Bad
+  array.forEach((item, index) => console.log(item));
+  
+  // Good
+  array.forEach((item) => console.log(item));
+  
+  // Or if index is needed for interface
+  array.forEach((item, _index) => console.log(item));
+  ```
+
+### Prefer type assertions over `as any`
+- When type casting is necessary, use proper type assertions:
+  ```ts
+  // Bad
+  const value = someValue as any;
+  
+  // Good
+  const value = someValue as unknown as TargetType;
+  // Or better, use type guards
+  if (isTargetType(someValue)) {
+    const value = someValue;
+  }
+  ```
+
+### Control character handling
+- Avoid regex patterns with control characters that trigger linting warnings
+- Use character code comparisons instead:
+  ```ts
+  // Bad
+  /^[^\x00-\x1F\x7F]$/.test(key)
+  
+  // Good
+  key.charCodeAt(0) >= 32 && key.charCodeAt(0) !== 127
+  ```
+
+### Result type handling
+- When using Result types, always check `.ok` before accessing `.value`:
+  ```ts
+  const result = CellAddress.create(0, 0);
+  if (!result.ok) {
+    throw new Error("Failed to create cell address");
+  }
+  const address = result.value;
+  ```
