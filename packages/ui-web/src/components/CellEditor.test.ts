@@ -4,6 +4,7 @@ import type { ViewportManager } from "@gridcore/ui-core";
 import { SpreadsheetController } from "@gridcore/ui-core";
 import { Window } from "happy-dom";
 import { CellEditor } from "./CellEditor";
+import type { Viewport } from "./Viewport";
 
 // Set up DOM environment
 const happyWindow = new Window();
@@ -86,17 +87,7 @@ describe("CellEditor", () => {
     // Create CellEditor
     cellEditor = new CellEditor(
       container as unknown as HTMLElement,
-      viewport as unknown as {
-        gridToScreen: (
-          address: CellAddress,
-        ) => { x: number; y: number; width: number; height: number } | null;
-        getVisibleRange: () => {
-          startRow: number;
-          endRow: number;
-          startCol: number;
-          endCol: number;
-        };
-      },
+      viewport as unknown as Viewport,
       {
         onCommit: (address: CellAddress, value: string) => {
           _committedAddress = address;

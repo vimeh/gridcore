@@ -234,7 +234,7 @@ export class CellEditor {
     if (this.controller && window.getSelection()) {
       const newText = this.editorDiv.textContent || "";
       const selection = window.getSelection();
-      const cursorPosition = selection.focusOffset;
+      const cursorPosition = selection ? selection.focusOffset : 0;
 
       console.log("CellEditor: handleInput called, syncing to controller", {
         newText,
