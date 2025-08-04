@@ -10,13 +10,21 @@ import {
 import {
   createNavigationState,
   createResizeState,
+  createSpreadsheetVisualState,
   type InsertMode,
   isCommandMode,
   isEditingMode,
   isNavigationMode,
   isResizeMode,
+  isSpreadsheetVisualMode,
+  type Selection,
+  type SpreadsheetVisualMode,
   type UIState,
 } from "../state/UIState";
+import {
+  type SelectionManager,
+  DefaultSelectionManager,
+} from "../managers/SelectionManager";
 import { type Action, UIStateMachine } from "../state/UIStateMachine";
 import type { Result } from "../utils/Result";
 
@@ -51,16 +59,18 @@ export class SpreadsheetController {
   private resizeBehavior: ResizeBehavior;
   private facade: SpreadsheetFacade;
   private viewportManager: ViewportManager;
+  private selectionManager: SelectionManager;
   private listeners: Array<(event: ControllerEvent) => void> = [];
 
   constructor(options: SpreadsheetControllerOptions) {
     this.facade = options.facade;
     this.viewportManager = options.viewportManager;
 
-    // Initialize behaviors
+    // Initialize behaviors and managers
     this.vimBehavior = new VimBehavior();
     this.cellVimBehavior = new CellVimBehavior();
     this.resizeBehavior = new ResizeBehavior();
+    this.selectionManager = new DefaultSelectionManager(this.facade);
 
     // Initialize state machine
     let initialState = options.initialState;
@@ -93,6 +103,9 @@ export class SpreadsheetController {
 
     // Route to appropriate behavior handler
     if (isNavigationMode(state)) {
+      const action = this.vimBehavior.handleKeyPress(key, meta, state);
+      return this.processVimAction(action, state);
+    } else if (isSpreadsheetVisualMode(state)) {
       const action = this.vimBehavior.handleKeyPress(key, meta, state);
       return this.processVimAction(action, state);
     } else if (isEditingMode(state)) {
@@ -137,6 +150,15 @@ export class SpreadsheetController {
           type: "ENTER_VISUAL_MODE",
           visualType: action.visualType,
         });
+      }
+      case "enterSpreadsheetVisual": {
+        return this.enterSpreadsheetVisual(action.visualMode, state);
+      }
+      case "extendSelection": {
+        return this.extendSelection(action.direction, action.count || 1, state);
+      }
+      case "exitVisual": {
+        return this.exitSpreadsheetVisual(state);
       }
       case "scroll":
         return this.handleScroll(action.direction, state);
@@ -817,5 +839,133 @@ export class SpreadsheetController {
 
     const rawValue = cellResult.value.rawValue;
     return rawValue !== null && rawValue !== undefined ? String(rawValue) : "";
+  }
+
+  // Spreadsheet visual mode handlers
+  private enterSpreadsheetVisual(
+    visualMode: SpreadsheetVisualMode,
+    state: UIState,
+  ): Result<UIState> {
+    if (!isNavigationMode(state)) {
+      return { ok: false, error: "Can only enter visual mode from navigation" };
+    }
+
+    // Create initial selection based on visual mode
+    const selection = this.selectionManager.createSelection(
+      visualMode,
+      state.cursor,
+      state.cursor,
+    );
+
+    return this.stateMachine.transition({
+      type: "ENTER_SPREADSHEET_VISUAL_MODE",
+      visualMode,
+      selection,
+    });
+  }
+
+  private extendSelection(
+    direction: "up" | "down" | "left" | "right",
+    count: number,
+    state: UIState,
+  ): Result<UIState> {
+    if (!isSpreadsheetVisualMode(state)) {
+      return { ok: false, error: "Can only extend selection in visual mode" };
+    }
+
+    // Calculate new cursor position
+    const newCursor = this.calculateNewCursor(state.cursor, direction, count);
+    if (!newCursor.ok) {
+      return newCursor;
+    }
+
+    // Extend the selection to the new cursor position
+    const newSelection = this.selectionManager.extendSelection(
+      state.selection,
+      newCursor.value,
+      state.visualMode,
+    );
+
+    // Update both cursor and selection
+    const cursorResult = this.stateMachine.transition({
+      type: "UPDATE_CURSOR",
+      cursor: newCursor.value,
+    });
+    if (!cursorResult.ok) {
+      return cursorResult;
+    }
+
+    return this.stateMachine.transition({
+      type: "UPDATE_SELECTION",
+      selection: newSelection,
+    });
+  }
+
+  private exitSpreadsheetVisual(state: UIState): Result<UIState> {
+    if (!isSpreadsheetVisualMode(state)) {
+      return { ok: false, error: "Not in spreadsheet visual mode" };
+    }
+
+    return this.stateMachine.transition({ type: "EXIT_SPREADSHEET_VISUAL_MODE" });
+  }
+
+  private calculateNewCursor(
+    currentCursor: CellAddress,
+    direction: "up" | "down" | "left" | "right",
+    count: number,
+  ): Result<CellAddress> {
+    let newRow = currentCursor.row;
+    let newCol = currentCursor.col;
+
+    switch (direction) {
+      case "up":
+        newRow = Math.max(0, newRow - count);
+        break;
+      case "down":
+        newRow = Math.min(this.viewportManager.getTotalRows() - 1, newRow + count);
+        break;
+      case "left":
+        newCol = Math.max(0, newCol - count);
+        break;
+      case "right":
+        newCol = Math.min(this.viewportManager.getTotalCols() - 1, newCol + count);
+        break;
+    }
+
+    const newCursor = CellAddress.create(newRow, newCol);
+    if (!newCursor.ok) {
+      return { ok: false, error: "Invalid cursor position" };
+    }
+
+    return newCursor;
+  }
+
+  // Public API for selection management
+  getCurrentSelection(): Selection | undefined {
+    return this.selectionManager.getCurrentSelection(this.stateMachine.getState());
+  }
+
+  getSelectionBounds(selection?: Selection) {
+    const sel = selection || this.getCurrentSelection();
+    if (!sel) {
+      return undefined;
+    }
+    return this.selectionManager.getSelectionBounds(sel);
+  }
+
+  getCellsInSelection(selection?: Selection): Iterable<CellAddress> | undefined {
+    const sel = selection || this.getCurrentSelection();
+    if (!sel) {
+      return undefined;
+    }
+    return this.selectionManager.getCellsInSelection(sel);
+  }
+
+  isCellSelected(address: CellAddress, selection?: Selection): boolean {
+    const sel = selection || this.getCurrentSelection();
+    if (!sel) {
+      return false;
+    }
+    return this.selectionManager.isCellSelected(address, sel);
   }
 }

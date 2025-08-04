@@ -8,20 +8,20 @@
 - **Last Updated**: 2025-08-04
 
 ## Current Status
-- **Phase**: 1 of 3
+- **Phase**: 2 of 3
 - **Status**: In Progress
-- **Completion**: 5%
+- **Completion**: 35%
 
 ## Completed Tasks
 - [x] Read instructions and plan documentation
 - [x] Examined existing UIState structure
 - [x] Examined existing VimBehavior structure
-- [ ] Phase 1: Extend UIState and VimBehavior
-  - [ ] Task 1.1: Add visual selection mode to UIState discriminated union
-  - [ ] Task 1.2: Create visual state factory functions  
-  - [ ] Task 1.3: Extend VimBehavior with visual mode commands (V for row, gC for column)
-  - [ ] Task 1.4: Add visual mode transitions to UIStateMachine
-  - [ ] Task 1.5: Write unit tests for state transitions
+- [x] Phase 1: Extend UIState and VimBehavior
+  - [x] Task 1.1: Add visual selection mode to UIState discriminated union
+  - [x] Task 1.2: Create visual state factory functions  
+  - [x] Task 1.3: Extend VimBehavior with visual mode commands (V for row, gC for column)
+  - [x] Task 1.4: Add visual mode transitions to UIStateMachine
+  - [x] Task 1.5: Write unit tests for state transitions
 - [ ] Phase 2: Implement SelectionManager
   - [ ] Task 2.1: Create SelectionManager class in ui-core
   - [ ] Task 2.2: Integrate with SpreadsheetController
@@ -37,14 +37,19 @@
 
 ## Current Work
 ### Active Task
-- **Task**: Extend UIState with visual selection mode
-- **Started**: 2025-08-04
+- **Task**: Implement SelectionManager class
+- **Started**: 2025-08-04 13:00
 - **Expected Completion**: Today
 
 ### Today's Progress
 - 11:00: Read agent instructions and full plan
 - 11:15: Examined existing UIState and VimBehavior structures
 - 11:30: Started Phase 1 - UIState extensions
+- 12:00: Completed UIState discriminated union extension with visual mode
+- 12:15: Added VimBehavior support for V, gC, and Ctrl+v commands
+- 12:30: Implemented UIStateMachine transitions for visual modes
+- 12:45: Added comprehensive unit tests for all new functionality
+- 13:00: Phase 1 complete! Starting Phase 2 - SelectionManager implementation
 
 ## Blockers
 - None
@@ -75,4 +80,6 @@
 - Current visual mode in VimBehavior is cell-level, need to extend for spreadsheet-level
 
 ## Commits
-- (No commits yet)
+- `e502070`: feat: extend UIState with spreadsheet visual selection modes
+- `aaa16d8`: feat: add spreadsheet visual mode transitions to UIStateMachine  
+- `4170b31`: feat: add comprehensive unit tests for spreadsheet visual selection
