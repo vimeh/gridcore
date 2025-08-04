@@ -1,4 +1,5 @@
 import type { CellAddress } from "@gridcore/core";
+import type { ParsedBulkCommand } from "../commands/BulkCommandParser";
 
 // Core shared state properties
 export interface ViewportInfo {
@@ -50,6 +51,16 @@ export type UIState =
       resizeIndex: number; // Which column/row is being resized
       originalSize: number; // Original width/height
       currentSize: number; // Current width/height during resize
+    }
+  | {
+      spreadsheetMode: "bulkOperation";
+      cursor: CellAddress;
+      viewport: ViewportInfo;
+      command: ParsedBulkCommand;
+      previewVisible: boolean;
+      affectedCells: number;
+      status: "preparing" | "previewing" | "executing" | "completed" | "error";
+      errorMessage?: string;
     };
 
 // Type guards for safe access
@@ -75,6 +86,12 @@ export function isResizeMode(
   state: UIState,
 ): state is Extract<UIState, { spreadsheetMode: "resize" }> {
   return state.spreadsheetMode === "resize";
+}
+
+export function isBulkOperationMode(
+  state: UIState,
+): state is Extract<UIState, { spreadsheetMode: "bulkOperation" }> {
+  return state.spreadsheetMode === "bulkOperation";
 }
 
 // Helper to check if in insert mode within cell editing
@@ -143,5 +160,22 @@ export function createResizeState(
     resizeIndex,
     originalSize: size,
     currentSize: size,
+  };
+}
+
+export function createBulkOperationState(
+  cursor: CellAddress,
+  viewport: ViewportInfo,
+  command: ParsedBulkCommand,
+  affectedCells = 0,
+): UIState {
+  return {
+    spreadsheetMode: "bulkOperation",
+    cursor,
+    viewport,
+    command,
+    previewVisible: command.requiresPreview,
+    affectedCells,
+    status: "preparing",
   };
 }

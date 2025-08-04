@@ -8,9 +8,14 @@ import {
   VimBehavior,
 } from "../behaviors/VimBehavior";
 import {
+  VimBulkCommandParser,
+  type ParsedBulkCommand,
+} from "../commands/BulkCommandParser";
+import {
   createNavigationState,
   createResizeState,
   type InsertMode,
+  isBulkOperationMode,
   isCommandMode,
   isEditingMode,
   isNavigationMode,
@@ -49,6 +54,7 @@ export class SpreadsheetController {
   private vimBehavior: VimBehavior;
   private cellVimBehavior: CellVimBehavior;
   private resizeBehavior: ResizeBehavior;
+  private bulkCommandParser: VimBulkCommandParser;
   private facade: SpreadsheetFacade;
   private viewportManager: ViewportManager;
   private listeners: Array<(event: ControllerEvent) => void> = [];
@@ -61,6 +67,7 @@ export class SpreadsheetController {
     this.vimBehavior = new VimBehavior();
     this.cellVimBehavior = new CellVimBehavior();
     this.resizeBehavior = new ResizeBehavior();
+    this.bulkCommandParser = new VimBulkCommandParser();
 
     // Initialize state machine
     let initialState = options.initialState;
@@ -235,6 +242,26 @@ export class SpreadsheetController {
       // Execute command
       this.executeCommand(state.commandValue);
       return this.stateMachine.transition({ type: "EXIT_COMMAND_MODE" });
+    }
+
+    if (meta.key === "tab") {
+      // Handle command completion
+      const completions = this.bulkCommandParser.getCompletions(state.commandValue);
+      if (completions.length === 1) {
+        // Auto-complete with the single match
+        return this.stateMachine.transition({
+          type: "UPDATE_COMMAND_VALUE",
+          value: completions[0],
+        });
+      } else if (completions.length > 1) {
+        // TODO: Show completion list or cycle through completions
+        // For now, just use the first completion
+        return this.stateMachine.transition({
+          type: "UPDATE_COMMAND_VALUE",
+          value: completions[0],
+        });
+      }
+      return { ok: true, value: state };
     }
 
     // Add character to command
@@ -722,9 +749,74 @@ export class SpreadsheetController {
 
   // Command execution
   private executeCommand(command: string): void {
-    // This would handle vim commands like :w, :q, etc.
+    // Try to parse as bulk command first
+    const bulkCommand = this.bulkCommandParser.parse(command);
+    
+    if (bulkCommand) {
+      this.handleBulkCommand(bulkCommand);
+      return;
+    }
+
+    // Handle other vim commands like :w, :q, etc.
     // For now, just emit the event
     this.emit({ type: "commandExecuted", command });
+  }
+
+  private handleBulkCommand(command: ParsedBulkCommand): void {
+    const state = this.stateMachine.getState();
+    
+    // Validate command
+    const hasSelection = this.hasSelection(); // We'll need to implement this
+    const validationError = this.bulkCommandParser.validateCommand(command, hasSelection);
+    
+    if (validationError) {
+      this.emit({ type: "error", error: validationError });
+      return;
+    }
+
+    // Start bulk operation
+    const result = this.stateMachine.transition({
+      type: "START_BULK_OPERATION",
+      command,
+      affectedCells: this.getAffectedCellCount(command), // We'll need to implement this
+    });
+
+    if (!result.ok) {
+      this.emit({ type: "error", error: result.error });
+      return;
+    }
+
+    // If command requires preview, show it
+    if (command.requiresPreview) {
+      this.stateMachine.transition({ type: "SHOW_BULK_PREVIEW" });
+    } else {
+      // Execute immediately for non-preview commands
+      this.executeBulkOperation(command);
+    }
+  }
+
+  private hasSelection(): boolean {
+    // TODO: Integrate with SelectionManager to check if cells are selected
+    // For now, return false - this will be implemented when we integrate with SelectionManager
+    return false;
+  }
+
+  private getAffectedCellCount(command: ParsedBulkCommand): number {
+    // TODO: Calculate how many cells will be affected by this command
+    // This would use the SelectionManager to count selected cells
+    // For now, return 0
+    return 0;
+  }
+
+  private executeBulkOperation(command: ParsedBulkCommand): void {
+    // TODO: Implement actual bulk operation execution
+    // This will be implemented in Phase 2
+    this.stateMachine.transition({ type: "EXECUTE_BULK_OPERATION" });
+    
+    // For now, just complete immediately
+    setTimeout(() => {
+      this.stateMachine.transition({ type: "COMPLETE_BULK_OPERATION" });
+    }, 100);
   }
 
   // Event handling

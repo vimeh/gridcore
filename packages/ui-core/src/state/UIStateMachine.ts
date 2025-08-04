@@ -3,11 +3,13 @@ import type { Result } from "../utils/Result";
 import { err, ok } from "../utils/Result";
 import {
   type CellMode,
+  createBulkOperationState,
   createCommandState,
   createEditingState,
   createNavigationState,
   createResizeState,
   type InsertMode,
+  isBulkOperationMode,
   isCommandMode,
   isEditingMode,
   isNavigationMode,
@@ -15,6 +17,7 @@ import {
   type UIState,
   type VisualMode,
 } from "./UIState";
+import type { ParsedBulkCommand } from "../commands/BulkCommandParser";
 
 // Action types for state transitions
 export type Action =
@@ -43,7 +46,17 @@ export type Action =
   | { type: "UPDATE_RESIZE_SIZE"; size: number }
   | { type: "UPDATE_CURSOR"; cursor: CellAddress }
   | { type: "UPDATE_VIEWPORT"; viewport: UIState["viewport"] }
-  | { type: "ESCAPE" };
+  | { type: "ESCAPE" }
+  | {
+      type: "START_BULK_OPERATION";
+      command: ParsedBulkCommand;
+      affectedCells?: number;
+    }
+  | { type: "SHOW_BULK_PREVIEW" }
+  | { type: "EXECUTE_BULK_OPERATION" }
+  | { type: "CANCEL_BULK_OPERATION" }
+  | { type: "COMPLETE_BULK_OPERATION" }
+  | { type: "BULK_OPERATION_ERROR"; error: string };
 
 // Transition handler type
 type TransitionHandler = (state: UIState, action: Action) => Result<UIState>;
@@ -84,8 +97,14 @@ export class UIStateMachine {
       ["editing.UPDATE_EDITING_VALUE", this.updateEditingValue.bind(this)],
       ["command.EXIT_COMMAND_MODE", this.exitCommandMode.bind(this)],
       ["command.UPDATE_COMMAND_VALUE", this.updateCommandValue.bind(this)],
+      ["command.START_BULK_OPERATION", this.startBulkOperation.bind(this)],
       ["resize.EXIT_RESIZE_MODE", this.exitResizeMode.bind(this)],
       ["resize.UPDATE_RESIZE_SIZE", this.updateResizeSize.bind(this)],
+      ["bulkOperation.SHOW_BULK_PREVIEW", this.showBulkPreview.bind(this)],
+      ["bulkOperation.EXECUTE_BULK_OPERATION", this.executeBulkOperation.bind(this)],
+      ["bulkOperation.CANCEL_BULK_OPERATION", this.cancelBulkOperation.bind(this)],
+      ["bulkOperation.COMPLETE_BULK_OPERATION", this.completeBulkOperation.bind(this)],
+      ["bulkOperation.BULK_OPERATION_ERROR", this.bulkOperationError.bind(this)],
       ["*.UPDATE_CURSOR", this.updateCursor.bind(this)],
       ["*.UPDATE_VIEWPORT", this.updateViewport.bind(this)],
       ["*.ESCAPE", this.handleEscape.bind(this)],
@@ -389,12 +408,80 @@ export class UIStateMachine {
       return this.exitToNavigation(state);
     }
 
-    if (isCommandMode(state) || isResizeMode(state)) {
+    if (isCommandMode(state) || isResizeMode(state) || isBulkOperationMode(state)) {
       return this.exitToNavigation(state);
     }
 
     // Already in navigation, nothing to do
     return ok(state);
+  }
+
+  // Bulk operation handlers
+  private startBulkOperation(state: UIState, action: Action): Result<UIState> {
+    if (!isCommandMode(state) || action.type !== "START_BULK_OPERATION") {
+      return err("Can only start bulk operations from command mode");
+    }
+
+    return ok(
+      createBulkOperationState(
+        state.cursor,
+        state.viewport,
+        action.command,
+        action.affectedCells
+      )
+    );
+  }
+
+  private showBulkPreview(state: UIState): Result<UIState> {
+    if (!isBulkOperationMode(state)) {
+      return err("Not in bulk operation mode");
+    }
+
+    return ok({
+      ...state,
+      previewVisible: true,
+      status: "previewing" as const,
+    });
+  }
+
+  private executeBulkOperation(state: UIState): Result<UIState> {
+    if (!isBulkOperationMode(state)) {
+      return err("Not in bulk operation mode");
+    }
+
+    return ok({
+      ...state,
+      status: "executing" as const,
+      previewVisible: false,
+    });
+  }
+
+  private cancelBulkOperation(state: UIState): Result<UIState> {
+    if (!isBulkOperationMode(state)) {
+      return err("Not in bulk operation mode");
+    }
+
+    return this.exitToNavigation(state);
+  }
+
+  private completeBulkOperation(state: UIState): Result<UIState> {
+    if (!isBulkOperationMode(state)) {
+      return err("Not in bulk operation mode");
+    }
+
+    return this.exitToNavigation(state);
+  }
+
+  private bulkOperationError(state: UIState, action: Action): Result<UIState> {
+    if (!isBulkOperationMode(state) || action.type !== "BULK_OPERATION_ERROR") {
+      return err("Not in bulk operation mode");
+    }
+
+    return ok({
+      ...state,
+      status: "error" as const,
+      errorMessage: action.error,
+    });
   }
 
   private getTransitionKey(state: UIState, action: Action): string {
