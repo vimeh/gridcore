@@ -1,5 +1,4 @@
-import type { ISpreadsheetFacade } from "@gridcore/core";
-import { type OptimizedBuffer, Renderable, type RGBA } from "../framework";
+import { type OptimizedBuffer, Renderable } from "../framework";
 import type { TUIState } from "../SpreadsheetTUI";
 
 export class StatusBarComponent extends Renderable {
@@ -17,16 +16,13 @@ export class StatusBarComponent extends Renderable {
     command: { r: 255, g: 255, b: 100, a: 255 },
   };
 
-  constructor(
-    private facade: ISpreadsheetFacade,
-    private getState: () => TUIState,
-  ) {
+  constructor(private getState: () => TUIState) {
     super("statusBar");
   }
 
   protected renderSelf(buffer: OptimizedBuffer): void {
     const state = this.getState();
-    const { mode, cursor, commandValue } = state;
+    const { mode, commandValue } = state;
     const pos = this.getAbsolutePosition();
 
     // Clear the status bar
@@ -68,7 +64,7 @@ export class StatusBarComponent extends Renderable {
       buffer.setText(
         currentX,
         pos.y,
-        commandValue + "█",
+        `${commandValue}█`,
         this.colors.command,
         this.colors.bg,
       );

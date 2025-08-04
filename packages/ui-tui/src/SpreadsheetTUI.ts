@@ -65,7 +65,11 @@ export class SpreadsheetTUI extends Renderable {
 
     // Initialize workbook and sheet
     this.workbook = new Workbook();
-    this.sheet = this.workbook.getActiveSheet()!;
+    const activeSheet = this.workbook.getActiveSheet();
+    if (!activeSheet) {
+      throw new Error("No active sheet found");
+    }
+    this.sheet = activeSheet;
     this.facade = this.sheet.getFacade();
 
     this.vimBehavior = new VimBehavior();
@@ -102,10 +106,7 @@ export class SpreadsheetTUI extends Renderable {
     this.gridComponent.setSize(width, height - 5); // Leave room for formula bar and status bar
     this.addChild(this.gridComponent);
 
-    this.statusBarComponent = new StatusBarComponent(
-      this.facade,
-      () => this.state,
-    );
+    this.statusBarComponent = new StatusBarComponent(() => this.state);
     this.statusBarComponent.setPosition(0, height - 1);
     this.statusBarComponent.setSize(width, 1);
     this.addChild(this.statusBarComponent);
@@ -173,18 +174,20 @@ export class SpreadsheetTUI extends Renderable {
       }
 
       // Update visual selection if in visual mode
-      if (this.state.mode === "visual" && this.vimBehavior.getAnchor()) {
-        const anchor = this.vimBehavior.getAnchor()!;
-        this.state.selectedRange = {
-          start: {
-            row: Math.min(anchor.row, this.state.cursor.row),
-            col: Math.min(anchor.col, this.state.cursor.col),
-          },
-          end: {
-            row: Math.max(anchor.row, this.state.cursor.row),
-            col: Math.max(anchor.col, this.state.cursor.col),
-          },
-        };
+      if (this.state.mode === "visual") {
+        const anchor = this.vimBehavior.getAnchor();
+        if (anchor) {
+          this.state.selectedRange = {
+            start: {
+              row: Math.min(anchor.row, this.state.cursor.row),
+              col: Math.min(anchor.col, this.state.cursor.col),
+            },
+            end: {
+              row: Math.max(anchor.row, this.state.cursor.row),
+              col: Math.max(anchor.col, this.state.cursor.col),
+            },
+          };
+        }
       }
 
       // Update vim state info for status bar
