@@ -274,6 +274,9 @@ const tabBar = new TabBar({
       const cellResult = facade.getCell(cell);
       if (cellResult.ok) {
         formulaBar.setActiveCell(cell, cellResult.value);
+      } else {
+        // Even if the cell is empty or doesn't exist, we should still update the formula bar
+        formulaBar.setActiveCell(cell, undefined);
       }
     };
 
@@ -313,6 +316,9 @@ canvasGrid.onCellClick = (cell) => {
   const cellResult = facade.getCell(cell);
   if (cellResult.ok) {
     formulaBar.setActiveCell(cell, cellResult.value);
+  } else {
+    // Even if the cell is empty or doesn't exist, we should still update the formula bar
+    formulaBar.setActiveCell(cell, undefined);
   }
 };
 
