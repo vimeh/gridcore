@@ -1,11 +1,10 @@
-import { CellAddress, type ISpreadsheetFacade } from "@gridcore/core";
-import { type OptimizedBuffer, Renderable, type RGBA } from "../framework";
-import type { TUIState } from "../SpreadsheetTUI";
+import { CellAddress, type ISpreadsheetFacade } from "@gridcore/core"
+import { isEditingMode, isResizeMode, type UIState } from "@gridcore/ui-core"
+import { type OptimizedBuffer, Renderable, type RGBA } from "../framework"
+import { type TUIViewportManager } from "../viewport"
 
 export class GridComponent extends Renderable {
-  private colWidths: number[] = [];
-  private defaultColWidth = 10;
-  private rowHeaderWidth = 5;
+  private rowHeaderWidth = 5
   private colors = {
     gridLines: { r: 64, g: 64, b: 64, a: 255 },
     headerBg: { r: 32, g: 32, b: 32, a: 255 },
@@ -15,97 +14,126 @@ export class GridComponent extends Renderable {
     cursorFg: { r: 255, g: 255, b: 255, a: 255 },
     selectedBg: { r: 0, g: 64, b: 128, a: 255 },
     selectedFg: { r: 255, g: 255, b: 255, a: 255 },
-  };
+    editBg: { r: 255, g: 128, b: 0, a: 255 },
+    resizeHighlight: { r: 255, g: 255, b: 0, a: 255 },
+    resizeInfo: { r: 255, g: 255, b: 200, a: 255 },
+  }
 
   constructor(
     private facade: ISpreadsheetFacade,
-    private getState: () => TUIState,
+    private getState: () => UIState,
+    private viewportManager: TUIViewportManager,
   ) {
-    super("grid");
+    super("grid")
   }
 
   protected renderSelf(buffer: OptimizedBuffer): void {
-    const state = this.getState();
-    const { viewport, cursor, selectedRange, mode } = state;
-    const pos = this.getAbsolutePosition();
+    const state = this.getState()
+    const { viewport, cursor } = state
+    const pos = this.getAbsolutePosition()
 
-    // Initialize column widths if needed
-    if (this.colWidths.length < viewport.cols) {
-      this.colWidths = Array(viewport.cols).fill(this.defaultColWidth);
-    }
+    // Calculate visible columns and rows based on viewport manager
+    const visibleCols = this.viewportManager.calculateVisibleColumns(
+      viewport.startCol,
+      this.width - this.rowHeaderWidth - 1
+    )
+    const visibleRows = this.viewportManager.calculateVisibleRows(
+      viewport.startRow,
+      this.height - 2 // Account for header
+    )
 
     // Render column headers
-    this.renderColumnHeaders(buffer, pos, viewport);
+    this.renderColumnHeaders(buffer, pos, visibleCols, state)
 
     // Render row headers and cells
-    for (let row = 0; row < viewport.rows; row++) {
-      const absoluteRow = viewport.startRow + row;
-      const y = pos.y + row + 2; // +2 for header row
-
+    let y = pos.y + 2 // Skip header row
+    for (const row of visibleRows) {
       // Render row header
-      this.renderRowHeader(buffer, pos.x, y, absoluteRow);
+      this.renderRowHeader(buffer, pos.x, y, row, state)
 
       // Render cells
-      let x = pos.x + this.rowHeaderWidth + 1;
-      for (let col = 0; col < viewport.cols; col++) {
-        const absoluteCol = viewport.startCol + col;
-        const cellAddrResult = CellAddress.create(absoluteRow, absoluteCol);
-        if (!cellAddrResult.ok) continue;
-        const cellAddr = cellAddrResult.value;
+      let x = pos.x + this.rowHeaderWidth + 1
+      for (const col of visibleCols) {
+        const cellAddrResult = CellAddress.create(row, col)
+        if (!cellAddrResult.ok) continue
+        const cellAddr = cellAddrResult.value
 
         // Determine cell colors based on cursor and selection
-        let fg = this.colors.cellFg;
-        let bg: RGBA | undefined;
+        let fg = this.colors.cellFg
+        let bg: RGBA | undefined
 
-        if (cursor.row === absoluteRow && cursor.col === absoluteCol) {
-          bg = this.colors.cursorBg;
-          fg = this.colors.cursorFg;
-        } else if (this.isInSelection(cellAddr, selectedRange)) {
-          bg = this.colors.selectedBg;
-          fg = this.colors.selectedFg;
+        if (cursor.row === row && cursor.col === col) {
+          bg = this.colors.cursorBg
+          fg = this.colors.cursorFg
         }
 
-        this.renderCell(buffer, x, y, cellAddr, this.colWidths[col], fg, bg);
+        const colWidth = this.viewportManager.getColumnWidth(col)
+        this.renderCell(buffer, x, y, cellAddr, colWidth, fg, bg)
 
-        x += this.colWidths[col] + 1;
+        x += colWidth + 1
       }
+      y++
     }
 
     // Render grid lines
-    this.renderGridLines(buffer, pos, viewport);
+    this.renderGridLines(buffer, pos, visibleCols, visibleRows)
 
     // Render mode-specific overlays
-    if (mode === "edit" && state.editingValue !== undefined) {
-      this.renderEditOverlay(buffer, pos, state);
+    if (isEditingMode(state)) {
+      this.renderEditOverlay(buffer, pos, state, visibleCols, visibleRows)
+    } else if (isResizeMode(state)) {
+      this.renderResizeOverlay(buffer, pos, state, visibleCols, visibleRows)
     }
   }
 
   private renderColumnHeaders(
     buffer: OptimizedBuffer,
     pos: { x: number; y: number },
-    viewport: TUIState["viewport"],
+    visibleCols: number[],
+    state: UIState,
   ): void {
-    let x = pos.x + this.rowHeaderWidth + 1;
+    let x = pos.x + this.rowHeaderWidth + 1
 
-    for (let col = 0; col < viewport.cols; col++) {
-      const absoluteCol = viewport.startCol + col;
-      const colName = this.getColumnName(absoluteCol);
-      const width = this.colWidths[col];
+    for (const col of visibleCols) {
+      const colName = this.getColumnName(col)
+      const width = this.viewportManager.getColumnWidth(col)
+
+      // Highlight if resizing this column
+      const isResizing = isResizeMode(state) && 
+        state.resizeTarget === "column" && 
+        state.resizeIndex === col
+      
+      const bg = isResizing ? this.colors.resizeHighlight : this.colors.headerBg
+      const fg = isResizing ? this.colors.headerBg : this.colors.headerFg
 
       // Draw header background
-      buffer.fillRect(x, pos.y, width, 1, " ", undefined, this.colors.headerBg);
+      buffer.fillRect(x, pos.y, width, 1, " ", undefined, bg)
 
       // Center the column name
-      const padding = Math.floor((width - colName.length) / 2);
+      const padding = Math.floor((width - colName.length) / 2)
       buffer.setText(
         x + padding,
         pos.y,
         colName.slice(0, width),
-        this.colors.headerFg,
-        this.colors.headerBg,
-      );
+        fg,
+        bg,
+      )
 
-      x += width + 1;
+      // Show size if resizing
+      if (isResizing) {
+        const sizeInfo = `[${state.currentSize}]`
+        if (sizeInfo.length <= width) {
+          buffer.setText(
+            x + width - sizeInfo.length,
+            pos.y + 1,
+            sizeInfo,
+            this.colors.resizeInfo,
+            this.colors.headerBg,
+          )
+        }
+      }
+
+      x += width + 1
     }
   }
 
@@ -114,9 +142,18 @@ export class GridComponent extends Renderable {
     x: number,
     y: number,
     row: number,
+    state: UIState,
   ): void {
-    const rowStr = (row + 1).toString();
-    const padding = this.rowHeaderWidth - rowStr.length;
+    const rowStr = (row + 1).toString()
+    const padding = this.rowHeaderWidth - rowStr.length
+
+    // Highlight if resizing this row
+    const isResizing = isResizeMode(state) && 
+      state.resizeTarget === "row" && 
+      state.resizeIndex === row
+    
+    const bg = isResizing ? this.colors.resizeHighlight : this.colors.headerBg
+    const fg = isResizing ? this.colors.headerBg : this.colors.headerFg
 
     // Draw header background
     buffer.fillRect(
@@ -126,17 +163,17 @@ export class GridComponent extends Renderable {
       1,
       " ",
       undefined,
-      this.colors.headerBg,
-    );
+      bg,
+    )
 
     // Right-align the row number
     buffer.setText(
       x + padding,
       y,
       rowStr,
-      this.colors.headerFg,
-      this.colors.headerBg,
-    );
+      fg,
+      bg,
+    )
   }
 
   private renderCell(
@@ -150,61 +187,62 @@ export class GridComponent extends Renderable {
   ): void {
     // Clear cell area
     if (bg) {
-      buffer.fillRect(x, y, width, 1, " ", fg, bg);
+      buffer.fillRect(x, y, width, 1, " ", fg, bg)
     }
 
     // Get cell value
-    const cellResult = this.facade.getCell(addr);
-    const value = cellResult.ok ? cellResult.value.value : undefined;
-    let displayValue = "";
+    const cellResult = this.facade.getCell(addr)
+    const value = cellResult.ok && cellResult.value ? cellResult.value.value : null
+    let displayValue = ""
 
     if (value !== null && value !== undefined) {
-      displayValue = value.toString();
+      displayValue = value.toString()
     }
 
     // Truncate or pad to fit width
     if (displayValue.length > width) {
-      displayValue = `${displayValue.slice(0, width - 1)}…`;
+      displayValue = `${displayValue.slice(0, width - 1)}…`
     } else {
-      displayValue = displayValue.padEnd(width, " ");
+      displayValue = displayValue.padEnd(width, " ")
     }
 
-    buffer.setText(x, y, displayValue, fg, bg);
+    buffer.setText(x, y, displayValue, fg, bg)
   }
 
   private renderGridLines(
     buffer: OptimizedBuffer,
     pos: { x: number; y: number },
-    viewport: TUIState["viewport"],
+    visibleCols: number[],
+    visibleRows: number[],
   ): void {
     // Vertical lines
-    let x = pos.x + this.rowHeaderWidth;
-    for (let col = 0; col <= viewport.cols; col++) {
-      for (let y = pos.y + 1; y < pos.y + viewport.rows + 2; y++) {
-        buffer.setChar(x, y, "│", this.colors.gridLines);
+    let x = pos.x + this.rowHeaderWidth
+    for (let i = 0; i <= visibleCols.length; i++) {
+      for (let y = pos.y + 1; y < pos.y + visibleRows.length + 2; y++) {
+        buffer.setChar(x, y, "│", this.colors.gridLines)
       }
-      if (col < viewport.cols) {
-        x += this.colWidths[col] + 1;
+      if (i < visibleCols.length) {
+        x += this.viewportManager.getColumnWidth(visibleCols[i]) + 1
       }
     }
 
     // Horizontal lines
-    const totalWidth =
-      this.rowHeaderWidth +
-      viewport.cols +
-      this.colWidths.slice(0, viewport.cols).reduce((sum, w) => sum + w, 0);
+    let totalWidth = this.rowHeaderWidth + visibleCols.length
+    for (const col of visibleCols) {
+      totalWidth += this.viewportManager.getColumnWidth(col)
+    }
 
     // Header separator
     for (let x = pos.x; x < pos.x + totalWidth; x++) {
-      buffer.setChar(x, pos.y + 1, "─", this.colors.gridLines);
+      buffer.setChar(x, pos.y + 1, "─", this.colors.gridLines)
     }
 
     // Intersections
-    x = pos.x + this.rowHeaderWidth;
-    for (let col = 0; col <= viewport.cols; col++) {
-      buffer.setChar(x, pos.y + 1, "┼", this.colors.gridLines);
-      if (col < viewport.cols) {
-        x += this.colWidths[col] + 1;
+    x = pos.x + this.rowHeaderWidth
+    for (let i = 0; i <= visibleCols.length; i++) {
+      buffer.setChar(x, pos.y + 1, "┼", this.colors.gridLines)
+      if (i < visibleCols.length) {
+        x += this.viewportManager.getColumnWidth(visibleCols[i]) + 1
       }
     }
   }
@@ -212,70 +250,113 @@ export class GridComponent extends Renderable {
   private renderEditOverlay(
     buffer: OptimizedBuffer,
     pos: { x: number; y: number },
-    state: TUIState,
+    state: UIState,
+    visibleCols: number[],
+    visibleRows: number[],
   ): void {
-    const { cursor, viewport, editingValue } = state;
-    if (!editingValue) return;
+    if (!isEditingMode(state)) return
+
+    const { cursor } = state
+
+    // Check if cursor is visible
+    const colIndex = visibleCols.indexOf(cursor.col)
+    const rowIndex = visibleRows.indexOf(cursor.row)
+    
+    if (colIndex === -1 || rowIndex === -1) return // Cell not visible
 
     // Calculate cell position
-    const relRow = cursor.row - viewport.startRow;
-    const relCol = cursor.col - viewport.startCol;
-
-    if (
-      relRow < 0 ||
-      relRow >= viewport.rows ||
-      relCol < 0 ||
-      relCol >= viewport.cols
-    ) {
-      return; // Cell not visible
+    let x = pos.x + this.rowHeaderWidth + 1
+    for (let i = 0; i < colIndex; i++) {
+      x += this.viewportManager.getColumnWidth(visibleCols[i]) + 1
     }
-
-    let x = pos.x + this.rowHeaderWidth + 1;
-    for (let i = 0; i < relCol; i++) {
-      x += this.colWidths[i] + 1;
-    }
-    const y = pos.y + relRow + 2;
+    const y = pos.y + rowIndex + 2
 
     // Draw edit indicator
-    const editBg = { r: 255, g: 128, b: 0, a: 255 };
-    const width = this.colWidths[relCol];
+    const width = this.viewportManager.getColumnWidth(cursor.col)
 
-    buffer.fillRect(x, y, width, 1, " ", this.colors.cursorFg, editBg);
+    buffer.fillRect(x, y, width, 1, " ", this.colors.cursorFg, this.colors.editBg)
 
-    // Show editing value with cursor
-    let displayValue = `${editingValue}█`;
-    if (displayValue.length > width) {
-      displayValue = `…${displayValue.slice(-(width - 1))}`;
+    // For now, editing is handled in the formula bar
+    // Just show an indicator that we're editing
+    const editIndicator = "[EDITING]"
+    if (editIndicator.length <= width) {
+      const padding = Math.floor((width - editIndicator.length) / 2)
+      buffer.setText(
+        x + padding, 
+        y, 
+        editIndicator, 
+        this.colors.cursorFg, 
+        this.colors.editBg
+      )
     }
+  }
 
-    buffer.setText(x, y, displayValue, this.colors.cursorFg, editBg);
+  private renderResizeOverlay(
+    buffer: OptimizedBuffer,
+    pos: { x: number; y: number },
+    state: UIState,
+    visibleCols: number[],
+    visibleRows: number[],
+  ): void {
+    if (!isResizeMode(state)) return
+
+    // Show resize instructions in top-left corner
+    const instructions = state.resizeTarget === "column"
+      ? "< > to resize | = auto-fit | ESC exit"
+      : "- + to resize | = auto-fit | ESC exit"
+    
+    const instructionBg = { r: 0, g: 0, b: 0, a: 200 }
+    const instructionFg = { r: 255, g: 255, b: 100, a: 255 }
+    
+    buffer.fillRect(
+      pos.x + 2,
+      pos.y + 3,
+      instructions.length + 2,
+      1,
+      " ",
+      instructionFg,
+      instructionBg
+    )
+    
+    buffer.setText(
+      pos.x + 3,
+      pos.y + 3,
+      instructions,
+      instructionFg,
+      instructionBg
+    )
+
+    // Show current size info
+    const sizeInfo = `${state.resizeTarget.toUpperCase()} ${state.resizeIndex}: ${state.currentSize}`
+    const sizeDiff = state.currentSize - state.originalSize
+    const diffStr = sizeDiff >= 0 ? `+${sizeDiff}` : `${sizeDiff}`
+    const fullInfo = `${sizeInfo} (${diffStr})`
+
+    buffer.fillRect(
+      pos.x + 2,
+      pos.y + 4,
+      fullInfo.length + 2,
+      1,
+      " ",
+      this.colors.resizeInfo,
+      instructionBg
+    )
+    
+    buffer.setText(
+      pos.x + 3,
+      pos.y + 4,
+      fullInfo,
+      this.colors.resizeInfo,
+      instructionBg
+    )
   }
 
   private getColumnName(col: number): string {
-    let name = "";
+    let name = ""
     while (col >= 0) {
-      name = String.fromCharCode(65 + (col % 26)) + name;
-      col = Math.floor(col / 26) - 1;
+      name = String.fromCharCode(65 + (col % 26)) + name
+      col = Math.floor(col / 26) - 1
     }
-    return name;
-  }
-
-  private isInSelection(
-    cell: CellAddress,
-    range?: { start: CellAddress; end: CellAddress },
-  ): boolean {
-    if (!range) return false;
-
-    const minRow = Math.min(range.start.row, range.end.row);
-    const maxRow = Math.max(range.start.row, range.end.row);
-    const minCol = Math.min(range.start.col, range.end.col);
-    const maxCol = Math.max(range.start.col, range.end.col);
-
-    return (
-      cell.row >= minRow &&
-      cell.row <= maxRow &&
-      cell.col >= minCol &&
-      cell.col <= maxCol
-    );
+    return name
   }
 }

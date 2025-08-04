@@ -21,6 +21,17 @@
         "typescript": "^5.3.3",
       },
     },
+    "packages/ui-core": {
+      "name": "@gridcore/ui-core",
+      "version": "0.0.1",
+      "dependencies": {
+        "@gridcore/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
     "packages/ui-desktop": {
       "name": "@gridcore/ui-desktop",
       "version": "0.0.1",
@@ -40,6 +51,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@gridcore/core": "workspace:*",
+        "@gridcore/ui-core": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -178,6 +190,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
     "@gridcore/core": ["@gridcore/core@workspace:packages/core"],
+
+    "@gridcore/ui-core": ["@gridcore/ui-core@workspace:packages/ui-core"],
 
     "@gridcore/ui-desktop": ["@gridcore/ui-desktop@workspace:packages/ui-desktop"],
 

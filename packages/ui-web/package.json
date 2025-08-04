@@ -20,7 +20,8 @@
     "clean": "rm -rf dist node_modules coverage .next out playwright-report test-results"
   },
   "dependencies": {
-    "@gridcore/core": "workspace:*"
+    "@gridcore/core": "workspace:*",
+    "@gridcore/ui-core": "workspace:*"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.9.0",

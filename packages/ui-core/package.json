@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --external @gridcore/core",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --external @gridcore/core && tsc --declaration --emitDeclarationOnly --outDir dist",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "clean": "rm -rf dist node_modules coverage"

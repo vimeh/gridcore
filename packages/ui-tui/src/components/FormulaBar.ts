@@ -1,6 +1,7 @@
-import type { ISpreadsheetFacade } from "@gridcore/core";
-import { type OptimizedBuffer, Renderable } from "../framework";
-import type { TUIState } from "../SpreadsheetTUI";
+import type { ISpreadsheetFacade } from "@gridcore/core"
+import { isCommandMode, isEditingMode, type UIState } from "@gridcore/ui-core"
+import { StateAdapter } from "../adapters"
+import { type OptimizedBuffer, Renderable } from "../framework"
 
 export class FormulaBarComponent extends Renderable {
   private colors = {
@@ -10,19 +11,20 @@ export class FormulaBarComponent extends Renderable {
     separator: { r: 64, g: 64, b: 64, a: 255 },
     formula: { r: 200, g: 255, b: 200, a: 255 },
     editing: { r: 255, g: 200, b: 100, a: 255 },
-  };
+    command: { r: 255, g: 255, b: 100, a: 255 },
+  }
 
   constructor(
     private facade: ISpreadsheetFacade,
-    private getState: () => TUIState,
+    private getState: () => UIState,
   ) {
-    super("formulaBar");
+    super("formulaBar")
   }
 
   protected renderSelf(buffer: OptimizedBuffer): void {
-    const state = this.getState();
-    const { cursor, mode, editingValue } = state;
-    const pos = this.getAbsolutePosition();
+    const state = this.getState()
+    const displayState = StateAdapter.toDisplayState(state)
+    const pos = this.getAbsolutePosition()
 
     // Clear the formula bar area
     buffer.fillRect(
@@ -33,17 +35,16 @@ export class FormulaBarComponent extends Renderable {
       " ",
       this.colors.fg,
       this.colors.bg,
-    );
+    )
 
     // Draw the cell reference
-    const cellRef = this.getCellReference(cursor.col, cursor.row);
     buffer.setText(
       pos.x + 2,
       pos.y,
-      cellRef,
+      displayState.cursorDisplay,
       this.colors.cellRef,
       this.colors.bg,
-    );
+    )
 
     // Draw separator
     buffer.setText(
@@ -52,56 +53,103 @@ export class FormulaBarComponent extends Renderable {
       "│",
       this.colors.separator,
       this.colors.bg,
-    );
+    )
 
-    // Get the current cell value or formula
-    let displayValue = "";
-    let valueColor = this.colors.fg;
+    // Get the content to display
+    let displayValue = ""
+    let valueColor = this.colors.fg
+    let cursorPosition: number | undefined
 
-    if (mode === "edit" && editingValue !== undefined) {
-      displayValue = editingValue;
-      valueColor = this.colors.editing;
-      // Add cursor for editing mode
-      displayValue += "█";
+    if (isCommandMode(state)) {
+      // Show command input
+      displayValue = `:${state.commandValue}`
+      valueColor = this.colors.command
+      cursorPosition = state.commandValue.length + 1 // After the :
+    } else if (isEditingMode(state)) {
+      // Show editing value with cursor
+      displayValue = state.editingValue
+      valueColor = this.colors.editing
+      cursorPosition = state.cursorPosition
+
+      // Show visual selection if in visual mode
+      if (state.cellMode === "visual" && state.visualStart !== undefined) {
+        // This would need special rendering to show selection
+        // For now, just show the text
+      }
     } else {
-      const cellResult = this.facade.getCell(cursor);
-      const cellValue = cellResult.ok ? cellResult.value.value : undefined;
-      const cellFormula = cellResult.ok ? cellResult.value.formula : undefined;
-
-      if (cellFormula) {
-        displayValue = cellFormula;
-        valueColor = this.colors.formula;
-      } else if (cellValue !== null && cellValue !== undefined) {
-        displayValue = cellValue.toString();
+      // Show current cell value/formula
+      const cellResult = this.facade.getCell(state.cursor)
+      if (cellResult.ok && cellResult.value) {
+        const cell = cellResult.value
+        if (cell.formula) {
+          displayValue = cell.formula.toString()
+          valueColor = this.colors.formula
+        } else if (cell.value !== null && cell.value !== undefined) {
+          displayValue = cell.value.toString()
+        }
       }
     }
 
-    // Truncate if too long
-    const maxWidth = this.width - 12;
-    if (displayValue.length > maxWidth) {
-      displayValue = `${displayValue.slice(0, maxWidth - 1)}…`;
-    }
+    // Calculate available width and position
+    const contentX = pos.x + 10
+    const maxWidth = this.width - 12
 
-    // Draw the value/formula
-    buffer.setText(pos.x + 10, pos.y, displayValue, valueColor, this.colors.bg);
+    // Render the value with cursor if needed
+    if (cursorPosition !== undefined && displayState.showFormulaCursor) {
+      // Split text at cursor position
+      const beforeCursor = displayValue.slice(0, cursorPosition)
+      const atCursor = displayValue[cursorPosition] || " "
+      const afterCursor = displayValue.slice(cursorPosition + 1)
+
+      // Check if we need to scroll the view
+      let visibleStart = 0
+      if (cursorPosition > maxWidth - 5) {
+        visibleStart = cursorPosition - maxWidth + 5
+      }
+
+      const visibleBefore = beforeCursor.slice(visibleStart)
+      const visibleAfter = afterCursor.slice(0, maxWidth - visibleBefore.length - 1)
+
+      // Draw text before cursor
+      buffer.setText(contentX, pos.y, visibleBefore, valueColor, this.colors.bg)
+      
+      // Draw cursor
+      const cursorX = contentX + visibleBefore.length
+      const cursorBg = { r: 255, g: 255, b: 255, a: 255 }
+      const cursorFg = { r: 0, g: 0, b: 0, a: 255 }
+      buffer.setText(cursorX, pos.y, atCursor, cursorFg, cursorBg)
+      
+      // Draw text after cursor
+      if (visibleAfter) {
+        buffer.setText(cursorX + 1, pos.y, visibleAfter, valueColor, this.colors.bg)
+      }
+
+      // Show scroll indicators if needed
+      if (visibleStart > 0) {
+        buffer.setText(contentX - 1, pos.y, "…", this.colors.separator, this.colors.bg)
+      }
+      if (cursorPosition + visibleAfter.length < displayValue.length) {
+        buffer.setText(
+          contentX + maxWidth - 1,
+          pos.y,
+          "…",
+          this.colors.separator,
+          this.colors.bg
+        )
+      }
+    } else {
+      // Normal display without cursor
+      if (displayValue.length > maxWidth) {
+        displayValue = `${displayValue.slice(0, maxWidth - 1)}…`
+      }
+      buffer.setText(contentX, pos.y, displayValue, valueColor, this.colors.bg)
+    }
 
     // Draw bottom border
     if (this.height > 1) {
       for (let x = pos.x; x < pos.x + this.width; x++) {
-        buffer.setChar(x, pos.y + 1, "─", this.colors.separator);
+        buffer.setChar(x, pos.y + 1, "─", this.colors.separator)
       }
     }
-  }
-
-  private getCellReference(col: number, row: number): string {
-    let colName = "";
-    let tempCol = col;
-
-    while (tempCol >= 0) {
-      colName = String.fromCharCode(65 + (tempCol % 26)) + colName;
-      tempCol = Math.floor(tempCol / 26) - 1;
-    }
-
-    return colName + (row + 1);
   }
 }
