@@ -67,8 +67,10 @@ export class Viewport {
   }
 
   scrollTo(row: number, col: number): void {
-    const address = { row, col };
-    this.scrollToCell(address);
+    const addressResult = CellAddress.create(row, col);
+    if (addressResult.ok) {
+      this.scrollToCell(addressResult.value);
+    }
   }
 
   scrollToCell(

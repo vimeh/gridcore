@@ -126,7 +126,12 @@ export class WebStateAdapter {
         }
         
         // Then start editing (simulate 'i' key)
-        return this.controller.handleKeyPress("i", {})
+        return this.controller.handleKeyPress("i", {
+          key: "i",
+          ctrl: false,
+          shift: false,
+          alt: false,
+        })
       }
 
       case "dragStart": {
@@ -140,7 +145,12 @@ export class WebStateAdapter {
         }
         
         // Enter visual mode (simulate 'v' key)
-        return this.controller.handleKeyPress("v", {})
+        return this.controller.handleKeyPress("v", {
+          key: "v",
+          ctrl: false,
+          shift: false,
+          alt: false,
+        })
       }
 
       case "dragMove": {
@@ -181,12 +191,22 @@ export class WebStateAdapter {
     // Handle vertical movement
     if (deltaRow > 0) {
       for (let i = 0; i < deltaRow; i++) {
-        result = this.controller.handleKeyPress("j", {})
+        result = this.controller.handleKeyPress("j", {
+          key: "j",
+          ctrl: false,
+          shift: false,
+          alt: false,
+        })
         if (!result.ok) return result
       }
     } else if (deltaRow < 0) {
       for (let i = 0; i < Math.abs(deltaRow); i++) {
-        result = this.controller.handleKeyPress("k", {})
+        result = this.controller.handleKeyPress("k", {
+          key: "k",
+          ctrl: false,
+          shift: false,
+          alt: false,
+        })
         if (!result.ok) return result
       }
     }
@@ -194,12 +214,22 @@ export class WebStateAdapter {
     // Handle horizontal movement
     if (deltaCol > 0) {
       for (let i = 0; i < deltaCol; i++) {
-        result = this.controller.handleKeyPress("l", {})
+        result = this.controller.handleKeyPress("l", {
+          key: "l",
+          ctrl: false,
+          shift: false,
+          alt: false,
+        })
         if (!result.ok) return result
       }
     } else if (deltaCol < 0) {
       for (let i = 0; i < Math.abs(deltaCol); i++) {
-        result = this.controller.handleKeyPress("h", {})
+        result = this.controller.handleKeyPress("h", {
+          key: "h",
+          ctrl: false,
+          shift: false,
+          alt: false,
+        })
         if (!result.ok) return result
       }
     }

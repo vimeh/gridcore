@@ -114,7 +114,7 @@ export class CellEditor {
     this.hideEditor();
   }
 
-  private cancelEdit(): void {
+  cancelEdit(): void {
     this.callbacks.onCancel();
     this.hideEditor();
   }
@@ -134,11 +134,9 @@ export class CellEditor {
     if (this.controller) {
       const result = this.controller.handleKeyPress(event.key, {
         key: event.key,
-        code: event.code,
         ctrl: event.ctrlKey,
         alt: event.altKey,
         shift: event.shiftKey,
-        meta: event.metaKey,
       });
 
       if (result.ok) {

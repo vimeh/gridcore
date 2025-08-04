@@ -65,11 +65,9 @@ export class KeyboardHandler {
     if (this.controller && !this.cellEditor.isCurrentlyEditing()) {
       const result = this.controller.handleKeyPress(event.key, {
         key: event.key,
-        code: event.code,
         ctrl: event.ctrlKey,
         alt: event.altKey,
         shift: event.shiftKey,
-        meta: event.metaKey,
       });
 
       if (result.ok) {
@@ -159,7 +157,9 @@ export class KeyboardHandler {
           } else {
             this.selectionManager.moveActiveCell("right");
           }
+          break;
       }
+    }
   }
 
   private startEditingActiveCell(initialChar?: string): void {

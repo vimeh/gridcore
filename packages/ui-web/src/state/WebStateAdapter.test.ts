@@ -54,7 +54,7 @@ describe("WebStateAdapter", () => {
     
     viewportManager = new MockViewportManager()
     controller = new SpreadsheetController({
-      facade: sheet.facade,
+      facade: sheet.getFacade(),
       viewportManager,
     })
     adapter = new WebStateAdapter(controller)
@@ -214,7 +214,12 @@ describe("WebStateAdapter", () => {
     // Trigger a state change through the controller by simulating navigation
     // Move down 10 times (to row 10)
     for (let i = 0; i < 10; i++) {
-      controller.handleKeyPress("j", {})
+      controller.handleKeyPress("j", {
+        key: "j",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      })
     }
 
     expect(notificationCount).toBeGreaterThan(0)

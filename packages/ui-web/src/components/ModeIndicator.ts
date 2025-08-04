@@ -1,7 +1,4 @@
-import type {
-  SpreadsheetState,
-  SpreadsheetStateMachine,
-} from "../state/SpreadsheetStateMachine";
+import type { SpreadsheetController, UIState } from "@gridcore/ui-core";
 
 export class ModeIndicator {
   private element: HTMLDivElement;
@@ -11,7 +8,7 @@ export class ModeIndicator {
 
   constructor(
     private container: HTMLElement,
-    private modeStateMachine: SpreadsheetStateMachine,
+    private controller: SpreadsheetController,
   ) {
     this.element = this.createElement();
     const modeText = this.element.querySelector(".mode-text");
@@ -25,13 +22,15 @@ export class ModeIndicator {
     this.detailText = detailText as HTMLSpanElement;
     this.container.appendChild(this.element);
 
-    // Subscribe to mode changes
-    this.unsubscribe = this.modeStateMachine.subscribe(
-      this.handleModeChange.bind(this),
-    );
+    // Subscribe to controller events
+    this.unsubscribe = this.controller.subscribe((event) => {
+      if (event.type === "stateChanged") {
+        this.handleModeChange(event.state);
+      }
+    });
 
     // Set initial state
-    this.updateDisplay(this.modeStateMachine.getState());
+    this.updateDisplay(this.controller.getState());
   }
 
   private createElement(): HTMLDivElement {
@@ -79,7 +78,7 @@ export class ModeIndicator {
     return div;
   }
 
-  private handleModeChange(state: SpreadsheetState): void {
+  private handleModeChange(state: UIState): void {
     this.updateDisplay(state);
 
     // Add animation effect on mode change
@@ -89,7 +88,7 @@ export class ModeIndicator {
     }, 200);
   }
 
-  private updateDisplay(state: SpreadsheetState): void {
+  private updateDisplay(state: UIState): void {
     const colors = {
       navigation: { bg: "#2c5282", text: "#bee3f8" },
       normal: { bg: "#38a169", text: "#c6f6d5" },
@@ -105,72 +104,81 @@ export class ModeIndicator {
     let colorKey: keyof typeof colors;
     const details: string[] = [];
 
-    if (state.type === "navigation") {
-      primaryMode = "NAVIGATION";
-      colorKey = "navigation";
-    } else {
-      // In editing mode, check substate
-      switch (state.substate.type) {
-        case "normal":
-          primaryMode = "NORMAL";
-          colorKey = "normal";
-          break;
-        case "insert":
-          primaryMode = "INSERT"; // Always show "INSERT" regardless of submode
-          colorKey = "insert";
-          if (state.substate.mode !== "insert") {
-            details.push(`Mode: ${state.substate.mode}`);
-          }
-          break;
-        case "visual":
-          if (state.substate.mode === "character") {
-            primaryMode = "VISUAL";
-            colorKey = "visual";
-          } else if (state.substate.mode === "line") {
-            primaryMode = "VISUAL LINE";
-            colorKey = "visual-line";
-          } else {
-            primaryMode = "VISUAL BLOCK";
-            colorKey = "visual-block";
-          }
-          break;
-        case "resize":
-          primaryMode = "RESIZE";
-          colorKey = "resize";
-          details.push(
-            `${state.substate.target.type} ${state.substate.target.index}`,
-          );
-          break;
-      }
+    // Check the spreadsheet mode
+    switch (state.spreadsheetMode) {
+      case "navigation":
+        primaryMode = "NAVIGATION";
+        colorKey = "navigation";
+        break;
+      case "editing":
+        // In editing mode, check cell mode
+        switch (state.cellMode) {
+          case "normal":
+            primaryMode = "NORMAL";
+            colorKey = "normal";
+            break;
+          case "insert":
+            primaryMode = "INSERT";
+            colorKey = "insert";
+            break;
+          case "visual":
+            if (state.visualType === "character") {
+              primaryMode = "VISUAL";
+              colorKey = "visual";
+            } else if (state.visualType === "line") {
+              primaryMode = "VISUAL LINE";
+              colorKey = "visual-line";
+            } else {
+              primaryMode = "VISUAL BLOCK";
+              colorKey = "visual-block";
+            }
+            break;
+        }
+        break;
+      case "resize":
+        primaryMode = "RESIZE";
+        colorKey = "resize";
+        details.push(
+          `${state.resizeTarget} ${state.resizeIndex}`,
+        );
+        break;
+      case "command":
+        primaryMode = "COMMAND";
+        colorKey = "normal"; // Using normal color for command mode
+        details.push(`:${state.commandValue}`);
+        break;
     }
 
     // Set primary mode text
     this.modeText.textContent = primaryMode;
 
-    // Interaction mode (show when not normal)
-    if (state.interactionMode !== "normal") {
-      details.push(`Input: ${state.interactionMode}`);
-    }
+    // No interaction mode in UIState - that's Web UI specific
 
     // Add helpful hints based on current mode
     let hints: string[] = [];
-    if (state.type === "navigation") {
-      hints = ["hjkl to move", "i/a to edit", "v for visual"];
-    } else {
-      switch (state.substate.type) {
-        case "normal":
-          hints = ["i/a to insert", "v for visual", "ESC to exit"];
-          break;
-        case "insert":
-          hints = ["ESC to normal", "text editing active"];
-          break;
-        case "visual":
-          hints = ["hjkl to select", "ESC to exit"];
-          break;
-        case "resize":
-          hints = ["+/- to resize", "= to auto-fit", "ESC to exit"];
-          break;
-      }
+    switch (state.spreadsheetMode) {
+      case "navigation":
+        hints = ["hjkl to move", "i/a to edit", "v for visual"];
+        break;
+      case "editing":
+        switch (state.cellMode) {
+          case "normal":
+            hints = ["i/a to insert", "v for visual", "ESC to exit"];
+            break;
+          case "insert":
+            hints = ["ESC to normal", "text editing active"];
+            break;
+          case "visual":
+            hints = ["hjkl to select", "ESC to exit"];
+            break;
+        }
+        break;
+      case "resize":
+        hints = ["+/- to resize", "= to auto-fit", "ESC to exit"];
+        break;
+      case "command":
+        hints = ["Enter to execute", "ESC to cancel"];
+        break;
     }
 
     // Combine details and hints

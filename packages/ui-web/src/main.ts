@@ -1,9 +1,9 @@
 import { CellAddress, Workbook } from "@gridcore/core";
+import { SpreadsheetController, type ViewportManager } from "@gridcore/ui-core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
 import { ModeIndicator } from "./components/ModeIndicator";
 import { TabBar } from "./components/TabBar";
-import { SpreadsheetStateMachine } from "./state/SpreadsheetStateMachine";
 import "./style.css";
 
 // Initialize the app
@@ -45,8 +45,8 @@ if (!activeSheet) {
 }
 let facade = activeSheet.getFacade();
 
-// Create state machine
-const modeStateMachine = new SpreadsheetStateMachine();
+// Create a ViewportManager that will be shared between controller and CanvasGrid
+let viewportManager: ViewportManager | null = null;
 
 // Add some sample data
 const a1Result = CellAddress.fromString("A1");
@@ -237,11 +237,27 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
   },
 });
 
-// Create Canvas Grid
+// Create Canvas Grid (will create its own controller)
 let canvasGrid = new CanvasGrid(gridContainer, facade, {
   totalRows: GRID_ROWS,
   totalCols: GRID_COLS,
-  modeStateMachine,
+});
+
+// Get the viewport from the grid to use as ViewportManager
+viewportManager = canvasGrid.getViewport();
+
+// Create the controller with the viewport manager
+const controller = new SpreadsheetController({
+  facade,
+  viewportManager,
+});
+
+// Recreate the grid with the controller
+canvasGrid.destroy();
+canvasGrid = new CanvasGrid(gridContainer, facade, {
+  totalRows: GRID_ROWS,
+  totalCols: GRID_COLS,
+  controller,
 });
 
 // Create alias for grid (used in import/export)
@@ -259,10 +275,16 @@ const tabBar = new TabBar({
 
     // Create new grid for the sheet
     canvasGrid.destroy();
+    // Create new controller for the new sheet
+    const newController = new SpreadsheetController({
+      facade,
+      viewportManager: viewportManager!,
+    });
+    
     canvasGrid = new CanvasGrid(gridContainer, facade, {
       totalRows: GRID_ROWS,
       totalCols: GRID_COLS,
-      modeStateMachine,
+      controller: newController,
     });
     _grid = canvasGrid;
 
@@ -388,7 +410,7 @@ window.addEventListener("resize", () => {
 });
 
 // Create mode indicator
-const _modeIndicator = new ModeIndicator(app, modeStateMachine);
+const modeIndicator = new ModeIndicator(app, controller);
 
 // Initial focus
 gridContainer.focus();

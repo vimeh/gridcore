@@ -523,7 +523,7 @@ export class CanvasGrid {
       }
 
       // Render the grid
-      const isNavigationMode = this.adapter?.getCoreState().spreadsheetMode === "navigation" ?? true;
+      const isNavigationMode = this.adapter ? this.adapter.getCoreState().spreadsheetMode === "navigation" : true;
       const cellsRendered = this.renderer.renderGrid(
         (address) => {
           const result = this.facade.getCell(address);
