@@ -253,13 +253,13 @@ export class VimBehavior {
         this.clearBuffers();
         return { type: "startEditing", editVariant: "O" };
 
-      // Visual modes
+      // Visual modes - these should enter editing mode first
       case "v":
         this.clearBuffers();
-        return { type: "enterVisual", visualType: "character" };
+        return { type: "startEditing", editVariant: "normal" };
       case "V":
         this.clearBuffers();
-        return { type: "enterVisual", visualType: "line" };
+        return { type: "startEditing", editVariant: "normal" };
 
       // Commands that start multi-key sequences
       case "g":
@@ -309,12 +309,12 @@ export class VimBehavior {
         this.clearBuffers();
         return { type: "enterCommand" };
 
-      // Enter key starts editing
+      // Enter key starts editing with 'i' variant
       case "Enter":
         this.clearBuffers();
         return { type: "startEditing", editVariant: "i" };
 
-      // F2 starts editing in insert mode
+      // F2 starts editing with 'i' variant
       case "F2":
         this.clearBuffers();
         return { type: "startEditing", editVariant: "i" };
@@ -329,7 +329,7 @@ export class VimBehavior {
         // If it's a printable character (not a special key), start editing with that character
         if (key.length === 1 && !meta.ctrl && !meta.alt && /^[^\x00-\x1F\x7F]$/.test(key)) {
           this.clearBuffers();
-          return { type: "startEditing", editVariant: "replace", initialChar: key };
+          return { type: "startEditing", editVariant: "i", initialChar: key };
         }
         this.clearBuffers();
         return { type: "none" };
