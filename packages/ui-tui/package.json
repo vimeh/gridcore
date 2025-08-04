@@ -5,12 +5,13 @@
   "main": "./dist/index.js",
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --external @gridcore/core",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --external @gridcore/core --external @gridcore/ui-core",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist node_modules coverage"
   },
   "dependencies": {
-    "@gridcore/core": "workspace:*"
+    "@gridcore/core": "workspace:*",
+    "@gridcore/ui-core": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",
