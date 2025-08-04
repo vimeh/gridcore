@@ -121,6 +121,76 @@ describe("SpreadsheetFacade", () => {
         expect(result.value.error).toContain("Division by zero");
       }
     });
+
+    test("evaluates simple addition formula like =A2+B2", () => {
+      const a2 = CellAddress.create(1, 0).value; // Row 1, Col 0 (A2)
+      const b2 = CellAddress.create(1, 1).value; // Row 1, Col 1 (B2)
+      const c2 = CellAddress.create(1, 2).value; // Row 1, Col 2 (C2)
+
+      // Set values in A2 and B2
+      facade.setCellValue(a2, 2);
+      facade.setCellValue(b2, 3);
+
+      // Set formula in C2
+      const result = facade.setCellValue(c2, "=A2+B2");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.hasFormula()).toBe(true);
+        expect(result.value.computedValue).toBe(5); // 2 + 3 = 5
+        expect(result.value.rawValue).toBe("=A2+B2");
+      }
+
+      // Verify getCellValue returns computed value
+      const valueResult = facade.getCellValue(c2);
+      expect(valueResult.ok).toBe(true);
+      if (valueResult.ok) {
+        expect(valueResult.value).toBe(5);
+      }
+
+      // Test with different values
+      facade.setCellValue(a2, 10);
+      facade.setCellValue(b2, 15);
+
+      const updatedResult = facade.getCellValue(c2);
+      expect(updatedResult.ok).toBe(true);
+      if (updatedResult.ok) {
+        expect(updatedResult.value).toBe(25); // 10 + 15 = 25
+      }
+    });
+
+    test("handles various simple arithmetic formulas", () => {
+      const a1 = CellAddress.create(0, 0).value;
+      const b1 = CellAddress.create(0, 1).value;
+      const c1 = CellAddress.create(0, 2).value;
+      const d1 = CellAddress.create(0, 3).value;
+      const e1 = CellAddress.create(0, 4).value;
+
+      // Set base values
+      facade.setCellValue(a1, 10);
+      facade.setCellValue(b1, 5);
+
+      // Test subtraction
+      const subResult = facade.setCellValue(c1, "=A1-B1");
+      expect(subResult.ok).toBe(true);
+      if (subResult.ok) {
+        expect(subResult.value.computedValue).toBe(5); // 10 - 5 = 5
+      }
+
+      // Test multiplication
+      const mulResult = facade.setCellValue(d1, "=A1*B1");
+      expect(mulResult.ok).toBe(true);
+      if (mulResult.ok) {
+        expect(mulResult.value.computedValue).toBe(50); // 10 * 5 = 50
+      }
+
+      // Test division
+      const divResult = facade.setCellValue(e1, "=A1/B1");
+      expect(divResult.ok).toBe(true);
+      if (divResult.ok) {
+        expect(divResult.value.computedValue).toBe(2); // 10 / 5 = 2
+      }
+    });
   });
 
   describe("getCellValue", () => {

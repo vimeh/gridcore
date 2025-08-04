@@ -9,12 +9,12 @@ import {
 import {
   createNavigationState,
   createResizeState,
+  type InsertMode,
   isCommandMode,
   isEditingMode,
   isNavigationMode,
   isResizeMode,
   type UIState,
-  type InsertMode,
 } from "../state/UIState";
 import { type Action, UIStateMachine } from "../state/UIStateMachine";
 import type { Result } from "../utils/Result";
@@ -97,12 +97,12 @@ export class SpreadsheetController {
     } else if (isEditingMode(state)) {
       // Cell-level vim handling
       const action = this.cellVimBehavior.handleKeyPress(key, meta, state);
-      
+
       // If vim behavior returns none, handle text input for insert mode
       if (action.type === "none" && state.cellMode === "insert") {
         return this.handleTextInput(key, meta, state);
       }
-      
+
       return this.processCellVimAction(action, state);
     } else if (isResizeMode(state)) {
       const action = this.resizeBehavior.handleKey(key, state);
@@ -125,7 +125,7 @@ export class SpreadsheetController {
         return this.stateMachine.transition({ type: "ENTER_COMMAND_MODE" });
       case "enterResize":
         return this.enterResize(action.target, action.index);
-      case "enterVisual":
+      case "enterVisual": {
         // From navigation mode, we need to first enter editing mode, then visual mode
         const editResult = this.startEditing("normal");
         if (!editResult.ok) {
@@ -136,6 +136,7 @@ export class SpreadsheetController {
           type: "ENTER_VISUAL_MODE",
           visualType: action.visualType,
         });
+      }
       case "scroll":
         return this.handleScroll(action.direction, state);
       case "center":
@@ -321,7 +322,6 @@ export class SpreadsheetController {
     });
   }
 
-
   // Cell operations
   private handleCellOperation(
     operation: string,
@@ -366,16 +366,15 @@ export class SpreadsheetController {
   }
 
   // Editing helpers
-  private startEditing(variant?: string, initialChar?: string): Result<UIState> {
+  private startEditing(
+    variant?: string,
+    initialChar?: string,
+  ): Result<UIState> {
     const state = this.stateMachine.getState();
     const cursor = state.cursor;
 
-    // Get current cell value
-    const cellResult = this.facade.getCell(cursor);
-    const currentValue =
-      cellResult.ok && cellResult.value
-        ? cellResult.value.rawValue?.toString() || ""
-        : "";
+    // Get current cell value for editing (raw value including formula text)
+    const currentValue = this.getCellEditValue(cursor);
 
     // Map vim variants to proper edit modes
     let editMode: InsertMode | undefined;
@@ -399,7 +398,6 @@ export class SpreadsheetController {
     // Determine initial value and cursor position
     let value = currentValue;
     let cursorPosition = 0;
-    
 
     if (variant === "replace") {
       // Replace mode: clear content (used by Enter key)
@@ -519,15 +517,15 @@ export class SpreadsheetController {
         : this.viewportManager.getRowHeight(newIndex);
 
     // Create a new resize state for the new target
-    return { 
-      ok: true, 
+    return {
+      ok: true,
       value: createResizeState(
         state.cursor,
         state.viewport,
         state.resizeTarget,
         newIndex,
-        newSize
-      )
+        newSize,
+      ),
     };
   }
 
@@ -598,7 +596,7 @@ export class SpreadsheetController {
     // Handle special keys
     if (meta.key === "backspace") {
       if (state.cursorPosition > 0) {
-        const newText = 
+        const newText =
           state.editingValue.slice(0, state.cursorPosition - 1) +
           state.editingValue.slice(state.cursorPosition);
         return this.stateMachine.transition({
@@ -612,7 +610,7 @@ export class SpreadsheetController {
 
     if (meta.key === "delete") {
       if (state.cursorPosition < state.editingValue.length) {
-        const newText = 
+        const newText =
           state.editingValue.slice(0, state.cursorPosition) +
           state.editingValue.slice(state.cursorPosition + 1);
         return this.stateMachine.transition({
@@ -633,10 +631,10 @@ export class SpreadsheetController {
       const cellResult = this.facade.getCell(state.cursor);
       if (cellResult.ok) {
         this.facade.setCellValue(state.cursor, state.editingValue);
-        this.emit({ 
-          type: "cellValueChanged", 
-          address: state.cursor, 
-          value: state.editingValue 
+        this.emit({
+          type: "cellValueChanged",
+          address: state.cursor,
+          value: state.editingValue,
         });
       }
       return this.stateMachine.transition({ type: "EXIT_TO_NAVIGATION" });
@@ -644,7 +642,7 @@ export class SpreadsheetController {
 
     // Regular character input
     if (key.length === 1 && !meta.ctrl && !meta.alt) {
-      const newText = 
+      const newText =
         state.editingValue.slice(0, state.cursorPosition) +
         key +
         state.editingValue.slice(state.cursorPosition);
@@ -782,5 +780,41 @@ export class SpreadsheetController {
   // Cancel editing without saving
   cancelEditing(): Result<UIState> {
     return this.stateMachine.transition({ type: "EXIT_TO_NAVIGATION" });
+  }
+
+  // Get the display value for a cell (computed value for formulas, raw value otherwise)
+  getCellDisplayValue(address: CellAddress): string {
+    const cellResult = this.facade.getCell(address);
+    if (!cellResult.ok || !cellResult.value) {
+      return "";
+    }
+
+    const cell = cellResult.value;
+
+    // If the cell has a formula, return the computed value
+    if (cell.hasFormula()) {
+      const computedValue = cell.computedValue;
+      if (cell.hasError()) {
+        return cell.displayValue; // This will show #ERROR: ...
+      }
+      return computedValue !== null && computedValue !== undefined
+        ? String(computedValue)
+        : "";
+    }
+
+    // For non-formula cells, return the raw value
+    const rawValue = cell.rawValue;
+    return rawValue !== null && rawValue !== undefined ? String(rawValue) : "";
+  }
+
+  // Get the edit value for a cell (always the raw value, including formula text)
+  getCellEditValue(address: CellAddress): string {
+    const cellResult = this.facade.getCell(address);
+    if (!cellResult.ok || !cellResult.value) {
+      return "";
+    }
+
+    const rawValue = cellResult.value.rawValue;
+    return rawValue !== null && rawValue !== undefined ? String(rawValue) : "";
   }
 }
