@@ -136,6 +136,9 @@ export class CellVimBehavior {
       case "v":
         this.clearBuffers();
         return { type: "enterVisualMode", visualType: "character" };
+      case "V":
+        this.clearBuffers();
+        return { type: "enterVisualMode", visualType: "line" };
 
       // Exit to navigation
       case "Escape":
@@ -240,6 +243,11 @@ export class CellVimBehavior {
       case "b":
         this.clearNumberBuffer();
         return { type: "moveCursor", direction: "wordBackward", count };
+
+      // Exit visual mode
+      case "i":
+        this.clearBuffers();
+        return { type: "exitVisualMode" };
 
       // Operations on selection
       case "d":

@@ -126,9 +126,16 @@ export class SpreadsheetController {
       case "enterResize":
         return this.enterResize(action.target, action.index);
       case "enterVisual":
-        // This case is no longer used from navigation mode
-        // Visual mode is entered from within editing mode
-        return { ok: true, value: state };
+        // From navigation mode, we need to first enter editing mode, then visual mode
+        const editResult = this.startEditing("normal");
+        if (!editResult.ok) {
+          return editResult;
+        }
+        // Now transition to visual mode
+        return this.stateMachine.transition({
+          type: "ENTER_VISUAL_MODE",
+          visualType: action.visualType,
+        });
       case "scroll":
         return this.handleScroll(action.direction, state);
       case "center":
@@ -393,7 +400,6 @@ export class SpreadsheetController {
     let value = currentValue;
     let cursorPosition = 0;
     
-    console.log("startEditing: currentValue =", currentValue, "variant =", variant);
 
     if (variant === "replace" && initialChar) {
       // Replace mode: clear content and start with the typed character

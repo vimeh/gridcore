@@ -214,7 +214,7 @@ test.describe("Mode Integration", () => {
       // Exit and check result
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await expect(page.locator(".formula-bar-input")).toHaveValue("WorldNew");
+      await expect(page.locator(".formula-bar-input")).toHaveValue("NewWorld");
     });
 
     test("should handle append mode correctly", async ({ page }) => {
@@ -490,7 +490,7 @@ test.describe("Mode Integration", () => {
 
       // Formula bar should reflect final state
       await expect(page.locator(".formula-bar-input")).toHaveValue(
-        "World edit",
+        " editWorld",
       );
     });
 

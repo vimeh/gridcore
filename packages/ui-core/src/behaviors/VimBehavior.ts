@@ -100,7 +100,7 @@ export type CellVimAction =
     }
   | {
       type: "enterVisualMode";
-      visualType: "character";
+      visualType: "character" | "line";
     }
   | {
       type: "exitVisualMode";
@@ -253,13 +253,13 @@ export class VimBehavior {
         this.clearBuffers();
         return { type: "startEditing", editVariant: "O" };
 
-      // Visual modes - these should enter editing mode first
+      // Visual modes - these should enter editing mode first, then visual mode
       case "v":
         this.clearBuffers();
-        return { type: "startEditing", editVariant: "normal" };
+        return { type: "enterVisual", visualType: "character" };
       case "V":
         this.clearBuffers();
-        return { type: "startEditing", editVariant: "normal" };
+        return { type: "enterVisual", visualType: "line" };
 
       // Commands that start multi-key sequences
       case "g":

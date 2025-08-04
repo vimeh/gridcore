@@ -56,6 +56,7 @@ export class CellEditor {
 
     // Event listeners
     div.addEventListener("keydown", this.handleKeyDown.bind(this));
+    div.addEventListener("beforeinput", this.handleBeforeInput.bind(this));
     div.addEventListener("input", this.handleInput.bind(this));
     div.addEventListener("blur", this.handleBlur.bind(this));
     div.addEventListener("paste", this.handlePaste.bind(this));
@@ -151,6 +152,7 @@ export class CellEditor {
 
       if (result.ok) {
         event.preventDefault(); // Always prevent default when controller handles the key
+        event.stopPropagation(); // Stop the event from bubbling up to KeyboardHandler
         const state = result.value;
         
         // Check if we should exit editing
@@ -187,6 +189,13 @@ export class CellEditor {
         event.preventDefault();
         this.commitEdit();
         break;
+    }
+  }
+
+  private handleBeforeInput(event: InputEvent): void {
+    // Prevent default input behavior when controller is handling the text
+    if (this.controller) {
+      event.preventDefault();
     }
   }
 
