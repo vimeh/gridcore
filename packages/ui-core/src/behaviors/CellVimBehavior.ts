@@ -26,7 +26,7 @@ export class CellVimBehavior {
     }
 
     // Handle escape
-    if (meta.key === "escape") {
+    if (meta.key.toLowerCase() === "escape") {
       return this.handleEscape(state);
     }
 
@@ -52,9 +52,11 @@ export class CellVimBehavior {
       return { type: "exitInsertMode" };
     } else if (state.cellMode === "visual") {
       return { type: "exitVisualMode" };
+    } else if (state.cellMode === "normal") {
+      // In normal cell mode, escape exits to navigation
+      return { type: "exitEditing" };
     }
 
-    // In normal mode, escape does nothing at cell level
     return { type: "none" };
   }
 

@@ -132,6 +132,9 @@ export class CellEditor {
   private handleKeyDown(event: KeyboardEvent): void {
     // If we have a controller, delegate complex key handling to it
     if (this.controller) {
+      // Get the state before handling the key
+      const prevState = this.controller.getState();
+      
       const result = this.controller.handleKeyPress(event.key, {
         key: event.key,
         ctrl: event.ctrlKey,
@@ -145,7 +148,13 @@ export class CellEditor {
         // Check if we should exit editing
         if (state.spreadsheetMode !== "editing") {
           event.preventDefault();
-          this.commitEdit();
+          // If we were in normal mode when escape was pressed, save the edit
+          // If we were in insert mode, it would have transitioned to normal (not navigation)
+          if (prevState.spreadsheetMode === "editing" && prevState.cellMode === "normal") {
+            this.commitEdit();
+          } else {
+            this.cancelEdit();
+          }
           return;
         }
 
@@ -155,6 +164,9 @@ export class CellEditor {
           this.editorDiv.textContent = state.editingValue;
           this.setCursorPosition(state.cursorPosition);
         }
+        
+        // Handle mode change notification
+        this.callbacks.onModeChange?.();
       }
       return;
     }
