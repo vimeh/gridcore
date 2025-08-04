@@ -1,12 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { CellAddress } from "@gridcore/core";
+import { CellAddress, CellRange } from "@gridcore/core";
 import {
   createCommandState,
   createEditingState,
+  createFillState,
   createNavigationState,
   createResizeState,
   isCommandMode,
   isEditingMode,
+  isFillMode,
   isInsertMode,
   isNavigationMode,
   isResizeMode,
@@ -66,6 +68,31 @@ describe("UIState", () => {
       expect(state.originalSize).toBe(100);
       expect(state.currentSize).toBe(100);
     });
+
+    test("createFillState", () => {
+      const sourceRange = CellRange.create(defaultCursor, defaultCursor).value;
+      const targetRange = CellRange.create(
+        CellAddress.create(0, 0).value,
+        CellAddress.create(2, 0).value,
+      ).value;
+      
+      const state = createFillState(
+        defaultCursor,
+        defaultViewport,
+        sourceRange,
+        targetRange,
+        "down",
+        { type: "series", seriesType: "linear" },
+      );
+      
+      expect(state.spreadsheetMode).toBe("fill");
+      expect(state.fillSource).toEqual(sourceRange);
+      expect(state.fillTarget).toEqual(targetRange);
+      expect(state.fillDirection).toBe("down");
+      expect(state.fillOptions.type).toBe("series");
+      expect(state.fillOptions.seriesType).toBe("linear");
+      expect(state.fillPreview.values).toBeInstanceOf(Map);
+    });
   });
 
   describe("type guards", () => {
@@ -105,6 +132,21 @@ describe("UIState", () => {
 
       expect(isResizeMode(navState)).toBe(false);
       expect(isResizeMode(resizeState)).toBe(true);
+    });
+
+    test("isFillMode", () => {
+      const navState = createNavigationState(defaultCursor, defaultViewport);
+      const sourceRange = CellRange.create(defaultCursor, defaultCursor).value;
+      const fillState = createFillState(
+        defaultCursor,
+        defaultViewport,
+        sourceRange,
+        sourceRange,
+        "down",
+      );
+
+      expect(isFillMode(navState)).toBe(false);
+      expect(isFillMode(fillState)).toBe(true);
     });
   });
 

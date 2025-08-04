@@ -1,4 +1,4 @@
-import type { CellAddress } from "@gridcore/core";
+import type { CellAddress, CellRange, CellValue } from "@gridcore/core";
 
 // Core shared state properties
 export interface ViewportInfo {
@@ -16,6 +16,27 @@ export type VisualMode = "character" | "line" | "block";
 
 // Insert mode variants
 export type InsertMode = "i" | "a" | "A" | "I" | "o" | "O";
+
+// Fill-related types
+export interface FillOptions {
+  type: "copy" | "series" | "format" | "values";
+  seriesType?: "linear" | "growth" | "date" | "auto";
+  step?: number;
+  stopValue?: number;
+  weekdaysOnly?: boolean;
+  trend?: boolean;
+}
+
+export type FillDirection = "down" | "up" | "left" | "right" | "auto";
+
+export interface FillPreview {
+  values: Map<string, CellValue>; // cellAddress.toString() -> value
+  pattern?: {
+    type: string;
+    confidence: number;
+    description: string;
+  };
+}
 
 // Spreadsheet-level state with nested modes
 export type UIState =
@@ -50,6 +71,16 @@ export type UIState =
       resizeIndex: number; // Which column/row is being resized
       originalSize: number; // Original width/height
       currentSize: number; // Current width/height during resize
+    }
+  | {
+      spreadsheetMode: "fill";
+      cursor: CellAddress;
+      viewport: ViewportInfo;
+      fillSource: CellRange;
+      fillTarget: CellRange;
+      fillDirection: FillDirection;
+      fillOptions: FillOptions;
+      fillPreview: FillPreview;
     };
 
 // Type guards for safe access
@@ -75,6 +106,12 @@ export function isResizeMode(
   state: UIState,
 ): state is Extract<UIState, { spreadsheetMode: "resize" }> {
   return state.spreadsheetMode === "resize";
+}
+
+export function isFillMode(
+  state: UIState,
+): state is Extract<UIState, { spreadsheetMode: "fill" }> {
+  return state.spreadsheetMode === "fill";
 }
 
 // Helper to check if in insert mode within cell editing
@@ -143,5 +180,27 @@ export function createResizeState(
     resizeIndex,
     originalSize: size,
     currentSize: size,
+  };
+}
+
+export function createFillState(
+  cursor: CellAddress,
+  viewport: ViewportInfo,
+  fillSource: CellRange,
+  fillTarget: CellRange,
+  direction: FillDirection = "auto",
+  options: FillOptions = { type: "copy" },
+): UIState {
+  return {
+    spreadsheetMode: "fill",
+    cursor,
+    viewport,
+    fillSource,
+    fillTarget,
+    fillDirection: direction,
+    fillOptions: options,
+    fillPreview: {
+      values: new Map(),
+    },
   };
 }

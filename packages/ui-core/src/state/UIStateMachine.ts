@@ -1,15 +1,19 @@
-import { CellAddress } from "@gridcore/core";
+import { CellAddress, CellRange } from "@gridcore/core";
 import type { Result } from "../utils/Result";
 import { err, ok } from "../utils/Result";
 import {
   type CellMode,
   createCommandState,
   createEditingState,
+  createFillState,
   createNavigationState,
   createResizeState,
+  type FillDirection,
+  type FillOptions,
   type InsertMode,
   isCommandMode,
   isEditingMode,
+  isFillMode,
   isNavigationMode,
   isResizeMode,
   type UIState,
@@ -38,6 +42,16 @@ export type Action =
       size: number;
     }
   | { type: "EXIT_RESIZE_MODE" }
+  | {
+      type: "ENTER_FILL_MODE";
+      direction: FillDirection;
+      options?: FillOptions;
+    }
+  | { type: "EXIT_FILL_MODE" }
+  | { type: "CONFIRM_FILL" }
+  | { type: "CANCEL_FILL" }
+  | { type: "UPDATE_FILL_TARGET"; target: CellRange }
+  | { type: "UPDATE_FILL_OPTIONS"; options: FillOptions }
   | { type: "UPDATE_EDITING_VALUE"; value: string; cursorPosition: number }
   | { type: "UPDATE_COMMAND_VALUE"; value: string }
   | { type: "UPDATE_RESIZE_SIZE"; size: number }
@@ -76,6 +90,7 @@ export class UIStateMachine {
       ["navigation.START_EDITING", this.startEditing.bind(this)],
       ["navigation.ENTER_COMMAND_MODE", this.enterCommandMode.bind(this)],
       ["navigation.ENTER_RESIZE_MODE", this.enterResizeMode.bind(this)],
+      ["navigation.ENTER_FILL_MODE", this.enterFillMode.bind(this)],
       ["editing.EXIT_TO_NAVIGATION", this.exitToNavigation.bind(this)],
       ["editing.normal.ENTER_INSERT_MODE", this.enterInsertMode.bind(this)],
       ["editing.insert.EXIT_INSERT_MODE", this.exitInsertMode.bind(this)],
@@ -86,6 +101,11 @@ export class UIStateMachine {
       ["command.UPDATE_COMMAND_VALUE", this.updateCommandValue.bind(this)],
       ["resize.EXIT_RESIZE_MODE", this.exitResizeMode.bind(this)],
       ["resize.UPDATE_RESIZE_SIZE", this.updateResizeSize.bind(this)],
+      ["fill.EXIT_FILL_MODE", this.exitFillMode.bind(this)],
+      ["fill.CONFIRM_FILL", this.confirmFill.bind(this)],
+      ["fill.CANCEL_FILL", this.cancelFill.bind(this)],
+      ["fill.UPDATE_FILL_TARGET", this.updateFillTarget.bind(this)],
+      ["fill.UPDATE_FILL_OPTIONS", this.updateFillOptions.bind(this)],
       ["*.UPDATE_CURSOR", this.updateCursor.bind(this)],
       ["*.UPDATE_VIEWPORT", this.updateViewport.bind(this)],
       ["*.ESCAPE", this.handleEscape.bind(this)],
@@ -201,10 +221,11 @@ export class UIStateMachine {
     if (
       !isEditingMode(state) &&
       !isCommandMode(state) &&
-      !isResizeMode(state)
+      !isResizeMode(state) &&
+      !isFillMode(state)
     ) {
       return err(
-        "Can only exit to navigation from editing, command, or resize mode",
+        "Can only exit to navigation from editing, command, resize, or fill mode",
       );
     }
 
@@ -310,6 +331,91 @@ export class UIStateMachine {
     return ok(createNavigationState(state.cursor, state.viewport));
   }
 
+  private enterFillMode(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "ENTER_FILL_MODE") {
+      return err("Invalid action type");
+    }
+    if (!isNavigationMode(state)) {
+      return err("Can only enter fill mode from navigation mode");
+    }
+
+    // Create a single-cell range as the source (current cursor position)
+    const sourceRange = CellRange.create(state.cursor, state.cursor);
+    if (!sourceRange.ok) {
+      return err(`Failed to create source range: ${sourceRange.error}`);
+    }
+
+    // Initially, target is the same as source; it will be updated as user navigates
+    const targetRange = sourceRange.value;
+
+    const fillOptions: FillOptions = action.options || { type: "copy" };
+
+    return ok(
+      createFillState(
+        state.cursor,
+        state.viewport,
+        sourceRange.value,
+        targetRange,
+        action.direction,
+        fillOptions,
+      ),
+    );
+  }
+
+  private exitFillMode(state: UIState): Result<UIState> {
+    if (!isFillMode(state)) {
+      return err("Can only exit fill mode when in fill mode");
+    }
+
+    return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private confirmFill(state: UIState): Result<UIState> {
+    if (!isFillMode(state)) {
+      return err("Can only confirm fill when in fill mode");
+    }
+
+    // TODO: Actually execute the fill operation through SpreadsheetController
+    // For now, just exit to navigation mode
+    return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private cancelFill(state: UIState): Result<UIState> {
+    if (!isFillMode(state)) {
+      return err("Can only cancel fill when in fill mode");
+    }
+
+    return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private updateFillTarget(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "UPDATE_FILL_TARGET") {
+      return err("Invalid action type");
+    }
+    if (!isFillMode(state)) {
+      return err("Can only update fill target in fill mode");
+    }
+
+    return ok({
+      ...state,
+      fillTarget: action.target,
+    });
+  }
+
+  private updateFillOptions(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "UPDATE_FILL_OPTIONS") {
+      return err("Invalid action type");
+    }
+    if (!isFillMode(state)) {
+      return err("Can only update fill options in fill mode");
+    }
+
+    return ok({
+      ...state,
+      fillOptions: action.options,
+    });
+  }
+
   private updateEditingValue(state: UIState, action: Action): Result<UIState> {
     if (action.type !== "UPDATE_EDITING_VALUE") {
       return err("Invalid action type");
@@ -389,7 +495,7 @@ export class UIStateMachine {
       return this.exitToNavigation(state);
     }
 
-    if (isCommandMode(state) || isResizeMode(state)) {
+    if (isCommandMode(state) || isResizeMode(state) || isFillMode(state)) {
       return this.exitToNavigation(state);
     }
 

@@ -2,6 +2,7 @@ import type { CellAddress } from "@gridcore/core";
 import type { UIState } from "../state/UIState";
 import {
   isEditingMode,
+  isFillMode,
   isNavigationMode,
   isResizeMode,
 } from "../state/UIState";
@@ -67,6 +68,16 @@ export type VimAction =
   | { type: "resize"; delta: number }
   | { type: "resizeAutoFit" }
   | { type: "setAnchor"; address?: CellAddress }
+  | {
+      type: "startFill";
+      direction: "down" | "up" | "left" | "right" | "smart";
+      options?: {
+        series?: boolean;
+        count?: number;
+      };
+    }
+  | { type: "confirmFill" }
+  | { type: "cancelFill" }
   | { type: "none" };
 
 // Cell-level vim actions (when editing a cell)
@@ -151,6 +162,8 @@ export class VimBehavior {
       return { type: "exitEditing" };
     } else if (isResizeMode(state)) {
       return this.handleResizeMode(key, meta, state);
+    } else if (isFillMode(state)) {
+      return this.handleFillMode(key, meta, state);
     }
 
     return { type: "none" };
@@ -163,6 +176,8 @@ export class VimBehavior {
       return { type: "exitEditing" };
     } else if (isResizeMode(state)) {
       return { type: "exitMode" };
+    } else if (isFillMode(state)) {
+      return { type: "cancelFill" };
     }
 
     // Already in navigation
@@ -393,6 +408,40 @@ export class VimBehavior {
     }
   }
 
+  private handleFillMode(
+    key: string,
+    _meta: KeyMeta,
+    state: UIState,
+  ): VimAction {
+    if (!isFillMode(state)) return { type: "none" };
+
+    this.clearBuffers();
+
+    switch (key) {
+      case "Enter":
+      case "y":
+        return { type: "confirmFill" };
+      case "n":
+        return { type: "cancelFill" };
+      // Allow navigation to adjust target range
+      case "h":
+      case "j":
+      case "k":
+      case "l":
+      case "ArrowLeft":
+      case "ArrowDown":
+      case "ArrowUp":
+      case "ArrowRight":
+        const direction = 
+          key === "h" || key === "ArrowLeft" ? "left" :
+          key === "j" || key === "ArrowDown" ? "down" :
+          key === "k" || key === "ArrowUp" ? "up" : "right";
+        return { type: "move", direction };
+      default:
+        return { type: "none" };
+    }
+  }
+
   private handleControlKey(key: string, meta: KeyMeta): VimAction {
     if (!meta.ctrl) return { type: "none" };
 
@@ -400,7 +449,8 @@ export class VimBehavior {
 
     switch (key) {
       case "d":
-        return { type: "scroll", direction: "halfDown" };
+        // Ctrl+d is fill down in spreadsheet context, not scroll
+        return { type: "startFill", direction: "down" };
       case "u":
         return { type: "scroll", direction: "halfUp" };
       case "f":
@@ -477,6 +527,13 @@ export class VimBehavior {
         // For resize mode, we need to determine column or row
         // This would be handled by the controller based on cursor position
         return { type: "enterResize", target: "column", index: 0 };
+      // Fill commands
+      case "gfd":
+        return { type: "startFill", direction: "down", options: { series: true, count } };
+      case "gfr":
+        return { type: "startFill", direction: "right", options: { series: true, count } };
+      case "gF":
+        return { type: "startFill", direction: "smart", options: { count } };
       default:
         // If we have an operator pending and this isn't a recognized command,
         // don't clear the state yet
