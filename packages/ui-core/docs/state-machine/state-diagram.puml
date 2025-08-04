@@ -1,0 +1,19 @@
+@startuml
+[*] --> navigation
+navigation --> editing : START_EDITING
+navigation --> command : ENTER_COMMAND_MODE
+navigation --> resize : ENTER_RESIZE_MODE
+state editing {
+  [*] --> normal
+  normal --> insert : ENTER_INSERT_MODE
+  normal --> visual : ENTER_VISUAL_MODE
+  insert --> normal : EXIT_INSERT_MODE
+  visual --> normal : EXIT_VISUAL_MODE
+}
+editing --> navigation : EXIT_TO_NAVIGATION
+editing --> navigation : ESCAPE
+command --> navigation : EXIT_COMMAND_MODE
+command --> navigation : ESCAPE
+resize --> navigation : EXIT_RESIZE_MODE
+resize --> navigation : ESCAPE
+@enduml

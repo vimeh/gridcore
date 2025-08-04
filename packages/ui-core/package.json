@@ -8,7 +8,9 @@
     "build": "bun build ./src/index.ts --outdir ./dist --target node --external @gridcore/core && tsc --declaration --emitDeclarationOnly --outDir dist",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "clean": "rm -rf dist node_modules coverage"
+    "clean": "rm -rf dist node_modules coverage",
+    "generate:state-docs": "bun run scripts/generateStateDocs.ts",
+    "view:state-diagram": "bun run scripts/viewStateDiagram.ts"
   },
   "dependencies": {
     "@gridcore/core": "workspace:*"

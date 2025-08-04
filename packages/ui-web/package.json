@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "bun run generate:state-docs && tsc && vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
@@ -13,10 +13,6 @@
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report",
-    "generate:state-docs": "bun scripts/generateStateDocs.ts",
-    "view:state-diagram": "bun scripts/viewStateDiagram.ts",
-    "export:state-svg": "bun scripts/exportStateSVG.ts",
-    "export:state-png": "bun scripts/exportStatePNG.ts",
     "clean": "rm -rf dist node_modules coverage .next out playwright-report test-results"
   },
   "dependencies": {

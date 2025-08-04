@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress } from "@gridcore/core";
+import { CellAddress } from "../../../core/src/domain/models/CellAddress";
 import { UIStateMachine } from "../state/UIStateMachine";
 import {
   analyzeStateHistory,
   generateMermaidDiagram,
   generateStateTable,
+  generatePlantUMLDiagram,
+  generateHTMLDocumentation,
 } from "./StateVisualizer";
 
 describe("StateVisualizer", () => {
@@ -133,6 +135,65 @@ describe("StateVisualizer", () => {
       const diagram = generateMermaidDiagram(stateMachine);
       expect(diagram.length).toBeGreaterThan(0);
       expect(diagram).toContain("stateDiagram-v2");
+    });
+  });
+
+  describe("generatePlantUMLDiagram", () => {
+    test("generates valid PlantUML diagram", () => {
+      const diagram = generatePlantUMLDiagram(stateMachine);
+
+      expect(diagram).toContain("@startuml");
+      expect(diagram).toContain("@enduml");
+      expect(diagram).toContain("[*] --> navigation");
+    });
+
+    test("includes state definitions", () => {
+      const diagram = generatePlantUMLDiagram(stateMachine);
+
+      expect(diagram).toContain("state editing");
+      expect(diagram).toContain("navigation --> editing");
+      expect(diagram).toContain("editing --> navigation");
+    });
+
+    test("includes nested state transitions", () => {
+      const diagram = generatePlantUMLDiagram(stateMachine);
+
+      expect(diagram).toContain("normal --> insert");
+      expect(diagram).toContain("insert --> normal");
+      expect(diagram).toContain("normal --> visual");
+    });
+  });
+
+  describe("generateHTMLDocumentation", () => {
+    test("generates valid HTML", () => {
+      const html = generateHTMLDocumentation(stateMachine);
+
+      expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toContain("<html lang=\"en\">");
+      expect(html).toContain("</html>");
+    });
+
+    test("includes Mermaid diagram", () => {
+      const html = generateHTMLDocumentation(stateMachine);
+
+      expect(html).toContain("class=\"mermaid\"");
+      expect(html).toContain("stateDiagram-v2");
+      expect(html).toContain("mermaid.initialize");
+    });
+
+    test("includes statistics", () => {
+      const html = generateHTMLDocumentation(stateMachine);
+
+      expect(html).toContain("States</div>");
+      expect(html).toContain("Actions</div>");
+      expect(html).toContain("Transitions</div>");
+    });
+
+    test("includes state table and analysis", () => {
+      const html = generateHTMLDocumentation(stateMachine);
+
+      expect(html).toContain("State Transition Table");
+      expect(html).toContain("State Machine Analysis");
     });
   });
 });
