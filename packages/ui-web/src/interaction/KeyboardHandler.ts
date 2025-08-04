@@ -41,7 +41,6 @@ export class KeyboardHandler {
     this.container.addEventListener("keydown", this.boundHandleKeyDown);
   }
 
-
   private handleKeyDown(event: KeyboardEvent): void {
     // Handle sheet navigation shortcuts
     if (this.sheetNavigationCallbacks) {
@@ -66,7 +65,7 @@ export class KeyboardHandler {
 
     // If controller is available, delegate key handling to it
     if (this.controller) {
-      console.log('KeyboardHandler: Using controller for key:', event.key);
+      console.log("KeyboardHandler: Using controller for key:", event.key);
       const result = this.controller.handleKeyPress(event.key, {
         key: event.key,
         ctrl: event.ctrlKey,
@@ -74,17 +73,17 @@ export class KeyboardHandler {
         shift: event.shiftKey,
       });
 
-      console.log('Controller result:', result);
-      
+      console.log("Controller result:", result);
+
       if (result.ok) {
         event.preventDefault();
-        
+
         // Update UI based on state changes
         const newState = result.value;
-        
+
         // Update selection based on cursor position
         this.selectionManager.setActiveCell(newState.cursor);
-        
+
         // Handle mode changes
         if (newState.spreadsheetMode === "editing") {
           // Start editing if not already editing, or update editing state
@@ -101,23 +100,26 @@ export class KeyboardHandler {
             );
           } else {
             // Update editor content if already editing
-            this.cellEditor.updateContent(newState.editingValue, newState.cursorPosition);
+            this.cellEditor.updateContent(
+              newState.editingValue,
+              newState.cursorPosition,
+            );
           }
         } else if (this.cellEditor.isCurrentlyEditing()) {
           // Stop editing
           this.cellEditor.cancelEdit();
         }
-        
+
         return;
       }
     }
 
     // Fall back to basic keyboard handling if no controller
-    console.log('KeyboardHandler fallback check:', {
+    console.log("KeyboardHandler fallback check:", {
       hasController: !!this.controller,
-      isEditing: this.cellEditor.isCurrentlyEditing()
+      isEditing: this.cellEditor.isCurrentlyEditing(),
     });
-    
+
     if (!this.controller && !this.cellEditor.isCurrentlyEditing()) {
       switch (event.key) {
         // Basic navigation

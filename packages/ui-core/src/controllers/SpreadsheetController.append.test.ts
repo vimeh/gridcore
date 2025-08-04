@@ -1,10 +1,10 @@
-import { describe, expect, test, beforeEach, vi } from "bun:test";
-import { CellAddress } from "@gridcore/core";
+import { beforeEach, describe, expect, test, vi } from "bun:test";
 import type { SpreadsheetFacade } from "@gridcore/core";
+import { CellAddress } from "@gridcore/core";
 import type { ViewportManager } from "../controllers/SpreadsheetController";
 import { SpreadsheetController } from "../controllers/SpreadsheetController";
 import { createNavigationState } from "../state/UIState";
-import { ok, err } from "../utils/Result";
+import { err, ok } from "../utils/Result";
 
 describe("SpreadsheetController - Append Mode", () => {
   let controller: SpreadsheetController;
@@ -14,7 +14,7 @@ describe("SpreadsheetController - Append Mode", () => {
 
   beforeEach(() => {
     stateChangeEvents = [];
-    
+
     // Create mock facade
     mockFacade = {
       getCell: vi.fn((address: CellAddress) => {
@@ -96,13 +96,13 @@ describe("SpreadsheetController - Append Mode", () => {
     // Should be in insert cell mode
     if (state.spreadsheetMode === "editing") {
       expect(state.cellMode).toBe("insert");
-      
+
       // Should have the current cell value
       expect(state.editingValue).toBe("World");
-      
+
       // Cursor should be at the end for append mode
       expect(state.cursorPosition).toBe(5); // "World" has 5 characters
-      
+
       // Should store the edit variant
       expect(state.editVariant).toBe("a");
     }

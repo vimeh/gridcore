@@ -567,5 +567,4 @@ describe("VimBehavior", () => {
       });
     });
   });
-
 });

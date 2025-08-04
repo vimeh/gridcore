@@ -335,7 +335,12 @@ export class VimBehavior {
 
       default:
         // If it's a printable character (not a special key), start editing with that character
-        if (key.length === 1 && !meta.ctrl && !meta.alt && /^[^\x00-\x1F\x7F]$/.test(key)) {
+        if (
+          key.length === 1 &&
+          !meta.ctrl &&
+          !meta.alt &&
+          /^[^\x00-\x1F\x7F]$/.test(key)
+        ) {
           this.clearBuffers();
           return { type: "startEditing", editVariant: "i", initialChar: key };
         }

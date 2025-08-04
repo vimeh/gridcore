@@ -306,7 +306,7 @@ const tabBar = new TabBar({
       facade,
       viewportManager: viewportManager!,
     });
-    
+
     // Subscribe to controller state changes to update formula bar during editing
     newController.subscribe((event) => {
       if (event.type === "stateChanged") {
@@ -332,7 +332,7 @@ const tabBar = new TabBar({
         }
       }
     });
-    
+
     canvasGrid = new CanvasGrid(gridContainer, facade, {
       totalRows: GRID_ROWS,
       totalCols: GRID_COLS,

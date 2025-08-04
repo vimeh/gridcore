@@ -64,7 +64,6 @@ export class CellEditor {
     return div;
   }
 
-
   startEditing(
     cell: CellAddress,
     initialValue: string = "",
@@ -109,7 +108,7 @@ export class CellEditor {
 
   updateContent(content: string, cursorPosition: number): void {
     if (!this.isEditing) return;
-    
+
     this.editorDiv.textContent = content;
     this.setCursorPosition(cursorPosition);
   }
@@ -140,10 +139,15 @@ export class CellEditor {
   private handleKeyDown(event: KeyboardEvent): void {
     // Check if there's a text selection and this is a character input or delete/backspace
     const selection = window.getSelection();
-    const hasSelection = selection && !selection.isCollapsed && selection.toString().length > 0;
-    const isCharInput = event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey;
+    const hasSelection =
+      selection && !selection.isCollapsed && selection.toString().length > 0;
+    const isCharInput =
+      event.key.length === 1 &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey;
     const isDeleteKey = event.key === "Delete" || event.key === "Backspace";
-    
+
     // If there's a selection and user is typing a character or deleting, let browser handle it
     if (hasSelection && (isCharInput || isDeleteKey)) {
       console.log("CellEditor: Letting browser handle input with selection");
@@ -152,12 +156,12 @@ export class CellEditor {
       // Don't prevent default - let browser replace/delete the selection
       return;
     }
-    
+
     // If we have a controller, delegate complex key handling to it
     if (this.controller) {
       // Get the state before handling the key
       const prevState = this.controller.getState();
-      
+
       const result = this.controller.handleKeyPress(event.key, {
         key: event.key,
         ctrl: event.ctrlKey,
@@ -169,7 +173,7 @@ export class CellEditor {
         event.preventDefault(); // Always prevent default when controller handles the key
         event.stopPropagation(); // Stop the event from bubbling up to KeyboardHandler
         const state = result.value;
-        
+
         // Check if we should exit editing
         if (state.spreadsheetMode !== "editing") {
           // Always commit the edit when exiting from editing mode
@@ -183,7 +187,7 @@ export class CellEditor {
           this.editorDiv.textContent = state.editingValue;
           this.setCursorPosition(state.cursorPosition);
         }
-        
+
         // Handle mode change notification
         this.callbacks.onModeChange?.();
       }
@@ -210,13 +214,17 @@ export class CellEditor {
   private handleBeforeInput(event: InputEvent): void {
     // Allow default browser behavior for text replacement when there's a selection
     if (this.controller && window.getSelection()?.toString()) {
-      console.log("CellEditor: Allowing browser to handle selection replacement");
+      console.log(
+        "CellEditor: Allowing browser to handle selection replacement",
+      );
       // Let browser handle selection replacement
       return;
     }
     // Prevent default input behavior when controller is handling the text
     if (this.controller) {
-      console.log("CellEditor: Preventing default input, delegating to controller");
+      console.log(
+        "CellEditor: Preventing default input, delegating to controller",
+      );
       event.preventDefault();
     }
   }
@@ -227,9 +235,12 @@ export class CellEditor {
       const newText = this.editorDiv.textContent || "";
       const selection = window.getSelection();
       const cursorPosition = selection.focusOffset;
-      
-      console.log("CellEditor: handleInput called, syncing to controller", { newText, cursorPosition });
-      
+
+      console.log("CellEditor: handleInput called, syncing to controller", {
+        newText,
+        cursorPosition,
+      });
+
       // Update the controller state with the new text and cursor position
       this.controller.updateEditingValue(newText, cursorPosition);
     }
@@ -257,7 +268,6 @@ export class CellEditor {
     }, 100);
   }
 
-
   private setCursorPosition(position: number): void {
     const text = this.editorDiv.textContent || "";
     const range = document.createRange();
@@ -279,7 +289,6 @@ export class CellEditor {
     sel?.removeAllRanges();
     sel?.addRange(range);
   }
-
 
   private getCursorPosition(): number {
     const sel = window.getSelection();

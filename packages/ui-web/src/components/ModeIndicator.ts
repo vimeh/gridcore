@@ -138,9 +138,7 @@ export class ModeIndicator {
       case "resize":
         primaryMode = "RESIZE";
         colorKey = "resize";
-        details.push(
-          `${state.resizeTarget} ${state.resizeIndex}`,
-        );
+        details.push(`${state.resizeTarget} ${state.resizeIndex}`);
         break;
       case "command":
         primaryMode = "COMMAND";

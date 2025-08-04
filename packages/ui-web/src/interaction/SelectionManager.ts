@@ -27,15 +27,16 @@ export class SelectionManager {
       this.state.selectedCells.add(cell.toString());
       this.state.selectionRange = null;
     }
-    
+
     // Check if the cell actually changed
     const previousCell = this.state.activeCell;
-    const cellChanged = !previousCell || 
-                       previousCell.row !== cell.row || 
-                       previousCell.col !== cell.col;
-    
+    const cellChanged =
+      !previousCell ||
+      previousCell.row !== cell.row ||
+      previousCell.col !== cell.col;
+
     this.state.activeCell = cell;
-    
+
     // Notify listeners if the cell changed
     if (cellChanged) {
       this.onActiveCellChange?.(cell);

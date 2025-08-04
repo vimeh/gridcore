@@ -1,2 +1,2 @@
-export { StateAdapter } from "./StateAdapter"
-export type { TUIDisplayState } from "./StateAdapter"
+export type { TUIDisplayState } from "./StateAdapter";
+export { StateAdapter } from "./StateAdapter";
