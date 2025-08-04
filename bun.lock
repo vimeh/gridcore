@@ -63,6 +63,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@gridcore/core": "workspace:*",
+        "@gridcore/ui-core": "workspace:*",
       },
       "devDependencies": {
         "@mermaid-js/mermaid-cli": "^11.9.0",
