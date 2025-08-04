@@ -31,7 +31,7 @@ export type VimAction =
     }
   | {
       type: "startEditing";
-      editVariant?: "i" | "a" | "A" | "I" | "o" | "O" | "replace" | "F2";
+      editVariant?: "i" | "a" | "A" | "I" | "o" | "O" | "replace";
       initialChar?: string;
     }
   | {
@@ -173,7 +173,7 @@ export class VimBehavior {
     meta: KeyMeta,
     _state: UIState,
   ): VimAction {
-    // Handle number accumulation (only for pure digits, not F1, F2, etc.)
+    // Handle number accumulation (only for pure digits)
     if (/^\d$/.test(key) && (this.internalState.numberBuffer || key !== "0")) {
       this.internalState.numberBuffer += key;
       return { type: "none" };
@@ -326,11 +326,6 @@ export class VimBehavior {
       case "Enter":
         this.clearBuffers();
         return { type: "startEditing", editVariant: "replace" };
-
-      // F2 starts editing with special F2 variant (preserves content, cursor at end)
-      case "F2":
-        this.clearBuffers();
-        return { type: "startEditing", editVariant: "F2" };
 
       // Delete/Backspace clear cell content
       case "Delete":

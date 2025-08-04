@@ -63,68 +63,40 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
     await page.goto("/");
     await page.waitForSelector(".grid-container");
 
-    // Put some text in a cell
+    // Put some text in a cell A1
     await page.keyboard.press("Enter");
     await page.keyboard.type("Hello World");
-    await page.keyboard.press("Enter");
-    await page.keyboard.press("Enter");
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    
+    // Now we're back in navigation mode at A1 with "Hello World"
   });
 
-  test("should position cursor at end when pressing 'i' on existing text", async ({
+  test("should position cursor at beginning when pressing 'i' on existing text", async ({
     page,
   }) => {
-    // Enter the cell using F2 to preserve existing text
-    await page.keyboard.press("F2");
+    // Enter the cell using 'i' to preserve existing text with cursor at beginning
+    await page.keyboard.press("i");
 
-    // The cursor should be at the end of existing text
-    // Type additional text - it should appear at the end
-    await page.keyboard.type(" Extra");
+    // The cursor should be at the beginning of existing text
+    // Type additional text - it should appear at the beginning
+    await page.keyboard.type("Start ");
 
     // Save and check - first Escape to normal mode, second to save
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
 
     await expect(page.locator(".formula-bar-input")).toHaveValue(
-      "Hello World Extra",
+      "Start Hello World",
     );
   });
 
-  test.skip("should position cursor correctly for different vim insert commands", async ({
-    page,
-  }) => {
-    // WARNING: F2 starts in insert mode, so vim commands I/A won't work
-    // This test needs to be rewritten to work with current implementation
-
-    // First edit - add at beginning
-    await page.keyboard.press("F2");
-    await page.keyboard.press("Escape"); // Go to normal mode first
-    await page.keyboard.press("I"); // Now I command will work
-    await page.keyboard.type("start_");
-    await page.keyboard.press("Escape");
-    await page.keyboard.press("Escape");
-
-    // Navigate away and back
-    await page.keyboard.press("j");
-    await page.keyboard.press("k");
-
-    // Second edit - add at end
-    await page.keyboard.press("F2");
-    await page.keyboard.press("Escape"); // Go to normal mode first
-    await page.keyboard.press("A"); // Now A command will work
-    await page.keyboard.type("_end");
-    await page.keyboard.press("Escape");
-    await page.keyboard.press("Escape");
-
-    // WARNING: Known limitation - I/A commands with F2 don't work reliably
-    // The test behavior varies across browsers and vim mode state
-    // This test is skipped at the test level due to known issues
-  });
 
   test("should handle cursor position when entering existing text", async ({
     page,
   }) => {
-    // Navigate to a cell with existing text using F2
-    await page.keyboard.press("F2");
+    // Navigate to a cell with existing text using 'a' (append mode)
+    await page.keyboard.press("a");
 
     // The cursor should be at the end of existing text
     // Type something to verify position

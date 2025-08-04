@@ -142,35 +142,6 @@ describe("SpreadsheetController - Append Mode", () => {
     }
   });
 
-  test("should start editing with F2 key", () => {
-    // Move to B1
-    controller.handleKeyPress("l", {
-      key: "l",
-      ctrl: false,
-      shift: false,
-      alt: false,
-    });
-
-    // Press F2
-    const result = controller.handleKeyPress("F2", {
-      key: "F2",
-      ctrl: false,
-      shift: false,
-      alt: false,
-    });
-
-    expect(result.ok).toBe(true);
-    const state = result.value!;
-
-    expect(state.spreadsheetMode).toBe("editing");
-    if (state.spreadsheetMode === "editing") {
-      expect(state.cellMode).toBe("insert");
-      expect(state.editingValue).toBe("World");
-      // F2 positions cursor at the beginning by default
-      expect(state.cursorPosition).toBe(0);
-    }
-  });
-
   test("should handle direct typing to start editing", () => {
     // Type a character directly
     const result = controller.handleKeyPress("H", {

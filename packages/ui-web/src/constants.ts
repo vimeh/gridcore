@@ -11,7 +11,6 @@ export const KEY_CODES = {
   ARROW_DOWN: "ArrowDown",
   ARROW_LEFT: "ArrowLeft",
   ARROW_RIGHT: "ArrowRight",
-  F2: "F2",
   DELETE: "Delete",
   BACKSPACE: "Backspace",
   H: "h",

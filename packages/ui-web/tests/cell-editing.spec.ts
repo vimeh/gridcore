@@ -25,16 +25,6 @@ test.describe("Cell Editing", () => {
     await expect(page.locator(".formula-bar-input")).toHaveValue("New Value");
   });
 
-  test("should edit cell with F2 key", async ({ page }) => {
-    await page.keyboard.press("F2");
-    await expect(page.locator(".cell-editor")).toBeVisible();
-
-    // Should be in insert mode
-    await expect(
-      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }),
-    ).toContainText("INSERT");
-  });
-
   test("should edit cell by typing", async ({ page }) => {
     // Start typing directly
     await page.keyboard.type("Quick entry");
@@ -167,22 +157,4 @@ test.describe("Cell Editing", () => {
     await expect(page.locator(".formula-bar-input")).toHaveValue("!World");
   });
 
-  test("should position cursor at end when entering with F2", async ({
-    page,
-  }) => {
-    // Navigate to cell A1 which has "Hello"
-
-    // Enter edit mode with F2
-    await page.keyboard.press("F2");
-
-    // Type additional text - should append at end
-    await page.keyboard.type(" there");
-
-    // Save and exit
-    await page.keyboard.press("Escape");
-    await page.keyboard.press("Escape");
-
-    // Check that text was appended at the end
-    await expect(page.locator(".formula-bar-input")).toHaveValue("Hello there");
-  });
 });

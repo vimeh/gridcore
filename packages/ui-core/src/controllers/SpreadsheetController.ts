@@ -412,10 +412,6 @@ export class SpreadsheetController {
     } else if (variant === "i") {
       // 'i' mode without initialChar: preserve content, cursor at beginning
       cursorPosition = 0;
-    } else if (variant === "F2") {
-      // F2 mode: preserve content, cursor at end (traditional spreadsheet behavior)
-      editMode = "i";
-      cursorPosition = currentValue.length;
     } else if (variant === "a") {
       // Append mode: keep content and position cursor at end
       cursorPosition = currentValue.length;

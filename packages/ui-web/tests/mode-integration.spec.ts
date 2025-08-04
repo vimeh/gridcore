@@ -96,16 +96,6 @@ test.describe("Mode Integration", () => {
       await expect(page.locator(".cell-editor")).toBeVisible();
     });
 
-    test("should transition from navigation to editing with F2 key", async ({
-      page,
-    }) => {
-      await page.keyboard.press("F2");
-
-      // Should be in insert mode (F2 uses default insert mode)
-      await expect(getModeText(page)).toContainText("INSERT");
-      await expect(page.locator(".cell-editor")).toBeVisible();
-    });
-
     test("should transition from navigation to editing by typing", async ({
       page,
     }) => {

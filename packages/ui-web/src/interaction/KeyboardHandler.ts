@@ -160,11 +160,6 @@ export class KeyboardHandler {
           this.startEditingActiveCell();
           break;
 
-        case KEY_CODES.F2:
-          event.preventDefault();
-          this.startEditingActiveCell();
-          break;
-
         case KEY_CODES.DELETE:
         case KEY_CODES.BACKSPACE:
           event.preventDefault();
