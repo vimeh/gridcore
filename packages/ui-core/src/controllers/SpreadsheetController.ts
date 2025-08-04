@@ -14,6 +14,7 @@ import {
   isNavigationMode,
   isResizeMode,
   type UIState,
+  type InsertMode,
 } from "../state/UIState";
 import { type Action, UIStateMachine } from "../state/UIStateMachine";
 import type { Result } from "../utils/Result";
@@ -124,6 +125,10 @@ export class SpreadsheetController {
         return this.stateMachine.transition({ type: "ENTER_COMMAND_MODE" });
       case "enterResize":
         return this.enterResize(action.target, action.index);
+      case "enterVisual":
+        // This case is no longer used from navigation mode
+        // Visual mode is entered from within editing mode
+        return { ok: true, value: state };
       case "scroll":
         return this.handleScroll(action.direction, state);
       case "center":
@@ -172,7 +177,8 @@ export class SpreadsheetController {
       case "deleteText":
         return this.handleCellTextDelete(action.range, state);
       case "exitEditing":
-        return this.stateMachine.transition({ type: "EXIT_TO_NAVIGATION" });
+        // Save the value when exiting editing mode
+        return this.saveAndExitEditing();
       default:
         return { ok: true, value: state };
     }
@@ -308,29 +314,6 @@ export class SpreadsheetController {
     });
   }
 
-  // Handle text input when in editing mode
-  private handleTextInput(key: string, meta: KeyMeta, state: UIState): Result<UIState> {
-    if (!isEditingMode(state) || state.cellMode !== "insert") {
-      return { ok: false, error: "Not in insert mode" };
-    }
-
-    // Skip special keys
-    if (key.length !== 1 || meta.ctrl || meta.alt) {
-      return { ok: true, value: state };
-    }
-
-    // Insert the character at the cursor position
-    const before = state.editingValue.slice(0, state.cursorPosition);
-    const after = state.editingValue.slice(state.cursorPosition);
-    const newValue = before + key + after;
-    const newCursorPosition = state.cursorPosition + 1;
-
-    return this.stateMachine.transition({
-      type: "UPDATE_EDITING_VALUE",
-      value: newValue,
-      cursorPosition: newCursorPosition,
-    });
-  }
 
   // Cell operations
   private handleCellOperation(
@@ -387,10 +370,29 @@ export class SpreadsheetController {
         ? cellResult.value.rawValue?.toString() || ""
         : "";
 
+    // Map vim variants to proper edit modes
+    let editMode: InsertMode | undefined;
+    if (variant === "a") {
+      editMode = "a";
+    } else if (variant === "A") {
+      editMode = "A";
+    } else if (variant === "I") {
+      editMode = "I";
+    } else if (variant === "o") {
+      editMode = "o";
+    } else if (variant === "O") {
+      editMode = "O";
+    } else if (variant === "i" || variant === "replace") {
+      editMode = "i";
+    } else if (variant === "normal") {
+      // Start in normal mode (no insert mode)
+      editMode = undefined;
+    }
+
     // Start editing
     const result = this.stateMachine.transition({
       type: "START_EDITING",
-      editMode: variant as any,
+      editMode: editMode,
     });
     if (!result.ok) return result;
 
@@ -400,6 +402,10 @@ export class SpreadsheetController {
 
     if (variant === "replace" && initialChar) {
       // Replace mode: clear content and start with the typed character
+      value = initialChar;
+      cursorPosition = 1;
+    } else if (variant === "i" && initialChar) {
+      // Direct typing: start with the typed character (replacing content)
       value = initialChar;
       cursorPosition = 1;
     } else if (variant === "a") {
