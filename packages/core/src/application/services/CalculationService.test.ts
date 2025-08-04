@@ -349,4 +349,56 @@ describe("CalculationService", () => {
       }
     });
   });
+
+  describe("evaluation context", () => {
+    test("getCell context method retrieves cells during formula evaluation", () => {
+      // This tests that the getCell method in the evaluation context works correctly
+      // Create a custom formula that accesses cells directly through the context
+      const a1 = CellAddress.create(0, 0).value;
+      const b1 = CellAddress.create(0, 1).value;
+      const c1 = CellAddress.create(0, 2).value;
+
+      cellRepository.set(a1, Cell.create(10).value);
+      cellRepository.set(b1, Cell.create(20).value);
+      // Formula that references another cell
+      cellRepository.set(c1, Cell.create("=A1+B1", c1).value);
+
+      dependencyRepository.addDependency(c1, a1);
+      dependencyRepository.addDependency(c1, b1);
+
+      const result = service.calculateCell(c1);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.computedValue).toBe(30);
+      }
+    });
+
+    test("getFunction context method returns error for unknown functions", () => {
+      const a1 = CellAddress.create(0, 0).value;
+
+      // Try to use an unknown function
+      cellRepository.set(a1, Cell.create("=UNKNOWNFUNC(42)", a1).value);
+
+      const result = service.calculateCell(a1);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.hasError()).toBe(true);
+        expect(result.value.error).toContain("Unknown function: UNKNOWNFUNC");
+      }
+    });
+
+    test("getFunction context method is called for custom functions", () => {
+      const a1 = CellAddress.create(0, 0).value;
+
+      // Use a function that doesn't exist in built-ins
+      cellRepository.set(a1, Cell.create("=CUSTOMFUNC(10, 20)", a1).value);
+
+      const result = service.calculateCell(a1);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.hasError()).toBe(true);
+        expect(result.value.error).toContain("Unknown function: CUSTOMFUNC");
+      }
+    });
+  });
 });

@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type {
   EvaluationContext,
   FormulaAST,
+  FormulaFunction,
 } from "../../domain/interfaces/IFormulaEvaluator";
 import { CellAddress } from "../../domain/models/CellAddress";
 import { CellRange } from "../../domain/models/CellRange";
 import type { CellValue } from "../../domain/models/CellValue";
+import { ok } from "../../shared/types/Result";
 import { FormulaEvaluator } from "./FormulaEvaluator";
 
 describe("FormulaEvaluator", () => {
@@ -599,6 +601,161 @@ describe("FormulaEvaluator", () => {
       if (result.ok) {
         expect(result.value).toBe(55); // (10 + 5) + (20 * 2) = 15 + 40
       }
+    });
+  });
+
+  describe("custom function registration", () => {
+    test("registerFunction adds a custom function", () => {
+      const customFunction: FormulaFunction = {
+        name: "DOUBLE",
+        minArgs: 1,
+        maxArgs: 1,
+        evaluate: (args: CellValue[]) => {
+          const value = args[0];
+          if (typeof value === "number") {
+            return ok(value * 2);
+          }
+          return ok(0);
+        },
+      };
+
+      // Register the function
+      evaluator.registerFunction(customFunction);
+
+      // Test that the function can be used
+      const ast: FormulaAST = {
+        type: "function",
+        name: "DOUBLE",
+        arguments: [{ type: "literal", value: 21 }],
+      };
+
+      const result = evaluator.evaluate(ast, mockContext);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toBe(42);
+      }
+    });
+
+    test("registerFunction handles case-insensitive function names", () => {
+      const customFunction: FormulaFunction = {
+        name: "triple",
+        minArgs: 1,
+        maxArgs: 1,
+        evaluate: (args: CellValue[]) => {
+          const value = args[0];
+          if (typeof value === "number") {
+            return ok(value * 3);
+          }
+          return ok(0);
+        },
+      };
+
+      evaluator.registerFunction(customFunction);
+
+      // Test with uppercase name
+      const ast: FormulaAST = {
+        type: "function",
+        name: "TRIPLE",
+        arguments: [{ type: "literal", value: 10 }],
+      };
+
+      const result = evaluator.evaluate(ast, mockContext);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toBe(30);
+      }
+    });
+
+    test("unregisterFunction removes a function", () => {
+      const customFunction: FormulaFunction = {
+        name: "QUAD",
+        minArgs: 1,
+        maxArgs: 1,
+        evaluate: (args: CellValue[]) => {
+          const value = args[0];
+          if (typeof value === "number") {
+            return ok(value * 4);
+          }
+          return ok(0);
+        },
+      };
+
+      // Register the function
+      evaluator.registerFunction(customFunction);
+
+      // Verify it works
+      const ast: FormulaAST = {
+        type: "function",
+        name: "QUAD",
+        arguments: [{ type: "literal", value: 5 }],
+      };
+
+      let result = evaluator.evaluate(ast, mockContext);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toBe(20);
+      }
+
+      // Unregister the function
+      evaluator.unregisterFunction("QUAD");
+
+      // Verify it no longer works
+      result = evaluator.evaluate(ast, mockContext);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toContain("Unknown function: QUAD");
+      }
+    });
+
+    test("unregisterFunction is case-insensitive", () => {
+      const customFunction: FormulaFunction = {
+        name: "PENTA",
+        minArgs: 1,
+        maxArgs: 1,
+        evaluate: (args: CellValue[]) => {
+          const value = args[0];
+          if (typeof value === "number") {
+            return ok(value * 5);
+          }
+          return ok(0);
+        },
+      };
+
+      evaluator.registerFunction(customFunction);
+
+      // Unregister with lowercase name
+      evaluator.unregisterFunction("penta");
+
+      // Verify it no longer works
+      const ast: FormulaAST = {
+        type: "function",
+        name: "PENTA",
+        arguments: [{ type: "literal", value: 3 }],
+      };
+
+      const result = evaluator.evaluate(ast, mockContext);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toContain("Unknown function: PENTA");
+      }
+    });
+
+    test("hasFunction checks if function exists", () => {
+      const customFunction: FormulaFunction = {
+        name: "HEXA",
+        minArgs: 1,
+        maxArgs: 1,
+        evaluate: (_args: CellValue[]) => ok(0),
+      };
+
+      expect(evaluator.hasFunction("HEXA")).toBe(false);
+
+      evaluator.registerFunction(customFunction);
+      expect(evaluator.hasFunction("HEXA")).toBe(true);
+      expect(evaluator.hasFunction("hexa")).toBe(true); // Case-insensitive
+
+      evaluator.unregisterFunction("HEXA");
+      expect(evaluator.hasFunction("HEXA")).toBe(false);
     });
   });
 });
