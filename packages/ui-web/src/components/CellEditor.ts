@@ -138,6 +138,21 @@ export class CellEditor {
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
+    // Check if there's a text selection and this is a character input or delete/backspace
+    const selection = window.getSelection();
+    const hasSelection = selection && !selection.isCollapsed && selection.toString().length > 0;
+    const isCharInput = event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey;
+    const isDeleteKey = event.key === "Delete" || event.key === "Backspace";
+    
+    // If there's a selection and user is typing a character or deleting, let browser handle it
+    if (hasSelection && (isCharInput || isDeleteKey)) {
+      console.log("CellEditor: Letting browser handle input with selection");
+      // Stop propagation to prevent KeyboardHandler from also processing this
+      event.stopPropagation();
+      // Don't prevent default - let browser replace/delete the selection
+      return;
+    }
+    
     // If we have a controller, delegate complex key handling to it
     if (this.controller) {
       // Get the state before handling the key
@@ -193,15 +208,31 @@ export class CellEditor {
   }
 
   private handleBeforeInput(event: InputEvent): void {
+    // Allow default browser behavior for text replacement when there's a selection
+    if (this.controller && window.getSelection()?.toString()) {
+      console.log("CellEditor: Allowing browser to handle selection replacement");
+      // Let browser handle selection replacement
+      return;
+    }
     // Prevent default input behavior when controller is handling the text
     if (this.controller) {
+      console.log("CellEditor: Preventing default input, delegating to controller");
       event.preventDefault();
     }
   }
 
   private handleInput(_event: Event): void {
-    // Input handling is done through the controller in handleKeyDown
-    // This method is kept for any browser-specific input events
+    // Sync the editor content back to the controller after browser handles input
+    if (this.controller && window.getSelection()) {
+      const newText = this.editorDiv.textContent || "";
+      const selection = window.getSelection();
+      const cursorPosition = selection.focusOffset;
+      
+      console.log("CellEditor: handleInput called, syncing to controller", { newText, cursorPosition });
+      
+      // Update the controller state with the new text and cursor position
+      this.controller.updateEditingValue(newText, cursorPosition);
+    }
   }
 
   private handlePaste(event: ClipboardEvent): void {

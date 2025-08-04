@@ -401,14 +401,21 @@ export class SpreadsheetController {
     let cursorPosition = 0;
     
 
-    if (variant === "replace" && initialChar) {
-      // Replace mode: clear content and start with the typed character
-      value = initialChar;
-      cursorPosition = 1;
+    if (variant === "replace") {
+      // Replace mode: clear content (used by Enter key)
+      value = initialChar || "";
+      cursorPosition = initialChar ? 1 : 0;
     } else if (variant === "i" && initialChar) {
       // Direct typing: start with the typed character (replacing content)
       value = initialChar;
       cursorPosition = 1;
+    } else if (variant === "i") {
+      // 'i' mode without initialChar: preserve content, cursor at beginning
+      cursorPosition = 0;
+    } else if (variant === "F2") {
+      // F2 mode: preserve content, cursor at end (traditional spreadsheet behavior)
+      editMode = "i";
+      cursorPosition = currentValue.length;
     } else if (variant === "a") {
       // Append mode: keep content and position cursor at end
       cursorPosition = currentValue.length;
@@ -740,6 +747,17 @@ export class SpreadsheetController {
   // Public API
   getState(): Readonly<UIState> {
     return this.stateMachine.getState();
+  }
+
+  updateEditingValue(value: string, cursorPosition: number): void {
+    const state = this.stateMachine.getState();
+    if (isEditingMode(state)) {
+      this.stateMachine.transition({
+        type: "UPDATE_EDITING_VALUE",
+        value: value,
+        cursorPosition: cursorPosition,
+      });
+    }
   }
 
   getEngine(): SpreadsheetFacade {

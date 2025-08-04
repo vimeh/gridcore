@@ -31,7 +31,7 @@ export type VimAction =
     }
   | {
       type: "startEditing";
-      editVariant?: "i" | "a" | "A" | "I" | "o" | "O" | "replace";
+      editVariant?: "i" | "a" | "A" | "I" | "o" | "O" | "replace" | "F2";
       initialChar?: string;
     }
   | {
@@ -212,17 +212,21 @@ export class VimBehavior {
 
     // Single key commands
     switch (key) {
-      // Movement
+      // Movement (vim keys and arrow keys)
       case "h":
+      case "ArrowLeft":
         this.clearBuffers();
         return { type: "move", direction: "left", count };
       case "j":
+      case "ArrowDown":
         this.clearBuffers();
         return { type: "move", direction: "down", count };
       case "k":
+      case "ArrowUp":
         this.clearBuffers();
         return { type: "move", direction: "up", count };
       case "l":
+      case "ArrowRight":
         this.clearBuffers();
         return { type: "move", direction: "right", count };
 
@@ -309,15 +313,24 @@ export class VimBehavior {
         this.clearBuffers();
         return { type: "enterCommand" };
 
-      // Enter key starts editing with 'i' variant
+      // Tab navigation
+      case "Tab":
+        this.clearBuffers();
+        if (meta.shift) {
+          return { type: "move", direction: "left", count };
+        } else {
+          return { type: "move", direction: "right", count };
+        }
+
+      // Enter key starts editing in replace mode
       case "Enter":
         this.clearBuffers();
-        return { type: "startEditing", editVariant: "i" };
+        return { type: "startEditing", editVariant: "replace" };
 
-      // F2 starts editing with 'i' variant
+      // F2 starts editing with special F2 variant (preserves content, cursor at end)
       case "F2":
         this.clearBuffers();
-        return { type: "startEditing", editVariant: "i" };
+        return { type: "startEditing", editVariant: "F2" };
 
       // Delete/Backspace clear cell content
       case "Delete":

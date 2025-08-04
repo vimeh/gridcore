@@ -7,13 +7,10 @@ test.describe("Vim Mode - Text Saving Fixes", () => {
   });
 
   test("should save text when pressing Escape twice", async ({ page }) => {
-    // Navigate to a cell and enter edit mode
-    await page.keyboard.press("F2"); // Edit cell without clearing
+    // Navigate to a cell and start editing with Enter (which clears content)
+    await page.keyboard.press("Enter");
 
-    // Clear existing content and type new text
-    // WARNING: Control+a may not work properly in vim mode
-    // Using triple-click to select all instead
-    await page.locator(".cell-editor").click({ clickCount: 3 });
+    // Type new content
     await page.keyboard.type("Test content");
 
     // Press Escape twice to save

@@ -266,6 +266,15 @@ controller.subscribe((event) => {
       // Re-enable formula bar when not editing
       formulaBar.setEditingState(false);
     }
+  } else if (event.type === "cellValueChanged") {
+    // Update formula bar when cell value changes (e.g., Delete key)
+    const cellResult = facade.getCell(event.address);
+    if (cellResult.ok) {
+      formulaBar.setActiveCell(event.address, cellResult.value);
+    } else {
+      // Cell was deleted/cleared
+      formulaBar.setActiveCell(event.address, undefined);
+    }
   }
 });
 
@@ -311,6 +320,15 @@ const tabBar = new TabBar({
         } else {
           // Re-enable formula bar when not editing
           formulaBar.setEditingState(false);
+        }
+      } else if (event.type === "cellValueChanged") {
+        // Update formula bar when cell value changes (e.g., Delete key)
+        const cellResult = facade.getCell(event.address);
+        if (cellResult.ok) {
+          formulaBar.setActiveCell(event.address, cellResult.value);
+        } else {
+          // Cell was deleted/cleared
+          formulaBar.setActiveCell(event.address, undefined);
         }
       }
     });

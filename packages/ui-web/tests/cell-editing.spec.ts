@@ -31,7 +31,7 @@ test.describe("Cell Editing", () => {
 
     // Should be in insert mode
     await expect(
-      page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" }),
+      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }),
     ).toContainText("INSERT");
   });
 
@@ -69,10 +69,10 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
 
-    // Current implementation saves, cursor now correctly positioned at end
-    // Fixed: cursor positioning with 'i' now works correctly
+    // Current implementation saves, cursor correctly positioned at beginning with 'i'
+    // When pressing 'i', cursor is at the beginning, so "Changed" appears before "World"
     await expect(page.locator(".formula-bar-input")).toHaveValue(
-      "WorldChanged",
+      "ChangedWorld",
     );
   });
 
@@ -131,7 +131,7 @@ test.describe("Cell Editing", () => {
     await page.waitForTimeout(100);
 
     // The vim mode indicator shows just the mode (not the instruction text)
-    await expect(page.locator(".mode-indicator").nth(1)).toContainText(
+    await expect(page.locator(".mode-indicator")).toContainText(
       "NORMAL",
     );
 
@@ -153,18 +153,18 @@ test.describe("Cell Editing", () => {
 
     // Should be in insert mode
     await expect(
-      page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" }),
+      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }),
     ).toContainText("INSERT");
 
-    // Type additional text - if cursor is at end, this should append
+    // Type additional text - 'i' positions cursor at beginning
     await page.keyboard.type("!");
 
     // Save and exit
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
 
-    // Check that text was appended at the end (not inserted in middle)
-    await expect(page.locator(".formula-bar-input")).toHaveValue("World!");
+    // Check that text was inserted at the beginning
+    await expect(page.locator(".formula-bar-input")).toHaveValue("!World");
   });
 
   test("should position cursor at end when entering with F2", async ({

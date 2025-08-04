@@ -20,7 +20,7 @@ test.describe("Vim Mode", () => {
 
     // Should be in insert mode
     await expect(
-      page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" }),
+      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }),
     ).toContainText("INSERT");
 
     // Should show cell editor
@@ -50,7 +50,7 @@ test.describe("Vim Mode", () => {
     // Start editing
     await page.keyboard.press("i");
     await expect(
-      page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" }),
+      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }),
     ).toContainText("INSERT");
 
     // Switch to normal mode
@@ -62,7 +62,7 @@ test.describe("Vim Mode", () => {
     // Back to insert mode
     await page.keyboard.press("i");
     await expect(
-      page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" }),
+      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }),
     ).toContainText("INSERT");
 
     // Exit to navigation
@@ -104,7 +104,7 @@ test.describe("Vim Mode", () => {
 
     // Should be in insert mode
     await expect(
-      page.locator(".mode-indicator").filter({ hasText: "ESC to normal mode" }),
+      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }),
     ).toContainText("INSERT");
 
     // Type additional text
