@@ -272,6 +272,6 @@ export class SpreadsheetTUI extends Renderable {
   }
 
   getFacade(): ISpreadsheetFacade {
-    return this.facade
+    return this.controller.getEngine()
   }
 }
