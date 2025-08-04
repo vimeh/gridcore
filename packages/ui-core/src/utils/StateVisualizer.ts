@@ -103,10 +103,10 @@ export function analyzeStateHistory(stateMachine: UIStateMachine): string {
   const actionCounts = new Map<string, number>();
   const stateCounts = new Map<string, number>();
 
-  for (const { action, newState } of history) {
+  for (const { action, state } of history) {
     actionCounts.set(action.type, (actionCounts.get(action.type) || 0) + 1);
-    const stateKey = `${newState.spreadsheetMode}${
-      newState.cellMode ? `.${newState.cellMode}` : ""
+    const stateKey = `${state.spreadsheetMode}${
+      state.spreadsheetMode === "editing" ? `.${state.cellMode}` : ""
     }`;
     stateCounts.set(stateKey, (stateCounts.get(stateKey) || 0) + 1);
   }
