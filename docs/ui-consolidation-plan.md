@@ -200,6 +200,15 @@ type UIState =
       cursor: CellAddress;
       viewport: ViewportInfo;
       commandValue: string;
+    }
+  | {
+      spreadsheetMode: "resize";
+      cursor: CellAddress;
+      viewport: ViewportInfo;
+      resizeTarget: "column" | "row";
+      resizeIndex: number;          // Which column/row is being resized
+      originalSize: number;         // Original width/height
+      currentSize: number;          // Current width/height during resize
     };
 
 // Type guards for safe access
@@ -423,7 +432,7 @@ These features will be implemented once in ui-core and used by all UIs:
 
 1. **Vim Keybindings**
 
-   - Mode management (normal, insert, visual, command)
+   - Mode management (normal, insert, visual, command, resize)
    - Motion commands (h/j/k/l, w/b/e, 0/$, gg/G)
    - Operators (d/c/y/p)
    - Count prefixes and repeat commands
@@ -450,6 +459,14 @@ These features will be implemented once in ui-core and used by all UIs:
    - Undo/redo coordination
    - Copy/paste operations
 
+1. **Resizing Operations**
+
+   - Column width adjustment (< and > in resize mode)
+   - Row height adjustment (- and + in resize mode)
+   - Reset to default size (= in resize mode)
+   - Visual feedback during resize
+   - Keyboard-driven resize workflow
+
 ### Platform-Specific Features
 
 #### Web UI Only
@@ -466,10 +483,10 @@ These features will be implemented once in ui-core and used by all UIs:
    - Toggle between "normal" and "keyboard-only" modes
    - Affects how UI responds to mouse events
 
-1. **Resize Mode**
+1. **Mouse-driven Resize**
 
-   - Interactive column/row resizing
-   - Visual feedback during resize
+   - Drag handles for column/row resize
+   - Visual cursors and hover states
    - Snap-to-grid behavior
 
 1. **Canvas Rendering**
@@ -511,39 +528,72 @@ interface PlatformAdapter {
 
 ## Implementation Plan
 
-### Phase 1: Extract Core Package (Week 1)
+### Phase 1: Extract Core Package
 
 1. Create `packages/ui-core` structure using Bun workspace
-1. Design nested `UIState` types with proper discriminated unions
+1. Design nested `UIState` types with proper discriminated unions (including resize mode)
 1. Implement lightweight `UIStateMachine` class with transition validation
 1. Move `VimBehavior` from TUI to ui-core (adapt to support two-level modes)
 1. Create `SpreadsheetController` base class that uses the state machine
 1. Implement separate `CellVimBehavior` for cell-level editing
+1. Add `ResizeBehavior` for handling keyboard-driven resize operations
 1. Port `StateVisualizer` from Web UI for diagram generation
 1. Set up package exports and dependencies
 1. Add @gridcore/core as dependency for SpreadsheetEngine
+1. Write comprehensive unit tests for:
+   - UIStateMachine transitions
+   - VimBehavior command parsing
+   - ResizeBehavior operations
+   - State type guards
+1. Create integration tests for SpreadsheetController
+1. **Git commit**: "feat(ui-core): create ui-core package with shared UI logic"
 
-### Phase 2: Refactor TUI (Week 2)
+### Phase 2: Refactor TUI
 
 1. Make `SpreadsheetTUI` use `SpreadsheetController`
 1. Replace direct vim handling with controller
 1. Update rendering to use controller state
+1. Add resize mode rendering (show column/row sizes during resize)
 1. Test all vim commands still work
+1. Test resize mode operations
+1. Write tests for:
+   - TUI-specific rendering logic
+   - Terminal constraint handling
+   - Controller integration
+1. Run full test suite: `bun test`
+1. **Git commit**: "refactor(ui-tui): migrate to shared ui-core controller"
 
-### Phase 3: Refactor Web UI (Weeks 3-4)
+### Phase 3: Refactor Web UI
 
 1. Create `WebStateAdapter` for state mapping
 1. Replace `SpreadsheetStateMachine` with controller + adapter
 1. Update `KeyboardHandler` to delegate to controller
 1. Remove `GridVimBehavior` in favor of shared `VimBehavior`
+1. Adapt resize mode to work with both keyboard and mouse
 1. Update renderers to use adapted state
+1. Write tests for:
+   - WebStateAdapter mappings
+   - Canvas rendering with new state
+   - Mouse interaction handlers
+   - Keyboard-mouse mode switching
+1. Test parity with existing Web UI features
+1. Run full test suite: `bun test`
+1. **Git commit**: "refactor(ui-web): migrate to shared ui-core controller"
 
-### Phase 4: Testing & Polish (Week 5)
+### Phase 4: Testing & Polish
 
-1. Comprehensive testing of both UIs
-1. Performance profiling
-1. Documentation updates
-1. Migration guide for extensions
+1. Create end-to-end tests across both UIs
+1. Performance profiling and optimization
+1. Test coverage analysis (target 90%+ for ui-core)
+1. Documentation updates:
+   - API documentation for ui-core
+   - Migration guide for extensions
+   - Architecture diagrams
+1. Cross-browser testing for Web UI
+1. Terminal compatibility testing for TUI
+1. Create example integrations
+1. **Git commit**: "test: add comprehensive e2e tests for ui consolidation"
+1. **Git commit**: "docs: update documentation for ui-core architecture"
 
 ## Benefits
 
