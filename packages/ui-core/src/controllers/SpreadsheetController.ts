@@ -15,6 +15,8 @@ import {
   isEditingMode,
   isNavigationMode,
   isResizeMode,
+  isInsertMode,
+  isDeleteMode,
   type UIState,
 } from "../state/UIState";
 import { type Action, UIStateMachine } from "../state/UIStateMachine";
@@ -108,6 +110,10 @@ export class SpreadsheetController {
     } else if (isResizeMode(state)) {
       const action = this.resizeBehavior.handleKey(key, state);
       return this.processResizeAction(action, state);
+    } else if (isInsertMode(state)) {
+      return this.handleInsertMode(key, meta, state);
+    } else if (isDeleteMode(state)) {
+      return this.handleDeleteMode(key, meta, state);
     }
 
     return { ok: true, value: state };
@@ -817,5 +823,156 @@ export class SpreadsheetController {
 
     const rawValue = cellResult.value.rawValue;
     return rawValue !== null && rawValue !== undefined ? String(rawValue) : "";
+  }
+
+  // Structural operations handlers
+  private handleInsertMode(
+    key: string,
+    meta: KeyMeta,
+    state: UIState,
+  ): Result<UIState> {
+    if (!isInsertMode(state)) {
+      return { ok: false, error: "Not in insert mode" };
+    }
+
+    if (meta.key === "escape") {
+      return this.stateMachine.transition({ type: "EXIT_STRUCTURAL_INSERT_MODE" });
+    }
+
+    if (meta.key === "enter" || key === "\r" || key === "\n") {
+      // Confirm insert operation
+      this.executeInsertOperation(state);
+      return this.stateMachine.transition({ type: "EXIT_STRUCTURAL_INSERT_MODE" });
+    }
+
+    // Handle count input
+    if (key >= "1" && key <= "9" && !meta.ctrl && !meta.alt) {
+      const newCount = parseInt(key);
+      return this.stateMachine.transition({
+        type: "UPDATE_INSERT_COUNT",
+        count: newCount,
+      });
+    }
+
+    return { ok: true, value: state };
+  }
+
+  private handleDeleteMode(
+    key: string,
+    meta: KeyMeta,
+    state: UIState,
+  ): Result<UIState> {
+    if (!isDeleteMode(state)) {
+      return { ok: false, error: "Not in delete mode" };
+    }
+
+    if (meta.key === "escape") {
+      return this.stateMachine.transition({ type: "CANCEL_DELETE" });
+    }
+
+    if (key === "y" || key === "Y") {
+      // Confirm deletion
+      return this.stateMachine.transition({ type: "CONFIRM_DELETE" });
+    }
+
+    if (key === "n" || key === "N") {
+      // Cancel deletion
+      return this.stateMachine.transition({ type: "CANCEL_DELETE" });
+    }
+
+    if (meta.key === "enter" || key === "\r" || key === "\n") {
+      // Default to confirm on enter
+      return this.stateMachine.transition({ type: "CONFIRM_DELETE" });
+    }
+
+    return { ok: true, value: state };
+  }
+
+  // Structural operation methods
+  insertRows(beforeRow: number, count: number = 1): Result<UIState> {
+    // TODO: Implement actual row insertion logic with facade
+    // For now, just emit an event
+    this.emit({
+      type: "commandExecuted",
+      command: `insertRows ${beforeRow} ${count}`,
+    });
+    return { ok: true, value: this.getState() };
+  }
+
+  insertColumns(beforeCol: number, count: number = 1): Result<UIState> {
+    // TODO: Implement actual column insertion logic with facade  
+    // For now, just emit an event
+    this.emit({
+      type: "commandExecuted", 
+      command: `insertColumns ${beforeCol} ${count}`,
+    });
+    return { ok: true, value: this.getState() };
+  }
+
+  deleteRows(startRow: number, count: number = 1): Result<UIState> {
+    // TODO: Implement actual row deletion logic with facade
+    // For now, just emit an event
+    this.emit({
+      type: "commandExecuted",
+      command: `deleteRows ${startRow} ${count}`,
+    });
+    return { ok: true, value: this.getState() };
+  }
+
+  deleteColumns(startCol: number, count: number = 1): Result<UIState> {
+    // TODO: Implement actual column deletion logic with facade
+    // For now, just emit an event
+    this.emit({
+      type: "commandExecuted",
+      command: `deleteColumns ${startCol} ${count}`,
+    });
+    return { ok: true, value: this.getState() };
+  }
+
+  private executeInsertOperation(state: UIState): void {
+    if (!isInsertMode(state)) {
+      return;
+    }
+
+    if (state.insertType === "row") {
+      const insertRow = state.insertPosition === "before" ? state.targetIndex : state.targetIndex + 1;
+      this.insertRows(insertRow, state.count);
+    } else {
+      const insertCol = state.insertPosition === "before" ? state.targetIndex : state.targetIndex + 1;
+      this.insertColumns(insertCol, state.count);
+    }
+  }
+
+  // Helper methods for entering structural modes
+  enterInsertRowMode(position: "before" | "after" = "before"): Result<UIState> {
+    return this.stateMachine.transition({
+      type: "ENTER_STRUCTURAL_INSERT_MODE",
+      insertType: "row",
+      insertPosition: position,
+    });
+  }
+
+  enterInsertColumnMode(position: "before" | "after" = "before"): Result<UIState> {
+    return this.stateMachine.transition({
+      type: "ENTER_STRUCTURAL_INSERT_MODE",
+      insertType: "column", 
+      insertPosition: position,
+    });
+  }
+
+  enterDeleteRowMode(selection: number[]): Result<UIState> {
+    return this.stateMachine.transition({
+      type: "ENTER_DELETE_MODE",
+      deleteType: "row",
+      selection,
+    });
+  }
+
+  enterDeleteColumnMode(selection: number[]): Result<UIState> {
+    return this.stateMachine.transition({
+      type: "ENTER_DELETE_MODE",
+      deleteType: "column",
+      selection,
+    });
   }
 }

@@ -50,6 +50,23 @@ export type UIState =
       resizeIndex: number; // Which column/row is being resized
       originalSize: number; // Original width/height
       currentSize: number; // Current width/height during resize
+    }
+  | {
+      spreadsheetMode: "insert";
+      cursor: CellAddress;
+      viewport: ViewportInfo;
+      insertType: "row" | "column";
+      insertPosition: "before" | "after";
+      count: number;
+      targetIndex: number;
+    }
+  | {
+      spreadsheetMode: "delete";
+      cursor: CellAddress;
+      viewport: ViewportInfo;
+      deleteType: "row" | "column"; 
+      selection: number[]; // Indices to delete
+      confirmationPending: boolean;
     };
 
 // Type guards for safe access
@@ -77,8 +94,20 @@ export function isResizeMode(
   return state.spreadsheetMode === "resize";
 }
 
-// Helper to check if in insert mode within cell editing
-export function isInsertMode(state: UIState): boolean {
+export function isInsertMode(
+  state: UIState,
+): state is Extract<UIState, { spreadsheetMode: "insert" }> {
+  return state.spreadsheetMode === "insert";
+}
+
+export function isDeleteMode(
+  state: UIState,
+): state is Extract<UIState, { spreadsheetMode: "delete" }> {
+  return state.spreadsheetMode === "delete";
+}
+
+// Helper to check if in cell insert mode within cell editing
+export function isCellInsertMode(state: UIState): boolean {
   return isEditingMode(state) && state.cellMode === "insert";
 }
 
@@ -143,5 +172,38 @@ export function createResizeState(
     resizeIndex,
     originalSize: size,
     currentSize: size,
+  };
+}
+
+export function createInsertState(
+  cursor: CellAddress,
+  viewport: ViewportInfo,
+  insertType: "row" | "column",
+  insertPosition: "before" | "after"
+): UIState {
+  return {
+    spreadsheetMode: "insert",
+    cursor,
+    viewport,
+    insertType,
+    insertPosition,
+    count: 1,
+    targetIndex: insertType === "row" ? cursor.row : cursor.col,
+  };
+}
+
+export function createDeleteState(
+  cursor: CellAddress,
+  viewport: ViewportInfo,
+  deleteType: "row" | "column",
+  selection: number[]
+): UIState {
+  return {
+    spreadsheetMode: "delete",
+    cursor,
+    viewport,
+    deleteType,
+    selection,
+    confirmationPending: true,
   };
 }
