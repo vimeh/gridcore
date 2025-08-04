@@ -48,4 +48,8 @@ export { type Action, UIStateMachine } from "./state/UIStateMachine";
 
 // Utilities
 export { err, ok, type Result, unwrap, unwrapOr } from "./utils/Result";
-export { StateVisualizer } from "./utils/StateVisualizer";
+export {
+  analyzeStateHistory,
+  generateMermaidDiagram,
+  generateStateTable,
+} from "./utils/StateVisualizer";

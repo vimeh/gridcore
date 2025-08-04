@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { CellAddress } from "@gridcore/core";
 import { createNavigationState, type UIState } from "@gridcore/ui-core";
-import { StateAdapter } from "./StateAdapter";
+import { toDisplayState } from "./StateAdapter";
 
 describe("StateAdapter", () => {
   const mockCursor = { row: 5, col: 2 } as CellAddress;
@@ -9,7 +9,7 @@ describe("StateAdapter", () => {
 
   test("should convert navigation state", () => {
     const state = createNavigationState(mockCursor, mockViewport);
-    const display = StateAdapter.toDisplayState(state);
+    const display = toDisplayState(state);
 
     expect(display.modeString).toBe("NORMAL");
     expect(display.vimMode).toBe("NORMAL");
@@ -28,7 +28,7 @@ describe("StateAdapter", () => {
       cursorPosition: 5,
       editVariant: "i",
     };
-    const display = StateAdapter.toDisplayState(state);
+    const display = toDisplayState(state);
 
     expect(display.modeString).toBe("INSERT");
     expect(display.vimMode).toBe("CELL-INSERT (i)");
@@ -48,7 +48,7 @@ describe("StateAdapter", () => {
       visualStart: 1,
       visualType: "character",
     };
-    const display = StateAdapter.toDisplayState(state);
+    const display = toDisplayState(state);
 
     expect(display.modeString).toBe("VISUAL");
     expect(display.vimMode).toBe("CELL-VISUAL CHARACTER");
@@ -62,7 +62,7 @@ describe("StateAdapter", () => {
       viewport: mockViewport,
       commandValue: "wq",
     };
-    const display = StateAdapter.toDisplayState(state);
+    const display = toDisplayState(state);
 
     expect(display.modeString).toBe("COMMAND");
     expect(display.vimMode).toBe("COMMAND");
@@ -80,7 +80,7 @@ describe("StateAdapter", () => {
       originalSize: 10,
       currentSize: 15,
     };
-    const display = StateAdapter.toDisplayState(state);
+    const display = toDisplayState(state);
 
     expect(display.modeString).toBe("RESIZE");
     expect(display.vimMode).toBe("RESIZE");

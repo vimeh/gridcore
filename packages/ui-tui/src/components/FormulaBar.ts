@@ -1,6 +1,6 @@
 import type { ISpreadsheetFacade } from "@gridcore/core";
 import { isCommandMode, isEditingMode, type UIState } from "@gridcore/ui-core";
-import { StateAdapter } from "../adapters";
+import { toDisplayState } from "../adapters";
 import { type OptimizedBuffer, Renderable } from "../framework";
 
 export class FormulaBarComponent extends Renderable {
@@ -23,7 +23,7 @@ export class FormulaBarComponent extends Renderable {
 
   protected renderSelf(buffer: OptimizedBuffer): void {
     const state = this.getState();
-    const displayState = StateAdapter.toDisplayState(state);
+    const displayState = toDisplayState(state);
     const pos = this.getAbsolutePosition();
 
     // Clear the formula bar area

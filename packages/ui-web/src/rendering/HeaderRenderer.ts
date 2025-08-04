@@ -46,7 +46,7 @@ export class HeaderRenderer {
         name: "colHeader",
       },
       { canvas: this.cornerCanvas, ctx: this.cornerCtx, name: "corner" },
-    ].forEach(({ canvas, ctx, name }) => {
+    ].forEach(({ canvas, ctx }) => {
       const rect = canvas.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) {
         //   console.warn(

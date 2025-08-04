@@ -86,7 +86,17 @@ describe("CellEditor", () => {
     // Create CellEditor
     cellEditor = new CellEditor(
       container as unknown as HTMLElement,
-      viewport as any,
+      viewport as unknown as {
+        gridToScreen: (
+          address: CellAddress,
+        ) => { x: number; y: number; width: number; height: number } | null;
+        getVisibleRange: () => {
+          startRow: number;
+          endRow: number;
+          startCol: number;
+          endCol: number;
+        };
+      },
       {
         onCommit: (address: CellAddress, value: string) => {
           _committedAddress = address;
@@ -202,12 +212,12 @@ describe("CellEditor", () => {
     ) as unknown as HTMLDivElement;
 
     // Simulate escape key press
-    const escape = new KeyboardEvent("keydown", {
+    const escapeEvent = new KeyboardEvent("keydown", {
       key: "Escape",
       keyCode: 27,
       bubbles: true,
     });
-    editorDiv.dispatchEvent(escape);
+    editorDiv.dispatchEvent(escapeEvent);
 
     // Check controller state transitioned to normal mode
     const newState = controller.getState();

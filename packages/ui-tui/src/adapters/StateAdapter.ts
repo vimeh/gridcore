@@ -33,145 +33,169 @@ export interface TUIDisplayState {
   };
 }
 
-export class StateAdapter {
-  static toDisplayState(state: UIState): TUIDisplayState {
-    const base: TUIDisplayState = {
-      modeString: StateAdapter.getModeString(state),
-      cursorDisplay: StateAdapter.getCursorDisplay(state),
-      formulaBarContent: StateAdapter.getFormulaBarContent(state),
-      showFormulaCursor: false,
+export function toDisplayState(state: UIState): TUIDisplayState {
+  const base: TUIDisplayState = {
+    modeString: getModeString(state),
+    cursorDisplay: getCursorDisplay(state),
+    formulaBarContent: getFormulaBarContent(state),
+    showFormulaCursor: false,
+  };
+
+  // Add mode-specific details
+  if (isNavigationMode(state)) {
+    base.vimMode = "NORMAL";
+  } else if (isEditingMode(state)) {
+    base.showFormulaCursor = true;
+    base.formulaCursorPosition = state.cursorPosition;
+
+    // Add cell mode details
+    switch (state.cellMode) {
+      case "normal":
+        base.vimMode = "NORMAL";
+        break;
+      case "insert":
+        base.vimMode = "INSERT";
+        break;
+      case "visual":
+        base.vimMode = "VISUAL";
+        base.visualType = state.visualType;
+        break;
+    }
+  } else if (isCommandMode(state)) {
+    base.commandBuffer = state.commandValue;
+  } else if (isResizeMode(state)) {
+    base.resizeInfo = {
+      target: state.resizeTarget === "column" ? "Column" : "Row",
+      index: state.resizeIndex,
+      currentSize: state.currentSize,
+      originalSize: state.originalSize,
     };
+  }
 
-    // Add mode-specific details
-    if (isNavigationMode(state)) {
-      base.vimMode = "NORMAL";
-    } else if (isEditingMode(state)) {
-      base.showFormulaCursor = true;
-      base.formulaCursorPosition = state.cursorPosition;
+  return base;
+}
 
-      switch (state.cellMode) {
-        case "normal":
-          base.vimMode = "CELL-NORMAL";
-          break;
-        case "insert":
-          base.vimMode = `CELL-INSERT${state.editVariant ? ` (${state.editVariant})` : ""}`;
-          break;
-        case "visual":
-          base.vimMode = `CELL-VISUAL${state.visualType ? ` ${state.visualType.toUpperCase()}` : ""}`;
-          base.visualType = state.visualType;
-          break;
-      }
-    } else if (isCommandMode(state)) {
-      base.vimMode = "COMMAND";
-      base.commandBuffer = state.commandValue;
-    } else if (isResizeMode(state)) {
-      base.vimMode = "RESIZE";
-      base.resizeInfo = {
-        target: state.resizeTarget.toUpperCase(),
-        index: state.resizeIndex,
-        currentSize: state.currentSize,
-        originalSize: state.originalSize,
-      };
+function getModeString(state: UIState): string {
+  if (isNavigationMode(state)) {
+    return "Navigation";
+  } else if (isEditingMode(state)) {
+    switch (state.cellMode) {
+      case "normal":
+        return "Cell (Normal)";
+      case "insert":
+        return "Cell (Insert)";
+      case "visual":
+        return "Cell (Visual)";
+      default:
+        return "Cell";
     }
+  } else if (isCommandMode(state)) {
+    return "Command";
+  } else if (isResizeMode(state)) {
+    return `Resize ${state.resizeTarget === "column" ? "Column" : "Row"}`;
+  }
+  return "Unknown";
+}
 
-    return base;
+function getCursorDisplay(state: UIState): string {
+  const col = state.cursor.getColumnLabel();
+  const row = state.cursor.row + 1;
+  return `${col}${row}`;
+}
+
+function getFormulaBarContent(state: UIState): string {
+  if (isEditingMode(state)) {
+    return state.editingValue;
+  } else if (isCommandMode(state)) {
+    return `:${state.commandValue}`;
+  }
+  return "";
+}
+
+export function formatVimMode(vimMode?: string): string {
+  switch (vimMode) {
+    case "NORMAL":
+      return "-- NORMAL --";
+    case "INSERT":
+      return "-- INSERT --";
+    case "VISUAL":
+      return "-- VISUAL --";
+    case "VISUAL LINE":
+      return "-- VISUAL LINE --";
+    default:
+      return "";
+  }
+}
+
+export function formatResizeInfo(info?: TUIDisplayState["resizeInfo"]): string {
+  if (!info) return "";
+  const delta = info.currentSize - info.originalSize;
+  const sign = delta >= 0 ? "+" : "";
+  return `${info.target} ${info.index}: ${info.currentSize}px (${sign}${delta})`;
+}
+
+export function getSelectionRange(
+  state: UIState,
+): { start: number; end: number } | null {
+  if (!isEditingMode(state) || state.cellMode !== "visual") {
+    return null;
   }
 
-  private static getModeString(state: UIState): string {
-    if (isNavigationMode(state)) {
-      return "NORMAL";
-    } else if (isEditingMode(state)) {
-      switch (state.cellMode) {
-        case "normal":
-          return "EDIT";
-        case "insert":
-          return "INSERT";
-        case "visual":
-          return "VISUAL";
-      }
-    } else if (isCommandMode(state)) {
-      return "COMMAND";
-    } else if (isResizeMode(state)) {
-      return "RESIZE";
-    }
-    return "UNKNOWN";
+  const start = Math.min(
+    state.visualStart ?? state.cursorPosition,
+    state.cursorPosition,
+  );
+  const end = Math.max(
+    state.visualStart ?? state.cursorPosition,
+    state.cursorPosition,
+  );
+
+  return { start, end };
+}
+
+export function getVimCommandDisplay(
+  numberBuffer?: string,
+  commandBuffer?: string,
+): string {
+  return `${numberBuffer || ""}${commandBuffer || ""}`;
+}
+
+export function getResizeModeDisplay(
+  target: "row" | "column",
+  index: number,
+  currentSize: number,
+  originalSize: number,
+): string {
+  const targetName = target === "column" ? "Column" : "Row";
+  const delta = currentSize - originalSize;
+  const sign = delta >= 0 ? "+" : "";
+  return `${targetName} ${index}: ${currentSize}px (${sign}${delta})`;
+}
+
+export function hasVisualSelection(state: UIState): boolean {
+  return (
+    isEditingMode(state) &&
+    state.cellMode === "visual" &&
+    state.visualStart !== undefined
+  );
+}
+
+export function getVisualSelectionRange(state: UIState): {
+  start: number;
+  end: number;
+} | null {
+  if (!hasVisualSelection(state)) {
+    return null;
   }
 
-  private static getCursorDisplay(state: UIState): string {
-    const col = StateAdapter.columnIndexToLetter(state.cursor.col);
-    const row = state.cursor.row + 1; // 1-indexed for display
-    return `${col}${row}`;
-  }
+  const start = Math.min(
+    state.visualStart ?? state.cursorPosition,
+    state.cursorPosition,
+  );
+  const end = Math.max(
+    state.visualStart ?? state.cursorPosition,
+    state.cursorPosition,
+  );
 
-  private static getFormulaBarContent(state: UIState): string {
-    if (isEditingMode(state)) {
-      return state.editingValue;
-    } else if (isCommandMode(state)) {
-      return `:${state.commandValue}`;
-    }
-    return "";
-  }
-
-  private static columnIndexToLetter(index: number): string {
-    let letter = "";
-    let num = index;
-    while (num >= 0) {
-      letter = String.fromCharCode((num % 26) + 65) + letter;
-      num = Math.floor(num / 26) - 1;
-    }
-    return letter;
-  }
-
-  // Convert number buffer and command buffer for vim display
-  static getVimCommandDisplay(
-    numberBuffer?: string,
-    commandBuffer?: string,
-  ): string {
-    let display = "";
-    if (numberBuffer) {
-      display += numberBuffer;
-    }
-    if (commandBuffer) {
-      display += commandBuffer;
-    }
-    return display;
-  }
-
-  // Get resize mode display string
-  static getResizeModeDisplay(
-    resizeInfo: TUIDisplayState["resizeInfo"],
-  ): string {
-    if (!resizeInfo) return "";
-
-    const diff = resizeInfo.currentSize - resizeInfo.originalSize;
-    const sign = diff >= 0 ? "+" : "";
-
-    return `${resizeInfo.target} ${resizeInfo.index}: ${resizeInfo.currentSize} (${sign}${diff})`;
-  }
-
-  // Check if we should show visual selection
-  static hasVisualSelection(state: UIState): boolean {
-    return (
-      isEditingMode(state) &&
-      state.cellMode === "visual" &&
-      state.visualStart !== undefined
-    );
-  }
-
-  // Get visual selection range within a cell
-  static getVisualSelectionRange(
-    state: UIState,
-  ): { start: number; end: number } | null {
-    if (
-      !isEditingMode(state) ||
-      state.cellMode !== "visual" ||
-      state.visualStart === undefined
-    ) {
-      return null;
-    }
-
-    const start = Math.min(state.visualStart, state.cursorPosition);
-    const end = Math.max(state.visualStart, state.cursorPosition);
-    return { start, end };
-  }
+  return { start, end };
 }

@@ -3,14 +3,16 @@ import type { SpreadsheetFacade } from "@gridcore/core";
 import { CellAddress } from "@gridcore/core";
 import type { ViewportManager } from "../controllers/SpreadsheetController";
 import { SpreadsheetController } from "../controllers/SpreadsheetController";
+import type { UIState } from "../state/UIState";
 import { createNavigationState } from "../state/UIState";
+import type { Action } from "../state/UIStateMachine";
 import { ok } from "../utils/Result";
 
 describe("SpreadsheetController - Append Mode", () => {
   let controller: SpreadsheetController;
   let mockFacade: SpreadsheetFacade;
   let mockViewportManager: ViewportManager;
-  let stateChangeEvents: Array<{ state: any; action: any }> = [];
+  let stateChangeEvents: Array<{ state: UIState; action: Action }> = [];
 
   beforeEach(() => {
     stateChangeEvents = [];
@@ -44,7 +46,9 @@ describe("SpreadsheetController - Append Mode", () => {
     };
 
     // Create controller with initial state at A1
-    const cursor = CellAddress.create(0, 0).value!;
+    const cursorResult = CellAddress.create(0, 0);
+    if (!cursorResult.ok) throw new Error("Failed to create cursor");
+    const cursor = cursorResult.value;
     const initialState = createNavigationState(cursor, {
       startRow: 0,
       startCol: 0,
@@ -88,7 +92,8 @@ describe("SpreadsheetController - Append Mode", () => {
     });
 
     expect(result.ok).toBe(true);
-    const state = result.value!;
+    if (!result.ok) throw new Error("Expected result to be ok");
+    const state = result.value;
 
     // Should be in editing mode
     expect(state.spreadsheetMode).toBe("editing");
@@ -131,7 +136,8 @@ describe("SpreadsheetController - Append Mode", () => {
     });
 
     expect(result.ok).toBe(true);
-    const state = result.value!;
+    if (!result.ok) throw new Error("Expected result to be ok");
+    const state = result.value;
 
     expect(state.spreadsheetMode).toBe("editing");
     if (state.spreadsheetMode === "editing") {
@@ -152,7 +158,8 @@ describe("SpreadsheetController - Append Mode", () => {
     });
 
     expect(result.ok).toBe(true);
-    const state = result.value!;
+    if (!result.ok) throw new Error("Expected result to be ok");
+    const state = result.value;
 
     expect(state.spreadsheetMode).toBe("editing");
     if (state.spreadsheetMode === "editing") {
@@ -181,7 +188,8 @@ describe("SpreadsheetController - Append Mode", () => {
     });
 
     expect(result.ok).toBe(true);
-    const state = result.value!;
+    if (!result.ok) throw new Error("Expected result to be ok");
+    const state = result.value;
 
     // Should still be in editing mode but in normal cell mode
     expect(state.spreadsheetMode).toBe("editing");
@@ -216,7 +224,8 @@ describe("SpreadsheetController - Append Mode", () => {
     });
 
     expect(result.ok).toBe(true);
-    const state = result.value!;
+    if (!result.ok) throw new Error("Expected result to be ok");
+    const state = result.value;
 
     // Should be back in navigation mode
     expect(state.spreadsheetMode).toBe("navigation");

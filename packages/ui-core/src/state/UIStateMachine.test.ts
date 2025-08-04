@@ -4,8 +4,9 @@ import {
   isEditingMode,
   isNavigationMode,
   isResizeMode,
+  type UIState,
 } from "./UIState";
-import { UIStateMachine } from "./UIStateMachine";
+import { type Action, UIStateMachine } from "./UIStateMachine";
 
 describe("UIStateMachine", () => {
   let stateMachine: UIStateMachine;
@@ -319,8 +320,8 @@ describe("UIStateMachine", () => {
   describe("subscription", () => {
     test("should notify listeners on state change", () => {
       let notificationCount = 0;
-      let lastState: any;
-      let lastAction: any;
+      let lastState: UIState | undefined;
+      let lastAction: Action | undefined;
 
       const unsubscribe = stateMachine.subscribe((state, action) => {
         notificationCount++;

@@ -1,4 +1,4 @@
-import { CellAddress, Workbook } from "@gridcore/core";
+import { type Cell, CellAddress, Workbook } from "@gridcore/core";
 import { SpreadsheetController, type ViewportManager } from "@gridcore/ui-core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
@@ -260,7 +260,7 @@ controller.subscribe((event) => {
       // Update formula bar with editing value
       formulaBar.setActiveCell(state.cursor, {
         rawValue: state.editingValue,
-      } as any);
+      } as Cell);
       formulaBar.setEditingState(true);
     } else {
       // Re-enable formula bar when not editing
@@ -304,7 +304,7 @@ const tabBar = new TabBar({
     // Create new controller for the new sheet
     const newController = new SpreadsheetController({
       facade,
-      viewportManager: viewportManager!,
+      viewportManager: viewportManager as ViewportManager,
     });
 
     // Subscribe to controller state changes to update formula bar during editing
@@ -315,7 +315,7 @@ const tabBar = new TabBar({
           // Update formula bar with editing value
           formulaBar.setActiveCell(state.cursor, {
             rawValue: state.editingValue,
-          } as any);
+          } as Cell);
           formulaBar.setEditingState(true);
         } else {
           // Re-enable formula bar when not editing

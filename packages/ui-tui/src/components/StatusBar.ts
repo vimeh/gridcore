@@ -1,5 +1,11 @@
 import type { UIState } from "@gridcore/ui-core";
-import { StateAdapter } from "../adapters";
+import {
+  getResizeModeDisplay,
+  getVimCommandDisplay,
+  getVisualSelectionRange,
+  hasVisualSelection,
+  toDisplayState,
+} from "../adapters";
 import { type OptimizedBuffer, Renderable } from "../framework";
 
 export class StatusBarComponent extends Renderable {
@@ -25,7 +31,7 @@ export class StatusBarComponent extends Renderable {
 
   protected renderSelf(buffer: OptimizedBuffer): void {
     const state = this.getState();
-    const displayState = StateAdapter.toDisplayState(state);
+    const displayState = toDisplayState(state);
     const pos = this.getAbsolutePosition();
 
     // Clear the status bar
@@ -67,7 +73,7 @@ export class StatusBarComponent extends Renderable {
 
     // Show command/number buffer if present
     if (displayState.numberBuffer || displayState.commandBuffer) {
-      const vimInfo = StateAdapter.getVimCommandDisplay(
+      const vimInfo = getVimCommandDisplay(
         displayState.numberBuffer,
         displayState.commandBuffer,
       );
@@ -99,8 +105,11 @@ export class StatusBarComponent extends Renderable {
 
     // Show resize info
     if (displayState.resizeInfo) {
-      const resizeText = StateAdapter.getResizeModeDisplay(
-        displayState.resizeInfo,
+      const resizeText = getResizeModeDisplay(
+        displayState.resizeInfo.target === "Column" ? "column" : "row",
+        displayState.resizeInfo.index,
+        displayState.resizeInfo.currentSize,
+        displayState.resizeInfo.originalSize,
       );
       buffer.setText(
         currentX,
@@ -146,11 +155,8 @@ export class StatusBarComponent extends Renderable {
     const usedCols = 26;
 
     // Check if we have a visual selection in editing mode
-    if (
-      state.spreadsheetMode === "editing" &&
-      StateAdapter.hasVisualSelection(state)
-    ) {
-      const range = StateAdapter.getVisualSelectionRange(state);
+    if (state.spreadsheetMode === "editing" && hasVisualSelection(state)) {
+      const range = getVisualSelectionRange(state);
       if (range) {
         const chars = range.end - range.start + 1;
         return `Selected: ${chars} chars`;
