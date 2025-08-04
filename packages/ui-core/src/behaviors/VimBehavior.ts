@@ -79,7 +79,8 @@ export type CellVimAction =
         | "start"
         | "end"
         | "wordForward"
-        | "wordBackward";
+        | "wordBackward"
+        | "wordEnd";
       count?: number;
     }
   | {

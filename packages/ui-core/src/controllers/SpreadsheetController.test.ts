@@ -481,7 +481,9 @@ describe("SpreadsheetController", () => {
 
   describe("getEngine", () => {
     test("returns underlying spreadsheet engine", () => {
-      expect(controller.getEngine()).toBe(engine as unknown as SpreadsheetFacade);
+      expect(controller.getEngine()).toBe(
+        engine as unknown as SpreadsheetFacade,
+      );
     });
   });
 });

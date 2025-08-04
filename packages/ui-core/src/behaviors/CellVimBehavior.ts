@@ -1,4 +1,4 @@
-import type { CellMode, InsertMode, UIState } from "../state/UIState";
+import type { UIState } from "../state/UIState";
 import { isEditingMode } from "../state/UIState";
 import type { CellVimAction, KeyMeta } from "./VimBehavior";
 
@@ -7,6 +7,9 @@ interface CellVimInternalState {
   commandBuffer: string;
   commandTimeout?: ReturnType<typeof setTimeout>;
   operator?: string;
+  operatorPending: boolean;
+  textObjectModifier?: string; // 'i' or 'a'
+  lastAction?: string; // for repeat (.)
 }
 
 export class CellVimBehavior {
@@ -17,6 +20,7 @@ export class CellVimBehavior {
     this.internalState = {
       numberBuffer: "",
       commandBuffer: "",
+      operatorPending: false,
     };
   }
 
@@ -66,6 +70,11 @@ export class CellVimBehavior {
     state: UIState,
   ): CellVimAction {
     if (!isEditingMode(state)) return { type: "none" };
+
+    // Handle operator pending state
+    if (this.internalState.operatorPending) {
+      return this.handleOperatorPending(key, meta, state);
+    }
 
     // Handle number accumulation
     if (/\d/.test(key) && (this.internalState.numberBuffer || key !== "0")) {
@@ -117,6 +126,9 @@ export class CellVimBehavior {
       case "b":
         this.clearBuffers();
         return { type: "moveCursor", direction: "wordBackward", count };
+      case "e":
+        this.clearBuffers();
+        return { type: "moveCursor", direction: "wordEnd", count };
 
       // Insert modes
       case "i":
@@ -131,6 +143,14 @@ export class CellVimBehavior {
       case "I":
         this.clearBuffers();
         return { type: "enterInsertMode", variant: "I" };
+      case "o":
+        // In single-line cell context, just go to end
+        this.clearBuffers();
+        return { type: "moveCursor", direction: "end" };
+      case "O":
+        // In single-line cell context, just go to beginning
+        this.clearBuffers();
+        return { type: "moveCursor", direction: "start" };
 
       // Visual mode
       case "v":
@@ -162,8 +182,9 @@ export class CellVimBehavior {
       // Delete/change/yank operators
       case "d":
       case "c":
-        this.startCommandBuffer(key);
+      case "y":
         this.internalState.operator = key;
+        this.internalState.operatorPending = true;
         return { type: "none" };
 
       default:
@@ -215,7 +236,7 @@ export class CellVimBehavior {
 
   private handleVisualMode(
     key: string,
-    meta: KeyMeta,
+    _meta: KeyMeta,
     state: UIState,
   ): CellVimAction {
     if (!isEditingMode(state) || state.cellMode !== "visual")
@@ -285,6 +306,70 @@ export class CellVimBehavior {
         }
         return { type: "none" };
     }
+  }
+
+  private handleOperatorPending(
+    key: string,
+    _meta: KeyMeta,
+    state: UIState,
+  ): CellVimAction {
+    const operator = this.internalState.operator;
+    if (!operator || !isEditingMode(state)) {
+      this.internalState.operatorPending = false;
+      return { type: "none" };
+    }
+
+    // Handle double operators (dd, cc, yy)
+    if (key === operator) {
+      this.clearBuffers();
+      this.internalState.operatorPending = false;
+
+      switch (operator) {
+        case "d":
+          return {
+            type: "deleteText",
+            range: { start: 0, end: state.editingValue.length },
+          };
+        case "c":
+          // Will delete all and UI should enter insert mode
+          return {
+            type: "deleteText",
+            range: { start: 0, end: state.editingValue.length },
+          };
+        case "y":
+          // Would copy to clipboard in real implementation
+          return { type: "none" };
+      }
+    }
+
+    // Text objects
+    if (key === "i" || key === "a") {
+      // Store modifier and wait for text object
+      this.internalState.textObjectModifier = key;
+      return { type: "none" };
+    }
+
+    // Check if we're waiting for text object
+    if (this.internalState.textObjectModifier) {
+      const handled = this.handleTextObject(
+        operator,
+        this.internalState.textObjectModifier,
+        key,
+        state,
+      );
+      this.clearBuffers();
+      this.internalState.operatorPending = false;
+      return handled;
+    }
+
+    // Handle motion after operator
+    const count = this.getCount();
+    const motion = this.getMotionFromOperator(operator, key, state, count);
+
+    this.clearBuffers();
+    this.internalState.operatorPending = false;
+
+    return motion;
   }
 
   private handleControlKey(
@@ -394,6 +479,266 @@ export class CellVimBehavior {
     return this.getDeleteMotion(motion, state, count);
   }
 
+  private getMotionFromOperator(
+    operator: string,
+    motion: string,
+    state: UIState,
+    count: number,
+  ): CellVimAction {
+    if (!isEditingMode(state)) return { type: "none" };
+
+    const pos = state.cursorPosition;
+    const text = state.editingValue;
+    let range: { start: number; end: number } | null = null;
+
+    switch (motion) {
+      case "w": {
+        let end = pos;
+        for (let i = 0; i < count; i++) {
+          end = this.findWordBoundary(text, end, true);
+        }
+        range = { start: pos, end };
+        break;
+      }
+      case "b": {
+        let start = pos;
+        for (let i = 0; i < count; i++) {
+          start = this.findWordBoundary(text, start, false);
+        }
+        range = { start, end: pos };
+        break;
+      }
+      case "e": {
+        let end = pos;
+        for (let i = 0; i < count; i++) {
+          end = this.findWordEnd(text, end);
+        }
+        range = { start: pos, end: end + 1 };
+        break;
+      }
+      case "$":
+        range = { start: pos, end: text.length };
+        break;
+      case "0":
+        range = { start: 0, end: pos };
+        break;
+      default:
+        return { type: "none" };
+    }
+
+    if (!range) return { type: "none" };
+
+    switch (operator) {
+      case "d":
+      case "c":
+        return { type: "deleteText", range };
+      case "y":
+        // Would copy to clipboard
+        return { type: "none" };
+      default:
+        return { type: "none" };
+    }
+  }
+
+  private handleTextObject(
+    operator: string,
+    modifier: string,
+    object: string,
+    state: UIState,
+  ): CellVimAction {
+    if (!isEditingMode(state)) return { type: "none" };
+
+    let boundaries: [number, number] | null = null;
+    const text = state.editingValue;
+    const pos = state.cursorPosition;
+
+    switch (object) {
+      case "w":
+        boundaries = this.getWordBoundaries(text, pos);
+        if (boundaries && modifier === "a") {
+          // "a word" includes surrounding whitespace
+          let [start, end] = boundaries;
+          while (start > 0 && text[start - 1] === " ") start--;
+          while (end < text.length - 1 && text[end + 1] === " ") end++;
+          boundaries = [start, end];
+        }
+        break;
+
+      case '"':
+      case "'":
+      case "`":
+        boundaries = this.getQuoteBoundaries(text, pos, object);
+        if (boundaries && modifier === "a") {
+          // Include the quotes themselves
+          boundaries[0]--;
+          boundaries[1]++;
+        }
+        break;
+
+      case "(":
+      case ")":
+      case "b":
+        boundaries = this.getParenBoundaries(text, pos, "(", ")");
+        if (boundaries && modifier === "a") {
+          // Include the parentheses
+          boundaries[0]--;
+          boundaries[1]++;
+        }
+        break;
+
+      case "[":
+      case "]":
+        boundaries = this.getParenBoundaries(text, pos, "[", "]");
+        if (boundaries && modifier === "a") {
+          boundaries[0]--;
+          boundaries[1]++;
+        }
+        break;
+
+      case "{":
+      case "}":
+      case "B":
+        boundaries = this.getParenBoundaries(text, pos, "{", "}");
+        if (boundaries && modifier === "a") {
+          boundaries[0]--;
+          boundaries[1]++;
+        }
+        break;
+
+      default:
+        return { type: "none" };
+    }
+
+    if (!boundaries) return { type: "none" };
+
+    const [start, end] = boundaries;
+    const range = { start, end: end + 1 };
+
+    switch (operator) {
+      case "d":
+      case "c":
+        return { type: "deleteText", range };
+      case "y":
+        // Would copy to clipboard
+        return { type: "none" };
+      default:
+        return { type: "none" };
+    }
+  }
+
+  private getWordBoundaries(
+    text: string,
+    pos: number,
+  ): [number, number] | null {
+    const isWordChar = (ch: string) => /\w/.test(ch);
+
+    if (pos >= text.length) return null;
+
+    // If on whitespace, no word boundaries
+    if (!isWordChar(text[pos])) {
+      return null;
+    }
+
+    let start = pos;
+    let end = pos;
+
+    // Find word start
+    while (start > 0 && isWordChar(text[start - 1])) start--;
+
+    // Find word end
+    while (end < text.length - 1 && isWordChar(text[end + 1])) end++;
+
+    return [start, end];
+  }
+
+  private getQuoteBoundaries(
+    text: string,
+    pos: number,
+    quote: string,
+  ): [number, number] | null {
+    // Find the nearest quote pair that contains the cursor
+    let start = -1;
+    let end = -1;
+
+    // Look backward for opening quote
+    for (let i = pos; i >= 0; i--) {
+      if (text[i] === quote) {
+        start = i;
+        break;
+      }
+    }
+
+    if (start === -1) return null;
+
+    // Look forward for closing quote
+    for (let i = pos; i < text.length; i++) {
+      if (text[i] === quote && i > start) {
+        end = i;
+        break;
+      }
+    }
+
+    if (end === -1) return null;
+
+    // Return inner boundaries (excluding quotes)
+    return [start + 1, end - 1];
+  }
+
+  private getParenBoundaries(
+    text: string,
+    pos: number,
+    open: string,
+    close: string,
+  ): [number, number] | null {
+    let depth = 0;
+    let start = -1;
+    let end = -1;
+
+    // First check if we're inside parentheses by scanning backwards
+    for (let i = pos; i >= 0; i--) {
+      if (text[i] === close) {
+        depth++;
+      } else if (text[i] === open) {
+        if (depth === 0) {
+          start = i;
+          break;
+        }
+        depth--;
+      }
+    }
+
+    if (start === -1) return null;
+
+    // Now find the matching closing paren
+    depth = 0;
+    for (let i = start + 1; i < text.length; i++) {
+      if (text[i] === open) {
+        depth++;
+      } else if (text[i] === close) {
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+        depth--;
+      }
+    }
+
+    if (end === -1) return null;
+
+    // Return inner boundaries (excluding parens)
+    return [start + 1, end - 1];
+  }
+
+  private findWordEnd(text: string, position: number): number {
+    const isWordChar = (ch: string) => /\w/.test(ch);
+    let pos = position;
+
+    // Skip to end of current word
+    while (pos < text.length - 1 && isWordChar(text[pos + 1])) pos++;
+
+    return pos;
+  }
+
   private findWordBoundary(
     text: string,
     position: number,
@@ -419,16 +764,6 @@ export class CellVimBehavior {
     return pos;
   }
 
-  private startCommandBuffer(key: string): void {
-    this.internalState.commandBuffer = key;
-    if (this.internalState.commandTimeout) {
-      clearTimeout(this.internalState.commandTimeout);
-    }
-    this.internalState.commandTimeout = setTimeout(() => {
-      this.clearBuffers();
-    }, this.COMMAND_TIMEOUT);
-  }
-
   private getCount(): number {
     const count = parseInt(this.internalState.numberBuffer, 10);
     return Number.isNaN(count) || count === 0 ? 1 : count;
@@ -446,6 +781,8 @@ export class CellVimBehavior {
   private clearCommandBuffer(): void {
     this.internalState.commandBuffer = "";
     this.internalState.operator = undefined;
+    this.internalState.operatorPending = false;
+    this.internalState.textObjectModifier = undefined;
     if (this.internalState.commandTimeout) {
       clearTimeout(this.internalState.commandTimeout);
       this.internalState.commandTimeout = undefined;

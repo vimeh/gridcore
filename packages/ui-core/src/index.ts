@@ -10,6 +10,15 @@ export {
   type VimAction,
   VimBehavior,
 } from "./behaviors/VimBehavior";
+
+// VimMode - unified interface for vim text editing
+export {
+  type EditMode,
+  type VimCallbacks,
+  VimMode,
+  type VimModeType,
+  type VimState,
+} from "./behaviors/VimMode";
 // Controller
 export {
   type ControllerEvent,

@@ -476,4 +476,447 @@ describe("CellVimBehavior", () => {
       });
     });
   });
+
+  describe("Text objects", () => {
+    test("diw deletes inner word", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 6,
+        editingValue: "hello world test",
+      };
+      
+      // Press d
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Press i
+      const iAction = behavior.handleKeyPress(
+        "i",
+        { key: "i", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      expect(iAction).toEqual({ type: "none" });
+      
+      // Press w
+      const action = behavior.handleKeyPress(
+        "w",
+        { key: "w", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete "world" (positions 6-10)
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 6, end: 11 },
+      });
+    });
+
+    test("daw deletes a word including surrounding spaces", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 6,
+        editingValue: "hello world test",
+      };
+      
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "a",
+        { key: "a", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        "w",
+        { key: "w", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete "world " (positions 5-11 plus trailing space)
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 5, end: 12 },
+      });
+    });
+
+    test('di" deletes inside quotes', () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 8,
+        editingValue: 'hello "world" test',
+      };
+      
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "i",
+        { key: "i", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        '"',
+        { key: '"', ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete "world" (inside quotes)
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 7, end: 12 },
+      });
+    });
+
+    test('da" deletes quotes and content', () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 8,
+        editingValue: 'hello "world" test',
+      };
+      
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "a",
+        { key: "a", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        '"',
+        { key: '"', ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete "world" including quotes
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 6, end: 13 },
+      });
+    });
+
+    test("di( deletes inside parentheses", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 8,
+        editingValue: "hello (world) test",
+      };
+      
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "i",
+        { key: "i", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        "(",
+        { key: "(", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete "world" (inside parentheses)
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 7, end: 12 },
+      });
+    });
+
+    test("dib also deletes inside parentheses", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 8,
+        editingValue: "hello (world) test",
+      };
+      
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "i",
+        { key: "i", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        "b",
+        { key: "b", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete "world" (inside parentheses)
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 7, end: 12 },
+      });
+    });
+
+    test("di[ deletes inside brackets", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 8,
+        editingValue: "hello [world] test",
+      };
+      
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "i",
+        { key: "i", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        "[",
+        { key: "[", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete "world" (inside brackets)
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 7, end: 12 },
+      });
+    });
+
+    test("diB deletes inside braces", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 8,
+        editingValue: "hello {world} test",
+      };
+      
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "i",
+        { key: "i", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        "B",
+        { key: "B", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete "world" (inside braces)
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 7, end: 12 },
+      });
+    });
+
+    test("text object with nested parentheses", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 12,
+        editingValue: "outer (inner (text) more) end",
+      };
+      
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "i",
+        { key: "i", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        "(",
+        { key: "(", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete content of outer parentheses
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 7, end: 24 },
+      });
+    });
+
+    test("ciw changes inner word", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 6,
+        editingValue: "hello world test",
+      };
+      
+      behavior.handleKeyPress(
+        "c",
+        { key: "c", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "i",
+        { key: "i", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        "w",
+        { key: "w", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete "world" for change operation
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 6, end: 11 },
+      });
+    });
+
+    test("yiw would yank inner word", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 6,
+        editingValue: "hello world test",
+      };
+      
+      behavior.handleKeyPress(
+        "y",
+        { key: "y", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      behavior.handleKeyPress(
+        "i",
+        { key: "i", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        "w",
+        { key: "w", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Yank is not fully implemented yet
+      expect(action).toEqual({ type: "none" });
+    });
+  });
+
+  describe("Word end movement", () => {
+    test("e moves to end of word", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 0,
+        editingValue: "hello world test",
+      };
+      
+      const action = behavior.handleKeyPress(
+        "e",
+        { key: "e", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      expect(action).toEqual({
+        type: "moveCursor",
+        direction: "wordEnd",
+        count: 1,
+      });
+    });
+
+    test("de deletes to end of word", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 0,
+        editingValue: "hello world test",
+      };
+      
+      behavior.handleKeyPress(
+        "d",
+        { key: "d", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      const action = behavior.handleKeyPress(
+        "e",
+        { key: "e", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      // Should delete from 0 to end of "hello" (position 4, but range end is exclusive so 5)
+      expect(action).toEqual({
+        type: "deleteText",
+        range: { start: 0, end: 5 },
+      });
+    });
+  });
+
+  describe("o and O commands", () => {
+    test("o moves to end of line", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 5,
+        editingValue: "hello world",
+      };
+      
+      const action = behavior.handleKeyPress(
+        "o",
+        { key: "o", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      expect(action).toEqual({
+        type: "moveCursor",
+        direction: "end",
+      });
+    });
+
+    test("O moves to beginning of line", () => {
+      const state = {
+        ...editingState,
+        cursorPosition: 5,
+        editingValue: "hello world",
+      };
+      
+      const action = behavior.handleKeyPress(
+        "O",
+        { key: "O", ctrl: false, shift: false, alt: false },
+        state,
+      );
+      
+      expect(action).toEqual({
+        type: "moveCursor",
+        direction: "start",
+      });
+    });
+  });
 });
