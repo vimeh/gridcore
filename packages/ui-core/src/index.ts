@@ -1,5 +1,8 @@
 // State types and utilities
 
+// Commands
+export * from "./commands";
+
 export { CellVimBehavior } from "./behaviors/CellVimBehavior";
 export { type ResizeAction, ResizeBehavior } from "./behaviors/ResizeBehavior";
 
@@ -28,11 +31,13 @@ export {
 } from "./controllers/SpreadsheetController";
 export {
   type CellMode,
+  createBulkOperationState,
   createCommandState,
   createEditingState,
   createNavigationState,
   createResizeState,
   type InsertMode,
+  isBulkOperationMode,
   isCommandMode,
   isEditingMode,
   isInsertMode,
