@@ -3,7 +3,7 @@ import type { UIStateMachine } from "../state/UIStateMachine";
 /**
  * Analyzes the UIStateMachine's transitions to build a state hierarchy
  */
-function analyzeTransitions(stateMachine: UIStateMachine) {
+function analyzeTransitions() {
   const stateHierarchy = new Map<string, Set<string>>();
   const transitionMap = new Map<string, Map<string, string>>();
   const allActions = new Set<string>();
@@ -83,8 +83,8 @@ function analyzeTransitions(stateMachine: UIStateMachine) {
 /**
  * Generates a Mermaid diagram of the state machine transitions
  */
-export function generateMermaidDiagram(stateMachine: UIStateMachine): string {
-  const { stateHierarchy, transitionMap } = analyzeTransitions(stateMachine);
+export function generateMermaidDiagram(_stateMachine: UIStateMachine): string {
+  const { stateHierarchy, transitionMap } = analyzeTransitions();
   const lines: string[] = ["stateDiagram-v2"];
 
   // Add initial state
@@ -136,8 +136,8 @@ export function generateMermaidDiagram(stateMachine: UIStateMachine): string {
 /**
  * Generates a state transition table in text format
  */
-export function generateStateTable(stateMachine: UIStateMachine): string {
-  const { transitionMap } = analyzeTransitions(stateMachine);
+export function generateStateTable(_stateMachine: UIStateMachine): string {
+  const { transitionMap } = analyzeTransitions();
   const headers = ["Current State", "Action", "Next State"];
   const transitions: string[][] = [];
 
@@ -177,8 +177,8 @@ export function generateStateTable(stateMachine: UIStateMachine): string {
 /**
  * Generates a PlantUML diagram of the state machine transitions
  */
-export function generatePlantUMLDiagram(stateMachine: UIStateMachine): string {
-  const { stateHierarchy, transitionMap } = analyzeTransitions(stateMachine);
+export function generatePlantUMLDiagram(_stateMachine: UIStateMachine): string {
+  const { stateHierarchy, transitionMap } = analyzeTransitions();
   const lines: string[] = ["@startuml", "[*] --> navigation"];
 
   for (const [state, substates] of stateHierarchy) {
@@ -237,7 +237,7 @@ export function generateHTMLDocumentation(
     analysis.match(/Total transitions: (\d+)/)?.[1] || "0";
 
   // Count unique states and actions from the transition analysis
-  const { stateHierarchy, allActions } = analyzeTransitions(stateMachine);
+  const { stateHierarchy, allActions } = analyzeTransitions();
   const allStates = new Set<string>();
   for (const [state, substates] of stateHierarchy) {
     allStates.add(state);
