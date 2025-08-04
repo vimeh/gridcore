@@ -66,6 +66,11 @@ export class Viewport {
     };
   }
 
+  scrollTo(row: number, col: number): void {
+    const address = { row, col };
+    this.scrollToCell(address);
+  }
+
   scrollToCell(
     cell: CellAddress,
     position: "center" | "top" | "bottom" = "center",

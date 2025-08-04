@@ -1,15 +1,6 @@
 import type { CellAddress } from "@gridcore/core";
+import type { SpreadsheetController } from "@gridcore/ui-core";
 import { KEY_CODES } from "../constants";
-import {
-  type EditMode,
-  VimBehavior,
-  type VimBehaviorCallbacks,
-} from "../interaction/VimMode";
-import type {
-  InsertMode,
-  SpreadsheetState,
-  SpreadsheetStateMachine,
-} from "../state/SpreadsheetStateMachine";
 import type { Viewport } from "./Viewport";
 
 export interface CellEditorCallbacks {
@@ -21,20 +12,15 @@ export interface CellEditorCallbacks {
 }
 
 export interface CellEditorOptions extends CellEditorCallbacks {
-  modeStateMachine?: SpreadsheetStateMachine;
+  controller?: SpreadsheetController;
 }
 
 export class CellEditor {
   private editorDiv: HTMLDivElement;
   private isEditing: boolean = false;
   private currentCell: CellAddress | null = null;
-  private vimBehavior: VimBehavior;
-  private modeIndicator: HTMLDivElement;
-  private blockCursor: HTMLDivElement;
-  private ignoreNextBlur: boolean = false;
-  private modeStateMachine?: SpreadsheetStateMachine;
+  private controller?: SpreadsheetController;
   private callbacks: CellEditorCallbacks;
-  private unsubscribeModeChange?: () => void;
 
   constructor(
     private container: HTMLElement,
@@ -42,33 +28,10 @@ export class CellEditor {
     options: CellEditorOptions,
   ) {
     this.callbacks = options;
-    this.modeStateMachine = options.modeStateMachine;
+    this.controller = options.controller;
 
-    // Create VimBehavior with callbacks that connect to ModeManager
-    const vimCallbacks: VimBehaviorCallbacks = {
-      onModeChangeRequest: (mode: string, editMode?: EditMode) => {
-        this.handleVimModeChangeRequest(mode, editMode);
-      },
-      onCursorMove: this.updateCursorPosition.bind(this),
-      onTextChange: this.handleTextChange.bind(this),
-    };
-
-    this.vimBehavior = new VimBehavior(vimCallbacks, () =>
-      this.getCurrentCellMode(),
-    );
     this.editorDiv = this.createEditor();
-    this.modeIndicator = this.createModeIndicator();
-    this.blockCursor = this.createBlockCursor();
-    this.editorDiv.appendChild(this.blockCursor);
     this.container.appendChild(this.editorDiv);
-    this.container.appendChild(this.modeIndicator);
-
-    // Subscribe to mode changes if SpreadsheetModeStateMachine is available
-    if (this.modeStateMachine) {
-      this.unsubscribeModeChange = this.modeStateMachine.subscribe(
-        this.handleModeStateChange.bind(this),
-      );
-    }
   }
 
   private createEditor(): HTMLDivElement {
@@ -99,41 +62,11 @@ export class CellEditor {
     return div;
   }
 
-  private createModeIndicator(): HTMLDivElement {
-    const indicator = document.createElement("div");
-    indicator.className = "mode-indicator";
-    indicator.style.position = "absolute";
-    indicator.style.display = "none";
-    indicator.style.padding = "2px 6px";
-    indicator.style.fontSize = "11px";
-    indicator.style.fontWeight = "bold";
-    indicator.style.color = "white";
-    indicator.style.borderRadius = "3px";
-    indicator.style.zIndex = "1001";
-    indicator.style.pointerEvents = "none";
-    return indicator;
-  }
-
-  private createBlockCursor(): HTMLDivElement {
-    const cursor = document.createElement("div");
-    cursor.className = "block-cursor";
-    cursor.style.position = "absolute";
-    cursor.style.display = "none";
-    cursor.style.top = "0";
-    cursor.style.left = "0";
-    cursor.style.width = "1ch";
-    cursor.style.height = "1.5em";
-    cursor.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
-    cursor.style.pointerEvents = "none";
-    cursor.style.transition = "left 0.1s ease-out";
-    cursor.style.zIndex = "1";
-    return cursor;
-  }
 
   startEditing(
     cell: CellAddress,
     initialValue: string = "",
-    mode: "insert" | "append" | "replace" = "append",
+    cursorPosition: number = 0,
   ): void {
     if (this.isEditing) {
       this.commitEdit();

@@ -1,4 +1,8 @@
 import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
+import {
+  SpreadsheetController,
+  type ViewportManager,
+} from "@gridcore/ui-core";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
 import { MouseHandler } from "../interaction/MouseHandler";
 import { ResizeHandler } from "../interaction/ResizeHandler";
@@ -8,10 +12,7 @@ import { DebugRenderer } from "../rendering/DebugRenderer";
 import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
 import { HeaderRenderer } from "../rendering/HeaderRenderer";
 import { SelectionRenderer } from "../rendering/SelectionRenderer";
-import type {
-  InteractionMode,
-  SpreadsheetStateMachine,
-} from "../state/SpreadsheetStateMachine";
+import { WebStateAdapter, type InteractionMode } from "../state/WebStateAdapter";
 import { CellEditor } from "./CellEditor";
 import { Viewport } from "./Viewport";
 
@@ -19,7 +20,7 @@ export interface CanvasGridOptions {
   theme?: GridTheme;
   totalRows?: number;
   totalCols?: number;
-  modeStateMachine?: SpreadsheetStateMachine;
+  controller?: SpreadsheetController;
 }
 
 export class CanvasGrid {
@@ -45,8 +46,9 @@ export class CanvasGrid {
   private animationFrameId: number | null = null;
   private debugRenderer!: DebugRenderer;
   private interactionModeToggle!: HTMLInputElement;
-  private modeStateMachine?: SpreadsheetStateMachine;
-  private modeChangeUnsubscribe?: () => void;
+  private controller?: SpreadsheetController;
+  private adapter?: WebStateAdapter;
+  private stateChangeUnsubscribe?: () => void;
 
   constructor(
     container: HTMLElement,
@@ -56,7 +58,12 @@ export class CanvasGrid {
     this.container = container;
     this.facade = facade;
     this.theme = options.theme || defaultTheme;
-    this.modeStateMachine = options.modeStateMachine;
+    this.controller = options.controller;
+    
+    // Create adapter if controller is provided
+    if (this.controller) {
+      this.adapter = new WebStateAdapter(this.controller);
+    }
 
     this.setupDOM();
 
@@ -87,7 +94,7 @@ export class CanvasGrid {
       onEditEnd: () => this.container.focus(),
       onEditStart: () => this.render(),
       onModeChange: () => this.render(),
-      modeStateMachine: this.modeStateMachine,
+      controller: this.controller,
     });
 
     this.mouseHandler = new MouseHandler(
@@ -104,7 +111,7 @@ export class CanvasGrid {
       this.cellEditor,
       this.facade,
       this,
-      this.modeStateMachine,
+      this.controller,
     );
 
     this.resizeHandler = new ResizeHandler(
@@ -310,8 +317,8 @@ export class CanvasGrid {
   }
 
   private setupModeChangeSubscription(): void {
-    if (this.modeStateMachine) {
-      this.modeChangeUnsubscribe = this.modeStateMachine.subscribe(
+    if (this.adapter) {
+      this.stateChangeUnsubscribe = this.adapter.subscribe(
         (newState) => {
           // Update mouse handler based on interaction mode
           this.mouseHandler.setEnabled(newState.interactionMode === "normal");
@@ -516,7 +523,7 @@ export class CanvasGrid {
       }
 
       // Render the grid
-      const isNavigationMode = this.modeStateMachine?.isNavigating() ?? true;
+      const isNavigationMode = this.adapter?.getCoreState().spreadsheetMode === "navigation" ?? true;
       const cellsRendered = this.renderer.renderGrid(
         (address) => {
           const result = this.facade.getCell(address);
@@ -553,9 +560,9 @@ export class CanvasGrid {
       cancelAnimationFrame(this.animationFrameId);
     }
 
-    // Clean up mode change subscription
-    if (this.modeChangeUnsubscribe) {
-      this.modeChangeUnsubscribe();
+    // Clean up state change subscription
+    if (this.stateChangeUnsubscribe) {
+      this.stateChangeUnsubscribe();
     }
 
     window.removeEventListener("resize", this.handleResize);
@@ -657,17 +664,14 @@ export class CanvasGrid {
 
   // Get current interaction mode
   getInteractionMode(): InteractionMode {
-    return this.modeStateMachine?.getInteractionMode() || "normal";
+    return this.adapter?.getState().interactionMode || "normal";
   }
 
   // Set interaction mode
   setInteractionMode(mode: InteractionMode): void {
     if (this.getInteractionMode() === mode) return;
 
-    this.modeStateMachine?.transition({
-      type: "SET_INTERACTION_MODE",
-      mode,
-    });
+    this.adapter?.setInteractionMode(mode);
 
     // Update mouse handler
     this.mouseHandler.setEnabled(mode === "normal");

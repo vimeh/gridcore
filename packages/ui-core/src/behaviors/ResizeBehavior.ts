@@ -78,10 +78,13 @@ export class ResizeBehavior {
 
       // Confirm resize
       case "Enter":
+      case "\r":
+      case "\n":
         return { type: "confirm" };
 
       // Cancel resize
       case "Escape":
+      case "\x1b":
         return { type: "cancel" };
 
       default:

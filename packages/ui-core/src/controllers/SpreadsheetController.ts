@@ -8,6 +8,7 @@ import {
 } from "../behaviors/VimBehavior";
 import {
   createNavigationState,
+  createResizeState,
   isCommandMode,
   isEditingMode,
   isNavigationMode,
@@ -95,6 +96,12 @@ export class SpreadsheetController {
     } else if (isEditingMode(state)) {
       // Cell-level vim handling
       const action = this.cellVimBehavior.handleKeyPress(key, meta, state);
+      
+      // If vim behavior returns none, handle text input for insert mode
+      if (action.type === "none" && state.cellMode === "insert") {
+        return this.handleTextInput(key, meta, state);
+      }
+      
       return this.processCellVimAction(action, state);
     } else if (isResizeMode(state)) {
       const action = this.resizeBehavior.handleKey(key, state);
@@ -209,7 +216,7 @@ export class SpreadsheetController {
       return this.stateMachine.transition({ type: "EXIT_COMMAND_MODE" });
     }
 
-    if (key === "Enter") {
+    if (meta.key === "enter" || key === "\r" || key === "\n") {
       // Execute command
       this.executeCommand(state.commandValue);
       return this.stateMachine.transition({ type: "EXIT_COMMAND_MODE" });
@@ -448,7 +455,23 @@ export class SpreadsheetController {
       return { ok: true, value: state };
     }
 
-    return this.enterResize(state.resizeTarget, newIndex);
+    // Get the new size for the target
+    const newSize =
+      state.resizeTarget === "column"
+        ? this.viewportManager.getColumnWidth(newIndex)
+        : this.viewportManager.getRowHeight(newIndex);
+
+    // Create a new resize state for the new target
+    return { 
+      ok: true, 
+      value: createResizeState(
+        state.cursor,
+        state.viewport,
+        state.resizeTarget,
+        newIndex,
+        newSize
+      )
+    };
   }
 
   // Cell editing helpers
@@ -504,6 +527,78 @@ export class SpreadsheetController {
       value: newText,
       cursorPosition: newCursor,
     });
+  }
+
+  private handleTextInput(
+    key: string,
+    meta: KeyMeta,
+    state: UIState,
+  ): Result<UIState> {
+    if (!isEditingMode(state) || state.cellMode !== "insert") {
+      return { ok: false, error: "Not in insert mode" };
+    }
+
+    // Handle special keys
+    if (meta.key === "backspace") {
+      if (state.cursorPosition > 0) {
+        const newText = 
+          state.editingValue.slice(0, state.cursorPosition - 1) +
+          state.editingValue.slice(state.cursorPosition);
+        return this.stateMachine.transition({
+          type: "UPDATE_EDITING_VALUE",
+          value: newText,
+          cursorPosition: state.cursorPosition - 1,
+        });
+      }
+      return { ok: true, value: state };
+    }
+
+    if (meta.key === "delete") {
+      if (state.cursorPosition < state.editingValue.length) {
+        const newText = 
+          state.editingValue.slice(0, state.cursorPosition) +
+          state.editingValue.slice(state.cursorPosition + 1);
+        return this.stateMachine.transition({
+          type: "UPDATE_EDITING_VALUE",
+          value: newText,
+          cursorPosition: state.cursorPosition,
+        });
+      }
+      return { ok: true, value: state };
+    }
+
+    if (meta.key === "escape") {
+      return this.stateMachine.transition({ type: "EXIT_INSERT_MODE" });
+    }
+
+    if (meta.key === "enter" || key === "\r" || key === "\n") {
+      // Save the value and exit editing
+      const cellResult = this.facade.getCell(state.cursor);
+      if (cellResult.ok) {
+        this.facade.setCellValue(state.cursor, state.editingValue);
+        this.emit({ 
+          type: "cellValueChanged", 
+          address: state.cursor, 
+          value: state.editingValue 
+        });
+      }
+      return this.stateMachine.transition({ type: "EXIT_TO_NAVIGATION" });
+    }
+
+    // Regular character input
+    if (key.length === 1 && !meta.ctrl && !meta.alt) {
+      const newText = 
+        state.editingValue.slice(0, state.cursorPosition) +
+        key +
+        state.editingValue.slice(state.cursorPosition);
+      return this.stateMachine.transition({
+        type: "UPDATE_EDITING_VALUE",
+        value: newText,
+        cursorPosition: state.cursorPosition + 1,
+      });
+    }
+
+    return { ok: true, value: state };
   }
 
   // Scrolling and centering
