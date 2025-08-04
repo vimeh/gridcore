@@ -14,6 +14,7 @@ export interface SheetNavigationCallbacks {
 export class KeyboardHandler {
   private lastKey: string = "";
   private sheetNavigationCallbacks?: SheetNavigationCallbacks;
+  private boundHandleKeyDown: (event: KeyboardEvent) => void;
 
   constructor(
     private container: HTMLElement,
@@ -23,6 +24,8 @@ export class KeyboardHandler {
     private canvasGrid?: CanvasGrid,
     private controller?: SpreadsheetController,
   ) {
+    // Bind the event handler once so we can remove it later
+    this.boundHandleKeyDown = this.handleKeyDown.bind(this);
     this.setupEventListeners();
   }
 
@@ -35,7 +38,7 @@ export class KeyboardHandler {
     this.container.tabIndex = 0;
     this.container.style.outline = "none";
 
-    this.container.addEventListener("keydown", this.handleKeyDown.bind(this));
+    this.container.addEventListener("keydown", this.boundHandleKeyDown);
   }
 
 
@@ -62,7 +65,8 @@ export class KeyboardHandler {
     }
 
     // If controller is available, delegate key handling to it
-    if (this.controller && !this.cellEditor.isCurrentlyEditing()) {
+    if (this.controller) {
+      console.log('KeyboardHandler: Using controller for key:', event.key);
       const result = this.controller.handleKeyPress(event.key, {
         key: event.key,
         ctrl: event.ctrlKey,
@@ -70,6 +74,8 @@ export class KeyboardHandler {
         shift: event.shiftKey,
       });
 
+      console.log('Controller result:', result);
+      
       if (result.ok) {
         event.preventDefault();
         
@@ -81,12 +87,22 @@ export class KeyboardHandler {
         
         // Handle mode changes
         if (newState.spreadsheetMode === "editing") {
-          // Start editing
-          this.cellEditor.startEditing(
-            newState.cursor,
-            newState.editingValue,
-            newState.cursorPosition,
-          );
+          // Start editing if not already editing, or update editing state
+          if (!this.cellEditor.isCurrentlyEditing()) {
+            console.log("KeyboardHandler: Starting editing", {
+              cursor: newState.cursor,
+              editingValue: newState.editingValue,
+              cursorPosition: newState.cursorPosition,
+            });
+            this.cellEditor.startEditing(
+              newState.cursor,
+              newState.editingValue,
+              newState.cursorPosition,
+            );
+          } else {
+            // Update editor content if already editing
+            this.cellEditor.updateContent(newState.editingValue, newState.cursorPosition);
+          }
         } else if (this.cellEditor.isCurrentlyEditing()) {
           // Stop editing
           this.cellEditor.cancelEdit();
@@ -97,6 +113,11 @@ export class KeyboardHandler {
     }
 
     // Fall back to basic keyboard handling if no controller
+    console.log('KeyboardHandler fallback check:', {
+      hasController: !!this.controller,
+      isEditing: this.cellEditor.isCurrentlyEditing()
+    });
+    
     if (!this.controller && !this.cellEditor.isCurrentlyEditing()) {
       switch (event.key) {
         // Basic navigation
@@ -186,6 +207,6 @@ export class KeyboardHandler {
   }
 
   destroy(): void {
-    this.container.removeEventListener("keydown", this.handleKeyDown);
+    this.container.removeEventListener("keydown", this.boundHandleKeyDown);
   }
 }

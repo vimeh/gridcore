@@ -119,7 +119,7 @@ export class SpreadsheetController {
       case "moveTo":
         return this.handleMoveTo(action.target, action.count, state);
       case "startEditing":
-        return this.startEditing(action.editVariant);
+        return this.startEditing(action.editVariant, action.initialChar);
       case "enterCommand":
         return this.stateMachine.transition({ type: "ENTER_COMMAND_MODE" });
       case "enterResize":
@@ -308,6 +308,30 @@ export class SpreadsheetController {
     });
   }
 
+  // Handle text input when in editing mode
+  private handleTextInput(key: string, meta: KeyMeta, state: UIState): Result<UIState> {
+    if (!isEditingMode(state) || state.cellMode !== "insert") {
+      return { ok: false, error: "Not in insert mode" };
+    }
+
+    // Skip special keys
+    if (key.length !== 1 || meta.ctrl || meta.alt) {
+      return { ok: true, value: state };
+    }
+
+    // Insert the character at the cursor position
+    const before = state.editingValue.slice(0, state.cursorPosition);
+    const after = state.editingValue.slice(state.cursorPosition);
+    const newValue = before + key + after;
+    const newCursorPosition = state.cursorPosition + 1;
+
+    return this.stateMachine.transition({
+      type: "UPDATE_EDITING_VALUE",
+      value: newValue,
+      cursorPosition: newCursorPosition,
+    });
+  }
+
   // Cell operations
   private handleCellOperation(
     operation: string,
@@ -352,7 +376,7 @@ export class SpreadsheetController {
   }
 
   // Editing helpers
-  private startEditing(variant?: string): Result<UIState> {
+  private startEditing(variant?: string, initialChar?: string): Result<UIState> {
     const state = this.stateMachine.getState();
     const cursor = state.cursor;
 
@@ -370,11 +394,33 @@ export class SpreadsheetController {
     });
     if (!result.ok) return result;
 
-    // Update with current cell value
+    // Determine initial value and cursor position
+    let value = currentValue;
+    let cursorPosition = 0;
+
+    if (variant === "replace" && initialChar) {
+      // Replace mode: clear content and start with the typed character
+      value = initialChar;
+      cursorPosition = 1;
+    } else if (variant === "a") {
+      // Append mode: keep content and position cursor at end
+      cursorPosition = currentValue.length;
+    } else if (variant === "A") {
+      // Append at end of line
+      cursorPosition = currentValue.length;
+    } else if (variant === "I") {
+      // Insert at beginning
+      cursorPosition = 0;
+    } else {
+      // Default 'i' mode or others: position at beginning
+      cursorPosition = 0;
+    }
+
+    // Update with initial value
     return this.stateMachine.transition({
       type: "UPDATE_EDITING_VALUE",
-      value: currentValue,
-      cursorPosition: variant === "a" ? currentValue.length : 0,
+      value: value,
+      cursorPosition: cursorPosition,
     });
   }
 

@@ -31,7 +31,8 @@ export type VimAction =
     }
   | {
       type: "startEditing";
-      editVariant?: "i" | "a" | "A" | "I" | "o" | "O";
+      editVariant?: "i" | "a" | "A" | "I" | "o" | "O" | "replace";
+      initialChar?: string;
     }
   | {
       type: "exitEditing";
@@ -308,7 +309,28 @@ export class VimBehavior {
         this.clearBuffers();
         return { type: "enterCommand" };
 
+      // Enter key starts editing
+      case "Enter":
+        this.clearBuffers();
+        return { type: "startEditing", editVariant: "i" };
+
+      // F2 starts editing in insert mode
+      case "F2":
+        this.clearBuffers();
+        return { type: "startEditing", editVariant: "i" };
+
+      // Delete/Backspace clear cell content
+      case "Delete":
+      case "Backspace":
+        this.clearBuffers();
+        return { type: "delete" };
+
       default:
+        // If it's a printable character (not a special key), start editing with that character
+        if (key.length === 1 && !meta.ctrl && !meta.alt && /^[^\x00-\x1F\x7F]$/.test(key)) {
+          this.clearBuffers();
+          return { type: "startEditing", editVariant: "replace", initialChar: key };
+        }
         this.clearBuffers();
         return { type: "none" };
     }

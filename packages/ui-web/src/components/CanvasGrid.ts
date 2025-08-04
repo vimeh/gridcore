@@ -92,8 +92,14 @@ export class CanvasGrid {
       onCommit: this.handleCellCommit.bind(this),
       onCancel: this.handleCellCancel.bind(this),
       onEditEnd: () => this.container.focus(),
-      onEditStart: () => this.render(),
-      onModeChange: () => this.render(),
+      onEditStart: () => {
+        console.log('onEditStart callback - NOT calling render()');
+        // Don't call render() here as it might interfere with the editor visibility
+      },
+      onModeChange: () => {
+        console.log('onModeChange callback');
+        // this.render(); // Temporarily disabled to debug
+      },
       controller: this.controller,
     });
 
@@ -318,8 +324,82 @@ export class CanvasGrid {
 
   private setupModeChangeSubscription(): void {
     if (this.adapter) {
+      // Subscribe to controller events directly to debug state transitions
+      if (this.controller) {
+        console.log('Setting up controller subscription');
+        this.controller.subscribe((event) => {
+          console.log('Controller event:', event);
+          
+          // Handle state change events
+          if (event.type === 'stateChanged' && event.state.spreadsheetMode === 'editing') {
+            console.log('Controller says we should be editing!', {
+              state: event.state,
+              editorIsEditing: this.cellEditor.isCurrentlyEditing()
+            });
+          }
+        });
+      } else {
+        console.log('No controller available for subscription');
+      }
+      
+      // Check initial state and set up editor if already in editing mode
+      const initialState = this.adapter.getCoreState();
+      if (initialState.spreadsheetMode === "editing") {
+        console.log('Initial state is editing mode, starting editor');
+        this.cellEditor.startEditing(
+          initialState.cursor, 
+          initialState.editingValue, 
+          initialState.cursorPosition
+        );
+      }
+      
+      let previousMode: string | undefined = initialState.spreadsheetMode;
+      
       this.stateChangeUnsubscribe = this.adapter.subscribe(
         (newState) => {
+          const coreState = newState.coreState;
+          const currentMode = coreState.spreadsheetMode;
+          
+          console.log('State change detected:', {
+            previousMode,
+            currentMode,
+            coreState: {
+              spreadsheetMode: coreState.spreadsheetMode,
+              cellMode: coreState.cellMode,
+              editingValue: coreState.editingValue
+            }
+          });
+          
+          // Check for transition from navigation to editing mode
+          if (previousMode === "navigation" && currentMode === "editing") {
+            // Start editing in the cell editor
+            const cursor = coreState.cursor;
+            const editingValue = coreState.editingValue;
+            const cursorPosition = coreState.cursorPosition;
+            
+            console.log('State transition to editing mode:', {
+              cursor,
+              editingValue,
+              cursorPosition,
+              cellMode: coreState.cellMode
+            });
+            
+            this.cellEditor.startEditing(cursor, editingValue, cursorPosition);
+          } 
+          // Check for transition from editing to navigation mode
+          else if (previousMode === "editing" && currentMode === "navigation") {
+            // Editor should already be hidden via handleCellCommit/Cancel
+            console.log('State transition to navigation mode');
+          }
+          // Update editor content if already in editing mode
+          else if (currentMode === "editing" && previousMode === "editing") {
+            // Update the editor content with the latest state
+            this.cellEditor.updateContent(coreState.editingValue, coreState.cursorPosition);
+          }
+          
+          // Update previous mode for next comparison
+          previousMode = currentMode;
+
           // Update mouse handler based on interaction mode
           this.mouseHandler.setEnabled(newState.interactionMode === "normal");
 
