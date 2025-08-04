@@ -1,8 +1,4 @@
-import {
-  CellAddress,
-  CellRange,
-  type Result,
-} from "@gridcore/core";
+import { CellAddress, CellRange } from "@gridcore/core";
 import type { Viewport } from "../components/Viewport";
 
 export interface SelectionState {
@@ -52,11 +48,11 @@ export class SelectionManager {
     // Create start and end addresses for the range
     const startResult = CellAddress.create(
       Math.min(this.selectionStart.row, cell.row),
-      Math.min(this.selectionStart.col, cell.col)
+      Math.min(this.selectionStart.col, cell.col),
     );
     const endResult = CellAddress.create(
       Math.max(this.selectionStart.row, cell.row),
-      Math.max(this.selectionStart.col, cell.col)
+      Math.max(this.selectionStart.col, cell.col),
     );
 
     if (!startResult.ok || !endResult.ok) return;
@@ -191,15 +187,18 @@ export class SelectionManager {
       // Character mode - normal range selection
       const startResult = CellAddress.create(
         Math.min(this.visualAnchor.row, cursor.row),
-        Math.min(this.visualAnchor.col, cursor.col)
+        Math.min(this.visualAnchor.col, cursor.col),
       );
       const endResult = CellAddress.create(
         Math.max(this.visualAnchor.row, cursor.row),
-        Math.max(this.visualAnchor.col, cursor.col)
+        Math.max(this.visualAnchor.col, cursor.col),
       );
 
       if (startResult.ok && endResult.ok) {
-        const rangeResult = CellRange.create(startResult.value, endResult.value);
+        const rangeResult = CellRange.create(
+          startResult.value,
+          endResult.value,
+        );
         if (rangeResult.ok) {
           this.state.selectionRange = rangeResult.value;
 

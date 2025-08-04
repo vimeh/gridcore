@@ -257,7 +257,7 @@ export class TabBar {
   private handleReorderTab(fromIndex: number, toIndex: number): void {
     if (this.draggedSheetId) {
       // TODO: implement moveSheet functionality
-      console.warn('moveSheet not implemented yet');
+      console.warn("moveSheet not implemented yet");
       this.render();
       this.onTabReorder?.(fromIndex, toIndex);
     }
@@ -329,7 +329,7 @@ export class TabBar {
         label: "Duplicate",
         action: () => {
           // TODO: implement duplicateSheet functionality
-          console.warn('duplicateSheet not implemented yet');
+          console.warn("duplicateSheet not implemented yet");
           const newSheet = this.workbook.createSheet();
           this.workbook.setActiveSheet(newSheet.getId());
           this.render();

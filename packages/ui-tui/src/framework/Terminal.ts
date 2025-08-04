@@ -1,4 +1,4 @@
-import type { Cell, OptimizedBuffer, RGBA } from "./OptimizedBuffer";
+import type { OptimizedBuffer } from "./OptimizedBuffer";
 
 export class Terminal {
   private stdout = process.stdout;

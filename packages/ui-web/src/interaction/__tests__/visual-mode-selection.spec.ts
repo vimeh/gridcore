@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { CellAddress } from "@gridcore/core";
-import { CellAddress as CellAddressClass, cellAddressToString } from "@gridcore/core";
+import {
+  CellAddress as CellAddressClass,
+  cellAddressToString,
+} from "@gridcore/core";
 
 // Helper function to create CellAddress for tests
 function createCellAddress(row: number, col: number): CellAddress {
   const result = CellAddressClass.create(row, col);
-  if (!result.ok) throw new Error(`Failed to create CellAddress: ${result.error}`);
+  if (!result.ok)
+    throw new Error(`Failed to create CellAddress: ${result.error}`);
   return result.value;
 }
+
 import type { Viewport } from "../../components/Viewport";
 import type { GridVimCallbacks } from "../GridVimBehavior";
 import { GridVimBehavior } from "../GridVimBehavior";
@@ -73,12 +78,12 @@ describe("Visual Mode Selection", () => {
 
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(2);
-      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 5)))).toBe(
-        true,
-      );
-      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 6)))).toBe(
-        true,
-      );
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(5, 5))),
+      ).toBe(true);
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(5, 6))),
+      ).toBe(true);
     });
 
     test("moving down in visual mode expands selection vertically", () => {
@@ -91,12 +96,12 @@ describe("Visual Mode Selection", () => {
 
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(2);
-      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 5)))).toBe(
-        true,
-      );
-      expect(selectedCells.has(cellAddressToString(createCellAddress(6, 5)))).toBe(
-        true,
-      );
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(5, 5))),
+      ).toBe(true);
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(6, 5))),
+      ).toBe(true);
     });
 
     test("moving diagonally in visual mode creates rectangular selection", () => {
@@ -110,18 +115,18 @@ describe("Visual Mode Selection", () => {
 
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(4); // 2x2 rectangle
-      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 5)))).toBe(
-        true,
-      );
-      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 6)))).toBe(
-        true,
-      );
-      expect(selectedCells.has(cellAddressToString(createCellAddress(6, 5)))).toBe(
-        true,
-      );
-      expect(selectedCells.has(cellAddressToString(createCellAddress(6, 6)))).toBe(
-        true,
-      );
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(5, 5))),
+      ).toBe(true);
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(5, 6))),
+      ).toBe(true);
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(6, 5))),
+      ).toBe(true);
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(6, 6))),
+      ).toBe(true);
     });
 
     test("moving back towards anchor reduces selection", () => {
@@ -138,12 +143,12 @@ describe("Visual Mode Selection", () => {
 
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(2);
-      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 5)))).toBe(
-        true,
-      );
-      expect(selectedCells.has(cellAddressToString(createCellAddress(5, 6)))).toBe(
-        true,
-      );
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(5, 5))),
+      ).toBe(true);
+      expect(
+        selectedCells.has(cellAddressToString(createCellAddress(5, 6))),
+      ).toBe(true);
     });
 
     test("count prefixes work in visual mode", () => {
@@ -158,9 +163,9 @@ describe("Visual Mode Selection", () => {
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(4); // cells 5,6,7,8
       for (let col = 5; col <= 8; col++) {
-        expect(selectedCells.has(cellAddressToString(createCellAddress(5, col)))).toBe(
-          true,
-        );
+        expect(
+          selectedCells.has(cellAddressToString(createCellAddress(5, col))),
+        ).toBe(true);
       }
     });
   });
@@ -175,9 +180,9 @@ describe("Visual Mode Selection", () => {
       expect(selectedCells.size).toBe(100); // assuming 100 columns
 
       for (let col = 0; col < 100; col++) {
-        expect(selectedCells.has(cellAddressToString(createCellAddress(5, col)))).toBe(
-          true,
-        );
+        expect(
+          selectedCells.has(cellAddressToString(createCellAddress(5, col))),
+        ).toBe(true);
       }
     });
 
@@ -195,9 +200,9 @@ describe("Visual Mode Selection", () => {
       // Check both rows are selected
       for (let row = 5; row <= 6; row++) {
         for (let col = 0; col < 100; col++) {
-          expect(selectedCells.has(cellAddressToString(createCellAddress(row, col)))).toBe(
-            true,
-          );
+          expect(
+            selectedCells.has(cellAddressToString(createCellAddress(row, col))),
+          ).toBe(true);
         }
       }
     });
@@ -229,9 +234,9 @@ describe("Visual Mode Selection", () => {
       // Check rectangular selection
       for (let row = 5; row <= 7; row++) {
         for (let col = 5; col <= 6; col++) {
-          expect(selectedCells.has(cellAddressToString(createCellAddress(row, col)))).toBe(
-            true,
-          );
+          expect(
+            selectedCells.has(cellAddressToString(createCellAddress(row, col))),
+          ).toBe(true);
         }
       }
     });
@@ -250,7 +255,7 @@ describe("Visual Mode Selection", () => {
         // Clamp to reasonable values for testing
         const clampedCursor = createCellAddress(
           Math.min(cursor.row, 99),
-          Math.min(cursor.col, 99)
+          Math.min(cursor.col, 99),
         );
         originalUpdate(clampedCursor);
       };
@@ -274,9 +279,9 @@ describe("Visual Mode Selection", () => {
       const selectedCells = selectionManager.getSelectedCells();
       expect(selectedCells.size).toBe(6); // columns 0-5
       for (let col = 0; col <= 5; col++) {
-        expect(selectedCells.has(cellAddressToString(createCellAddress(5, col)))).toBe(
-          true,
-        );
+        expect(
+          selectedCells.has(cellAddressToString(createCellAddress(5, col))),
+        ).toBe(true);
       }
     });
 
@@ -292,7 +297,7 @@ describe("Visual Mode Selection", () => {
         // Clamp to reasonable values for testing
         const clampedCursor = createCellAddress(
           Math.min(cursor.row, 99),
-          Math.min(cursor.col, 99)
+          Math.min(cursor.col, 99),
         );
         originalUpdate(clampedCursor);
       };
@@ -318,9 +323,9 @@ describe("Visual Mode Selection", () => {
       const selectedCells = selectionManager.getSelectedCells();
       // Should select from row 4 (5G is 1-indexed) to row 10
       for (let row = 4; row <= 10; row++) {
-        expect(selectedCells.has(cellAddressToString(createCellAddress(row, 5)))).toBe(
-          true,
-        );
+        expect(
+          selectedCells.has(cellAddressToString(createCellAddress(row, 5))),
+        ).toBe(true);
       }
     });
   });

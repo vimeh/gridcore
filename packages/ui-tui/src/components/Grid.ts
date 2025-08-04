@@ -164,7 +164,7 @@ export class GridComponent extends Renderable {
 
     // Truncate or pad to fit width
     if (displayValue.length > width) {
-      displayValue = displayValue.slice(0, width - 1) + "…";
+      displayValue = `${displayValue.slice(0, width - 1)}…`;
     } else {
       displayValue = displayValue.padEnd(width, " ");
     }
@@ -243,9 +243,9 @@ export class GridComponent extends Renderable {
     buffer.fillRect(x, y, width, 1, " ", this.colors.cursorFg, editBg);
 
     // Show editing value with cursor
-    let displayValue = editingValue + "█";
+    let displayValue = `${editingValue}█`;
     if (displayValue.length > width) {
-      displayValue = "…" + displayValue.slice(-(width - 1));
+      displayValue = `…${displayValue.slice(-(width - 1))}`;
     }
 
     buffer.setText(x, y, displayValue, this.colors.cursorFg, editBg);

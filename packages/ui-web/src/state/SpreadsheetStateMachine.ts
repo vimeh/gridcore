@@ -1,4 +1,4 @@
-import { CellAddress } from "@gridcore/core";
+import type { CellAddress } from "@gridcore/core";
 
 // Core types for interaction modes
 export type InteractionMode = "normal" | "keyboard-only";

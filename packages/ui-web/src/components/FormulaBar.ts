@@ -1,7 +1,4 @@
-import {
-  type Cell,
-  type CellAddress,
-} from "@gridcore/core";
+import type { Cell, CellAddress } from "@gridcore/core";
 
 export interface FormulaBarCallbacks {
   onValueChange: (address: CellAddress, value: string) => void;
@@ -156,7 +153,8 @@ export class FormulaBar {
 
     if (address) {
       this.addressInput.value = address.toString();
-      this.formulaInput.value = cell?.formula?.toString() || String(cell?.rawValue || "");
+      this.formulaInput.value =
+        cell?.formula?.toString() || String(cell?.rawValue || "");
     } else {
       this.addressInput.value = "";
       this.formulaInput.value = "";

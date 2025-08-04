@@ -7,14 +7,16 @@ import { SelectionRenderer } from "./SelectionRenderer";
 // Helper function to create CellAddress and convert to string for tests
 function createCellAddressString(row: number, col: number): string {
   const result = CellAddress.create(row, col);
-  if (!result.ok) throw new Error(`Failed to create CellAddress: ${result.error}`);
+  if (!result.ok)
+    throw new Error(`Failed to create CellAddress: ${result.error}`);
   return cellAddressToString(result.value);
 }
 
 // Helper function to create CellAddres for tests
 function createCellAddress(row: number, col: number): CellAddress {
   const result = CellAddress.create(row, col);
-  if (!result.ok) throw new Error(`Failed to create CellAddress: ${result.error}`);
+  if (!result.ok)
+    throw new Error(`Failed to create CellAddress: ${result.error}`);
   return result.value;
 }
 
@@ -41,7 +43,7 @@ function createMockContext() {
     ),
     stroke: mock(() => operations.push("stroke")),
     setLineDash: mock((segments: number[]) =>
-      operations.push(`setLineDash([${segments.join(",")}])`)
+      operations.push(`setLineDash([${segments.join(",")}])`),
     ),
     canvas: {
       width: 800,
@@ -135,7 +137,10 @@ describe("SelectionRenderer", () => {
       createCellAddress(1, 1),
       createCellAddress(3, 3),
     );
-    if (!selectionRangeResult.ok) throw new Error(`Failed to create CellRange: ${selectionRangeResult.error}`);
+    if (!selectionRangeResult.ok)
+      throw new Error(
+        `Failed to create CellRange: ${selectionRangeResult.error}`,
+      );
     const selectionRange = selectionRangeResult.value;
 
     renderer.renderSelection(selectedCells, selectionRange, null);

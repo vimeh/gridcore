@@ -1,5 +1,5 @@
 import type { ISpreadsheetFacade } from "@gridcore/core";
-import { type OptimizedBuffer, Renderable, type RGBA } from "../framework";
+import { type OptimizedBuffer, Renderable } from "../framework";
 import type { TUIState } from "../SpreadsheetTUI";
 
 export class FormulaBarComponent extends Renderable {
@@ -79,7 +79,7 @@ export class FormulaBarComponent extends Renderable {
     // Truncate if too long
     const maxWidth = this.width - 12;
     if (displayValue.length > maxWidth) {
-      displayValue = displayValue.slice(0, maxWidth - 1) + "…";
+      displayValue = `${displayValue.slice(0, maxWidth - 1)}…`;
     }
 
     // Draw the value/formula

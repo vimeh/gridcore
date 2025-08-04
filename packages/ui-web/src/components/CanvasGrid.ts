@@ -1,7 +1,4 @@
-import {
-  CellAddress,
-  type SpreadsheetFacade,
-} from "@gridcore/core";
+import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
 import { MouseHandler } from "../interaction/MouseHandler";
 import { ResizeHandler } from "../interaction/ResizeHandler";
@@ -366,7 +363,8 @@ export class CanvasGrid {
     let initialValue = "";
     if (cellResult.ok) {
       const cellData = cellResult.value;
-      initialValue = cellData.formula?.toString() || String(cellData.value || "");
+      initialValue =
+        cellData.formula?.toString() || String(cellData.value || "");
     }
     this.cellEditor.startEditing(cell, initialValue);
   }

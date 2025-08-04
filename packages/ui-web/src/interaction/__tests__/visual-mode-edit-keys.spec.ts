@@ -8,7 +8,8 @@ import { SelectionManager } from "../SelectionManager";
 // Helper function to create CellAddress for tests
 function createCellAddress(row: number, col: number) {
   const result = CellAddress.create(row, col);
-  if (!result.ok) throw new Error(`Failed to create CellAddress: ${result.error}`);
+  if (!result.ok)
+    throw new Error(`Failed to create CellAddress: ${result.error}`);
   return result.value;
 }
 

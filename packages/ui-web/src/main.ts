@@ -1,7 +1,4 @@
-import {
-  CellAddress,
-  Workbook,
-} from "@gridcore/core";
+import { CellAddress, Workbook } from "@gridcore/core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
 import { ModeIndicator } from "./components/ModeIndicator";

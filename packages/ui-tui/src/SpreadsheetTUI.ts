@@ -1,4 +1,10 @@
-import { CellAddress, Workbook, Sheet, type SpreadsheetFacade, type ISpreadsheetFacade } from "@gridcore/core";
+import {
+  CellAddress,
+  type ISpreadsheetFacade,
+  type Sheet,
+  type SpreadsheetFacade,
+  Workbook,
+} from "@gridcore/core";
 import {
   FormulaBarComponent,
   GridComponent,
@@ -42,7 +48,6 @@ export class SpreadsheetTUI extends Renderable {
   private sheet: Sheet;
   private facade: SpreadsheetFacade;
   private state: TUIState;
-  private running = false;
   private vimBehavior: VimBehavior;
   private useVim = true;
 
@@ -62,15 +67,17 @@ export class SpreadsheetTUI extends Renderable {
     this.workbook = new Workbook();
     this.sheet = this.workbook.getActiveSheet()!;
     this.facade = this.sheet.getFacade();
-    
+
     this.vimBehavior = new VimBehavior();
 
     // Create initial cursor address
     const initialCursor = CellAddress.create(0, 0);
-    
+
     this.state = {
       mode: "normal",
-      cursor: initialCursor.ok ? initialCursor.value : { row: 0, col: 0 } as CellAddress,
+      cursor: initialCursor.ok
+        ? initialCursor.value
+        : ({ row: 0, col: 0 } as CellAddress),
       viewport: {
         startRow: 0,
         startCol: 0,
@@ -278,7 +285,9 @@ export class SpreadsheetTUI extends Renderable {
         this.state.mode = action.mode as Mode;
         if (action.editVariant) {
           const cellResult = this.facade.getCell(this.state.cursor);
-          const currentValue = cellResult.ok ? cellResult.value.value : undefined;
+          const currentValue = cellResult.ok
+            ? cellResult.value.value
+            : undefined;
           this.state.editingValue = currentValue?.toString() || "";
 
           switch (action.editVariant) {
@@ -424,7 +433,7 @@ export class SpreadsheetTUI extends Renderable {
     }
   }
 
-  private handleNormalMode(key: string, meta: KeyMeta): void {
+  private handleNormalMode(_key: string, meta: KeyMeta): void {
     switch (meta.key) {
       case "up":
       case "k":
@@ -499,7 +508,7 @@ export class SpreadsheetTUI extends Renderable {
     }
   }
 
-  private handleVisualMode(key: string, meta: KeyMeta): void {
+  private handleVisualMode(_key: string, meta: KeyMeta): void {
     if (meta.key === "escape") {
       this.state.mode = "normal";
       this.state.selectedRange = undefined;

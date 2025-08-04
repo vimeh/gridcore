@@ -1,4 +1,4 @@
-import { CellAddress } from "@gridcore/core";
+import type { CellAddress } from "@gridcore/core";
 import type { Viewport } from "../components/Viewport";
 import type { SelectionManager } from "./SelectionManager";
 

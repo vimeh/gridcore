@@ -173,7 +173,10 @@ export class GridVimBehavior {
         // $ goes to last column
         const cell = this.selectionManager.getActiveCell();
         if (cell) {
-          const newCellResult = CellAddress.create(cell.row, Number.MAX_SAFE_INTEGER);
+          const newCellResult = CellAddress.create(
+            cell.row,
+            Number.MAX_SAFE_INTEGER,
+          );
           if (newCellResult.ok) {
             this.selectionManager.setActiveCell(newCellResult.value);
           }
@@ -315,7 +318,7 @@ export class GridVimBehavior {
         for (let i = 0; i < count; i++) {
           const newCellResult = CellAddress.create(
             currentCell.row,
-            Math.max(0, currentCell.col - 1)
+            Math.max(0, currentCell.col - 1),
           );
           if (!newCellResult.ok) break;
           currentCell = newCellResult.value;
@@ -330,7 +333,7 @@ export class GridVimBehavior {
         for (let i = 0; i < count; i++) {
           const newCellResult = CellAddress.create(
             currentCell.row + 1,
-            currentCell.col
+            currentCell.col,
           );
           if (!newCellResult.ok) break;
           currentCell = newCellResult.value;
@@ -345,7 +348,7 @@ export class GridVimBehavior {
         for (let i = 0; i < count; i++) {
           const newCellResult = CellAddress.create(
             Math.max(0, currentCell.row - 1),
-            currentCell.col
+            currentCell.col,
           );
           if (!newCellResult.ok) break;
           currentCell = newCellResult.value;
@@ -360,7 +363,7 @@ export class GridVimBehavior {
         for (let i = 0; i < count; i++) {
           const newCellResult = CellAddress.create(
             currentCell.row,
-            currentCell.col + 1
+            currentCell.col + 1,
           );
           if (!newCellResult.ok) break;
           currentCell = newCellResult.value;
@@ -475,20 +478,27 @@ export class GridVimBehavior {
       case "h":
         // Move to previous column
         if (resizeTarget.col > 0) {
-          const newCellResult = CellAddress.create(resizeTarget.row, resizeTarget.col - 1);
+          const newCellResult = CellAddress.create(
+            resizeTarget.row,
+            resizeTarget.col - 1,
+          );
           if (newCellResult.ok) {
             this.selectionManager.setActiveCell(newCellResult.value);
           }
         }
         return true;
 
-      case "l":
+      case "l": {
         // Move to next column
-        const newCellResult = CellAddress.create(resizeTarget.row, resizeTarget.col + 1);
+        const newCellResult = CellAddress.create(
+          resizeTarget.row,
+          resizeTarget.col + 1,
+        );
         if (newCellResult.ok) {
           this.selectionManager.setActiveCell(newCellResult.value);
         }
         return true;
+      }
 
       case "j":
       case "k":

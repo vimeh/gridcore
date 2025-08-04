@@ -41,7 +41,6 @@ export interface ISpreadsheetFacade {
 export class SpreadsheetFacade implements ISpreadsheetFacade {
   private batchOperations = new Map<string, Array<() => Result<void>>>();
   private activeBatches = new Set<string>();
-  private batchCounter = 0;
 
   constructor(
     private readonly cellRepository: ICellRepository,

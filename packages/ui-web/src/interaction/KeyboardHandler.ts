@@ -1,7 +1,4 @@
-import {
-  CellAddress,
-  type SpreadsheetFacade,
-} from "@gridcore/core";
+import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
 import type { CanvasGrid } from "../components/CanvasGrid";
 import type { CellEditor } from "../components/CellEditor";
 import { KEY_CODES } from "../constants";
@@ -399,7 +396,10 @@ export class KeyboardHandler {
           // G goes to last row
           const currentCell = this.selectionManager.getActiveCell();
           if (currentCell) {
-            const newCellResult = CellAddress.create(Number.MAX_SAFE_INTEGER, currentCell.col);
+            const newCellResult = CellAddress.create(
+              Number.MAX_SAFE_INTEGER,
+              currentCell.col,
+            );
             if (newCellResult.ok) {
               this.selectionManager.setActiveCell(newCellResult.value);
             }
@@ -413,7 +413,10 @@ export class KeyboardHandler {
           // $ goes to last column
           const cell = this.selectionManager.getActiveCell();
           if (cell) {
-            const newCellResult = CellAddress.create(cell.row, Number.MAX_SAFE_INTEGER);
+            const newCellResult = CellAddress.create(
+              cell.row,
+              Number.MAX_SAFE_INTEGER,
+            );
             if (newCellResult.ok) {
               this.selectionManager.setActiveCell(newCellResult.value);
             }
@@ -624,11 +627,15 @@ export class KeyboardHandler {
     if (cellResult.ok) {
       const cellData = cellResult.value;
       if (mode === "replace") {
-        initialValue = cellData.formula ? cellData.formula.toString() : String(cellData.value || "");
+        initialValue = cellData.formula
+          ? cellData.formula.toString()
+          : String(cellData.value || "");
       } else if (initialChar && mode === false) {
         initialValue = initialChar;
       } else {
-        initialValue = cellData.formula ? cellData.formula.toString() : String(cellData.value || "");
+        initialValue = cellData.formula
+          ? cellData.formula.toString()
+          : String(cellData.value || "");
       }
     }
 
