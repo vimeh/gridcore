@@ -365,8 +365,8 @@ export class CanvasGrid {
             currentMode,
             coreState: {
               spreadsheetMode: coreState.spreadsheetMode,
-              cellMode: coreState.cellMode,
-              editingValue: coreState.editingValue
+              cellMode: coreState.spreadsheetMode === "editing" ? coreState.cellMode : undefined,
+              editingValue: coreState.spreadsheetMode === "editing" ? coreState.editingValue : undefined
             }
           });
           
