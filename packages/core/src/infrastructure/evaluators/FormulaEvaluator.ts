@@ -65,7 +65,8 @@ export class FormulaEvaluator implements IFormulaEvaluator {
         }
         const values = context.getRangeValues(node.range);
         // Range values are handled specially by functions
-        return ok(values);
+        // Return as unknown to bypass type checking - it will be handled in evaluateFunction
+        return ok(values as unknown as CellValue);
       }
 
       case "function":

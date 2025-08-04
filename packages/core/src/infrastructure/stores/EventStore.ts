@@ -53,7 +53,7 @@ export class EventStore implements IEventService {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, new Set());
     }
-    this.handlers.get(eventType)?.add(handler);
+    this.handlers.get(eventType)?.add(handler as EventHandler<DomainEvent>);
   }
 
   off<T extends DomainEvent>(
@@ -62,7 +62,7 @@ export class EventStore implements IEventService {
   ): void {
     const handlers = this.handlers.get(eventType);
     if (handlers) {
-      handlers.delete(handler);
+      handlers.delete(handler as EventHandler<DomainEvent>);
       if (handlers.size === 0) {
         this.handlers.delete(eventType);
       }
