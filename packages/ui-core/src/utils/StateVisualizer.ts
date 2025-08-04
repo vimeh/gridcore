@@ -15,10 +15,26 @@ function analyzeTransitions(stateMachine: UIStateMachine) {
     { from: "navigation", action: "ENTER_COMMAND_MODE", to: "command" },
     { from: "navigation", action: "ENTER_RESIZE_MODE", to: "resize" },
     { from: "editing", action: "EXIT_TO_NAVIGATION", to: "navigation" },
-    { from: "editing.normal", action: "ENTER_INSERT_MODE", to: "editing.insert" },
-    { from: "editing.insert", action: "EXIT_INSERT_MODE", to: "editing.normal" },
-    { from: "editing.normal", action: "ENTER_VISUAL_MODE", to: "editing.visual" },
-    { from: "editing.visual", action: "EXIT_VISUAL_MODE", to: "editing.normal" },
+    {
+      from: "editing.normal",
+      action: "ENTER_INSERT_MODE",
+      to: "editing.insert",
+    },
+    {
+      from: "editing.insert",
+      action: "EXIT_INSERT_MODE",
+      to: "editing.normal",
+    },
+    {
+      from: "editing.normal",
+      action: "ENTER_VISUAL_MODE",
+      to: "editing.visual",
+    },
+    {
+      from: "editing.visual",
+      action: "EXIT_VISUAL_MODE",
+      to: "editing.normal",
+    },
     { from: "command", action: "EXIT_COMMAND_MODE", to: "navigation" },
     { from: "resize", action: "EXIT_RESIZE_MODE", to: "navigation" },
     { from: "editing", action: "ESCAPE", to: "navigation" },
@@ -29,10 +45,10 @@ function analyzeTransitions(stateMachine: UIStateMachine) {
   // Build hierarchy and transition map
   knownTransitions.forEach(({ from, action, to }) => {
     allActions.add(action);
-    
+
     const fromParts = from.split(".");
     const toParts = to.split(".");
-    
+
     // Add to hierarchy
     if (fromParts.length > 1) {
       const [parent, substate] = fromParts;
@@ -45,7 +61,7 @@ function analyzeTransitions(stateMachine: UIStateMachine) {
         stateHierarchy.set(from, new Set());
       }
     }
-    
+
     if (toParts.length > 1) {
       const [parent, substate] = toParts;
       if (!stateHierarchy.has(parent)) {
@@ -53,7 +69,7 @@ function analyzeTransitions(stateMachine: UIStateMachine) {
       }
       stateHierarchy.get(parent)?.add(substate);
     }
-    
+
     // Add to transition map
     if (!transitionMap.has(from)) {
       transitionMap.set(from, new Map());
@@ -78,32 +94,33 @@ export function generateMermaidDiagram(stateMachine: UIStateMachine): string {
   for (const [state, substates] of stateHierarchy) {
     if (substates.size > 0) {
       lines.push(`    state ${state} {`);
-      
+
       // Determine initial substate
       if (state === "editing") {
         lines.push("        [*] --> normal");
       }
-      
+
       // Add substate transitions
       for (const substate of substates) {
         const fullState = `${state}.${substate}`;
         const transitions = transitionMap.get(fullState) || new Map();
-        
+
         for (const [action, target] of transitions) {
           const targetParts = target.split(".");
-          const targetState = targetParts.length > 1 && targetParts[0] === state 
-            ? targetParts[1] 
-            : target;
-          
+          const targetState =
+            targetParts.length > 1 && targetParts[0] === state
+              ? targetParts[1]
+              : target;
+
           if (targetParts[0] === state && target !== fullState) {
             lines.push(`        ${substate} --> ${targetState}: ${action}`);
           }
         }
       }
-      
+
       lines.push("    }");
     }
-    
+
     // Add top-level transitions
     const topTransitions = transitionMap.get(state) || new Map();
     for (const [action, target] of topTransitions) {
@@ -123,14 +140,14 @@ export function generateStateTable(stateMachine: UIStateMachine): string {
   const { transitionMap } = analyzeTransitions(stateMachine);
   const headers = ["Current State", "Action", "Next State"];
   const transitions: string[][] = [];
-  
+
   // Build transition rows from the map
   for (const [from, actions] of transitionMap) {
     for (const [action, to] of actions) {
       transitions.push([from, action, to]);
     }
   }
-  
+
   // Sort for consistent output
   transitions.sort((a, b) => {
     if (a[0] !== b[0]) return a[0].localeCompare(b[0]);
@@ -167,7 +184,7 @@ export function generatePlantUMLDiagram(stateMachine: UIStateMachine): string {
   for (const [state, substates] of stateHierarchy) {
     if (substates.size > 0) {
       lines.push(`state ${state} {`);
-      
+
       // Determine initial substate
       if (state === "editing") {
         lines.push("  [*] --> normal");
@@ -179,9 +196,10 @@ export function generatePlantUMLDiagram(stateMachine: UIStateMachine): string {
 
         for (const [action, target] of transitions) {
           const targetParts = target.split(".");
-          const targetState = targetParts.length > 1 && targetParts[0] === state 
-            ? targetParts[1] 
-            : target;
+          const targetState =
+            targetParts.length > 1 && targetParts[0] === state
+              ? targetParts[1]
+              : target;
 
           if (target !== fullState && targetParts[0] === state) {
             lines.push(`  ${substate} --> ${targetState} : ${action}`);
@@ -207,14 +225,17 @@ export function generatePlantUMLDiagram(stateMachine: UIStateMachine): string {
 /**
  * Generates an HTML documentation page with embedded Mermaid diagram
  */
-export function generateHTMLDocumentation(stateMachine: UIStateMachine): string {
+export function generateHTMLDocumentation(
+  stateMachine: UIStateMachine,
+): string {
   const diagram = generateMermaidDiagram(stateMachine);
   const table = generateStateTable(stateMachine);
   const analysis = analyzeStateHistory(stateMachine);
-  
+
   // Extract statistics from analysis
-  const totalTransitions = analysis.match(/Total transitions: (\d+)/)?.[1] || "0";
-  
+  const totalTransitions =
+    analysis.match(/Total transitions: (\d+)/)?.[1] || "0";
+
   // Count unique states and actions from the transition analysis
   const { stateHierarchy, allActions } = analyzeTransitions(stateMachine);
   const allStates = new Set<string>();

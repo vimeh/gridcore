@@ -3,10 +3,10 @@ import { CellAddress } from "../../../core/src/domain/models/CellAddress";
 import { UIStateMachine } from "../state/UIStateMachine";
 import {
   analyzeStateHistory,
-  generateMermaidDiagram,
-  generateStateTable,
-  generatePlantUMLDiagram,
   generateHTMLDocumentation,
+  generateMermaidDiagram,
+  generatePlantUMLDiagram,
+  generateStateTable,
 } from "./StateVisualizer";
 
 describe("StateVisualizer", () => {
@@ -169,14 +169,14 @@ describe("StateVisualizer", () => {
       const html = generateHTMLDocumentation(stateMachine);
 
       expect(html).toContain("<!DOCTYPE html>");
-      expect(html).toContain("<html lang=\"en\">");
+      expect(html).toContain('<html lang="en">');
       expect(html).toContain("</html>");
     });
 
     test("includes Mermaid diagram", () => {
       const html = generateHTMLDocumentation(stateMachine);
 
-      expect(html).toContain("class=\"mermaid\"");
+      expect(html).toContain('class="mermaid"');
       expect(html).toContain("stateDiagram-v2");
       expect(html).toContain("mermaid.initialize");
     });
