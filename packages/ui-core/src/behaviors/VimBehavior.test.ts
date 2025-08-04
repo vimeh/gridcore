@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import { CellAddress } from "@gridcore/core";
 import {
   createEditingState,
   createNavigationState,
   createResizeState,
+  createSpreadsheetVisualState,
+  type Selection,
 } from "../state/UIState";
 import { type KeyMeta, VimBehavior } from "./VimBehavior";
 
@@ -564,6 +567,193 @@ describe("VimBehavior", () => {
         type: "move",
         direction: "down",
         count: 1, // Not 3
+      });
+    });
+  });
+
+  describe("spreadsheet visual mode", () => {
+    const cursor = CellAddress.create(1, 1).value;
+    const anchor = CellAddress.create(0, 0).value;
+    const selection: Selection = {
+      type: { type: "row", rows: [0, 1] },
+      anchor,
+    };
+    const visualState = createSpreadsheetVisualState(
+      cursor,
+      defaultViewport,
+      "row",
+      anchor,
+      selection,
+    );
+
+    describe("entering visual modes from navigation", () => {
+      const navigationState = createNavigationState(
+        defaultCursor,
+        defaultViewport,
+      );
+
+      test("should enter character visual mode with 'v'", () => {
+        expect(
+          vimBehavior.handleKeyPress("v", createKeyMeta("v"), navigationState),
+        ).toEqual({
+          type: "enterSpreadsheetVisual",
+          visualMode: "char",
+        });
+      });
+
+      test("should enter row visual mode with 'V'", () => {
+        expect(
+          vimBehavior.handleKeyPress("V", createKeyMeta("V"), navigationState),
+        ).toEqual({
+          type: "enterSpreadsheetVisual",
+          visualMode: "row",
+        });
+      });
+
+      test("should enter block visual mode with 'Ctrl+v'", () => {
+        expect(
+          vimBehavior.handleKeyPress("v", createKeyMeta("v", true), navigationState),
+        ).toEqual({
+          type: "enterSpreadsheetVisual",
+          visualMode: "block",
+        });
+      });
+
+      test("should enter column visual mode with 'gC'", () => {
+        vimBehavior.handleKeyPress("g", createKeyMeta("g"), navigationState);
+        expect(
+          vimBehavior.handleKeyPress("C", createKeyMeta("C"), navigationState),
+        ).toEqual({
+          type: "enterSpreadsheetVisual",
+          visualMode: "column",
+        });
+      });
+    });
+
+    describe("visual mode navigation", () => {
+      test("should extend selection with h/j/k/l", () => {
+        expect(
+          vimBehavior.handleKeyPress("h", createKeyMeta("h"), visualState),
+        ).toEqual({
+          type: "extendSelection",
+          direction: "left",
+          count: 1,
+        });
+
+        expect(
+          vimBehavior.handleKeyPress("j", createKeyMeta("j"), visualState),
+        ).toEqual({
+          type: "extendSelection",
+          direction: "down",
+          count: 1,
+        });
+
+        expect(
+          vimBehavior.handleKeyPress("k", createKeyMeta("k"), visualState),
+        ).toEqual({
+          type: "extendSelection",
+          direction: "up",
+          count: 1,
+        });
+
+        expect(
+          vimBehavior.handleKeyPress("l", createKeyMeta("l"), visualState),
+        ).toEqual({
+          type: "extendSelection",
+          direction: "right",
+          count: 1,
+        });
+      });
+
+      test("should handle number prefixes for extending selection", () => {
+        vimBehavior.handleKeyPress("3", createKeyMeta("3"), visualState);
+        expect(
+          vimBehavior.handleKeyPress("j", createKeyMeta("j"), visualState),
+        ).toEqual({
+          type: "extendSelection",
+          direction: "down",
+          count: 3,
+        });
+      });
+
+      test("should extend selection with arrow keys", () => {
+        expect(
+          vimBehavior.handleKeyPress(
+            "ArrowDown",
+            createKeyMeta("ArrowDown"),
+            visualState,
+          ),
+        ).toEqual({
+          type: "extendSelection",
+          direction: "down",
+          count: 1,
+        });
+      });
+    });
+
+    describe("visual mode operations", () => {
+      test("should handle delete operation", () => {
+        expect(
+          vimBehavior.handleKeyPress("d", createKeyMeta("d"), visualState),
+        ).toEqual({
+          type: "delete",
+        });
+      });
+
+      test("should handle change operation", () => {
+        expect(
+          vimBehavior.handleKeyPress("c", createKeyMeta("c"), visualState),
+        ).toEqual({
+          type: "change",
+        });
+      });
+
+      test("should handle yank operation", () => {
+        expect(
+          vimBehavior.handleKeyPress("y", createKeyMeta("y"), visualState),
+        ).toEqual({
+          type: "yank",
+        });
+      });
+    });
+
+    describe("exiting visual mode", () => {
+      test("should exit visual mode with 'v'", () => {
+        expect(
+          vimBehavior.handleKeyPress("v", createKeyMeta("v"), visualState),
+        ).toEqual({
+          type: "exitVisual",
+        });
+      });
+
+      test("should exit visual mode with escape", () => {
+        expect(
+          vimBehavior.handleKeyPress(
+            "escape",
+            createKeyMeta("escape"),
+            visualState,
+          ),
+        ).toEqual({
+          type: "exitVisual",
+        });
+      });
+    });
+
+    describe("visual mode with ctrl keys", () => {
+      test("should handle ctrl scrolling in visual mode", () => {
+        expect(
+          vimBehavior.handleKeyPress("d", createKeyMeta("d", true), visualState),
+        ).toEqual({
+          type: "scroll",
+          direction: "halfDown",
+        });
+
+        expect(
+          vimBehavior.handleKeyPress("u", createKeyMeta("u", true), visualState),
+        ).toEqual({
+          type: "scroll",
+          direction: "halfUp",
+        });
       });
     });
   });
