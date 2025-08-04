@@ -6,11 +6,17 @@ import type { ViewportManager } from "@gridcore/ui-core"
 import { Window } from "happy-dom"
 
 // Set up DOM environment
-const window = new Window()
-const document = window.document
-global.window = window as unknown as Window & typeof globalThis
-global.document = document as unknown as Document
-global.KeyboardEvent = window.KeyboardEvent as unknown as typeof KeyboardEvent
+const happyWindow = new Window()
+
+// Override globals without type conflicts
+Object.assign(global, {
+  window: happyWindow,
+  document: happyWindow.document,
+  KeyboardEvent: happyWindow.KeyboardEvent,
+})
+
+// Use the document from the global object
+const document = happyWindow.document
 
 // Mock ViewportManager
 class MockViewportManager implements ViewportManager {
@@ -45,7 +51,7 @@ class MockViewport {
 
 describe("CellEditor", () => {
   let cellEditor: CellEditor
-  let container: HTMLElement
+  let container: ReturnType<typeof document.createElement>
   let workbook: Workbook
   let controller: SpreadsheetController
   let viewportManager: ViewportManager
@@ -78,7 +84,7 @@ describe("CellEditor", () => {
     })
     
     // Create CellEditor
-    cellEditor = new CellEditor(container, viewport as any, {
+    cellEditor = new CellEditor(container as unknown as HTMLElement, viewport as any, {
       onCommit: (address: CellAddress, value: string) => {
         committedAddress = address
         committedValue = value
@@ -113,7 +119,7 @@ describe("CellEditor", () => {
     cellEditor.startEditing(addressResult.value, "")
     
     // Get the editor element
-    const editorDiv = container.querySelector(".cell-editor") as HTMLDivElement
+    const editorDiv = container.querySelector(".cell-editor") as unknown as HTMLDivElement
     expect(editorDiv).toBeDefined()
     
     // Type some text by simulating key presses
@@ -186,7 +192,7 @@ describe("CellEditor", () => {
     }
     
     // Get the editor element
-    const editorDiv = container.querySelector(".cell-editor") as HTMLDivElement
+    const editorDiv = container.querySelector(".cell-editor") as unknown as HTMLDivElement
     
     // Simulate escape key press
     const escape = new KeyboardEvent("keydown", {
