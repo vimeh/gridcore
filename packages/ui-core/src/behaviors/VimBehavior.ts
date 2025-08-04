@@ -4,6 +4,7 @@ import {
   isEditingMode,
   isNavigationMode,
   isResizeMode,
+  isSpreadsheetVisualMode,
 } from "../state/UIState";
 
 export interface KeyMeta {
@@ -42,6 +43,15 @@ export type VimAction =
       visualType: "character" | "line" | "block";
     }
   | {
+      type: "enterSpreadsheetVisual";
+      visualMode: "char" | "line" | "block" | "column" | "row";
+    }
+  | {
+      type: "extendSelection";
+      direction: "up" | "down" | "left" | "right";
+      count?: number;
+    }
+  | {
       type: "exitVisual";
     }
   | {
@@ -67,6 +77,10 @@ export type VimAction =
   | { type: "resize"; delta: number }
   | { type: "resizeAutoFit" }
   | { type: "setAnchor"; address?: CellAddress }
+  | { type: "selectEntireColumn" }
+  | { type: "selectEntireRow" }
+  | { type: "selectColumnData" }
+  | { type: "selectRowData" }
   | { type: "none" };
 
 // Cell-level vim actions (when editing a cell)
@@ -144,6 +158,8 @@ export class VimBehavior {
     // Route to appropriate handler based on state
     if (isNavigationMode(state)) {
       return this.handleNavigationMode(key, meta, state);
+    } else if (isSpreadsheetVisualMode(state)) {
+      return this.handleSpreadsheetVisualMode(key, meta, state);
     } else if (isEditingMode(state)) {
       // When in editing mode, we're at the cell level
       // This should be handled by CellVimBehavior, not here
@@ -161,6 +177,8 @@ export class VimBehavior {
 
     if (isEditingMode(state)) {
       return { type: "exitEditing" };
+    } else if (isSpreadsheetVisualMode(state)) {
+      return { type: "exitVisual" };
     } else if (isResizeMode(state)) {
       return { type: "exitMode" };
     }
@@ -258,13 +276,13 @@ export class VimBehavior {
         this.clearBuffers();
         return { type: "startEditing", editVariant: "O" };
 
-      // Visual modes - these should enter editing mode first, then visual mode
+      // Visual modes - spreadsheet-level visual selection
       case "v":
         this.clearBuffers();
-        return { type: "enterVisual", visualType: "character" };
+        return { type: "enterSpreadsheetVisual", visualMode: "char" };
       case "V":
         this.clearBuffers();
-        return { type: "enterVisual", visualType: "line" };
+        return { type: "enterSpreadsheetVisual", visualMode: "row" };
 
       // Commands that start multi-key sequences
       case "g":
@@ -351,6 +369,75 @@ export class VimBehavior {
     }
   }
 
+  private handleSpreadsheetVisualMode(
+    key: string,
+    meta: KeyMeta,
+    state: UIState,
+  ): VimAction {
+    if (!isSpreadsheetVisualMode(state)) return { type: "none" };
+
+    // Handle number accumulation
+    if (/^\d$/.test(key) && (this.internalState.numberBuffer || key !== "0")) {
+      this.internalState.numberBuffer += key;
+      return { type: "none" };
+    }
+
+    const count = this.getCount();
+
+    // Handle Ctrl combinations in visual mode
+    if (meta.ctrl) {
+      return this.handleControlKey(key, meta);
+    }
+
+    // Movement in visual mode extends the selection
+    switch (key) {
+      case "h":
+      case "ArrowLeft":
+        this.clearBuffers();
+        return { type: "extendSelection", direction: "left", count };
+      case "j":
+      case "ArrowDown":
+        this.clearBuffers();
+        return { type: "extendSelection", direction: "down", count };
+      case "k":
+      case "ArrowUp":
+        this.clearBuffers();
+        return { type: "extendSelection", direction: "up", count };
+      case "l":
+      case "ArrowRight":
+        this.clearBuffers();
+        return { type: "extendSelection", direction: "right", count };
+
+      // Word movement extends selection
+      case "w":
+        this.clearBuffers();
+        return { type: "extendSelection", direction: "right", count }; // TODO: Implement word extension
+      case "b":
+        this.clearBuffers();
+        return { type: "extendSelection", direction: "left", count }; // TODO: Implement word extension
+
+      // Operations on selections
+      case "d":
+        this.clearBuffers();
+        return { type: "delete" };
+      case "c":
+        this.clearBuffers();
+        return { type: "change" };
+      case "y":
+        this.clearBuffers();
+        return { type: "yank" };
+      
+      // Exit visual mode
+      case "v":
+        this.clearBuffers();
+        return { type: "exitVisual" };
+
+      default:
+        this.clearBuffers();
+        return { type: "none" };
+    }
+  }
+
   private handleResizeMode(
     key: string,
     _meta: KeyMeta,
@@ -412,7 +499,7 @@ export class VimBehavior {
       case "y":
         return { type: "scroll", direction: "up" };
       case "v":
-        return { type: "enterVisual", visualType: "block" };
+        return { type: "enterSpreadsheetVisual", visualMode: "block" };
       default:
         return { type: "none" };
     }
@@ -477,6 +564,8 @@ export class VimBehavior {
         // For resize mode, we need to determine column or row
         // This would be handled by the controller based on cursor position
         return { type: "enterResize", target: "column", index: 0 };
+      case "gC":
+        return { type: "enterSpreadsheetVisual", visualMode: "column" };
       default:
         // If we have an operator pending and this isn't a recognized command,
         // don't clear the state yet

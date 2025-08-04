@@ -11,11 +11,27 @@ export interface ViewportInfo {
 // Cell editing mode types (when editing a cell)
 export type CellMode = "normal" | "insert" | "visual";
 
-// Visual mode types
+// Visual mode types for cell-level editing
 export type VisualMode = "character" | "line" | "block";
+
+// Spreadsheet-level visual selection modes
+export type SpreadsheetVisualMode = "char" | "line" | "block" | "column" | "row";
 
 // Insert mode variants
 export type InsertMode = "i" | "a" | "A" | "I" | "o" | "O";
+
+// Selection types for spreadsheet-level selections
+export type SelectionType = 
+  | { type: "cell"; address: CellAddress }
+  | { type: "range"; start: CellAddress; end: CellAddress }
+  | { type: "column"; columns: number[] }
+  | { type: "row"; rows: number[] }
+  | { type: "multi"; selections: Selection[] };
+
+export interface Selection {
+  type: SelectionType;
+  anchor?: CellAddress; // For extending selections
+}
 
 // Spreadsheet-level state with nested modes
 export type UIState =
@@ -23,7 +39,15 @@ export type UIState =
       spreadsheetMode: "navigation";
       cursor: CellAddress;
       viewport: ViewportInfo;
-      // No cell editing state when navigating
+      selection?: Selection; // Optional selection in navigation
+    }
+  | {
+      spreadsheetMode: "visual";
+      cursor: CellAddress;
+      viewport: ViewportInfo;
+      selection: Selection; // Required in visual mode
+      visualMode: SpreadsheetVisualMode; // Type of visual selection
+      anchor: CellAddress; // Where selection started
     }
   | {
       spreadsheetMode: "editing";
@@ -59,6 +83,12 @@ export function isNavigationMode(
   return state.spreadsheetMode === "navigation";
 }
 
+export function isSpreadsheetVisualMode(
+  state: UIState,
+): state is Extract<UIState, { spreadsheetMode: "visual" }> {
+  return state.spreadsheetMode === "visual";
+}
+
 export function isEditingMode(
   state: UIState,
 ): state is Extract<UIState, { spreadsheetMode: "editing" }> {
@@ -82,20 +112,44 @@ export function isInsertMode(state: UIState): boolean {
   return isEditingMode(state) && state.cellMode === "insert";
 }
 
-// Helper to check if in visual mode within cell editing
-export function isVisualMode(state: UIState): boolean {
+// Helper to check if in visual mode within cell editing (renamed for clarity)
+export function isCellVisualMode(state: UIState): boolean {
   return isEditingMode(state) && state.cellMode === "visual";
+}
+
+// Legacy helper - kept for backward compatibility but deprecated
+export function isVisualMode(state: UIState): boolean {
+  return isCellVisualMode(state);
 }
 
 // Default states factory
 export function createNavigationState(
   cursor: CellAddress,
   viewport: ViewportInfo,
+  selection?: Selection,
 ): UIState {
   return {
     spreadsheetMode: "navigation",
     cursor,
     viewport,
+    selection,
+  };
+}
+
+export function createSpreadsheetVisualState(
+  cursor: CellAddress,
+  viewport: ViewportInfo,
+  visualMode: SpreadsheetVisualMode,
+  anchor: CellAddress,
+  selection: Selection,
+): UIState {
+  return {
+    spreadsheetMode: "visual",
+    cursor,
+    viewport,
+    visualMode,
+    anchor,
+    selection,
   };
 }
 
