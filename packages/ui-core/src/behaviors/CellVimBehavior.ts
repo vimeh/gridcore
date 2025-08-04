@@ -14,7 +14,6 @@ interface CellVimInternalState {
 
 export class CellVimBehavior {
   private internalState: CellVimInternalState;
-  private readonly COMMAND_TIMEOUT = 500;
 
   constructor() {
     this.internalState = {

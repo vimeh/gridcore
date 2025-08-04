@@ -4,7 +4,7 @@ export class StateVisualizer {
   /**
    * Generates a Mermaid diagram of the state machine transitions
    */
-  static generateMermaidDiagram(stateMachine: UIStateMachine): string {
+  static generateMermaidDiagram(_stateMachine: UIStateMachine): string {
     const lines: string[] = ["stateDiagram-v2"];
 
     // Add initial state
@@ -186,7 +186,7 @@ ${mermaidDiagram}
   /**
    * Generates a text-based state table for documentation
    */
-  static generateStateTable(stateMachine: UIStateMachine): string {
+  static generateStateTable(_stateMachine: UIStateMachine): string {
     const lines: string[] = [];
 
     lines.push("UI State Machine Transition Table");

@@ -4,7 +4,7 @@ import { CellAddress } from "@gridcore/core";
 import type { ViewportManager } from "../controllers/SpreadsheetController";
 import { SpreadsheetController } from "../controllers/SpreadsheetController";
 import { createNavigationState } from "../state/UIState";
-import { err, ok } from "../utils/Result";
+import { ok } from "../utils/Result";
 
 describe("SpreadsheetController - Append Mode", () => {
   let controller: SpreadsheetController;

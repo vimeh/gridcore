@@ -1,5 +1,5 @@
 import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
-import type { SpreadsheetController, ViewportManager } from "@gridcore/ui-core";
+import type { SpreadsheetController } from "@gridcore/ui-core";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
 import { MouseHandler } from "../interaction/MouseHandler";
 import { ResizeHandler } from "../interaction/ResizeHandler";

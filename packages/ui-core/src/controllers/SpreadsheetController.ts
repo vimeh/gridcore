@@ -325,7 +325,7 @@ export class SpreadsheetController {
   // Cell operations
   private handleCellOperation(
     operation: string,
-    action: any,
+    _action: any,
     state: UIState,
   ): Result<UIState> {
     // These would interact with the facade to perform actual operations

@@ -12,7 +12,6 @@ export class FormulaBar {
   private addressInput!: HTMLInputElement;
   private formulaInput!: HTMLInputElement;
   private currentCell: CellAddress | null = null;
-  private isEditingExternally: boolean = false;
 
   constructor(
     container: HTMLElement,

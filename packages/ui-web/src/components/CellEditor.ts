@@ -160,7 +160,7 @@ export class CellEditor {
     // If we have a controller, delegate complex key handling to it
     if (this.controller) {
       // Get the state before handling the key
-      const prevState = this.controller.getState();
+      const _prevState = this.controller.getState();
 
       const result = this.controller.handleKeyPress(event.key, {
         key: event.key,
@@ -288,14 +288,6 @@ export class CellEditor {
 
     sel?.removeAllRanges();
     sel?.addRange(range);
-  }
-
-  private getCursorPosition(): number {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return 0;
-
-    const range = sel.getRangeAt(0);
-    return range.startOffset;
   }
 
   updatePosition(): void {

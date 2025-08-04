@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress } from "@gridcore/core";
-import {
-  createNavigationState,
-  isEditingMode,
-  isResizeMode,
-} from "@gridcore/ui-core";
+import { isResizeMode } from "@gridcore/ui-core";
 import { SpreadsheetTUI } from "./SpreadsheetTUI";
 
 describe("SpreadsheetTUI Controller Integration", () => {
@@ -22,10 +17,10 @@ describe("SpreadsheetTUI Controller Integration", () => {
     });
 
     test("should handle arrow key navigation", () => {
-      const initialState = tui.getState();
+      const _initialState = tui.getState();
 
       // Simulate right arrow
-      tui["handleKeyPress"]("l", {
+      tui.handleKeyPress("l", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -35,7 +30,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
       expect(afterRight.cursor).toEqual({ row: 0, col: 1 });
 
       // Simulate down arrow
-      tui["handleKeyPress"]("j", {
+      tui.handleKeyPress("j", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -46,7 +41,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
     });
 
     test("should enter edit mode with 'i' key", () => {
-      tui["handleKeyPress"]("i", {
+      tui.handleKeyPress("i", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -58,7 +53,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
     });
 
     test("should enter command mode with ':' key", () => {
-      tui["handleKeyPress"](":", {
+      tui.handleKeyPress(":", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -71,13 +66,13 @@ describe("SpreadsheetTUI Controller Integration", () => {
 
     test("should enter resize mode with 'gr' keys", () => {
       // Vim behavior requires 'gr' command
-      tui["handleKeyPress"]("g", {
+      tui.handleKeyPress("g", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "g",
       });
-      tui["handleKeyPress"]("r", {
+      tui.handleKeyPress("r", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -92,7 +87,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
   describe("Edit Mode", () => {
     beforeEach(() => {
       // Enter edit mode
-      tui["handleKeyPress"]("i", {
+      tui.handleKeyPress("i", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -106,31 +101,31 @@ describe("SpreadsheetTUI Controller Integration", () => {
       expect(initialState.cellMode).toBe("insert");
 
       // Type "hello"
-      tui["handleKeyPress"]("h", {
+      tui.handleKeyPress("h", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "h",
       });
-      tui["handleKeyPress"]("e", {
+      tui.handleKeyPress("e", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "e",
       });
-      tui["handleKeyPress"]("l", {
+      tui.handleKeyPress("l", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "l",
       });
-      tui["handleKeyPress"]("l", {
+      tui.handleKeyPress("l", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "l",
       });
-      tui["handleKeyPress"]("o", {
+      tui.handleKeyPress("o", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -144,25 +139,25 @@ describe("SpreadsheetTUI Controller Integration", () => {
 
     test("should handle backspace", () => {
       // Type "test"
-      tui["handleKeyPress"]("t", {
+      tui.handleKeyPress("t", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "t",
       });
-      tui["handleKeyPress"]("e", {
+      tui.handleKeyPress("e", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "e",
       });
-      tui["handleKeyPress"]("s", {
+      tui.handleKeyPress("s", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "s",
       });
-      tui["handleKeyPress"]("t", {
+      tui.handleKeyPress("t", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -170,7 +165,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
       });
 
       // Backspace
-      tui["handleKeyPress"]("\b", {
+      tui.handleKeyPress("\b", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -184,7 +179,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
 
     test("should exit edit mode with ESC", () => {
       // First ESC exits insert mode to normal cell mode
-      tui["handleKeyPress"]("\x1b", {
+      tui.handleKeyPress("\x1b", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -195,7 +190,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
       expect(state.cellMode).toBe("normal");
 
       // Second ESC exits to navigation mode
-      tui["handleKeyPress"]("\x1b", {
+      tui.handleKeyPress("\x1b", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -207,13 +202,13 @@ describe("SpreadsheetTUI Controller Integration", () => {
 
     test("should save value with Enter", () => {
       // Type "42"
-      tui["handleKeyPress"]("4", {
+      tui.handleKeyPress("4", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "4",
       });
-      tui["handleKeyPress"]("2", {
+      tui.handleKeyPress("2", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -225,7 +220,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
       expect(stateBeforeEnter.editingValue).toBe("42");
 
       // Enter
-      tui["handleKeyPress"]("\r", {
+      tui.handleKeyPress("\r", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -243,7 +238,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
 
   describe("Command Mode", () => {
     beforeEach(() => {
-      tui["handleKeyPress"](":", {
+      tui.handleKeyPress(":", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -252,7 +247,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
     });
 
     test("should track command input", () => {
-      tui["handleKeyPress"]("w", {
+      tui.handleKeyPress("w", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -263,13 +258,13 @@ describe("SpreadsheetTUI Controller Integration", () => {
     });
 
     test("should exit command mode with ESC", () => {
-      tui["handleKeyPress"]("q", {
+      tui.handleKeyPress("q", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "q",
       });
-      tui["handleKeyPress"]("\x1b", {
+      tui.handleKeyPress("\x1b", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -283,13 +278,13 @@ describe("SpreadsheetTUI Controller Integration", () => {
 
     test("should execute command with Enter", () => {
       // The actual command execution (like quit) would need mocking
-      tui["handleKeyPress"]("w", {
+      tui.handleKeyPress("w", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "w",
       });
-      tui["handleKeyPress"]("\r", {
+      tui.handleKeyPress("\r", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -304,13 +299,13 @@ describe("SpreadsheetTUI Controller Integration", () => {
 
   describe("Resize Mode", () => {
     beforeEach(() => {
-      tui["handleKeyPress"]("g", {
+      tui.handleKeyPress("g", {
         ctrl: false,
         alt: false,
         shift: false,
         key: "g",
       });
-      tui["handleKeyPress"]("r", {
+      tui.handleKeyPress("r", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -335,7 +330,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
       });
 
       // Move to next column
-      tui["handleKeyPress"]("l", {
+      tui.handleKeyPress("l", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -350,7 +345,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
       expect(state.resizeIndex).toBe(1); // Moved to next column
 
       // Move back to previous column
-      tui["handleKeyPress"]("h", {
+      tui.handleKeyPress("h", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -364,7 +359,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
       const initialState = tui.getState();
       const initialSize = initialState.currentSize;
 
-      tui["handleKeyPress"](">", {
+      tui.handleKeyPress(">", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -378,7 +373,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
       const initialState = tui.getState();
       const initialSize = initialState.currentSize;
 
-      tui["handleKeyPress"]("<", {
+      tui.handleKeyPress("<", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -390,7 +385,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
     });
 
     test("should exit resize mode with ESC", () => {
-      tui["handleKeyPress"]("\x1b", {
+      tui.handleKeyPress("\x1b", {
         ctrl: false,
         alt: false,
         shift: false,
@@ -408,7 +403,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
 
       // Move cursor beyond viewport
       for (let i = 0; i < viewport.rows + 1; i++) {
-        tui["handleKeyPress"]("j", {
+        tui.handleKeyPress("j", {
           ctrl: false,
           alt: false,
           shift: false,
@@ -417,7 +412,7 @@ describe("SpreadsheetTUI Controller Integration", () => {
       }
 
       // The ensureCursorInViewport should have adjusted the viewport
-      tui["ensureCursorInViewport"]();
+      tui.ensureCursorInViewport();
 
       const state = tui.getState();
       expect(state.cursor.row).toBeGreaterThan(viewport.rows);
@@ -427,20 +422,20 @@ describe("SpreadsheetTUI Controller Integration", () => {
   describe("Controller Events", () => {
     test("should handle state change events", () => {
       const event = { type: "stateChanged" as const };
-      tui["handleControllerEvent"](event);
+      tui.handleControllerEvent(event);
       // Should not throw
     });
 
     test("should handle command execution events", () => {
       const event = { type: "commandExecuted" as const, command: "w" };
-      tui["handleControllerEvent"](event);
+      tui.handleControllerEvent(event);
       // Should call handleCommand internally
     });
 
     test("should handle error events", () => {
       const event = { type: "error" as const, error: "Test error" };
       // Should log to console.error but not throw
-      tui["handleControllerEvent"](event);
+      tui.handleControllerEvent(event);
     });
   });
 });

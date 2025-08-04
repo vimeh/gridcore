@@ -288,8 +288,8 @@ export class GridComponent extends Renderable {
     buffer: OptimizedBuffer,
     pos: { x: number; y: number },
     state: UIState,
-    visibleCols: number[],
-    visibleRows: number[],
+    _visibleCols: number[],
+    _visibleRows: number[],
   ): void {
     if (!isResizeMode(state)) return;
 

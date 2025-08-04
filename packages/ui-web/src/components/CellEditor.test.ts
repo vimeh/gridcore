@@ -20,21 +20,21 @@ const document = happyWindow.document;
 
 // Mock ViewportManager
 class MockViewportManager implements ViewportManager {
-  getColumnWidth(index: number): number {
+  getColumnWidth(_index: number): number {
     return 100;
   }
-  setColumnWidth(index: number, width: number): void {}
-  getRowHeight(index: number): number {
+  setColumnWidth(_index: number, _width: number): void {}
+  getRowHeight(_index: number): number {
     return 25;
   }
-  setRowHeight(index: number, height: number): void {}
+  setRowHeight(_index: number, _height: number): void {}
   getTotalRows(): number {
     return 1000;
   }
   getTotalCols(): number {
     return 26;
   }
-  scrollTo(row: number, col: number): void {}
+  scrollTo(_row: number, _col: number): void {}
 }
 
 // Mock Viewport
@@ -58,13 +58,13 @@ describe("CellEditor", () => {
   let viewport: MockViewport;
   let committedValue: string | null;
   let cancelCalled: boolean;
-  let committedAddress: CellAddress | null;
+  let _committedAddress: CellAddress | null;
 
   beforeEach(() => {
     // Reset test state
     committedValue = null;
     cancelCalled = false;
-    committedAddress = null;
+    _committedAddress = null;
 
     // Create container
     container = document.createElement("div");
@@ -89,7 +89,7 @@ describe("CellEditor", () => {
       viewport as any,
       {
         onCommit: (address: CellAddress, value: string) => {
-          committedAddress = address;
+          _committedAddress = address;
           committedValue = value;
         },
         onCancel: () => {

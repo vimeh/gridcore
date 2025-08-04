@@ -119,7 +119,7 @@ describe("Result", () => {
     test("chaining Results", () => {
       function parseNumber(s: string): Result<number> {
         const n = Number(s);
-        if (isNaN(n)) {
+        if (Number.isNaN(n)) {
           return err(`Invalid number: ${s}`);
         }
         return ok(n);

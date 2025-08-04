@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { Cell, CellAddress } from "@gridcore/core";
-import type { UIState } from "../state/UIState";
+import { CellAddress } from "@gridcore/core";
 import {
   type ControllerEvent,
   SpreadsheetController,
@@ -96,13 +95,13 @@ describe("SpreadsheetController", () => {
   beforeEach(() => {
     engine = new MockSpreadsheetEngine();
     viewportManager = {
-      getColumnWidth: (index: number) => 100,
-      setColumnWidth: (index: number, width: number) => {},
-      getRowHeight: (index: number) => 20,
-      setRowHeight: (index: number, height: number) => {},
+      getColumnWidth: (_index: number) => 100,
+      setColumnWidth: (_index: number, _width: number) => {},
+      getRowHeight: (_index: number) => 20,
+      setRowHeight: (_index: number, _height: number) => {},
       getTotalRows: () => 1000,
       getTotalCols: () => 100,
-      scrollTo: (row: number, col: number) => {},
+      scrollTo: (_row: number, _col: number) => {},
     };
 
     controller = new SpreadsheetController({
@@ -449,7 +448,7 @@ describe("SpreadsheetController", () => {
         shift: false,
         alt: false,
       });
-      const result = controller.handleKeyPress("r", {
+      const _result = controller.handleKeyPress("r", {
         key: "r",
         ctrl: false,
         shift: false,

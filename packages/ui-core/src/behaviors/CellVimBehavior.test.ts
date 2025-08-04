@@ -484,14 +484,14 @@ describe("CellVimBehavior", () => {
         cursorPosition: 6,
         editingValue: "hello world test",
       };
-      
+
       // Press d
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Press i
       const iAction = behavior.handleKeyPress(
         "i",
@@ -499,14 +499,14 @@ describe("CellVimBehavior", () => {
         state,
       );
       expect(iAction).toEqual({ type: "none" });
-      
+
       // Press w
       const action = behavior.handleKeyPress(
         "w",
         { key: "w", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete "world" (positions 6-10)
       expect(action).toEqual({
         type: "deleteText",
@@ -520,25 +520,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 6,
         editingValue: "hello world test",
       };
-      
+
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "a",
         { key: "a", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         "w",
         { key: "w", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete "world " (positions 5-11 plus trailing space)
       expect(action).toEqual({
         type: "deleteText",
@@ -552,25 +552,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 8,
         editingValue: 'hello "world" test',
       };
-      
+
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "i",
         { key: "i", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         '"',
         { key: '"', ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete "world" (inside quotes)
       expect(action).toEqual({
         type: "deleteText",
@@ -584,25 +584,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 8,
         editingValue: 'hello "world" test',
       };
-      
+
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "a",
         { key: "a", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         '"',
         { key: '"', ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete "world" including quotes
       expect(action).toEqual({
         type: "deleteText",
@@ -616,25 +616,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 8,
         editingValue: "hello (world) test",
       };
-      
+
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "i",
         { key: "i", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         "(",
         { key: "(", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete "world" (inside parentheses)
       expect(action).toEqual({
         type: "deleteText",
@@ -648,25 +648,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 8,
         editingValue: "hello (world) test",
       };
-      
+
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "i",
         { key: "i", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         "b",
         { key: "b", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete "world" (inside parentheses)
       expect(action).toEqual({
         type: "deleteText",
@@ -680,25 +680,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 8,
         editingValue: "hello [world] test",
       };
-      
+
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "i",
         { key: "i", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         "[",
         { key: "[", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete "world" (inside brackets)
       expect(action).toEqual({
         type: "deleteText",
@@ -712,25 +712,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 8,
         editingValue: "hello {world} test",
       };
-      
+
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "i",
         { key: "i", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         "B",
         { key: "B", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete "world" (inside braces)
       expect(action).toEqual({
         type: "deleteText",
@@ -744,25 +744,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 12,
         editingValue: "outer (inner (text) more) end",
       };
-      
+
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "i",
         { key: "i", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         "(",
         { key: "(", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete content of outer parentheses
       expect(action).toEqual({
         type: "deleteText",
@@ -776,25 +776,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 6,
         editingValue: "hello world test",
       };
-      
+
       behavior.handleKeyPress(
         "c",
         { key: "c", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "i",
         { key: "i", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         "w",
         { key: "w", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete "world" for change operation
       expect(action).toEqual({
         type: "deleteText",
@@ -808,25 +808,25 @@ describe("CellVimBehavior", () => {
         cursorPosition: 6,
         editingValue: "hello world test",
       };
-      
+
       behavior.handleKeyPress(
         "y",
         { key: "y", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       behavior.handleKeyPress(
         "i",
         { key: "i", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         "w",
         { key: "w", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Yank is not fully implemented yet
       expect(action).toEqual({ type: "none" });
     });
@@ -839,13 +839,13 @@ describe("CellVimBehavior", () => {
         cursorPosition: 0,
         editingValue: "hello world test",
       };
-      
+
       const action = behavior.handleKeyPress(
         "e",
         { key: "e", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       expect(action).toEqual({
         type: "moveCursor",
         direction: "wordEnd",
@@ -859,19 +859,19 @@ describe("CellVimBehavior", () => {
         cursorPosition: 0,
         editingValue: "hello world test",
       };
-      
+
       behavior.handleKeyPress(
         "d",
         { key: "d", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       const action = behavior.handleKeyPress(
         "e",
         { key: "e", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       // Should delete from 0 to end of "hello" (position 4, but range end is exclusive so 5)
       expect(action).toEqual({
         type: "deleteText",
@@ -887,13 +887,13 @@ describe("CellVimBehavior", () => {
         cursorPosition: 5,
         editingValue: "hello world",
       };
-      
+
       const action = behavior.handleKeyPress(
         "o",
         { key: "o", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       expect(action).toEqual({
         type: "moveCursor",
         direction: "end",
@@ -906,13 +906,13 @@ describe("CellVimBehavior", () => {
         cursorPosition: 5,
         editingValue: "hello world",
       };
-      
+
       const action = behavior.handleKeyPress(
         "O",
         { key: "O", ctrl: false, shift: false, alt: false },
         state,
       );
-      
+
       expect(action).toEqual({
         type: "moveCursor",
         direction: "start",

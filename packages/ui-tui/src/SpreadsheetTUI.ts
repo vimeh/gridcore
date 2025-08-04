@@ -8,11 +8,9 @@ import {
 import {
   type ControllerEvent,
   createNavigationState,
-  isCommandMode,
   SpreadsheetController,
   type UIState,
 } from "@gridcore/ui-core";
-import { StateAdapter } from "./adapters";
 import {
   FormulaBarComponent,
   GridComponent,
@@ -34,7 +32,6 @@ export class SpreadsheetTUI extends Renderable {
   private facade: SpreadsheetFacade;
   private controller: SpreadsheetController;
   private viewportManager: TUIViewportManager;
-  private running = false;
 
   // Child components
   private gridComponent: GridComponent;
@@ -238,8 +235,8 @@ export class SpreadsheetTUI extends Renderable {
 
   private updateViewport(width?: number, height?: number): void {
     if (width && height) {
-      const rows = Math.floor((height - 5) * 0.9); // Account for UI elements
-      const cols = Math.floor(width / 10);
+      const _rows = Math.floor((height - 5) * 0.9); // Account for UI elements
+      const _cols = Math.floor(width / 10);
 
       // TODO: Update viewport through controller
       // For now, we'll just ensure the viewport manager knows the size

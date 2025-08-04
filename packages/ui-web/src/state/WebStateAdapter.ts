@@ -1,12 +1,9 @@
 import type { CellAddress } from "@gridcore/core";
 import type {
-  Action,
   ControllerEvent,
   Result,
   SpreadsheetController,
   UIState,
-  ViewportInfo,
-  ViewportManager,
 } from "@gridcore/ui-core";
 
 // Web-specific state extensions

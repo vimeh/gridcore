@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { VimMode } from "./VimMode";
 import type { VimCallbacks, VimModeType } from "./VimMode";
+import { VimMode } from "./VimMode";
 
 describe("VimMode", () => {
   let vimMode: VimMode;
@@ -108,7 +108,7 @@ describe("VimMode", () => {
       vimMode.setText("hi", 0);
       vimMode.handleKey("h"); // Should stay at 0
       expect(vimMode.getCursor()).toBe(0);
-      
+
       vimMode.setText("hi", 1);
       vimMode.handleKey("l"); // Should stay at 1 (last valid position)
       expect(vimMode.getCursor()).toBe(1);
@@ -147,7 +147,7 @@ describe("VimMode", () => {
       vimMode.handleKey("v");
       vimMode.handleKey("l");
       vimMode.handleKey("l");
-      
+
       const selection = vimMode.getSelection();
       expect(selection).toEqual({ start: 2, end: 5 });
     });
@@ -158,7 +158,7 @@ describe("VimMode", () => {
       vimMode.setText("");
       vimMode.handleKey("x");
       expect(vimMode.getText()).toBe("");
-      
+
       vimMode.handleKey("d");
       vimMode.handleKey("d");
       expect(vimMode.getText()).toBe("");
@@ -168,9 +168,9 @@ describe("VimMode", () => {
       vimMode.setText("hello world", 5);
       vimMode.handleKey("v");
       vimMode.handleKey("l");
-      
+
       vimMode.reset();
-      
+
       expect(vimMode.getText()).toBe("");
       expect(vimMode.getCursor()).toBe(0);
       expect(vimMode.getMode()).toBe("normal");

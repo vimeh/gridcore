@@ -1,4 +1,4 @@
-import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
+import type { SpreadsheetFacade } from "@gridcore/core";
 import type { SpreadsheetController } from "@gridcore/ui-core";
 import type { CanvasGrid } from "../components/CanvasGrid";
 import type { CellEditor } from "../components/CellEditor";
@@ -12,7 +12,6 @@ export interface SheetNavigationCallbacks {
 }
 
 export class KeyboardHandler {
-  private lastKey: string = "";
   private sheetNavigationCallbacks?: SheetNavigationCallbacks;
   private boundHandleKeyDown: (event: KeyboardEvent) => void;
 
