@@ -520,22 +520,22 @@ test.describe("Mode Integration", () => {
     }) => {
       // Check initial state - use the last mode indicator which should be the unified one
       const navMode = await getModeIndicator(page).last().textContent();
-      console.log("Navigation mode indicator:", navMode);
+      // console.log("Navigation mode indicator:", navMode);
 
       // Press 'a' to enter append mode
       await page.keyboard.press("l"); // Move to B1
       await page.keyboard.press("a");
 
       const appendMode = await getModeIndicator(page).last().textContent();
-      console.log("Append mode indicator:", appendMode);
+      // console.log("Append mode indicator:", appendMode);
 
       // Check mode text specifically
       const modeText = await getModeText(page).last().textContent();
-      console.log("Mode text:", modeText);
+      // console.log("Mode text:", modeText);
 
       // Check mode detail specifically
       const modeDetail = await getModeDetail(page).last().textContent();
-      console.log("Mode detail:", modeDetail);
+      // console.log("Mode detail:", modeDetail);
 
       // This test will always pass, it's just for debugging
       expect(true).toBe(true);
@@ -551,7 +551,7 @@ test.describe("Mode Integration", () => {
       const initialValue = await page
         .locator(".formula-bar-input")
         .inputValue();
-      console.log("Initial value:", initialValue);
+      // console.log("Initial value:", initialValue);
 
       // Enter insert mode with 'i'
       await page.keyboard.press("i");
@@ -559,21 +559,21 @@ test.describe("Mode Integration", () => {
 
       // Type text
       await page.keyboard.type("!");
-      console.log("After typing '!'");
+      // console.log("After typing '!'");
 
       // Exit to normal mode
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NORMAL");
-      console.log("Switched to normal mode");
+      // console.log("Switched to normal mode");
 
       // Exit to navigation mode (this should save)
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NAVIGATION");
-      console.log("Switched to navigation mode");
+      // console.log("Switched to navigation mode");
 
       // Check final value
       const finalValue = await page.locator(".formula-bar-input").inputValue();
-      console.log("Final value:", finalValue);
+      // console.log("Final value:", finalValue);
 
       // For now, just pass the test - we're debugging
       expect(true).toBe(true);
