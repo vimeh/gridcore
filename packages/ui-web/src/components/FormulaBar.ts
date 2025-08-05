@@ -493,5 +493,5 @@ export class FormulaBar {
     this.handleFormulaInput();
   }
 
-  private highlightingTimeout: number | undefined;
+  private highlightingTimeout: ReturnType<typeof setTimeout> | undefined;
 }

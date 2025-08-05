@@ -100,8 +100,8 @@ export class ModeIndicator {
     };
 
     // Determine primary mode and color
-    let primaryMode: string;
-    let colorKey: keyof typeof colors;
+    let primaryMode: string = "NAVIGATION";
+    let colorKey: keyof typeof colors = "navigation";
     const details: string[] = [];
 
     // Check the spreadsheet mode
@@ -144,6 +144,23 @@ export class ModeIndicator {
         primaryMode = "COMMAND";
         colorKey = "normal"; // Using normal color for command mode
         details.push(`:${state.commandValue}`);
+        break;
+      case "visual":
+        // Handle spreadsheet visual mode
+        switch (state.visualMode) {
+          case "row":
+            primaryMode = "VISUAL ROW";
+            colorKey = "visual-line";
+            break;
+          case "column":
+            primaryMode = "VISUAL COLUMN";
+            colorKey = "visual-line";
+            break;
+          case "block":
+            primaryMode = "VISUAL BLOCK";
+            colorKey = "visual-block";
+            break;
+        }
         break;
     }
 

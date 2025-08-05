@@ -1,12 +1,12 @@
 import type { CellAddress } from "../domain/models/CellAddress";
 import { err, ok, type Result } from "../shared/types/Result";
-import type {
-  AdjustmentOptions,
-  AdjustmentResult,
-  CellReference,
-  FillDirection,
-  RangeReference,
+import {
   RefError,
+  type AdjustmentOptions,
+  type AdjustmentResult,
+  type CellReference,
+  type FillDirection,
+  type RangeReference,
 } from "./types";
 
 /**
@@ -90,7 +90,7 @@ export class ReferenceAdjuster {
     return ok({
       start: startResult.value,
       end: endResult.value,
-    });
+    }) as Result<{ start: AdjustmentResult; end: AdjustmentResult }, RefError>;
   }
 
   /**
@@ -224,7 +224,7 @@ export class ReferenceAdjuster {
         newRow < 0 ||
         newRow > maxRow
       ) {
-        return err("OUT_OF_BOUNDS" as RefError);
+        return err(RefError.OUT_OF_BOUNDS);
       }
     }
 
@@ -238,7 +238,7 @@ export class ReferenceAdjuster {
       reference: adjustedRef,
       changed,
       clamped,
-    });
+    }) as Result<AdjustmentResult, RefError>;
   }
 
   /**
@@ -260,7 +260,7 @@ export class ReferenceAdjuster {
       results.push(result.value);
     }
 
-    return ok(results);
+    return ok(results) as Result<AdjustmentResult[], RefError>;
   }
 
   /**

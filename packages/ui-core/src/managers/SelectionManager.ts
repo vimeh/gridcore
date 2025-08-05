@@ -1,4 +1,4 @@
-import type { CellAddress, SpreadsheetFacade } from "@gridcore/core";
+import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
 import type {
   Selection,
   SelectionType,

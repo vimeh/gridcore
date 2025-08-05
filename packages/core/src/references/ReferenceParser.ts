@@ -1,5 +1,5 @@
 import { err, ok, type Result } from "../shared/types/Result";
-import type { CellReference, RangeReference, RefError } from "./types";
+import { RefError, type CellReference, type RangeReference } from "./types";
 
 /**
  * Parser for cell and range references with support for absolute/relative notation.
@@ -24,7 +24,7 @@ export class ReferenceParser {
   parseCellReference(reference: string): Result<CellReference, RefError> {
     const trimmed = reference.trim();
     if (!trimmed) {
-      return err("INVALID_FORMAT" as RefError);
+      return err(RefError.INVALID_FORMAT);
     }
 
     try {
@@ -36,7 +36,7 @@ export class ReferenceParser {
       const cellMatch = cellPart.match(/^(\$?)([A-Z]+)(\$?)(\d+)$/i);
 
       if (!cellMatch) {
-        return err("INVALID_FORMAT" as RefError);
+        return err(RefError.INVALID_FORMAT);
       }
 
       const [, colAbsolute, columnLetters, rowAbsolute, rowNumber] = cellMatch;
@@ -50,11 +50,11 @@ export class ReferenceParser {
         column > ReferenceParser.MAX_COLUMN ||
         row > ReferenceParser.MAX_ROW
       ) {
-        return err("OUT_OF_BOUNDS" as RefError);
+        return err(RefError.OUT_OF_BOUNDS);
       }
 
       if (column < 0 || row < 0) {
-        return err("OUT_OF_BOUNDS" as RefError);
+        return err(RefError.OUT_OF_BOUNDS);
       }
 
       const cellRef: CellReference = {
@@ -66,9 +66,9 @@ export class ReferenceParser {
         ...(sheetName && { sheetAbsolute }),
       };
 
-      return ok(cellRef);
+      return ok(cellRef) as Result<CellReference, RefError>;
     } catch (_error) {
-      return err("INVALID_FORMAT" as RefError);
+      return err(RefError.INVALID_FORMAT);
     }
   }
 
@@ -78,12 +78,12 @@ export class ReferenceParser {
   parseRangeReference(reference: string): Result<RangeReference, RefError> {
     const trimmed = reference.trim();
     if (!trimmed.includes(":")) {
-      return err("INVALID_FORMAT" as RefError);
+      return err(RefError.INVALID_FORMAT);
     }
 
     const [startPart, endPart] = trimmed.split(":", 2);
     if (!startPart || !endPart) {
-      return err("INVALID_FORMAT" as RefError);
+      return err(RefError.INVALID_FORMAT);
     }
 
     const startResult = this.parseCellReference(startPart);
@@ -113,7 +113,7 @@ export class ReferenceParser {
       },
     };
 
-    return ok(rangeRef);
+    return ok(rangeRef) as Result<RangeReference, RefError>;
   }
 
   /**

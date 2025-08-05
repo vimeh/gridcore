@@ -87,8 +87,8 @@ export class UIStateMachine {
       ["navigation.START_EDITING", this.startEditing.bind(this)],
       ["navigation.ENTER_COMMAND_MODE", this.enterCommandMode.bind(this)],
       ["navigation.ENTER_RESIZE_MODE", this.enterResizeMode.bind(this)],
-      ["navigation.ENTER_SPREADSHEET_VISUAL_MODE", this.enterSpreadsheetVisualMode.bind(this)],
-      ["visual.EXIT_SPREADSHEET_VISUAL_MODE", this.exitSpreadsheetVisualMode.bind(this)],
+      ["navigation.ENTER_SPREADSHEET_VISUAL_MODE", this.handleEnterSpreadsheetVisualMode.bind(this)],
+      ["visual.EXIT_SPREADSHEET_VISUAL_MODE", this.handleExitSpreadsheetVisualMode.bind(this)],
       ["visual.UPDATE_SELECTION", this.updateSelection.bind(this)],
       ["editing.EXIT_TO_NAVIGATION", this.exitToNavigation.bind(this)],
       ["editing.normal.ENTER_INSERT_MODE", this.enterInsertMode.bind(this)],
@@ -297,7 +297,7 @@ export class UIStateMachine {
     });
   }
 
-  private enterSpreadsheetVisualMode(state: UIState, action: Action): Result<UIState> {
+  private handleEnterSpreadsheetVisualMode(state: UIState, action: Action): Result<UIState> {
     if (action.type !== "ENTER_SPREADSHEET_VISUAL_MODE") {
       return err("Invalid action type");
     }
@@ -314,7 +314,7 @@ export class UIStateMachine {
     ));
   }
 
-  private exitSpreadsheetVisualMode(state: UIState): Result<UIState> {
+  private handleExitSpreadsheetVisualMode(state: UIState): Result<UIState> {
     if (!isSpreadsheetVisualMode(state)) {
       return err("Can only exit spreadsheet visual mode when in visual mode");
     }
@@ -459,7 +459,7 @@ export class UIStateMachine {
     }
 
     if (isSpreadsheetVisualMode(state)) {
-      return this.exitSpreadsheetVisualMode(state);
+      return this.handleExitSpreadsheetVisualMode(state);
     }
 
     if (isCommandMode(state) || isResizeMode(state)) {
