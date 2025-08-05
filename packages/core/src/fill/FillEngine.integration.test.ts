@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { Cell, CellAddress, CellRange, type CellValue } from "../domain/models";
 import { InMemoryCellRepository } from "../infrastructure/repositories/InMemoryCellRepository";
 import { FillEngine } from "./FillEngine";
 import type { FillOperation, FillOptions } from "./types";
-import { Cell, CellAddress, CellRange, type CellValue } from "../domain/models";
 
 // Use actual domain models from imports
 

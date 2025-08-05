@@ -28,7 +28,7 @@ const createMockCellRepository = (): ICellRepository => {
       cells.clear();
     }),
 
-    getAllInRange: mock((range: CellRange) => {
+    getAllInRange: mock((_range: CellRange) => {
       const result = new Map<string, Cell>();
       // Simple implementation for testing
       return result;
