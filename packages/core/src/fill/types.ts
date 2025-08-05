@@ -2,9 +2,9 @@ import type { CellAddress, CellRange, CellValue } from "../domain/models";
 
 export type FillDirection = "down" | "up" | "left" | "right" | "auto";
 
-export type PatternType = "linear" | "growth" | "date" | "text" | "formula" | "copy";
+export type PatternType = "linear" | "growth" | "date" | "text" | "formula" | "copy" | "fibonacci" | "exponential" | "custom";
 
-export type SeriesType = "linear" | "growth" | "date" | "weekdays" | "months" | "auto";
+export type SeriesType = "linear" | "growth" | "date" | "weekdays" | "months" | "fibonacci" | "exponential" | "custom" | "auto";
 
 export interface FillOptions {
   type: "copy" | "series" | "format" | "values";
@@ -29,6 +29,9 @@ export interface Pattern {
   generator: PatternGenerator;
   step?: number;
   growth?: number;
+  ratio?: number; // For exponential patterns
+  sequence?: number[]; // For custom/fibonacci patterns
+  metadata?: Record<string, any>; // For additional pattern-specific data
 }
 
 export interface PatternGenerator {
@@ -82,6 +85,22 @@ export interface FillPreview {
     confidence: number;
     description: string;
   };
+  alternativePatterns?: Array<{
+    type: string;
+    confidence: number;
+    description: string;
+    preview?: Map<string, CellValue>;
+  }>;
+}
+
+/**
+ * Enhanced pattern detection result with multiple pattern options
+ */
+export interface PatternDetectionResult {
+  bestPattern: Pattern | null;
+  alternativePatterns: Pattern[];
+  confidence: number;
+  ambiguityScore: number; // How ambiguous the detection is (0 = clear, 1 = very ambiguous)
 }
 
 /**

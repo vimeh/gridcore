@@ -9,11 +9,15 @@ import type {
   FormulaAdjuster,
   FillDirection,
   PatternType,
+  PatternDetectionResult,
 } from "./types";
 import { LinearPatternDetector } from "./patterns/LinearPatternDetector";
 import { CopyPatternDetector } from "./patterns/CopyPatternDetector";
 import { DatePatternDetector } from "./patterns/DatePatternDetector";
 import { TextPatternDetector } from "./patterns/TextPatternDetector";
+import { FibonacciPatternDetector } from "./patterns/FibonacciPatternDetector";
+import { ExponentialPatternDetector } from "./patterns/ExponentialPatternDetector";
+import { CustomSequencePatternDetector } from "./patterns/CustomSequencePatternDetector";
 
 /**
  * Core fill engine that orchestrates pattern detection and value generation
@@ -35,10 +39,13 @@ export class FillEngine {
    */
   private initializeDetectors(): void {
     this.detectors = [
-      new LinearPatternDetector(),
-      new DatePatternDetector(), 
-      new TextPatternDetector(),
-      new CopyPatternDetector(), // Copy is lowest priority (fallback)
+      new LinearPatternDetector(),           // Priority: 80
+      new FibonacciPatternDetector(),        // Priority: 75
+      new ExponentialPatternDetector(),      // Priority: 70
+      new DatePatternDetector(),             // Priority: varies
+      new CustomSequencePatternDetector(),   // Priority: 60
+      new TextPatternDetector(),             // Priority: varies
+      new CopyPatternDetector(),             // Copy is lowest priority (fallback)
     ].sort((a, b) => b.priority - a.priority);
   }
 
@@ -106,25 +113,51 @@ export class FillEngine {
       return { values: new Map() };
     }
 
-    const pattern = this.detectPattern(sourceValues, operation);
-    if (!pattern) {
+    // Use enhanced detection for better preview with alternatives
+    const detectionResult = this.detectAllPatterns(sourceValues, operation.direction);
+    if (!detectionResult.bestPattern) {
       return { values: new Map() };
     }
 
     const filledCells = this.generateValues(
       sourceValues,
-      pattern,
+      detectionResult.bestPattern,
       operation.source,
       operation.target,
     );
 
+    // Generate previews for alternative patterns
+    const alternativePatterns = detectionResult.alternativePatterns.slice(0, 3).map(pattern => {
+      try {
+        const previewCells = this.generateValues(
+          sourceValues,
+          pattern,
+          operation.source,
+          operation.target,
+        );
+        return {
+          type: pattern.type,
+          confidence: pattern.confidence,
+          description: pattern.description,
+          preview: previewCells,
+        };
+      } catch {
+        return {
+          type: pattern.type,
+          confidence: pattern.confidence,
+          description: pattern.description,
+        };
+      }
+    });
+
     return {
       values: filledCells,
       pattern: {
-        type: pattern.type,
-        confidence: pattern.confidence,
-        description: pattern.description,
+        type: detectionResult.bestPattern.type,
+        confidence: detectionResult.confidence,
+        description: detectionResult.bestPattern.description,
       },
+      alternativePatterns,
     };
   }
 
@@ -187,18 +220,91 @@ export class FillEngine {
     sourceValues: CellValue[],
     direction: FillDirection,
   ): Pattern | null {
-    let bestPattern: Pattern | null = null;
-    let bestConfidence = 0;
+    const detectionResult = this.detectAllPatterns(sourceValues, direction);
+    return detectionResult.bestPattern;
+  }
 
+  /**
+   * Enhanced pattern detection that finds all possible patterns and calculates ambiguity
+   */
+  detectAllPatterns(
+    sourceValues: CellValue[],
+    direction: FillDirection,
+  ): PatternDetectionResult {
+    const candidatePatterns: Pattern[] = [];
+
+    // Collect all patterns with confidence > 0.5
     for (const detector of this.detectors) {
       const pattern = detector.detect(sourceValues, direction);
-      if (pattern && pattern.confidence > bestConfidence) {
-        bestPattern = pattern;
-        bestConfidence = pattern.confidence;
+      if (pattern && pattern.confidence > 0.5) {
+        candidatePatterns.push(pattern);
       }
     }
 
-    return bestPattern;
+    if (candidatePatterns.length === 0) {
+      return {
+        bestPattern: null,
+        alternativePatterns: [],
+        confidence: 0,
+        ambiguityScore: 0,
+      };
+    }
+
+    // Sort patterns by confidence
+    candidatePatterns.sort((a, b) => b.confidence - a.confidence);
+
+    const bestPattern = candidatePatterns[0];
+    const alternativePatterns = candidatePatterns.slice(1);
+
+    // Calculate ambiguity score based on how close other patterns are to the best
+    const ambiguityScore = this.calculateAmbiguityScore(candidatePatterns);
+
+    // Adjust confidence based on ambiguity
+    const adjustedConfidence = this.adjustConfidenceForAmbiguity(
+      bestPattern.confidence,
+      ambiguityScore,
+    );
+
+    return {
+      bestPattern: { ...bestPattern, confidence: adjustedConfidence },
+      alternativePatterns,
+      confidence: adjustedConfidence,
+      ambiguityScore,
+    };
+  }
+
+  /**
+   * Calculate ambiguity score based on competing patterns
+   */
+  private calculateAmbiguityScore(patterns: Pattern[]): number {
+    if (patterns.length <= 1) {
+      return 0; // No ambiguity with single pattern
+    }
+
+    const bestConfidence = patterns[0].confidence;
+    let maxCompetitorConfidence = 0;
+
+    // Find the highest confidence among competing patterns
+    for (let i = 1; i < patterns.length; i++) {
+      maxCompetitorConfidence = Math.max(maxCompetitorConfidence, patterns[i].confidence);
+    }
+
+    // Ambiguity is higher when competitor confidence is close to best confidence
+    const confidenceGap = bestConfidence - maxCompetitorConfidence;
+    
+    // Normalize to 0-1 scale (0 = no ambiguity, 1 = very ambiguous)
+    const ambiguityScore = Math.max(0, 1 - (confidenceGap / 0.5));
+
+    return Math.min(1, ambiguityScore);
+  }
+
+  /**
+   * Adjust pattern confidence based on ambiguity
+   */
+  private adjustConfidenceForAmbiguity(confidence: number, ambiguityScore: number): number {
+    // Reduce confidence when there's high ambiguity
+    const reduction = ambiguityScore * 0.2; // Max 20% reduction
+    return Math.max(0.1, confidence - reduction);
   }
 
   /**
