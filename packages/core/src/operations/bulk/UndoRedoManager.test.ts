@@ -25,7 +25,11 @@ const createMockCellRepository = (): ICellRepository & {
 
     setCell: mock(async (address: CellAddress, cell: Partial<Cell>) => {
       const key = `${address.row},${address.col}`;
-      const existingCell = cells.get(key) || Cell.create(null).value!;
+      const existingCellResult = Cell.create(null);
+      if (!existingCellResult.ok) {
+        throw new Error("Failed to create empty cell");
+      }
+      const existingCell = cells.get(key) || existingCellResult.value;
       const updatedCell = { ...existingCell, ...cell };
       cells.set(key, updatedCell);
       return { ok: true, value: updatedCell };

@@ -118,7 +118,7 @@ export class PreviewService {
     options: PreviewOptions,
     _startTime: number,
   ): Promise<OperationPreview> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       // Set up timeout
       const timeout = setTimeout(() => {
         reject(
@@ -128,14 +128,17 @@ export class PreviewService {
         );
       }, this.config.maxPreviewTime);
 
-      try {
-        const preview = await operation.preview(options.maxChanges);
-        clearTimeout(timeout);
-        resolve(preview);
-      } catch (error) {
-        clearTimeout(timeout);
-        reject(error);
-      }
+      // Execute the preview operation
+      operation
+        .preview(options.maxChanges)
+        .then((preview) => {
+          clearTimeout(timeout);
+          resolve(preview);
+        })
+        .catch((error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
     });
   }
 

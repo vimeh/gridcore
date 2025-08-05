@@ -138,9 +138,11 @@ export class OperationPreviewBuilder {
     this.preview.previewCount = this.preview.changes?.size;
 
     // Update summary
-    this.preview.summary!.modifiedCells++;
-    this.preview.summary?.changesByType[change.changeType] =
-      (this.preview.summary?.changesByType[change.changeType] || 0) + 1;
+    if (this.preview.summary) {
+      this.preview.summary.modifiedCells++;
+      this.preview.summary.changesByType[change.changeType] =
+        (this.preview.summary.changesByType[change.changeType] || 0) + 1;
+    }
 
     return this;
   }
@@ -166,7 +168,7 @@ export class OperationPreviewBuilder {
   }
 
   setSummary(summary: Partial<OperationSummary>): this {
-    this.preview.summary = { ...this.preview.summary!, ...summary };
+    this.preview.summary = { ...(this.preview.summary || {}), ...summary };
     return this;
   }
 

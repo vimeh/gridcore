@@ -153,7 +153,10 @@ export class BatchProcessor {
     // Check total cell limit
     const totalCells =
       context.affectedCells.size + newOperation.selection.count();
-    if (totalCells > this.config.maxCellsPerBatch!) {
+    if (
+      this.config.maxCellsPerBatch &&
+      totalCells > this.config.maxCellsPerBatch
+    ) {
       throw new Error(
         `Batch cell limit exceeded (max: ${this.config.maxCellsPerBatch})`,
       );
@@ -218,7 +221,7 @@ export class BatchProcessor {
 
     // Check timeout
     const elapsed = Date.now() - context.startTime;
-    if (elapsed > this.config.batchTimeout!) {
+    if (this.config.batchTimeout && elapsed > this.config.batchTimeout) {
       errors.push(
         `Batch timeout exceeded (${elapsed}ms > ${this.config.batchTimeout}ms)`,
       );

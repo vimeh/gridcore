@@ -10,6 +10,20 @@ import type {
   OperationPreview,
 } from "../interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
+import {
+  formatResult,
+  isNumeric,
+  performOperation,
+  toNumber,
+} from "./NumericUtils";
+
+// Re-export NumericUtils functions for compatibility with tests
+export const NumericUtils = {
+  toNumber,
+  isNumeric,
+  performOperation,
+  formatResult,
+};
 
 /**
  * Supported math operations
@@ -47,144 +61,6 @@ export interface BulkMathOptions extends BulkOperationOptions {
 
   /** Whether to preserve the original data type when possible */
   preserveType?: boolean;
-}
-
-/**
- * Utility functions for numeric operations
- */
-export class NumericUtils {
-  /**
-   * Convert a cell value to a number if possible
-   */
-  static toNumber(value: CellValue): number | null {
-    if (typeof value === "number") {
-      return value;
-    }
-
-    if (typeof value === "string") {
-      // Remove common formatting characters
-      const cleaned = value.replace(/[\s,$%]/g, "");
-      const parsed = parseFloat(cleaned);
-      return Number.isNaN(parsed) ? null : parsed;
-    }
-
-    if (typeof value === "boolean") {
-      return value ? 1 : 0;
-    }
-
-    return null;
-  }
-
-  /**
-   * Check if a value can be converted to a number
-   */
-  static isNumeric(value: CellValue): boolean {
-    return NumericUtils.toNumber(value) !== null;
-  }
-
-  /**
-   * Format a number back to the appropriate type
-   */
-  static formatResult(
-    result: number,
-    originalValue: CellValue,
-    preserveType: boolean = true,
-  ): CellValue {
-    // Handle special cases
-    if (!Number.isFinite(result)) {
-      return result; // NaN, Infinity, -Infinity
-    }
-
-    // If preserving type and original was a string that looked numeric, return as string
-    if (
-      preserveType &&
-      typeof originalValue === "string" &&
-      NumericUtils.isNumeric(originalValue)
-    ) {
-      // Try to preserve the original string format style
-      if (originalValue.includes("%")) {
-        return `${result}%`;
-      }
-      if (originalValue.includes("$")) {
-        return `$${result}`;
-      }
-      // For clean integers, return as integer string
-      if (Number.isInteger(result) && !originalValue.includes(".")) {
-        return result.toString();
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Perform a math operation safely
-   */
-  static performOperation(
-    operation: MathOperationType,
-    value: number,
-    operand: number,
-    decimalPlaces?: number,
-  ): number {
-    let result: number;
-
-    switch (operation) {
-      case "add":
-        result = value + operand;
-        break;
-
-      case "subtract":
-        result = value - operand;
-        break;
-
-      case "multiply":
-        result = value * operand;
-        break;
-
-      case "divide":
-        if (operand === 0) {
-          return NaN; // Division by zero
-        }
-        result = value / operand;
-        break;
-
-      case "modulo":
-        if (operand === 0) {
-          return NaN; // Modulo by zero
-        }
-        result = value % operand;
-        break;
-
-      case "percent":
-        // Increase by percentage: value * (1 + operand/100)
-        result = value * (1 + operand / 100);
-        break;
-
-      case "percentDecrease":
-        // Decrease by percentage: value * (1 - operand/100)
-        result = value * (1 - operand / 100);
-        break;
-
-      case "round": {
-        const factor = 10 ** (decimalPlaces || 0);
-        result = Math.round(value * factor) / factor;
-        break;
-      }
-
-      case "floor":
-        result = Math.floor(value);
-        break;
-
-      case "ceil":
-        result = Math.ceil(value);
-        break;
-
-      default:
-        throw new Error(`Unsupported operation: ${operation}`);
-    }
-
-    return result;
-  }
 }
 
 /**
@@ -237,7 +113,7 @@ export class BulkMathOperation extends BaseBulkOperation {
     let numericValue: number | null = null;
 
     if (convertStrings) {
-      numericValue = NumericUtils.toNumber(currentValue);
+      numericValue = toNumber(currentValue);
     } else if (typeof currentValue === "number") {
       numericValue = currentValue;
     }
@@ -254,7 +130,7 @@ export class BulkMathOperation extends BaseBulkOperation {
     }
 
     // Perform the operation
-    const result = NumericUtils.performOperation(
+    const result = performOperation(
       operation,
       numericValue,
       operand,
@@ -271,7 +147,7 @@ export class BulkMathOperation extends BaseBulkOperation {
     }
 
     // Format the result appropriately
-    return NumericUtils.formatResult(result, currentValue, preserveType);
+    return formatResult(result, currentValue, preserveType);
   }
 
   /**
@@ -401,7 +277,7 @@ export class BulkMathOperation extends BaseBulkOperation {
         }
 
         // Check if numeric
-        const numericValue = NumericUtils.toNumber(currentValue);
+        const numericValue = toNumber(currentValue);
         if (numericValue === null) {
           nonNumericCount++;
           if (this.mathOptions.skipNonNumeric) {
@@ -503,7 +379,7 @@ export class BulkMathOperation extends BaseBulkOperation {
     _after: CellValue,
   ): string {
     const { operation, value: operand, decimalPlaces } = this.mathOptions;
-    const beforeNum = NumericUtils.toNumber(before);
+    const beforeNum = toNumber(before);
 
     if (beforeNum === null) {
       return `non-numeric value skipped`;

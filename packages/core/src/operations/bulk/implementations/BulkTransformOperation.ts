@@ -10,6 +10,7 @@ import type {
   OperationPreview,
 } from "../interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
+import { applyTransform, cellValueToString } from "./TextUtils";
 
 /**
  * Supported text transformation operations
@@ -47,104 +48,6 @@ export interface BulkTransformOptions extends BulkOperationOptions {
     /** Remove other whitespace characters */
     removeOtherWhitespace?: boolean;
   };
-}
-
-/**
- * Utility functions for text transformations
- */
-export class TextUtils {
-  /**
-   * Convert a cell value to string if possible
-   */
-  static toString(value: CellValue): string | null {
-    if (typeof value === "string") {
-      return value;
-    }
-
-    if (typeof value === "number") {
-      return value.toString();
-    }
-
-    if (typeof value === "boolean") {
-      return value.toString();
-    }
-
-    if (value === null || value === undefined) {
-      return null;
-    }
-
-    return String(value);
-  }
-
-  /**
-   * Check if a value can be converted to a string for transformation
-   */
-  static isTransformable(value: CellValue): boolean {
-    return value !== null && value !== undefined;
-  }
-
-  /**
-   * Apply uppercase transformation
-   */
-  static applyUppercase(text: string): string {
-    return text.toUpperCase();
-  }
-
-  /**
-   * Apply lowercase transformation
-   */
-  static applyLowercase(text: string): string {
-    return text.toLowerCase();
-  }
-
-  /**
-   * Apply trim transformation (remove leading/trailing whitespace)
-   */
-  static applyTrim(text: string): string {
-    return text.trim();
-  }
-
-  /**
-   * Apply clean transformation (normalize whitespace)
-   */
-  static applyClean(
-    text: string,
-    options: BulkTransformOptions["cleanOptions"] = {},
-  ): string {
-    let cleaned = text;
-
-    // Default clean options
-    const opts = {
-      normalizeSpaces: true,
-      removeLineBreaks: true,
-      removeTabs: true,
-      removeOtherWhitespace: false,
-      ...options,
-    };
-
-    // Remove line breaks
-    if (opts.removeLineBreaks) {
-      cleaned = cleaned.replace(/[\r\n]/g, " ");
-    }
-
-    // Remove tabs
-    if (opts.removeTabs) {
-      cleaned = cleaned.replace(/\t/g, " ");
-    }
-
-    // Remove other whitespace characters
-    if (opts.removeOtherWhitespace) {
-      cleaned = cleaned.replace(/[\f\v\u00A0\u2028\u2029]/g, " ");
-    }
-
-    // Normalize multiple spaces to single space
-    if (opts.normalizeSpaces) {
-      cleaned = cleaned.replace(/\s+/g, " ");
-    }
-
-    // Final trim
-    return cleaned.trim();
-  }
 }
 
 /**
@@ -187,7 +90,7 @@ export class BulkTransformOperation extends BaseBulkOperation {
     }
 
     // Convert to string if possible
-    const textValue = TextUtils.toString(currentValue);
+    const textValue = cellValueToString(currentValue);
     if (textValue === null) {
       return null;
     }
@@ -215,20 +118,21 @@ export class BulkTransformOperation extends BaseBulkOperation {
     // Apply the transformation
     switch (this.transformOptions.transformation) {
       case "upper":
-        transformedValue = TextUtils.applyUppercase(textValue);
+        transformedValue = applyTransform(textValue, "upper");
         break;
 
       case "lower":
-        transformedValue = TextUtils.applyLowercase(textValue);
+        transformedValue = applyTransform(textValue, "lower");
         break;
 
       case "trim":
-        transformedValue = TextUtils.applyTrim(textValue);
+        transformedValue = applyTransform(textValue, "trim");
         break;
 
       case "clean":
-        transformedValue = TextUtils.applyClean(
+        transformedValue = applyTransform(
           textValue,
+          "clean",
           this.transformOptions.cleanOptions,
         );
         break;
@@ -307,7 +211,7 @@ export class BulkTransformOperation extends BaseBulkOperation {
         if (newValue === null) {
           if (
             currentValue !== null &&
-            !TextUtils.isTransformable(currentValue)
+            (currentValue === null || currentValue === undefined)
           ) {
             nonTextCount++;
           } else {

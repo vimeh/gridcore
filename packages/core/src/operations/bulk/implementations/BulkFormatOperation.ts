@@ -10,6 +10,16 @@ import type {
   OperationPreview,
 } from "../interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
+import {
+  DEFAULT_LOCALE,
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  formatPercent,
+  isNumeric,
+  toDate,
+  toNumber,
+} from "./FormatUtils";
 
 /**
  * Supported formatting operations
@@ -104,256 +114,6 @@ export interface BulkFormatOptions extends BulkOperationOptions {
 }
 
 /**
- * Utility functions for formatting operations
- */
-export class FormatUtils {
-  /**
-   * Default locale
-   */
-  static DEFAULT_LOCALE = "en-US";
-
-  /**
-   * Convert a cell value to number if possible
-   */
-  static toNumber(value: CellValue): number | null {
-    if (typeof value === "number") {
-      return value;
-    }
-
-    if (typeof value === "string") {
-      // Remove common formatting characters
-      const cleaned = value.replace(/[\s,$%€£¥]/g, "");
-      const parsed = parseFloat(cleaned);
-      return Number.isNaN(parsed) ? null : parsed;
-    }
-
-    if (typeof value === "boolean") {
-      return value ? 1 : 0;
-    }
-
-    return null;
-  }
-
-  /**
-   * Convert a cell value to date if possible
-   */
-  static toDate(value: CellValue): Date | null {
-    if (typeof value === "number") {
-      // Assume Excel-style date serial number
-      const date = new Date((value - 25569) * 86400 * 1000);
-      return Number.isNaN(date.getTime()) ? null : date;
-    }
-
-    if (typeof value === "string") {
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    return null;
-  }
-
-  /**
-   * Check if a value can be converted to a number
-   */
-  static isNumeric(value: CellValue): boolean {
-    return FormatUtils.toNumber(value) !== null;
-  }
-
-  /**
-   * Check if a value can be converted to a date
-   */
-  static isDate(value: CellValue): boolean {
-    return FormatUtils.toDate(value) !== null;
-  }
-
-  /**
-   * Format a number as currency
-   */
-  static formatCurrency(
-    value: number,
-    options: CurrencyFormatOptions = {},
-    locale: string = FormatUtils.DEFAULT_LOCALE,
-  ): string {
-    const opts = {
-      currency: "USD",
-      decimals: 2,
-      showSymbol: true,
-      useThousandsSeparator: true,
-      ...options,
-    };
-
-    try {
-      if (opts.symbol) {
-        // Use custom symbol
-        const formatted = new Intl.NumberFormat(locale, {
-          minimumFractionDigits: opts.decimals,
-          maximumFractionDigits: opts.decimals,
-          useGrouping: opts.useThousandsSeparator,
-        }).format(value);
-
-        return opts.showSymbol ? `${opts.symbol}${formatted}` : formatted;
-      } else {
-        // Use standard currency formatting
-        return new Intl.NumberFormat(locale, {
-          style: opts.showSymbol ? "currency" : "decimal",
-          currency: opts.currency,
-          minimumFractionDigits: opts.decimals,
-          maximumFractionDigits: opts.decimals,
-          useGrouping: opts.useThousandsSeparator,
-        }).format(value);
-      }
-    } catch (_error) {
-      // Fallback formatting
-      const rounded =
-        Math.round(value * 10 ** opts.decimals!) / 10 ** opts.decimals!;
-      const formatted = opts.useThousandsSeparator
-        ? rounded.toLocaleString(locale, {
-            minimumFractionDigits: opts.decimals,
-            maximumFractionDigits: opts.decimals,
-          })
-        : rounded.toFixed(opts.decimals);
-
-      return opts.showSymbol ? `$${formatted}` : formatted;
-    }
-  }
-
-  /**
-   * Format a number as percentage
-   */
-  static formatPercent(
-    value: number,
-    options: PercentFormatOptions = {},
-    locale: string = FormatUtils.DEFAULT_LOCALE,
-  ): string {
-    const opts = {
-      decimals: 2,
-      multiplyBy100: true,
-      ...options,
-    };
-
-    const numValue = opts.multiplyBy100 ? value * 100 : value;
-
-    try {
-      return new Intl.NumberFormat(locale, {
-        style: "percent",
-        minimumFractionDigits: opts.decimals,
-        maximumFractionDigits: opts.decimals,
-      }).format(opts.multiplyBy100 ? value : value / 100);
-    } catch (_error) {
-      // Fallback formatting
-      const rounded =
-        Math.round(numValue * 10 ** opts.decimals!) / 10 ** opts.decimals!;
-      return `${rounded.toFixed(opts.decimals)}%`;
-    }
-  }
-
-  /**
-   * Format a date
-   */
-  static formatDate(
-    value: Date,
-    options: DateFormatOptions = {},
-    locale: string = FormatUtils.DEFAULT_LOCALE,
-  ): string {
-    const opts = {
-      format: "MM/DD/YYYY",
-      includeTime: false,
-      timeFormat: "12h" as const,
-      ...options,
-    };
-
-    try {
-      if (opts.format === "locale") {
-        // Use locale-specific formatting
-        const dateOptions: Intl.DateTimeFormatOptions = {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        };
-
-        if (opts.includeTime) {
-          dateOptions.hour = "2-digit";
-          dateOptions.minute = "2-digit";
-          dateOptions.hour12 = opts.timeFormat === "12h";
-        }
-
-        return new Intl.DateTimeFormat(locale, dateOptions).format(value);
-      } else {
-        // Use custom format pattern
-        const year = value.getFullYear();
-        const month = (value.getMonth() + 1).toString().padStart(2, "0");
-        const day = value.getDate().toString().padStart(2, "0");
-
-        let formatted = opts.format
-          ?.replace("YYYY", year.toString())
-          .replace("MM", month)
-          .replace("DD", day);
-
-        if (opts.includeTime) {
-          const hours =
-            opts.timeFormat === "12h"
-              ? (value.getHours() % 12 || 12).toString().padStart(2, "0")
-              : value.getHours().toString().padStart(2, "0");
-          const minutes = value.getMinutes().toString().padStart(2, "0");
-          const ampm =
-            opts.timeFormat === "12h"
-              ? value.getHours() >= 12
-                ? " PM"
-                : " AM"
-              : "";
-
-          formatted += ` ${hours}:${minutes}${ampm}`;
-        }
-
-        return formatted;
-      }
-    } catch (_error) {
-      // Fallback formatting
-      return value.toLocaleDateString(locale);
-    }
-  }
-
-  /**
-   * Format a number
-   */
-  static formatNumber(
-    value: number,
-    options: NumberFormatOptions = {},
-    locale: string = FormatUtils.DEFAULT_LOCALE,
-  ): string {
-    const opts = {
-      decimals: 2,
-      useThousandsSeparator: true,
-      showPositiveSign: false,
-      ...options,
-    };
-
-    try {
-      const formatted = new Intl.NumberFormat(locale, {
-        minimumFractionDigits: opts.decimals,
-        maximumFractionDigits: opts.decimals,
-        useGrouping: opts.useThousandsSeparator,
-        signDisplay: opts.showPositiveSign ? "always" : "auto",
-      }).format(value);
-
-      return formatted;
-    } catch (_error) {
-      // Fallback formatting
-      const rounded =
-        Math.round(value * 10 ** opts.decimals!) / 10 ** opts.decimals!;
-      const formatted = opts.useThousandsSeparator
-        ? rounded.toLocaleString(locale, {
-            minimumFractionDigits: opts.decimals,
-            maximumFractionDigits: opts.decimals,
-          })
-        : rounded.toFixed(opts.decimals);
-
-      return opts.showPositiveSign && value > 0 ? `+${formatted}` : formatted;
-    }
-  }
-}
-
-/**
  * Bulk operation for cell formatting
  * Supports currency, percentage, date, and number formatting on selected cells
  */
@@ -367,7 +127,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
   ) {
     super("format", selection, options, cellRepository);
     this.formatOptions = {
-      locale: FormatUtils.DEFAULT_LOCALE,
+      locale: DEFAULT_LOCALE,
       skipNonNumeric: true,
       convertStrings: true,
       preserveOnError: true,
@@ -437,16 +197,16 @@ export class BulkFormatOperation extends BaseBulkOperation {
    * Format value as currency
    */
   private formatAsCurrency(value: CellValue): string | null {
-    const numValue = FormatUtils.toNumber(value);
+    const numValue = toNumber(value);
     if (numValue === null) {
       if (this.formatOptions.skipNonNumeric) {
         return null;
       }
       // Try to convert string
       if (this.formatOptions.convertStrings && typeof value === "string") {
-        const converted = FormatUtils.toNumber(value);
+        const converted = toNumber(value);
         if (converted !== null) {
-          return FormatUtils.formatCurrency(
+          return formatCurrency(
             converted,
             this.formatOptions.currencyOptions,
             this.formatOptions.locale,
@@ -456,7 +216,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
       return null;
     }
 
-    return FormatUtils.formatCurrency(
+    return formatCurrency(
       numValue,
       this.formatOptions.currencyOptions,
       this.formatOptions.locale,
@@ -467,16 +227,16 @@ export class BulkFormatOperation extends BaseBulkOperation {
    * Format value as percentage
    */
   private formatAsPercent(value: CellValue): string | null {
-    const numValue = FormatUtils.toNumber(value);
+    const numValue = toNumber(value);
     if (numValue === null) {
       if (this.formatOptions.skipNonNumeric) {
         return null;
       }
       // Try to convert string
       if (this.formatOptions.convertStrings && typeof value === "string") {
-        const converted = FormatUtils.toNumber(value);
+        const converted = toNumber(value);
         if (converted !== null) {
-          return FormatUtils.formatPercent(
+          return formatPercent(
             converted,
             this.formatOptions.percentOptions,
             this.formatOptions.locale,
@@ -486,7 +246,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
       return null;
     }
 
-    return FormatUtils.formatPercent(
+    return formatPercent(
       numValue,
       this.formatOptions.percentOptions,
       this.formatOptions.locale,
@@ -497,14 +257,14 @@ export class BulkFormatOperation extends BaseBulkOperation {
    * Format value as date
    */
   private formatAsDate(value: CellValue): string | null {
-    const dateValue = FormatUtils.toDate(value);
+    const dateValue = toDate(value);
     if (dateValue === null) {
       return null;
     }
 
-    return FormatUtils.formatDate(
-      dateValue,
-      this.formatOptions.dateOptions,
+    return formatDate(
+      value,
+      this.formatOptions.dateOptions?.format || "MM/DD/YYYY",
       this.formatOptions.locale,
     );
   }
@@ -513,16 +273,16 @@ export class BulkFormatOperation extends BaseBulkOperation {
    * Format value as number
    */
   private formatAsNumber(value: CellValue): string | null {
-    const numValue = FormatUtils.toNumber(value);
+    const numValue = toNumber(value);
     if (numValue === null) {
       if (this.formatOptions.skipNonNumeric) {
         return null;
       }
       // Try to convert string
       if (this.formatOptions.convertStrings && typeof value === "string") {
-        const converted = FormatUtils.toNumber(value);
+        const converted = toNumber(value);
         if (converted !== null) {
-          return FormatUtils.formatNumber(
+          return formatNumber(
             converted,
             this.formatOptions.numberOptions,
             this.formatOptions.locale,
@@ -532,7 +292,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
       return null;
     }
 
-    return FormatUtils.formatNumber(
+    return formatNumber(
       numValue,
       this.formatOptions.numberOptions,
       this.formatOptions.locale,
@@ -596,7 +356,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
           if (currentValue !== null) {
             if (
               this.formatOptions.formatType !== "text" &&
-              !FormatUtils.isNumeric(currentValue)
+              !isNumeric(currentValue)
             ) {
               nonNumericCount++;
             } else {

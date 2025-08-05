@@ -35,7 +35,7 @@ export interface UndoAction {
   changes: Map<string, CellChange>;
 
   /** Metadata about the action */
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 /**
@@ -176,7 +176,10 @@ export class UndoRedoManager {
       return null;
     }
 
-    const action = this.undoStack.pop()!;
+    const action = this.undoStack.pop();
+    if (!action) {
+      return null;
+    }
 
     try {
       // Validate undo operation if configured
@@ -239,7 +242,10 @@ export class UndoRedoManager {
       return null;
     }
 
-    const action = this.redoStack.pop()!;
+    const action = this.redoStack.pop();
+    if (!action) {
+      return null;
+    }
 
     try {
       // Execute the redo operation if available

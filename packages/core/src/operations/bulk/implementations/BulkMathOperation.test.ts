@@ -33,12 +33,12 @@ class MockCellRepository implements ICellRepository {
   }
 
   // Helper method for tests
-  setCellValue(address: CellAddress, value: any): void {
+  setCellValue(address: CellAddress, value: unknown): void {
     const key = `${address.row},${address.col}`;
     this.cells.set(key, { value });
   }
 
-  getCellValue(address: CellAddress): any {
+  getCellValue(address: CellAddress): unknown {
     const key = `${address.row},${address.col}`;
     return this.cells.get(key)?.value;
   }
@@ -139,7 +139,11 @@ describe("NumericUtils", () => {
 
     it("should throw error for unsupported operations", () => {
       expect(() =>
-        NumericUtils.performOperation("invalid" as any, 10, 5),
+        NumericUtils.performOperation(
+          "invalid" as unknown as MathOperationType,
+          10,
+          5,
+        ),
       ).toThrow();
     });
   });
