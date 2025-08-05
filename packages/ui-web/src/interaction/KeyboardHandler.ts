@@ -62,6 +62,18 @@ export class KeyboardHandler {
       }
     }
 
+    // Handle Delete/Backspace in navigation mode to clear cells
+    if (this.controller && !this.cellEditor.isCurrentlyEditing()) {
+      const state = this.controller.getState();
+      if (state.spreadsheetMode === "navigation" && 
+          (event.key === "Delete" || event.key === "Backspace")) {
+        event.preventDefault();
+        console.log("KeyboardHandler: Clearing cell with", event.key);
+        this.deleteSelectedCells();
+        return;
+      }
+    }
+
     // If controller is available, delegate key handling to it
     if (this.controller) {
       console.log("KeyboardHandler: Using controller for key:", event.key);
