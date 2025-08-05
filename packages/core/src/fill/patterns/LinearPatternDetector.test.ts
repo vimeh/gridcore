@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { CellValue } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import { LinearPatternDetector } from "./LinearPatternDetector";
+
+// Mock types for testing
+const mockCellRange = {} as unknown as CellRange;
+const mockCellAddress = {} as unknown as CellAddress;
 
 describe("LinearPatternDetector", () => {
   const detector = new LinearPatternDetector();
@@ -105,8 +109,8 @@ describe("LinearPatternDetector", () => {
       const nextValue = pattern?.generator.generateValue(
         values,
         0, // First generated value
-        {} as any, // Mock source range
-        {} as any, // Mock target cell
+        mockCellRange, // Mock source range
+        mockCellAddress, // Mock target cell
       );
 
       expect(Number(nextValue)).toBe(20);
@@ -124,8 +128,8 @@ describe("LinearPatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         generated.push(Number(value));
       }

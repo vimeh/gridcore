@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { CellValue } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import { FibonacciPatternDetector } from "./FibonacciPatternDetector";
+
+// Mock types for testing
+const mockCellRange = {} as unknown as CellRange;
+const mockCellAddress = {} as unknown as CellAddress;
 
 describe("FibonacciPatternDetector", () => {
   const detector = new FibonacciPatternDetector();
@@ -197,8 +201,8 @@ describe("FibonacciPatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         nextValues.push(Number(value));
       }
@@ -218,8 +222,8 @@ describe("FibonacciPatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         nextValues.push(Number(value));
       }
@@ -239,8 +243,8 @@ describe("FibonacciPatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         nextValues.push(Number(value));
       }

@@ -11,10 +11,7 @@ import type {
  * Fibonacci pattern generator for Fibonacci sequences
  */
 class FibonacciPatternGenerator implements PatternGenerator {
-  constructor(
-    private sequence: number[],
-    private startIndex: number = 0,
-  ) {}
+  constructor(private sequence: number[]) {}
 
   generateValue(
     _sourceValues: CellValue[],

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { CellValue } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import { ExponentialPatternDetector } from "./ExponentialPatternDetector";
+
+// Mock types for testing
+const mockCellRange = {} as unknown as CellRange;
+const mockCellAddress = {} as unknown as CellAddress;
 
 describe("ExponentialPatternDetector", () => {
   const detector = new ExponentialPatternDetector();
@@ -275,8 +279,8 @@ describe("ExponentialPatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         nextValues.push(Number(value));
       }
@@ -296,8 +300,8 @@ describe("ExponentialPatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         nextValues.push(Number(value));
       }
@@ -317,8 +321,8 @@ describe("ExponentialPatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         nextValues.push(Number(value));
       }
@@ -335,8 +339,8 @@ describe("ExponentialPatternDetector", () => {
       const nextValue = pattern?.generator.generateValue(
         values,
         0,
-        {} as any,
-        {} as any,
+        mockCellRange,
+        mockCellAddress,
       );
 
       // Should be exactly 8, not 8.000000001
@@ -374,8 +378,8 @@ describe("ExponentialPatternDetector", () => {
         pattern?.generator.generateValue(
           values,
           20, // This should create a huge number
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
       }).toThrow("out of safe range");
     });

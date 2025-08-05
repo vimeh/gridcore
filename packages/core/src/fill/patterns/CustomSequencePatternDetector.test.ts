@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { CellValue } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import { CustomSequencePatternDetector } from "./CustomSequencePatternDetector";
+
+// Mock types for testing
+const mockCellRange = {} as unknown as CellRange;
+const mockCellAddress = {} as unknown as CellAddress;
 
 describe("CustomSequencePatternDetector", () => {
   const detector = new CustomSequencePatternDetector();
@@ -378,8 +382,8 @@ describe("CustomSequencePatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         nextValues.push(Number(value));
       }
@@ -399,8 +403,8 @@ describe("CustomSequencePatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         nextValues.push(Number(value));
       }
@@ -420,8 +424,8 @@ describe("CustomSequencePatternDetector", () => {
         const value = pattern?.generator.generateValue(
           values,
           i,
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
         nextValues.push(Number(value));
       }
@@ -442,8 +446,8 @@ describe("CustomSequencePatternDetector", () => {
         pattern?.generator.generateValue(
           values,
           25, // This should create 28! which is huge
-          {} as any,
-          {} as any,
+          mockCellRange,
+          mockCellAddress,
         );
       }).toThrow("too large");
     });
@@ -458,8 +462,8 @@ describe("CustomSequencePatternDetector", () => {
           pattern.generator.generateValue(
             values,
             35, // This should create C(38) which is huge
-            {} as any,
-            {} as any,
+            mockCellRange,
+            mockCellAddress,
           );
         }).toThrow("too large");
       } else {
