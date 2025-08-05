@@ -164,14 +164,14 @@ export class StructuralOperationManager {
   /**
    * Fail the current operation
    */
-  failOperation(error: string): void {
+  failOperation(operation: StructuralOperation, error: string): void {
     if (!this.currentOperation) {
       return;
     }
 
     this.emit({
       type: "structuralOperationFailed",
-      operation: this.currentOperation.operation,
+      operation: operation,
       error,
     });
 
@@ -362,9 +362,10 @@ export class StructuralOperationManager {
 
     this.currentOperation.progressInterval = setInterval(() => {
       // Simulate progress - in real implementation this would be tied to actual operation progress
-      const elapsed = Date.now() - this.currentOperation?.startTime;
+      if (!this.currentOperation) return;
+      const elapsed = Date.now() - this.currentOperation.startTime;
       const estimatedTotal = this.estimateOperationDuration(
-        this.currentOperation?.operation,
+        this.currentOperation.operation,
       );
       const progress = Math.min(95, (elapsed / estimatedTotal) * 100);
 
@@ -492,7 +493,7 @@ export class StructuralOperationManager {
     }>,
   ): StructuralWarning[] {
     return warnings.map((warning) => ({
-      type: warning.type,
+      type: warning.type as "formulaReference" | "dataLoss" | "outOfBounds",
       message: warning.message,
       affectedCells: warning.affectedCells,
       severity:

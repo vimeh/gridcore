@@ -90,7 +90,7 @@ describe("StructuralOperationManager", () => {
       const analysis = createAnalysis();
 
       await manager.startOperation(operation, analysis);
-      manager.failOperation("Test error");
+      manager.failOperation(operation, "Test error");
 
       // Find the failed event
       const failedEvent = events.find(
@@ -421,7 +421,7 @@ describe("StructuralOperationManager", () => {
       await manager.startOperation(operation, analysis);
       expect(manager.getState().isActive).toBe(true);
 
-      manager.failOperation("Test error");
+      manager.failOperation(operation, "Test error");
       expect(manager.getState().isActive).toBe(false);
     });
 

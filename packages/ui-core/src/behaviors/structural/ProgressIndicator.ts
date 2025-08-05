@@ -30,6 +30,8 @@ export class ProgressIndicator {
   private isVisible = false;
   private startTime = 0;
   private onCancel?: () => void;
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used in line 72 and 133
+  private currentOperation?: StructuralOperation;
 
   constructor(
     container?: HTMLElement,
