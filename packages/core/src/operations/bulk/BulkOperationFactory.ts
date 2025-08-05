@@ -2,6 +2,7 @@ import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
 import type { Selection, BulkOperationFactory as IBulkOperationFactory, BulkOperation } from "./interfaces/BulkOperation";
 import { FindReplaceOperation, FindReplaceOptions } from "./implementations/FindReplaceOperation";
 import { BulkSetOperation, BulkSetOptions } from "./implementations/BulkSetOperation";
+import { BulkMathOperation, BulkMathOptions, MathOperationType } from "./implementations/BulkMathOperation";
 
 /**
  * Factory for creating bulk operations from command parser results
@@ -97,13 +98,48 @@ export class BulkOperationFactory implements IBulkOperationFactory {
   }
 
   /**
-   * Create a math operation (placeholder for future implementation)
+   * Create a math operation from command options
    */
-  private createMathOperation(selection: Selection, options: any): BulkOperation | null {
-    // TODO: Implement MathOperation class
-    // This would handle add, subtract, multiply, divide operations
-    console.warn("Math operations not yet implemented");
-    return null;
+  private createMathOperation(selection: Selection, options: any): BulkMathOperation | null {
+    // Map command operation names to MathOperationType
+    const operationMap: Record<string, MathOperationType> = {
+      "add": "add",
+      "sub": "subtract", 
+      "subtract": "subtract",
+      "mul": "multiply",
+      "multiply": "multiply",
+      "div": "divide",
+      "divide": "divide",
+      "mod": "modulo",
+      "modulo": "modulo",
+      "percent": "percent",
+      "percentd": "percentDecrease",
+      "percentDecrease": "percentDecrease",
+      "round": "round",
+      "floor": "floor",
+      "ceil": "ceil"
+    };
+
+    const operation = operationMap[options.operation];
+    if (!operation) {
+      console.warn(`Unsupported math operation: ${options.operation}`);
+      return null;
+    }
+
+    const mathOptions: BulkMathOptions = {
+      operation,
+      value: options.value,
+      decimalPlaces: options.decimalPlaces,
+      skipNonNumeric: options.skipNonNumeric ?? true,
+      convertStrings: options.convertStrings ?? true,
+      preserveType: options.preserveType ?? true,
+      skipEmpty: options.skipEmpty ?? true,
+      batchSize: options.batchSize,
+      onProgress: options.onProgress,
+      stopOnError: options.stopOnError ?? false
+    };
+
+    return new BulkMathOperation(selection, mathOptions, this.cellRepository);
   }
 
   /**

@@ -30,8 +30,9 @@ export interface BulkSetCommand extends BulkCommand {
 
 export interface MathOperationCommand extends BulkCommand {
   type: "mathOperation";
-  operation: "add" | "sub" | "mul" | "div";
+  operation: "add" | "sub" | "mul" | "div" | "mod" | "percent" | "percentd" | "round" | "floor" | "ceil";
   value: number;
+  decimalPlaces?: number; // For rounding operations
   requiresPreview: false;
   requiresSelection: true;
 }
@@ -87,8 +88,14 @@ export class VimBulkCommandParser implements BulkCommandParser {
     findReplace: /^:(%?)s\/(.*)\/(.*)\/([gi]*)$/,
     // Bulk set: :set value
     bulkSet: /^:set\s+(.+)$/,
-    // Math operations: :add 10, :sub 5, :mul 2, :div 3
-    mathOp: /^:(add|sub|mul|div)\s+(-?\d+(?:\.\d+)?)$/,
+    // Basic math operations: :add 10, :sub 5, :mul 2, :div 3, :mod 7
+    mathOp: /^:(add|sub|mul|div|mod)\s+(-?\d+(?:\.\d+)?)$/,
+    // Percentage operations: :percent 20, :percentd 15  
+    percentOp: /^:(percent|percentd)\s+(-?\d+(?:\.\d+)?)$/,
+    // Rounding with decimal places: :round 2 (2 decimal places)
+    roundOp: /^:round(?:\s+(\d+))?$/,
+    // Floor and ceiling operations: :floor, :ceil
+    floorCeilOp: /^:(floor|ceil)$/,
     // Fill operations: :fill down, :fill up, :fill left, :fill right, :fill series
     fill: /^:fill\s+(down|up|left|right|series)$/,
     // Transform: :upper, :lower, :trim, :clean
@@ -103,6 +110,13 @@ export class VimBulkCommandParser implements BulkCommandParser {
     ":sub ",
     ":mul ",
     ":div ",
+    ":mod ",
+    ":percent ",
+    ":percentd ",
+    ":round",
+    ":round 2",
+    ":floor",
+    ":ceil",
     ":fill down",
     ":fill up", 
     ":fill left",
@@ -151,15 +165,56 @@ export class VimBulkCommandParser implements BulkCommandParser {
       };
     }
 
-    // Math operations
+    // Basic math operations
     const mathOpMatch = command.match(this.patterns.mathOp);
     if (mathOpMatch) {
-      const operation = mathOpMatch[1] as "add" | "sub" | "mul" | "div";
+      const operation = mathOpMatch[1] as "add" | "sub" | "mul" | "div" | "mod";
       const value = parseFloat(mathOpMatch[2]);
       return {
         type: "mathOperation",
         operation,
         value,
+        requiresPreview: false,
+        requiresSelection: true
+      };
+    }
+
+    // Percentage operations
+    const percentOpMatch = command.match(this.patterns.percentOp);
+    if (percentOpMatch) {
+      const operation = percentOpMatch[1] as "percent" | "percentd";
+      const value = parseFloat(percentOpMatch[2]);
+      return {
+        type: "mathOperation",
+        operation,
+        value,
+        requiresPreview: false,
+        requiresSelection: true
+      };
+    }
+
+    // Rounding operations
+    const roundOpMatch = command.match(this.patterns.roundOp);
+    if (roundOpMatch) {
+      const decimalPlaces = roundOpMatch[1] ? parseInt(roundOpMatch[1]) : 0;
+      return {
+        type: "mathOperation",
+        operation: "round",
+        value: 0, // Not used for rounding
+        decimalPlaces,
+        requiresPreview: false,
+        requiresSelection: true
+      };
+    }
+
+    // Floor and ceiling operations
+    const floorCeilOpMatch = command.match(this.patterns.floorCeilOp);
+    if (floorCeilOpMatch) {
+      const operation = floorCeilOpMatch[1] as "floor" | "ceil";
+      return {
+        type: "mathOperation",
+        operation,
+        value: 0, // Not used for floor/ceil
         requiresPreview: false,
         requiresSelection: true
       };
@@ -241,11 +296,24 @@ export class VimBulkCommandParser implements BulkCommandParser {
         break;
 
       case "mathOperation":
-        if (isNaN(command.value)) {
-          return "Math operation requires a valid number";
+        // Skip validation for operations that don't use the value parameter
+        if (command.operation !== "round" && command.operation !== "floor" && command.operation !== "ceil") {
+          if (isNaN(command.value)) {
+            return "Math operation requires a valid number";
+          }
+          if ((command.operation === "div" || command.operation === "mod") && command.value === 0) {
+            return `Cannot ${command.operation === "div" ? "divide" : "mod"} by zero`;
+          }
+          if (command.operation === "percentd" && command.value >= 100) {
+            return "Percentage decrease cannot be 100% or greater";
+          }
         }
-        if (command.operation === "div" && command.value === 0) {
-          return "Cannot divide by zero";
+        
+        // Validate decimal places for rounding
+        if (command.operation === "round" && command.decimalPlaces !== undefined) {
+          if (command.decimalPlaces < 0 || command.decimalPlaces > 10) {
+            return "Decimal places must be between 0 and 10";
+          }
         }
         break;
 
@@ -280,6 +348,13 @@ Math Operations:
   :sub 5                      - Subtract 5 from numeric cells  
   :mul 2                      - Multiply numeric cells by 2
   :div 3                      - Divide numeric cells by 3
+  :mod 7                      - Apply modulo 7 to numeric cells
+  :percent 20                 - Increase numeric cells by 20%
+  :percentd 15                - Decrease numeric cells by 15%
+  :round                      - Round numeric cells to integers
+  :round 2                    - Round numeric cells to 2 decimal places
+  :floor                      - Apply floor to numeric cells
+  :ceil                       - Apply ceiling to numeric cells
 
 Fill Operations:
   :fill down                  - Fill down from top cell
