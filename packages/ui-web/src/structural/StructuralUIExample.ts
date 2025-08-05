@@ -146,7 +146,7 @@ export class StructuralUIExample {
   /**
    * Handle operation started - show loading state
    */
-  private onOperationStarted(event: any): void {
+  private onOperationStarted(event: StructuralUIEvent): void {
     // Add loading class to grid
     this.gridContainer.classList.add("structural-operation-active");
 
@@ -161,7 +161,7 @@ export class StructuralUIExample {
   /**
    * Handle operation completed - show success feedback
    */
-  private onOperationCompleted(event: any): void {
+  private onOperationCompleted(event: StructuralUIEvent): void {
     // Remove loading state
     this.gridContainer.classList.remove("structural-operation-active");
 
@@ -182,7 +182,7 @@ export class StructuralUIExample {
   /**
    * Handle operation failed - show error state
    */
-  private onOperationFailed(event: any): void {
+  private onOperationFailed(event: StructuralUIEvent): void {
     // Remove loading state
     this.gridContainer.classList.remove("structural-operation-active");
 
@@ -198,7 +198,7 @@ export class StructuralUIExample {
   /**
    * Handle cell highlighting - ensure cells are visible
    */
-  private onCellsHighlighted(event: any): void {
+  private onCellsHighlighted(event: StructuralUIEvent): void {
     // Ensure highlighted cells are in viewport
     if (event.cells.length > 0) {
       this.ensureCellsVisible(event.cells);
@@ -324,34 +324,22 @@ export class StructuralUIExample {
    * Trigger a test row insertion
    */
   async testInsertRows(): Promise<void> {
-    try {
-      // await this.controller.insertRows(5, 3);
-    } catch (error) {
-      console.error("Failed to insert rows:", error);
-    }
+    // await this.controller.insertRows(5, 3);
   }
 
   /**
    * Trigger a test row deletion
    */
   async testDeleteRows(): Promise<void> {
-    try {
-      // await this.controller.deleteRows(8, 2);
-    } catch (error) {
-      console.error("Failed to delete rows:", error);
-    }
+    // await this.controller.deleteRows(8, 2);
   }
 
   /**
    * Trigger a test large operation that shows progress
    */
   async testLargeOperation(): Promise<void> {
-    try {
-      // Insert many rows to trigger progress indicator
-      // await this.controller.insertRows(10, 150);
-    } catch (error) {
-      console.error("Failed to perform large operation:", error);
-    }
+    // Insert many rows to trigger progress indicator
+    // await this.controller.insertRows(10, 150);
   }
 
   /**

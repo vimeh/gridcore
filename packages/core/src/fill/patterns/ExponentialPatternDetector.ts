@@ -11,11 +11,7 @@ import type {
  * Exponential pattern generator for geometric sequences
  */
 class ExponentialPatternGenerator implements PatternGenerator {
-  constructor(
-    private baseValue: number,
-    private ratio: number,
-    private startIndex: number = 0,
-  ) {}
+  constructor(private ratio: number) {}
 
   generateValue(
     sourceValues: CellValue[],
@@ -102,11 +98,7 @@ export class ExponentialPatternDetector implements PatternDetector {
       type: this.patternType,
       confidence,
       description,
-      generator: new ExponentialPatternGenerator(
-        geometricResult.baseValue,
-        geometricResult.ratio,
-        geometricResult.startIndex,
-      ),
+      generator: new ExponentialPatternGenerator(geometricResult.ratio),
       ratio: geometricResult.ratio,
       metadata: {
         baseValue: geometricResult.baseValue,

@@ -49,7 +49,7 @@ export interface Pattern {
   growth?: number;
   ratio?: number; // For exponential patterns
   sequence?: number[]; // For custom/fibonacci patterns
-  metadata?: Record<string, any>; // For additional pattern-specific data
+  metadata?: Record<string, unknown>; // For additional pattern-specific data
 }
 
 export interface PatternGenerator {

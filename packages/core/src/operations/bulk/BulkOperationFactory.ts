@@ -41,7 +41,7 @@ export class BulkOperationFactory implements IBulkOperationFactory {
   createOperation(
     type: string,
     selection: Selection,
-    options: Record<string, any>,
+    options: Record<string, unknown>,
   ): BulkOperation | null {
     switch (type) {
       case "findReplace":
@@ -93,7 +93,7 @@ export class BulkOperationFactory implements IBulkOperationFactory {
    */
   private createFindReplaceOperation(
     selection: Selection,
-    options: any,
+    options: Record<string, unknown>,
   ): FindReplaceOperation {
     const findReplaceOptions: FindReplaceOptions = {
       findPattern: options.findPattern,
@@ -119,7 +119,7 @@ export class BulkOperationFactory implements IBulkOperationFactory {
    */
   private createBulkSetOperation(
     selection: Selection,
-    options: any,
+    options: Record<string, unknown>,
   ): BulkSetOperation {
     const bulkSetOptions: BulkSetOptions = {
       value: options.value,
@@ -136,7 +136,7 @@ export class BulkOperationFactory implements IBulkOperationFactory {
    */
   private createMathOperation(
     selection: Selection,
-    options: any,
+    options: Record<string, unknown>,
   ): BulkMathOperation | null {
     // Map command operation names to MathOperationType
     const operationMap: Record<string, MathOperationType> = {
@@ -197,7 +197,7 @@ export class BulkOperationFactory implements IBulkOperationFactory {
    */
   private createTransformOperation(
     selection: Selection,
-    options: any,
+    options: Record<string, unknown>,
   ): BulkTransformOperation | null {
     // Map command transformation names to TransformationType
     const transformationMap: Record<string, TransformationType> = {
@@ -244,7 +244,7 @@ export class BulkOperationFactory implements IBulkOperationFactory {
    */
   private createFormatOperation(
     selection: Selection,
-    options: any,
+    options: Record<string, unknown>,
   ): BulkFormatOperation | null {
     // Map command format names to FormatType
     const formatMap: Record<string, FormatType> = {

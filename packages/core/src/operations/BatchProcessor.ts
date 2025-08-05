@@ -34,7 +34,7 @@ export interface BatchContext {
   isActive: boolean;
 
   /** Metadata about the batch */
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 /**
@@ -90,7 +90,7 @@ export class BatchProcessor {
   /**
    * Begin a new batch transaction
    */
-  beginBatch(metadata: Record<string, any> = {}): BatchContext {
+  beginBatch(metadata: Record<string, unknown> = {}): BatchContext {
     const batchId = `batch_${this.nextBatchId++}`;
 
     const context: BatchContext = {
@@ -116,10 +116,9 @@ export class BatchProcessor {
     }
 
     // Check batch size limits
-    if (context.operations.length >= this.config.maxOperationsPerBatch!) {
-      throw new Error(
-        `Batch size limit exceeded (max: ${this.config.maxOperationsPerBatch})`,
-      );
+    const maxOps = this.config.maxOperationsPerBatch ?? 100;
+    if (context.operations.length >= maxOps) {
+      throw new Error(`Batch size limit exceeded (max: ${maxOps})`);
     }
 
     // Check for conflicts with existing operations

@@ -17,7 +17,7 @@ const grid = new OptimizedSparseGrid();
 const engine = new OptimizedStructuralEngine(grid, monitor);
 
 // Helper to create test cells
-function createTestCell(value: string): any {
+function createTestCell(value: string): Cell {
   const cellResult = Cell.create(value);
   if (!cellResult.ok) throw new Error("Failed to create cell");
   return cellResult.value;
@@ -97,7 +97,7 @@ async function runPerformanceTests() {
   const passed4 = batchResult.ok && batchDuration < 500;
   console.log(`  ⏱️  Duration: ${batchDuration.toFixed(2)}ms`);
   console.log(
-    `  📊 Batch result: ${batchResult.ok ? "Success" : `Failed - ${(batchResult as any).error}`}`,
+    `  📊 Batch result: ${batchResult.ok ? "Success" : `Failed - ${batchResult.error}`}`,
   );
   console.log(`  ${passed4 ? "✅ PASS" : "❌ FAIL"}: Batch operations`);
 

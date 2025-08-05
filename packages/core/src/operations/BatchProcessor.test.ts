@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { ICellRepository } from "../domain/interfaces/ICellRepository";
 import { Cell, CellAddress, type CellValue } from "../domain/models";
-import { BatchProcessor } from "./BatchProcessor";
+import { type BatchContext, BatchProcessor } from "./BatchProcessor";
 import { CellSelection } from "./bulk/base/CellSelection";
 import { BulkSetOperation } from "./bulk/implementations/BulkSetOperation";
 
@@ -24,7 +24,11 @@ const createMockCellRepository = (): ICellRepository & {
 
     setCell: mock(async (address: CellAddress, cell: Partial<Cell>) => {
       const key = `${address.row},${address.col}`;
-      const existingCell = cells.get(key) || Cell.create(null).value!;
+      const cellResult = Cell.create(null);
+      if (!cellResult.ok) {
+        return { ok: false, error: "Failed to create cell" };
+      }
+      const existingCell = cells.get(key) || cellResult.value;
       const updatedCell = { ...existingCell, ...cell };
       cells.set(key, updatedCell);
       return { ok: true, value: updatedCell };
@@ -90,7 +94,7 @@ describe("BatchProcessor", () => {
   });
 
   describe("addOperation", () => {
-    let context: any;
+    let context: BatchContext;
     let operation: BulkSetOperation;
 
     beforeEach(() => {
@@ -188,7 +192,7 @@ describe("BatchProcessor", () => {
   });
 
   describe("validateBatch", () => {
-    let context: any;
+    let context: BatchContext;
 
     beforeEach(() => {
       context = processor.beginBatch();
@@ -245,7 +249,7 @@ describe("BatchProcessor", () => {
   });
 
   describe("commitBatch", () => {
-    let context: any;
+    let context: BatchContext;
     let operation: BulkSetOperation;
 
     beforeEach(() => {
