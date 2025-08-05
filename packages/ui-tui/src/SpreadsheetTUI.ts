@@ -145,7 +145,7 @@ export class SpreadsheetTUI extends Renderable {
     process.exit(0);
   }
 
-  private handleKeyPress(key: string, meta: KeyMeta): void {
+  handleKeyPress(key: string, meta: KeyMeta): void {
     // Exit on Ctrl+C or Ctrl+Q
     if (meta.ctrl && (meta.key === "c" || meta.key === "q")) {
       this.stop();
@@ -169,7 +169,7 @@ export class SpreadsheetTUI extends Renderable {
     this.terminal.renderBuffer(this.buffer);
   }
 
-  private handleControllerEvent(event: ControllerEvent): void {
+  handleControllerEvent(event: ControllerEvent): void {
     switch (event.type) {
       case "stateChanged":
         // State changes are automatically reflected through getState()
