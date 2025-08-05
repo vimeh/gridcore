@@ -244,7 +244,8 @@ export class SpreadsheetController {
       case "enterCommand":
         return this.stateMachine.transition({ type: "ENTER_COMMAND_MODE" });
       case "enterResize": {
-        const index = action.target === "column" ? state.cursor.col : state.cursor.row;
+        const index =
+          action.target === "column" ? state.cursor.col : state.cursor.row;
         return this.enterResize(action.target, index);
       }
       case "enterVisual": {
