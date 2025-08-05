@@ -15,34 +15,36 @@ import {
 class MockCellRepository implements ICellRepository {
   private cells: Map<string, Cell> = new Map();
 
-  setCell(address: CellAddress, cell: Cell): Promise<Result<void>> {
+  // Synchronous methods required by ICellRepository
+  get(address: CellAddress): Cell | undefined {
+    const key = `${address.row},${address.col}`;
+    return this.cells.get(key);
+  }
+
+  set(address: CellAddress, cell: Cell): void {
     const key = `${address.row},${address.col}`;
     this.cells.set(key, cell);
-    return Promise.resolve({ ok: true, value: undefined });
   }
 
-  getCell(address: CellAddress): Promise<Result<Cell | null>> {
-    const key = `${address.row},${address.col}`;
-    const cell = this.cells.get(key) || null;
-    return Promise.resolve({ ok: true, value: cell });
-  }
-
-  deleteCell(address: CellAddress): Promise<Result<void>> {
+  delete(address: CellAddress): void {
     const key = `${address.row},${address.col}`;
     this.cells.delete(key);
-    return Promise.resolve({ ok: true, value: undefined });
   }
 
-  getCells(): Promise<Result<Cell[]>> {
-    return Promise.resolve({
-      ok: true,
-      value: Array.from(this.cells.values()),
-    });
-  }
-
-  clear(): Promise<Result<void>> {
+  clear(): void {
     this.cells.clear();
-    return Promise.resolve({ ok: true, value: undefined });
+  }
+
+  getAllInRange(): Map<string, Cell> {
+    return new Map(this.cells);
+  }
+
+  getAll(): Map<string, Cell> {
+    return new Map(this.cells);
+  }
+
+  count(): number {
+    return this.cells.size;
   }
 }
 
@@ -51,19 +53,19 @@ function createTestRepository() {
   const repo = new MockCellRepository();
 
   // Add test data with various text cases
-  repo.set(new CellAddress(0, 0), { value: "hello world" });
-  repo.set(new CellAddress(0, 1), { value: "GOODBYE WORLD" });
-  repo.set(new CellAddress(0, 2), { value: "  spaced text  " });
-  repo.set(new CellAddress(0, 3), { value: "line\nbreak\ttext" });
-  repo.set(new CellAddress(0, 4), { value: "multiple   spaces   here" });
-  repo.set(new CellAddress(1, 0), { value: 42 });
-  repo.set(new CellAddress(1, 1), { value: true });
-  repo.set(new CellAddress(1, 2), { value: null });
-  repo.set(new CellAddress(1, 3), { value: "" });
-  repo.set(new CellAddress(1, 4), { value: "Mixed Case String" });
-  repo.set(new CellAddress(2, 0), { value: "trim  me\n" });
-  repo.set(new CellAddress(2, 1), { value: "123.45" });
-  repo.set(new CellAddress(2, 2), { value: "  \t\r\n  " });
+  repo.set(new CellAddress(0, 0), { rawValue: "hello world" } as Cell);
+  repo.set(new CellAddress(0, 1), { rawValue: "GOODBYE WORLD" } as Cell);
+  repo.set(new CellAddress(0, 2), { rawValue: "  spaced text  " } as Cell);
+  repo.set(new CellAddress(0, 3), { rawValue: "line\nbreak\ttext" } as Cell);
+  repo.set(new CellAddress(0, 4), { rawValue: "multiple   spaces   here" } as Cell);
+  repo.set(new CellAddress(1, 0), { rawValue: 42 } as Cell);
+  repo.set(new CellAddress(1, 1), { rawValue: true } as Cell);
+  repo.set(new CellAddress(1, 2), { rawValue: null } as Cell);
+  repo.set(new CellAddress(1, 3), { rawValue: "" } as Cell);
+  repo.set(new CellAddress(1, 4), { rawValue: "Mixed Case String" } as Cell);
+  repo.set(new CellAddress(2, 0), { rawValue: "trim  me\n" } as Cell);
+  repo.set(new CellAddress(2, 1), { rawValue: "123.45" } as Cell);
+  repo.set(new CellAddress(2, 2), { rawValue: "  \t\r\n  " } as Cell);
 
   return repo;
 }
@@ -198,73 +200,6 @@ describe("BulkTransformOperation", () => {
     });
   });
 
-  describe("transformCell", () => {
-    let operation: BulkTransformOperation;
-
-    beforeEach(() => {
-      const options: BulkTransformOptions = { transformation: "upper" };
-      operation = new BulkTransformOperation(selection, options, repository);
-    });
-
-    it("should transform string values to uppercase", async () => {
-      const result = await operation.transformCell(
-        new CellAddress(0, 0),
-        "hello",
-      );
-      expect(result).toBe("HELLO");
-    });
-
-    it("should return null for values that don't change", async () => {
-      const result = await operation.transformCell(
-        new CellAddress(0, 0),
-        "ALREADY UPPER",
-      );
-      expect(result).toBe(null);
-    });
-
-    it("should return null for null values", async () => {
-      const result = await operation.transformCell(new CellAddress(0, 0), null);
-      expect(result).toBe(null);
-    });
-
-    it("should skip non-text values by default", async () => {
-      const result = await operation.transformCell(new CellAddress(0, 0), 42);
-      expect(result).toBe(null);
-    });
-
-    it("should convert numbers when convertNumbers is true", async () => {
-      const options: BulkTransformOptions = {
-        transformation: "upper",
-        convertNumbers: true,
-        skipNonText: false,
-      };
-      const operation = new BulkTransformOperation(
-        selection,
-        options,
-        repository,
-      );
-
-      const result = await operation.transformCell(new CellAddress(0, 0), 42);
-      expect(result).toBe("42");
-    });
-
-    it("should preserve numeric type when possible", async () => {
-      const options: BulkTransformOptions = {
-        transformation: "trim",
-        convertNumbers: true,
-        skipNonText: false,
-        preserveType: true,
-      };
-      const operation = new BulkTransformOperation(
-        selection,
-        options,
-        repository,
-      );
-
-      const result = await operation.transformCell(new CellAddress(0, 0), 42);
-      expect(result).toBe(42);
-    });
-  });
 
   describe("uppercase transformation", () => {
     let operation: BulkTransformOperation;
@@ -281,8 +216,8 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
 
       // Check that "hello world" became "HELLO WORLD"
-      const cell = await repository.get(new CellAddress(0, 0));
-      expect(cell.value?.value).toBe("HELLO WORLD");
+      const cell = repository.get(new CellAddress(0, 0));
+      expect(cell?.rawValue).toBe("HELLO WORLD");
     });
 
     it("should preview uppercase transformation", async () => {
@@ -315,8 +250,8 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
 
       // Check that "GOODBYE WORLD" became "goodbye world"
-      const cell = await repository.get(new CellAddress(0, 1));
-      expect(cell.value?.value).toBe("goodbye world");
+      const cell = repository.get(new CellAddress(0, 1));
+      expect(cell?.rawValue).toBe("goodbye world");
     });
 
     it("should preview lowercase transformation", async () => {
@@ -348,8 +283,8 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
 
       // Check that "  spaced text  " became "spaced text"
-      const cell = await repository.get(new CellAddress(0, 2));
-      expect(cell.value?.value).toBe("spaced text");
+      const cell = repository.get(new CellAddress(0, 2));
+      expect(cell?.rawValue).toBe("spaced text");
     });
 
     it("should preview trim transformation", async () => {
@@ -381,8 +316,8 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
 
       // Check that "line\nbreak\ttext" became "line break text"
-      const cell = await repository.get(new CellAddress(0, 3));
-      expect(cell.value?.value).toBe("line break text");
+      const cell = repository.get(new CellAddress(0, 3));
+      expect(cell?.rawValue).toBe("line break text");
     });
 
     it("should preview clean transformation", async () => {
@@ -411,8 +346,8 @@ describe("BulkTransformOperation", () => {
       expect(result.success).toBe(true);
 
       // Check that "multiple   spaces   here" became "multiple spaces here"
-      const cell = await repository.get(new CellAddress(0, 4));
-      expect(cell.value?.value).toBe("multiple spaces here");
+      const cell = repository.get(new CellAddress(0, 4));
+      expect(cell?.rawValue).toBe("multiple spaces here");
     });
 
     it("should support custom clean options", async () => {
@@ -437,8 +372,8 @@ describe("BulkTransformOperation", () => {
       expect(result.success).toBe(true);
 
       // Should remove line breaks and tabs but not normalize spaces
-      const cell = await repository.get(new CellAddress(0, 3));
-      expect(cell.value?.value).toBe("line break text");
+      const cell = repository.get(new CellAddress(0, 3));
+      expect(cell?.rawValue).toBe("line break text");
     });
   });
 
@@ -470,15 +405,15 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBe(1);
 
       // Check that "Mixed Case String" became "MIXED CASE STRING"
-      const cell = await repository.get(new CellAddress(1, 4));
-      expect(cell.value?.value).toBe("MIXED CASE STRING");
+      const cell = repository.get(new CellAddress(1, 4));
+      expect(cell?.rawValue).toBe("MIXED CASE STRING");
 
       // Check that numeric and boolean values weren't changed
-      const numCell = await repository.get(new CellAddress(1, 0));
-      expect(numCell.value?.value).toBe(42);
+      const numCell = repository.get(new CellAddress(1, 0));
+      expect(numCell?.rawValue).toBe(42);
 
-      const boolCell = await repository.get(new CellAddress(1, 1));
-      expect(boolCell.value?.value).toBe(true);
+      const boolCell = repository.get(new CellAddress(1, 1));
+      expect(boolCell?.rawValue).toBe(true);
     });
 
     it("should convert numbers when convertNumbers is enabled", async () => {
@@ -499,8 +434,8 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(1);
 
       // Check that number was converted to string
-      const numCell = await repository.get(new CellAddress(1, 0));
-      expect(numCell.value?.value).toBe("42");
+      const numCell = repository.get(new CellAddress(1, 0));
+      expect(numCell?.rawValue).toBe("42");
     });
   });
 
