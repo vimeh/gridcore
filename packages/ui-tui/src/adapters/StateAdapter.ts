@@ -51,21 +51,23 @@ export function toDisplayState(state: UIState): TUIDisplayState {
     // Add cell mode details
     switch (state.cellMode) {
       case "normal":
-        base.vimMode = "NORMAL";
+        base.vimMode = "CELL-NORMAL";
         break;
       case "insert":
-        base.vimMode = "INSERT";
+        base.vimMode = `CELL-INSERT (${state.editVariant || "i"})`;
         break;
       case "visual":
-        base.vimMode = "VISUAL";
+        base.vimMode = `CELL-VISUAL ${(state.visualType || "character").toUpperCase()}`;
         base.visualType = state.visualType;
         break;
     }
   } else if (isCommandMode(state)) {
+    base.vimMode = "COMMAND";
     base.commandBuffer = state.commandValue;
   } else if (isResizeMode(state)) {
+    base.vimMode = "RESIZE";
     base.resizeInfo = {
-      target: state.resizeTarget === "column" ? "Column" : "Row",
+      target: state.resizeTarget === "column" ? "COLUMN" : "ROW",
       index: state.resizeIndex,
       currentSize: state.currentSize,
       originalSize: state.originalSize,
@@ -77,30 +79,42 @@ export function toDisplayState(state: UIState): TUIDisplayState {
 
 function getModeString(state: UIState): string {
   if (isNavigationMode(state)) {
-    return "Navigation";
+    return "NORMAL";
   } else if (isEditingMode(state)) {
     switch (state.cellMode) {
       case "normal":
-        return "Cell (Normal)";
+        return "NORMAL";
       case "insert":
-        return "Cell (Insert)";
+        return "INSERT";
       case "visual":
-        return "Cell (Visual)";
+        return "VISUAL";
       default:
-        return "Cell";
+        return "NORMAL";
     }
   } else if (isCommandMode(state)) {
-    return "Command";
+    return "COMMAND";
   } else if (isResizeMode(state)) {
-    return `Resize ${state.resizeTarget === "column" ? "Column" : "Row"}`;
+    return "RESIZE";
   }
-  return "Unknown";
+  return "NORMAL";
 }
 
 function getCursorDisplay(state: UIState): string {
-  const col = state.cursor.getColumnLabel();
+  const col = columnIndexToLabel(state.cursor.col);
   const row = state.cursor.row + 1;
   return `${col}${row}`;
+}
+
+// Helper function to convert column index to label (0 -> A, 1 -> B, etc.)
+function columnIndexToLabel(col: number): string {
+  let label = "";
+  let n = col;
+  while (n >= 0) {
+    label = String.fromCharCode(65 + (n % 26)) + label;
+    n = Math.floor(n / 26) - 1;
+    if (n < 0) break;
+  }
+  return label;
 }
 
 function getFormulaBarContent(state: UIState): string {
@@ -161,15 +175,17 @@ export function getVimCommandDisplay(
 }
 
 export function getResizeModeDisplay(
-  target: "row" | "column",
-  index: number,
-  currentSize: number,
-  originalSize: number,
+  info: {
+    target: string;
+    index: number;
+    currentSize: number;
+    originalSize: number;
+  }
 ): string {
-  const targetName = target === "column" ? "Column" : "Row";
-  const delta = currentSize - originalSize;
+  const targetName = info.target.toUpperCase();
+  const delta = info.currentSize - info.originalSize;
   const sign = delta >= 0 ? "+" : "";
-  return `${targetName} ${index}: ${currentSize}px (${sign}${delta})`;
+  return `${targetName} ${info.index}: ${info.currentSize} (${sign}${delta})`;
 }
 
 export function hasVisualSelection(state: UIState): boolean {

@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import type { CellAddress } from "@gridcore/core";
 import { createNavigationState, type UIState } from "@gridcore/ui-core";
-import { toDisplayState } from "./StateAdapter";
+import { 
+  toDisplayState,
+  getResizeModeDisplay,
+  getVisualSelectionRange,
+  getVimCommandDisplay
+} from "./StateAdapter";
 
 describe("StateAdapter", () => {
   const mockCursor = { row: 5, col: 2 } as CellAddress;
@@ -110,10 +115,10 @@ describe("StateAdapter", () => {
       mockViewport,
     );
 
-    expect(StateAdapter.toDisplayState(state0).cursorDisplay).toBe("A1");
-    expect(StateAdapter.toDisplayState(state25).cursorDisplay).toBe("Z1");
-    expect(StateAdapter.toDisplayState(state26).cursorDisplay).toBe("AA1");
-    expect(StateAdapter.toDisplayState(state52).cursorDisplay).toBe("BA1");
+    expect(toDisplayState(state0).cursorDisplay).toBe("A1");
+    expect(toDisplayState(state25).cursorDisplay).toBe("Z1");
+    expect(toDisplayState(state26).cursorDisplay).toBe("AA1");
+    expect(toDisplayState(state52).cursorDisplay).toBe("BA1");
   });
 
   test("should format resize mode display", () => {
@@ -123,7 +128,7 @@ describe("StateAdapter", () => {
       currentSize: 20,
       originalSize: 10,
     };
-    expect(StateAdapter.getResizeModeDisplay(increaseInfo)).toBe(
+    expect(getResizeModeDisplay(increaseInfo)).toBe(
       "COLUMN 5: 20 (+10)",
     );
 
@@ -133,7 +138,7 @@ describe("StateAdapter", () => {
       currentSize: 5,
       originalSize: 8,
     };
-    expect(StateAdapter.getResizeModeDisplay(decreaseInfo)).toBe(
+    expect(getResizeModeDisplay(decreaseInfo)).toBe(
       "ROW 3: 5 (-3)",
     );
   });
@@ -149,7 +154,7 @@ describe("StateAdapter", () => {
       visualStart: 1,
     };
 
-    const range = StateAdapter.getVisualSelectionRange(state);
+    const range = getVisualSelectionRange(state);
     expect(range).toEqual({ start: 1, end: 3 });
 
     // Test reversed selection
@@ -158,14 +163,14 @@ describe("StateAdapter", () => {
       cursorPosition: 1,
       visualStart: 3,
     };
-    const reversedRange = StateAdapter.getVisualSelectionRange(reversedState);
+    const reversedRange = getVisualSelectionRange(reversedState);
     expect(reversedRange).toEqual({ start: 1, end: 3 });
   });
 
   test("should handle vim command display", () => {
-    expect(StateAdapter.getVimCommandDisplay("5", "d")).toBe("5d");
-    expect(StateAdapter.getVimCommandDisplay("", "yy")).toBe("yy");
-    expect(StateAdapter.getVimCommandDisplay("10", "")).toBe("10");
-    expect(StateAdapter.getVimCommandDisplay("", "")).toBe("");
+    expect(getVimCommandDisplay("5", "d")).toBe("5d");
+    expect(getVimCommandDisplay("", "yy")).toBe("yy");
+    expect(getVimCommandDisplay("10", "")).toBe("10");
+    expect(getVimCommandDisplay("", "")).toBe("");
   });
 });

@@ -3,11 +3,14 @@ import {
   type SpreadsheetFacade, 
   ReferenceDetector, 
   ReferenceAdjuster,
-  type CellReference 
+  type CellReference,
+  StructuralEngine,
+  StructuralUndoManager,
+  type StructuralSnapshot
 } from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
 import { type ResizeAction, ResizeBehavior } from "../behaviors/ResizeBehavior";
-import { StructuralOperationManager, type StructuralUIEvent } from "../behaviors/structural";
+import { StructuralOperationManager, type StructuralUIEvent, type StructuralOperation } from "../behaviors/structural";
 import type { CellVimAction } from "../behaviors/VimBehavior";
 import {
   type KeyMeta,
@@ -76,28 +79,51 @@ export class SpreadsheetController {
   private vimBehavior: VimBehavior;
   private cellVimBehavior: CellVimBehavior;
   private resizeBehavior: ResizeBehavior;
-  // private bulkCommandParser: VimBulkCommandParser;
+  private bulkCommandParser: VimBulkCommandParser;
   private facade: SpreadsheetFacade;
   private viewportManager: ViewportManager;
   private selectionManager: SelectionManager;
+  private structuralManager: StructuralOperationManager;
+  private structuralEngine: StructuralEngine;
+  private structuralUndoManager: StructuralUndoManager;
   private listeners: Array<(event: ControllerEvent) => void> = [];
 
-  constructor(options: SpreadsheetControllerOptions) {
-    this.facade = options.facade;
-    this.viewportManager = options.viewportManager;
+  constructor(options: SpreadsheetControllerOptions | SpreadsheetFacade) {
+    // Handle both constructor signatures for backward compatibility
+    if ('facade' in options) {
+      this.facade = options.facade;
+      this.viewportManager = options.viewportManager;
+    } else {
+      // Simple facade-only constructor for tests
+      this.facade = options;
+      // Create a simple viewport manager for tests
+      this.viewportManager = {
+        getColumnWidth: () => 100,
+        setColumnWidth: () => {},
+        getRowHeight: () => 20,
+        setRowHeight: () => {},
+        getTotalRows: () => 1000000,
+        getTotalCols: () => 16384,
+        scrollTo: () => {},
+      };
+    }
 
     // Initialize behaviors and managers
     this.vimBehavior = new VimBehavior();
     this.cellVimBehavior = new CellVimBehavior();
     this.resizeBehavior = new ResizeBehavior();
+    this.bulkCommandParser = new VimBulkCommandParser();
     this.selectionManager = new DefaultSelectionManager(this.facade);
+    this.structuralManager = new StructuralOperationManager();
+    this.structuralEngine = new StructuralEngine();
+    this.structuralUndoManager = new StructuralUndoManager();
 
     // Initialize fill engine
     // const formulaAdjuster = createFormulaAdjuster();
     // this.fillEngine = new FillEngine(this.facade.getCellRepository(), formulaAdjuster);
 
     // Initialize state machine
-    let initialState = options.initialState;
+    let initialState = ('initialState' in options) ? options.initialState : undefined;
     if (!initialState) {
       const defaultCursor = CellAddress.create(0, 0);
       if (!defaultCursor.ok) throw new Error("Failed to create default cursor");
@@ -113,6 +139,27 @@ export class SpreadsheetController {
     // Subscribe to state changes
     this.stateMachine.subscribe((state, action) => {
       this.emit({ type: "stateChanged", state, action });
+    });
+
+    // Subscribe to structural operation events
+    this.structuralManager.subscribe((event) => {
+      this.emit({ type: "structuralUIEvent", event });
+      
+      // Emit specific events for completed operations
+      if (event.type === "structuralOperationCompleted" && event.operation) {
+        this.emit({
+          type: "structuralOperationCompleted",
+          operation: event.operation.type,
+          count: event.operation.count || 1,
+          position: event.operation.index || 0,
+        });
+      } else if (event.type === "structuralOperationFailed" && event.operation) {
+        this.emit({
+          type: "structuralOperationFailed",
+          operation: event.operation.type,
+          error: event.error || "Unknown error",
+        });
+      }
     });
   }
 
@@ -152,6 +199,16 @@ export class SpreadsheetController {
     }
 
     return { ok: true, value: state };
+  }
+
+  // Wrapper method for tests that use handleKey
+  handleKey(key: string): Result<UIState> {
+    return this.handleKeyPress(key, { key, ctrl: false, shift: false, alt: false });
+  }
+
+  // Wrapper method for tests that use handleControlKey
+  handleControlKey(key: string): Result<UIState> {
+    return this.handleKeyPress(key, { key, ctrl: true, shift: false, alt: false });
   }
 
   // Process vim actions from navigation mode
@@ -198,10 +255,10 @@ export class SpreadsheetController {
       case "paste":
         // These would be implemented based on selection
         return this.handleCellOperation(action.type, action, state);
-      // case "structuralInsert":
-      //   return this.handleStructuralInsert(action, state);
-      // case "structuralDelete":
-      //   return this.handleStructuralDelete(action, state);
+      case "structuralInsert":
+        return this.handleStructuralInsert(action, state);
+      case "structuralDelete":
+        return this.handleStructuralDelete(action, state);
       default:
         return { ok: true, value: state };
     }
@@ -289,8 +346,13 @@ export class SpreadsheetController {
 
     if (meta.key === "enter" || key === "\r" || key === "\n") {
       // Execute command
-      this.executeCommand(state.commandValue);
-      return this.stateMachine.transition({ type: "EXIT_COMMAND_MODE" });
+      try {
+        this.executeCommand(state.commandValue);
+        return this.stateMachine.transition({ type: "EXIT_COMMAND_MODE" });
+      } catch (error) {
+        console.error("Error executing command:", error);
+        return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      }
     }
 
     if (meta.key === "tab" || key === "\t") {
@@ -814,7 +876,16 @@ export class SpreadsheetController {
 
   // Command execution
   private executeCommand(command: string): void {
-    const trimmedCommand = command.trim();
+    // Remove leading : if present
+    const trimmedCommand = command.trim().replace(/^:/, '');
+    
+    // Try to parse as bulk command first
+    const bulkCommand = this.bulkCommandParser.parse(`:${trimmedCommand}`);
+    
+    if (bulkCommand) {
+      this.handleBulkCommand(bulkCommand);
+      return;
+    }
     
     // Handle reference conversion commands
     if (trimmedCommand === "refrel") {
@@ -832,28 +903,131 @@ export class SpreadsheetController {
       return;
     }
     
+    // Handle structural commands
+    const structuralMatch = trimmedCommand.match(/^(\d*)?(insert-row|insert-col|delete-row|delete-col)$/);
+    if (structuralMatch) {
+      const count = structuralMatch[1] ? parseInt(structuralMatch[1], 10) : 1;
+      const operation = structuralMatch[2];
+      const cursor = this.stateMachine.getState().cursor;
+      
+      switch (operation) {
+        case "insert-row":
+          this.insertRows(cursor.row, count);
+          break;
+        case "insert-col":
+          this.insertColumns(cursor.col, count);
+          break;
+        case "delete-row":
+          this.deleteRows(cursor.row, count);
+          break;
+        case "delete-col":
+          this.deleteColumns(cursor.col, count);
+          break;
+      }
+      return;
+    }
+    
     // Handle other vim commands like :w, :q, etc.
     // For now, just emit the event for unhandled commands
     this.emit({ type: "commandExecuted", command });
   }
 
+  private handleBulkCommand(command: ParsedBulkCommand): void {
+    const state = this.stateMachine.getState();
+    
+    // Validate command
+    const hasSelection = this.hasSelection();
+    const validationError = this.bulkCommandParser.validateCommand(command, hasSelection);
+    
+    if (validationError) {
+      this.emit({ type: "error", error: validationError });
+      return;
+    }
+
+    // Start bulk operation
+    const result = this.stateMachine.transition({
+      type: "START_BULK_OPERATION",
+      command,
+      affectedCells: this.getAffectedCellCount(command),
+    });
+
+    if (!result.ok) {
+      console.error("Failed to start bulk operation:", result.error);
+      this.emit({ type: "error", error: result.error });
+      return;
+    }
+
+    // If command requires preview, show it
+    if (command.requiresPreview) {
+      this.stateMachine.transition({ type: "SHOW_BULK_PREVIEW" });
+    } else {
+      // Execute immediately for non-preview commands
+      this.executeBulkOperation(command);
+    }
+  }
+
+  private hasSelection(): boolean {
+    const state = this.stateMachine.getState();
+    return isSpreadsheetVisualMode(state) || 
+           (isNavigationMode(state) && state.selection !== undefined);
+  }
+
+  private getAffectedCellCount(command: ParsedBulkCommand): number {
+    const state = this.stateMachine.getState();
+    
+    // For now, return a placeholder count
+    // TODO: Calculate actual affected cells based on selection
+    if (this.hasSelection()) {
+      return 1; // Placeholder
+    }
+    
+    // For sheet-wide operations
+    if (command.type === "findReplace" && command.options.scope === "sheet") {
+      return this.viewportManager.getTotalRows() * this.viewportManager.getTotalCols();
+    }
+    
+    return 0;
+  }
+
+  private executeBulkOperation(command: ParsedBulkCommand): void {
+    // TODO: Implement actual bulk operation execution
+    this.emit({ type: "bulkOperationExecuted", command });
+    
+    // Return to navigation mode
+    this.stateMachine.transition({ type: "BULK_OPERATION_COMPLETE" });
+  }
+
   // Get command completion for tab completion
   private getCommandCompletion(currentInput: string): string | null {
     const referenceCommands = ["refrel", "refabs", "refmix"];
-    const trimmedInput = currentInput.trim().toLowerCase();
+    // Remove leading : for processing, but keep track if it was there
+    const hasColon = currentInput.startsWith(':');
+    const cleanInput = currentInput.replace(/^:/, '').trim().toLowerCase();
     
-    if (!trimmedInput) {
+    if (!cleanInput && !hasColon) {
       return null;
+    }
+    
+    // Try bulk command completions first
+    const bulkCompletions = this.bulkCommandParser.getCompletions(`:${cleanInput}`);
+    if (bulkCompletions.length > 0) {
+      // Keep the : prefix if original input had it
+      const cleanedCompletions = bulkCompletions.map(c => hasColon ? c : c.substring(1));
+      if (cleanedCompletions.length === 1) {
+        return cleanedCompletions[0];
+      }
+      // Return the first match for now
+      return cleanedCompletions[0];
     }
     
     // Find commands that start with the current input
     const matches = referenceCommands.filter(cmd => 
-      cmd.startsWith(trimmedInput)
+      cmd.startsWith(cleanInput)
     );
     
     if (matches.length === 1) {
-      // Exact match found, complete it
-      return matches[0];
+      // Exact match found, complete it (with : prefix if original had it)
+      return hasColon ? `:${matches[0]}` : matches[0];
     }
     
     if (matches.length > 1) {
@@ -869,8 +1043,8 @@ export class SpreadsheetController {
       }
       
       // Only return if the common prefix is longer than current input
-      if (commonPrefix.length > trimmedInput.length) {
-        return commonPrefix;
+      if (commonPrefix.length > cleanInput.length) {
+        return hasColon ? `:${commonPrefix}` : commonPrefix;
       }
     }
     
@@ -1194,5 +1368,585 @@ export class SpreadsheetController {
       return false;
     }
     return this.selectionManager.isCellSelected(address, sel);
+  }
+
+  // Structural operation handlers
+  private handleStructuralInsert(action: VimAction, state: UIState): Result<UIState> {
+    if (action.type !== "structuralInsert") {
+      return { ok: true, value: state };
+    }
+    
+    const cursor = state.cursor;
+    const count = action.count || 1;
+    
+    if (action.target === "row") {
+      this.insertRows(cursor.row, count);
+    } else if (action.target === "column") {
+      this.insertColumns(cursor.col, count);
+    }
+    
+    return { ok: true, value: state };
+  }
+
+  private handleStructuralDelete(action: VimAction, state: UIState): Result<UIState> {
+    if (action.type !== "structuralDelete") {
+      return { ok: true, value: state };
+    }
+    
+    const cursor = state.cursor;
+    const count = action.count || 1;
+    
+    if (action.target === "row") {
+      this.deleteRows(cursor.row, count);
+    } else if (action.target === "column") {
+      this.deleteColumns(cursor.col, count);
+    }
+    
+    return { ok: true, value: state };
+  }
+
+  // Public API for state access
+  getUIState(): UIState {
+    return this.stateMachine.getState();
+  }
+
+  getCurrentViewport(): UIState["viewport"] {
+    return this.stateMachine.getState().viewport;
+  }
+
+  // Get the selection manager for direct access (used in tests)
+  getSelectionManager(): SelectionManager {
+    return this.selectionManager;
+  }
+
+  // Structural operations
+  async insertRows(beforeRow: number, count: number = 1): Promise<Result<UIState>> {
+    const operation: StructuralOperation = { 
+      type: "insertRow",
+      index: beforeRow,
+      count,
+      timestamp: Date.now(),
+      id: `insertRow-${Date.now()}-${Math.random()}`
+    };
+    
+    // Capture state before operation for undo
+    const currentState = this.getState();
+    const beforeSnapshot = this.structuralUndoManager.createSnapshot(
+      this.structuralEngine.getGrid(),
+      {
+        cursor: currentState.cursor,
+        selection: undefined,
+      },
+      currentState.viewport
+    );
+    
+    // Start operation with UI feedback
+    await this.structuralManager.startOperation(operation, {
+      affectedCells: [],
+      formulaUpdates: [],
+      warnings: [],
+      estimatedTime: 100,
+      requiresConfirmation: false,
+    });
+    
+    try {
+      // Execute the actual operation
+      const result = await this.structuralEngine.insertRows(beforeRow, count);
+      
+      if (!result.ok) {
+        this.structuralManager.failOperation(operation, result.error);
+        return { ok: false, error: result.error };
+      }
+      
+      // Update cursor if needed (move down if inserting above current position)
+      const state = this.stateMachine.getState();
+      if (state.cursor.row >= beforeRow) {
+        this.stateMachine.transition({
+          type: "UPDATE_CURSOR",
+          cursor: { ...state.cursor, row: state.cursor.row + count }
+        });
+      }
+      
+      // Capture state after operation for redo
+      const afterState = this.getState();
+      const afterSnapshot = this.structuralUndoManager.createSnapshot(
+        this.structuralEngine.getGrid(),
+        {
+          cursor: afterState.cursor,
+          selection: undefined,
+        },
+        afterState.viewport
+      );
+      
+      // Record the operation for undo/redo
+      this.structuralUndoManager.recordOperation(
+        operation.id,
+        operation,
+        `Insert ${count} row${count === 1 ? '' : 's'} at row ${beforeRow + 1}`,
+        beforeSnapshot,
+        afterSnapshot
+      );
+      
+      this.structuralManager.completeOperation([], new Map());
+      this.emitUndoRedoStateChanged();
+      
+      return { ok: true, value: this.stateMachine.getState() };
+    } catch (error) {
+      this.structuralManager.failOperation(operation, String(error));
+      return { ok: false, error: String(error) };
+    }
+  }
+
+  async insertColumns(beforeCol: number, count: number = 1): Promise<Result<UIState>> {
+    const operation: StructuralOperation = {
+      type: "insertColumn",
+      index: beforeCol,
+      count,
+      timestamp: Date.now(),
+      id: `insertColumn-${Date.now()}-${Math.random()}`
+    };
+    
+    // Capture state before operation for undo
+    const currentState = this.getState();
+    const beforeSnapshot = this.structuralUndoManager.createSnapshot(
+      this.structuralEngine.getGrid(),
+      {
+        cursor: currentState.cursor,
+        selection: undefined,
+      },
+      currentState.viewport
+    );
+    
+    await this.structuralManager.startOperation(operation, {
+      affectedCells: [],
+      formulaUpdates: [],
+      warnings: [],
+      estimatedTime: 100,
+      requiresConfirmation: false,
+    });
+    
+    try {
+      // Execute the actual operation
+      const result = await this.structuralEngine.insertColumns(beforeCol, count);
+      
+      if (!result.ok) {
+        this.structuralManager.failOperation(operation, result.error);
+        return { ok: false, error: result.error };
+      }
+      
+      // Update cursor if needed (move right if inserting before current position)
+      const state = this.stateMachine.getState();
+      if (state.cursor.col >= beforeCol) {
+        this.stateMachine.transition({
+          type: "UPDATE_CURSOR",
+          cursor: { ...state.cursor, col: state.cursor.col + count }
+        });
+      }
+      
+      // Update viewport if inserting columns affects it
+      if (state.viewport.startCol >= beforeCol) {
+        this.stateMachine.transition({
+          type: "UPDATE_VIEWPORT",
+          viewport: { ...state.viewport, startCol: state.viewport.startCol + count }
+        });
+      }
+      
+      // Capture state after operation for redo
+      const afterState = this.getState();
+      const afterSnapshot = this.structuralUndoManager.createSnapshot(
+        this.structuralEngine.getGrid(),
+        {
+          cursor: afterState.cursor,
+          selection: undefined,
+        },
+        afterState.viewport
+      );
+      
+      // Record the operation for undo/redo
+      this.structuralUndoManager.recordOperation(
+        operation.id,
+        operation,
+        `Insert ${count} column${count === 1 ? '' : 's'} at column ${beforeCol + 1}`,
+        beforeSnapshot,
+        afterSnapshot
+      );
+      
+      this.structuralManager.completeOperation([], new Map());
+      this.emitUndoRedoStateChanged();
+      
+      return { ok: true, value: this.stateMachine.getState() };
+    } catch (error) {
+      this.structuralManager.failOperation(operation, String(error));
+      return { ok: false, error: String(error) };
+    }
+  }
+
+  async deleteRows(startRow: number, count: number = 1): Promise<Result<UIState>> {
+    const operation: StructuralOperation = {
+      type: "deleteRow",
+      index: startRow,
+      count,
+      timestamp: Date.now(),
+      id: `deleteRow-${Date.now()}-${Math.random()}`
+    };
+    
+    // Capture state before operation for undo
+    const currentState = this.getState();
+    const beforeSnapshot = this.structuralUndoManager.createSnapshot(
+      this.structuralEngine.getGrid(),
+      {
+        cursor: currentState.cursor,
+        selection: undefined,
+      },
+      currentState.viewport
+    );
+    
+    await this.structuralManager.startOperation(operation, {
+      affectedCells: [],
+      formulaUpdates: [],
+      warnings: [],
+      estimatedTime: 100,
+      requiresConfirmation: count > 5,
+    });
+    
+    try {
+      // Execute the actual operation
+      const result = await this.structuralEngine.deleteRows(startRow, count);
+      
+      if (!result.ok) {
+        this.structuralManager.failOperation(operation, result.error);
+        return { ok: false, error: result.error };
+      }
+      
+      // Update cursor if needed
+      const state = this.stateMachine.getState();
+      let newCursorRow = state.cursor.row;
+      
+      if (state.cursor.row >= startRow + count) {
+        // Cursor is below deleted rows, move up
+        newCursorRow = state.cursor.row - count;
+      } else if (state.cursor.row >= startRow) {
+        // Cursor is within deleted rows, move to start of deletion
+        newCursorRow = Math.max(0, startRow - 1);
+      }
+      
+      if (newCursorRow !== state.cursor.row) {
+        this.stateMachine.transition({
+          type: "UPDATE_CURSOR",
+          cursor: { ...state.cursor, row: newCursorRow }
+        });
+      }
+      
+      // Capture state after operation for redo
+      const afterState = this.getState();
+      const afterSnapshot = this.structuralUndoManager.createSnapshot(
+        this.structuralEngine.getGrid(),
+        {
+          cursor: afterState.cursor,
+          selection: undefined,
+        },
+        afterState.viewport
+      );
+      
+      // Record the operation for undo/redo
+      this.structuralUndoManager.recordOperation(
+        operation.id,
+        operation,
+        `Delete ${count} row${count === 1 ? '' : 's'} starting at row ${startRow + 1}`,
+        beforeSnapshot,
+        afterSnapshot
+      );
+      
+      this.structuralManager.completeOperation([], new Map());
+      this.emitUndoRedoStateChanged();
+      
+      return { ok: true, value: this.stateMachine.getState() };
+    } catch (error) {
+      this.structuralManager.failOperation(operation, String(error));
+      return { ok: false, error: String(error) };
+    }
+  }
+
+  async deleteColumns(startCol: number, count: number = 1): Promise<Result<UIState>> {
+    const operation: StructuralOperation = {
+      type: "deleteColumn",
+      index: startCol,
+      count,
+      timestamp: Date.now(),
+      id: `deleteColumn-${Date.now()}-${Math.random()}`
+    };
+    
+    // Capture state before operation for undo
+    const currentState = this.getState();
+    const beforeSnapshot = this.structuralUndoManager.createSnapshot(
+      this.structuralEngine.getGrid(),
+      {
+        cursor: currentState.cursor,
+        selection: undefined,
+      },
+      currentState.viewport
+    );
+    
+    await this.structuralManager.startOperation(operation, {
+      affectedCells: [],
+      formulaUpdates: [],
+      warnings: [],
+      estimatedTime: 100,
+      requiresConfirmation: count > 5,
+    });
+    
+    try {
+      // Execute the actual operation
+      const result = await this.structuralEngine.deleteColumns(startCol, count);
+      
+      if (!result.ok) {
+        this.structuralManager.failOperation(operation, result.error);
+        return { ok: false, error: result.error };
+      }
+      
+      // Update cursor if needed
+      const state = this.stateMachine.getState();
+      let newCursorCol = state.cursor.col;
+      
+      if (state.cursor.col >= startCol + count) {
+        // Cursor is to the right of deleted columns, move left
+        newCursorCol = state.cursor.col - count;
+      } else if (state.cursor.col >= startCol) {
+        // Cursor is within deleted columns, move to start of deletion
+        newCursorCol = Math.max(0, startCol - 1);
+      }
+      
+      if (newCursorCol !== state.cursor.col) {
+        this.stateMachine.transition({
+          type: "UPDATE_CURSOR",
+          cursor: { ...state.cursor, col: newCursorCol }
+        });
+      }
+      
+      // Capture state after operation for redo
+      const afterState = this.getState();
+      const afterSnapshot = this.structuralUndoManager.createSnapshot(
+        this.structuralEngine.getGrid(),
+        {
+          cursor: afterState.cursor,
+          selection: undefined,
+        },
+        afterState.viewport
+      );
+      
+      // Record the operation for undo/redo
+      this.structuralUndoManager.recordOperation(
+        operation.id,
+        operation,
+        `Delete ${count} column${count === 1 ? '' : 's'} starting at column ${startCol + 1}`,
+        beforeSnapshot,
+        afterSnapshot
+      );
+      
+      this.structuralManager.completeOperation([], new Map());
+      this.emitUndoRedoStateChanged();
+      
+      return { ok: true, value: this.stateMachine.getState() };
+    } catch (error) {
+      this.structuralManager.failOperation(operation, String(error));
+      return { ok: false, error: String(error) };
+    }
+  }
+
+  // Update cursor position (used in tests)
+  updateCursor(cursor: CellAddress): Result<UIState> {
+    const state = this.stateMachine.getState();
+    
+    // In visual mode, we need to extend the selection
+    if (isSpreadsheetVisualMode(state)) {
+      const newSelection = this.selectionManager.extendSelection(
+        state.selection,
+        cursor,
+        state.visualMode,
+      );
+      
+      // Update both cursor and selection
+      const cursorResult = this.stateMachine.transition({
+        type: "UPDATE_CURSOR",
+        cursor,
+      });
+      
+      if (!cursorResult.ok) {
+        return cursorResult;
+      }
+      
+      return this.stateMachine.transition({
+        type: "UPDATE_SELECTION",
+        selection: newSelection,
+      });
+    }
+    
+    // Normal cursor update
+    return this.stateMachine.transition({
+      type: "UPDATE_CURSOR",
+      cursor,
+    });
+  }
+
+  // Undo/Redo methods
+  async undo(): Promise<void> {
+    try {
+      const grid = this.structuralEngine.getGrid();
+      const result = await this.structuralUndoManager.undo(grid);
+      
+      if (result.ok) {
+        const snapshot = result.value;
+        
+        // Restore cursor and viewport state if available
+        if (snapshot.cursorState) {
+          this.stateMachine.transition({
+            type: "UPDATE_CURSOR",
+            cursor: snapshot.cursorState.cursor,
+          });
+        }
+        
+        if (snapshot.viewportState) {
+          this.stateMachine.transition({
+            type: "UPDATE_VIEWPORT",
+            viewport: snapshot.viewportState,
+          });
+        }
+        
+        this.emit({
+          type: "undoCompleted",
+          description: "Structural operation undone",
+          snapshot,
+        });
+        
+        this.emitUndoRedoStateChanged();
+      } else {
+        this.emit({
+          type: "error",
+          error: result.error,
+        });
+      }
+    } catch (error) {
+      this.emit({
+        type: "error",
+        error: `Undo failed: ${error}`,
+      });
+    }
+  }
+
+  async redo(): Promise<void> {
+    try {
+      const grid = this.structuralEngine.getGrid();
+      const result = await this.structuralUndoManager.redo(grid);
+      
+      if (result.ok) {
+        const snapshot = result.value;
+        
+        // Restore cursor and viewport state if available  
+        if (snapshot.cursorState) {
+          this.stateMachine.transition({
+            type: "UPDATE_CURSOR",
+            cursor: snapshot.cursorState.cursor,
+          });
+        }
+        
+        if (snapshot.viewportState) {
+          this.stateMachine.transition({
+            type: "UPDATE_VIEWPORT",
+            viewport: snapshot.viewportState,
+          });
+        }
+        
+        this.emit({
+          type: "redoCompleted",
+          description: "Structural operation redone",
+          snapshot,
+        });
+        
+        this.emitUndoRedoStateChanged();
+      } else {
+        this.emit({
+          type: "error",
+          error: result.error,
+        });
+      }
+    } catch (error) {
+      this.emit({
+        type: "error",
+        error: `Redo failed: ${error}`,
+      });
+    }
+  }
+
+  canUndo(): boolean {
+    return this.structuralUndoManager.canUndo();
+  }
+
+  canRedo(): boolean {
+    return this.structuralUndoManager.canRedo();
+  }
+
+  getUndoRedoStats(): {
+    undoStackSize: number;
+    redoStackSize: number;
+    maxStackSize: number;
+    currentTransactionId?: string;
+  } {
+    return this.structuralUndoManager.getStats();
+  }
+
+  private emitUndoRedoStateChanged(): void {
+    this.emit({
+      type: "undoRedoStateChanged",
+      canUndo: this.canUndo(),
+      canRedo: this.canRedo(),
+    });
+  }
+
+  // Transaction methods for grouping undo/redo operations
+  startTransaction(description: string): string {
+    const transactionId = this.structuralUndoManager.startTransaction(description);
+    return transactionId;
+  }
+
+  endTransaction(): void {
+    this.structuralUndoManager.endTransaction();
+    this.emitUndoRedoStateChanged();
+  }
+
+  cancelTransaction(): void {
+    this.structuralUndoManager.cancelTransaction();
+    this.emitUndoRedoStateChanged();
+  }
+
+  clearUndoHistory(): void {
+    this.structuralUndoManager.clearHistory();
+    this.emitUndoRedoStateChanged();
+  }
+
+  // Menu event handler
+  async handleMenuEvent(event: string): Promise<void> {
+    switch (event) {
+      case "menu:undo":
+        await this.undo();
+        break;
+      case "menu:redo":
+        await this.redo();
+        break;
+      case "menu:copy":
+        this.handleKeyPress("y", { key: "y", ctrl: false, shift: false, alt: false });
+        break;
+      case "menu:paste":
+        this.handleKeyPress("p", { key: "p", ctrl: false, shift: false, alt: false });
+        break;
+      case "menu:cut":
+        this.handleKeyPress("d", { key: "d", ctrl: false, shift: false, alt: false });
+        break;
+      case "menu:selectAll":
+        this.handleKeyPress("a", { key: "a", ctrl: true, shift: false, alt: false });
+        break;
+      default:
+        // Handle other menu events if needed
+        break;
+    }
   }
 }

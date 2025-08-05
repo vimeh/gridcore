@@ -150,7 +150,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
           scope: scope === '%' ? 'sheet' : 'selection'
         },
         requiresPreview: true,
-        requiresSelection: false
+        requiresSelection: scope !== '%'  // Only require selection for non-sheet-wide operations
       };
     }
 
@@ -269,12 +269,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
   }
 
   validateCommand(command: ParsedBulkCommand, hasSelection: boolean): string | null {
-    // Check if command requires selection but none exists
-    if (command.requiresSelection && !hasSelection) {
-      return "This operation requires a selection";
-    }
-
-    // Validate specific command types
+    // Validate specific command types first (before checking selection requirement)
     switch (command.type) {
       case "findReplace":
         if (!command.findPattern) {
@@ -323,6 +318,11 @@ export class VimBulkCommandParser implements BulkCommandParser {
           return `Invalid format type. Valid types: ${validFormats.join(", ")}`;
         }
         break;
+    }
+
+    // Check if command requires selection but none exists (after validating command structure)
+    if (command.requiresSelection && !hasSelection) {
+      return "This operation requires a selection";
     }
 
     return null; // Command is valid

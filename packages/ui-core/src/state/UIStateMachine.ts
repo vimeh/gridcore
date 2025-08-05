@@ -3,7 +3,7 @@ import type { Result } from "../utils/Result";
 import { err, ok } from "../utils/Result";
 import {
   type CellMode,
-  // createBulkOperationState,
+  createBulkOperationState,
   createCommandState,
   createEditingState,
   // createFillState,
@@ -13,7 +13,7 @@ import {
   createInsertState,
   createDeleteState,
   type InsertMode,
-  // isBulkOperationMode,
+  isBulkOperationMode,
   isCommandMode,
   isEditingMode,
   // isFillMode,
@@ -132,7 +132,9 @@ export class UIStateMachine {
       ["editing.UPDATE_EDITING_VALUE", this.updateEditingValue.bind(this)],
       ["command.EXIT_COMMAND_MODE", this.exitCommandMode.bind(this)],
       ["command.UPDATE_COMMAND_VALUE", this.updateCommandValue.bind(this)],
-      // ["command.START_BULK_OPERATION", this.startBulkOperation.bind(this)],
+      ["command.START_BULK_OPERATION", this.startBulkOperation.bind(this)],
+      ["bulkOperation.SHOW_BULK_PREVIEW", this.showBulkPreview.bind(this)],
+      ["bulkOperation.BULK_OPERATION_COMPLETE", this.completeBulkOperation.bind(this)],
       ["resize.EXIT_RESIZE_MODE", this.exitResizeMode.bind(this)],
       ["resize.UPDATE_RESIZE_SIZE", this.updateResizeSize.bind(this)],
       ["insert.EXIT_STRUCTURAL_INSERT_MODE", this.exitStructuralInsertMode.bind(this)],
@@ -389,6 +391,33 @@ export class UIStateMachine {
       return err("Can only exit command mode when in command mode");
     }
 
+    return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private startBulkOperation(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "START_BULK_OPERATION") {
+      return err("Invalid action type");
+    }
+    if (!isCommandMode(state)) {
+      return err("Can only start bulk operation from command mode");
+    }
+    return ok(createBulkOperationState(state.cursor, state.viewport, action.command));
+  }
+
+  private showBulkPreview(state: UIState): Result<UIState> {
+    if (!isBulkOperationMode(state)) {
+      return err("Can only show preview in bulk operation mode");
+    }
+    return ok({
+      ...state,
+      previewVisible: true,
+    });
+  }
+
+  private completeBulkOperation(state: UIState): Result<UIState> {
+    if (!isBulkOperationMode(state)) {
+      return err("Can only complete bulk operation when in bulk operation mode");
+    }
     return ok(createNavigationState(state.cursor, state.viewport));
   }
 

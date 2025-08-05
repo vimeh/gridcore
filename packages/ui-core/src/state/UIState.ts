@@ -92,6 +92,16 @@ export type UIState =
       deleteType: "row" | "column"; 
       selection: number[]; // Indices to delete
       confirmationPending: boolean;
+    }
+  | {
+      spreadsheetMode: "bulkOperation";
+      cursor: CellAddress;
+      viewport: ViewportInfo;
+      command: ParsedBulkCommand;
+      previewVisible: boolean;
+      affectedCells: number;
+      status: "preparing" | "previewing" | "executing" | "completed" | "error";
+      errorMessage?: string;
     };
 
 // Type guards for safe access
@@ -127,6 +137,12 @@ export function isResizeMode(
 
 export function isInsertMode(
   state: UIState,
+): state is Extract<UIState, { spreadsheetMode: "editing"; cellMode: "insert" }> {
+  return state.spreadsheetMode === "editing" && state.cellMode === "insert";
+}
+
+export function isStructuralInsertMode(
+  state: UIState,
 ): state is Extract<UIState, { spreadsheetMode: "insert" }> {
   return state.spreadsheetMode === "insert";
 }
@@ -135,6 +151,12 @@ export function isDeleteMode(
   state: UIState,
 ): state is Extract<UIState, { spreadsheetMode: "delete" }> {
   return state.spreadsheetMode === "delete";
+}
+
+export function isBulkOperationMode(
+  state: UIState,
+): state is Extract<UIState, { spreadsheetMode: "bulkOperation" }> {
+  return state.spreadsheetMode === "bulkOperation";
 }
 
 // Helper to check if in cell insert mode within cell editing
@@ -202,7 +224,7 @@ export function createEditingState(
 export function createCommandState(
   cursor: CellAddress,
   viewport: ViewportInfo,
-  commandValue = "",
+  commandValue = ":",
 ): UIState {
   return {
     spreadsheetMode: "command",
@@ -260,5 +282,21 @@ export function createDeleteState(
     deleteType,
     selection,
     confirmationPending: true,
+  };
+}
+
+export function createBulkOperationState(
+  cursor: CellAddress,
+  viewport: ViewportInfo,
+  command: ParsedBulkCommand
+): UIState {
+  return {
+    spreadsheetMode: "bulkOperation",
+    cursor,
+    viewport,
+    command,
+    previewVisible: false,
+    affectedCells: 0,
+    status: "preparing",
   };
 }
