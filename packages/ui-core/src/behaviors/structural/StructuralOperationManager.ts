@@ -144,7 +144,15 @@ export class StructuralOperationManager {
       }
     }
 
+    // Store warnings before reset if auto-hide is configured
+    const warningsToPreserve = this.config.autoHideWarnings ? [...this.state.warnings] : [];
+    
     this.resetState();
+    
+    // Restore warnings if auto-hide is configured (they'll be cleared by the timeout)
+    if (warningsToPreserve.length > 0) {
+      this.state.warnings = warningsToPreserve;
+    }
   }
 
   /**

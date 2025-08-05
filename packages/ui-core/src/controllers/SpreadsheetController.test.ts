@@ -247,7 +247,7 @@ describe("SpreadsheetController", () => {
       expect(result.ok).toBe(true);
       const state = controller.getState();
       if (state.spreadsheetMode === "command") {
-        expect(state.commandValue).toBe("w");
+        expect(state.commandValue).toBe(":w");
       }
     });
 
@@ -479,7 +479,7 @@ describe("SpreadsheetController", () => {
   });
 
   describe("structural commands", () => {
-    test("should execute :insert-row command", () => {
+    test("should execute :insert-row command", async () => {
       const events: ControllerEvent[] = [];
       controller.subscribe((event) => events.push(event));
 
@@ -561,12 +561,15 @@ describe("SpreadsheetController", () => {
         alt: false,
       });
 
+      // Wait a bit for async operation to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Check that structural operation event was emitted
       const structuralEvents = events.filter(e => e.type === "structuralOperationCompleted");
       expect(structuralEvents.length).toBeGreaterThan(0);
     });
 
-    test("should execute :delete-col command with count", () => {
+    test("should execute :delete-col command with count", async () => {
       const events: ControllerEvent[] = [];
       controller.subscribe((event) => events.push(event));
 
@@ -596,12 +599,15 @@ describe("SpreadsheetController", () => {
         alt: false,
       });
 
+      // Wait a bit for async operation to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Check that structural operation event was emitted
       const structuralEvents = events.filter(e => e.type === "structuralOperationCompleted");
       expect(structuralEvents.length).toBeGreaterThan(0);
     });
 
-    test("should handle Ctrl+Shift+Plus keyboard shortcut", () => {
+    test("should handle Ctrl+Shift+Plus keyboard shortcut", async () => {
       const events: ControllerEvent[] = [];
       controller.subscribe((event) => events.push(event));
 
@@ -612,6 +618,9 @@ describe("SpreadsheetController", () => {
         alt: false,
       });
 
+      // Wait a bit for async operation to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Check that structural operation event was emitted
       const structuralEvents = events.filter(e => e.type === "structuralOperationCompleted");
       expect(structuralEvents.length).toBeGreaterThan(0);

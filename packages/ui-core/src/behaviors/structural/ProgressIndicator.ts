@@ -137,6 +137,13 @@ export class ProgressIndicator {
   }
 
   /**
+   * Check if progress indicator is currently visible
+   */
+  isShowing(): boolean {
+    return this.isVisible;
+  }
+
+  /**
    * Create progress element
    */
   private createProgressElement(operation: StructuralOperation, estimatedDuration: number): void {

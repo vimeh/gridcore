@@ -95,7 +95,8 @@ export type VimAction =
     }
   | {
       type: "startFill";
-      direction: "up" | "down" | "left" | "right";
+      direction: "up" | "down" | "left" | "right" | "smart";
+      options?: { series?: boolean; count?: number };
     }
   | { type: "none" };
 
@@ -422,7 +423,15 @@ export class VimBehavior {
 
     // Handle Ctrl combinations in visual mode
     if (meta.ctrl) {
-      return this.handleControlKey(key, meta);
+      // In visual mode, Ctrl+d and Ctrl+u are for scrolling, not fill
+      switch (key) {
+        case "d":
+          return { type: "scroll", direction: "halfDown" };
+        case "u":
+          return { type: "scroll", direction: "halfUp" };
+        default:
+          return this.handleControlKey(key, meta);
+      }
     }
 
     // Movement in visual mode extends the selection
@@ -568,7 +577,7 @@ export class VimBehavior {
     switch (key) {
       case "d":
         // Ctrl+d is fill down in spreadsheet context, not scroll
-        return { type: "startFill", direction: "down" };
+        return { type: "startFill", direction: "down", options: { count: 1 } };
       case "u":
         return { type: "scroll", direction: "halfUp" };
       case "f":
@@ -647,6 +656,12 @@ export class VimBehavior {
         return { type: "enterResize", target: "column", index: 0 };
       case "gC":
         return { type: "enterSpreadsheetVisual", visualMode: "column" };
+      case "gfd":
+        return { type: "startFill", direction: "down", options: { series: true, count } };
+      case "gfr":
+        return { type: "startFill", direction: "right", options: { series: true, count } };
+      case "gF":
+        return { type: "startFill", direction: "smart", options: { count } };
       default:
         // If we have an operator pending and this isn't a recognized command,
         // don't clear the state yet

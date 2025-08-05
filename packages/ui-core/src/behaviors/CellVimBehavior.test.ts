@@ -926,13 +926,16 @@ describe("CellVimBehavior", () => {
     beforeEach(() => {
       const cursor = CellAddress.create(0, 0).value;
       const viewport = { startRow: 0, startCol: 0, rows: 20, cols: 10 };
-      formulaState = createEditingState(
-        cursor,
-        viewport,
-        "normal",
-        "=SUM(A1:B2)",
-        7, // Position on 'A1'
-      );
+      formulaState = {
+        ...createEditingState(
+          cursor,
+          viewport,
+          "normal",
+          "=SUM(A1:B2)",
+          5, // Position on 'A1'
+        ),
+        cursorPosition: 5, // Ensure cursor is at position 5
+      };
     });
 
     describe("F4 key cycling", () => {
@@ -1061,7 +1064,7 @@ describe("CellVimBehavior", () => {
         const spaceState = {
           ...formulaState,
           editingValue: "=SUM( A1:B2 )",
-          cursorPosition: 8, // On 'A1'
+          cursorPosition: 6, // On 'A1'
         };
 
         // Start delete operator

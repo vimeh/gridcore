@@ -201,8 +201,8 @@ describe("VimBehavior", () => {
         expect(
           vimBehavior.handleKeyPress("v", createKeyMeta("v"), navigationState),
         ).toEqual({
-          type: "enterVisual",
-          visualType: "character",
+          type: "enterSpreadsheetVisual",
+          visualMode: "char",
         });
       });
 
@@ -210,8 +210,8 @@ describe("VimBehavior", () => {
         expect(
           vimBehavior.handleKeyPress("V", createKeyMeta("V"), navigationState),
         ).toEqual({
-          type: "enterVisual",
-          visualType: "line",
+          type: "enterSpreadsheetVisual",
+          visualMode: "row",
         });
       });
 
@@ -223,8 +223,8 @@ describe("VimBehavior", () => {
             navigationState,
           ),
         ).toEqual({
-          type: "enterVisual",
-          visualType: "block",
+          type: "enterSpreadsheetVisual",
+          visualMode: "block",
         });
       });
     });
@@ -316,6 +316,7 @@ describe("VimBehavior", () => {
         ).toEqual({
           type: "startFill",
           direction: "down",
+          options: { count: 1 },
         });
 
         expect(

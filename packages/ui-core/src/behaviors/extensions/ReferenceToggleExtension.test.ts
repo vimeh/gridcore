@@ -1,5 +1,5 @@
 import { CellAddress } from "@gridcore/core";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, test } from "bun:test";
 import type { UIState, ViewportInfo } from "../../state/UIState";
 import type { KeyMeta } from "../VimBehavior";
 import { ReferenceToggleExtension } from "./ReferenceToggleExtension";
@@ -25,7 +25,7 @@ describe("ReferenceToggleExtension", () => {
   });
 
   describe("F4 key handling", () => {
-    it("should handle F4 key correctly", () => {
+    test("should handle F4 key correctly", () => {
       const keyMeta: KeyMeta = {
         key: "F4",
         ctrl: false,
@@ -38,7 +38,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.type).toBe("replaceFormula");
     });
 
-    it("should handle lowercase f4 key", () => {
+    test("should handle lowercase f4 key", () => {
       const keyMeta: KeyMeta = {
         key: "f4",
         ctrl: false,
@@ -51,7 +51,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.type).toBe("replaceFormula");
     });
 
-    it("should return null for non-F4 keys", () => {
+    test("should return null for non-F4 keys", () => {
       const keyMeta: KeyMeta = {
         key: "a",
         ctrl: false,
@@ -63,10 +63,10 @@ describe("ReferenceToggleExtension", () => {
       expect(result).toBeNull();
     });
 
-    it("should return null when not in editing mode", () => {
+    test("should return null when not in editing mode", () => {
       const nonEditingState = {
         ...mockState,
-        mode: "navigation",
+        spreadsheetMode: "navigation",
       } as UIState;
 
       const keyMeta: KeyMeta = {
@@ -82,7 +82,7 @@ describe("ReferenceToggleExtension", () => {
   });
 
   describe("findReferenceAtCursor", () => {
-    it("should find reference at cursor position", () => {
+    test("should find reference at cursor position", () => {
       // This tests the private method indirectly through F4 handling
       mockState.editingValue = "=SUM(A1:B2)";
       mockState.cursorPosition = 7; // On 'A1'
@@ -99,7 +99,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.type).toBe("replaceFormula");
     });
 
-    it("should find no reference when cursor is not on a reference", () => {
+    test("should find no reference when cursor is not on a reference", () => {
       mockState.editingValue = "=SUM(A1:B2)";
       mockState.cursorPosition = 1; // On 'S' in SUM
 
@@ -117,7 +117,7 @@ describe("ReferenceToggleExtension", () => {
   });
 
   describe("findNextReference", () => {
-    it("should find next reference after cursor", () => {
+    test("should find next reference after cursor", () => {
       const text = "=SUM(A1, B2, C3)";
       const cursorPos = 5; // After A1
 
@@ -126,7 +126,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.startPos).toBeGreaterThan(cursorPos);
     });
 
-    it("should return null when no next reference exists", () => {
+    test("should return null when no next reference exists", () => {
       const text = "=SUM(A1)";
       const cursorPos = 10; // After the reference
 
@@ -136,7 +136,7 @@ describe("ReferenceToggleExtension", () => {
   });
 
   describe("findPreviousReference", () => {
-    it("should find previous reference before cursor", () => {
+    test("should find previous reference before cursor", () => {
       const text = "=SUM(A1, B2, C3)";
       const cursorPos = 15; // After B2
 
@@ -145,7 +145,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.startPos).toBeLessThan(cursorPos);
     });
 
-    it("should return null when no previous reference exists", () => {
+    test("should return null when no previous reference exists", () => {
       const text = "=SUM(A1)";
       const cursorPos = 5; // Before the reference
 
@@ -155,9 +155,9 @@ describe("ReferenceToggleExtension", () => {
   });
 
   describe("getReferenceTextObject", () => {
-    it("should get inner reference boundaries", () => {
+    test("should get inner reference boundaries", () => {
       const text = "=SUM(A1:B2)";
-      const cursorPos = 7; // On 'A1'
+      const cursorPos = 5; // On 'A1'
 
       const result = extension.getReferenceTextObject(text, cursorPos, false);
       expect(result).not.toBeNull();
@@ -165,9 +165,9 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.end).toBeGreaterThan(result?.start);
     });
 
-    it("should get around reference boundaries with spaces", () => {
+    test("should get around reference boundaries with spaces", () => {
       const text = "=SUM( A1:B2 )";
-      const cursorPos = 8; // On 'A1'
+      const cursorPos = 6; // On 'A1'
 
       const result = extension.getReferenceTextObject(text, cursorPos, true);
       expect(result).not.toBeNull();
@@ -175,7 +175,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.end).toBeGreaterThan(result?.start);
     });
 
-    it("should return null when cursor is not on a reference", () => {
+    test("should return null when cursor is not on a reference", () => {
       const text = "=SUM(A1:B2)";
       const cursorPos = 1; // On 'S' in SUM
 
@@ -185,7 +185,7 @@ describe("ReferenceToggleExtension", () => {
   });
 
   describe("complex formulas", () => {
-    it("should handle multiple references in complex formulas", () => {
+    test("should handle multiple references in complex formulas", () => {
       mockState.editingValue = "=IF(A1>0, SUM(B1:B10), AVERAGE(C1:C10))";
       mockState.cursorPosition = 6; // On 'A1'
 
@@ -201,7 +201,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.type).toBe("replaceFormula");
     });
 
-    it("should handle sheet references", () => {
+    test("should handle sheet references", () => {
       mockState.editingValue = "=Sheet1!A1 + Sheet2!B2";
       mockState.cursorPosition = 8; // On 'Sheet1!A1'
 
@@ -217,7 +217,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.type).toBe("replaceFormula");
     });
 
-    it("should handle quoted sheet names", () => {
+    test("should handle quoted sheet names", () => {
       mockState.editingValue = "='Sheet Name'!A1";
       mockState.cursorPosition = 15; // On the reference
 
@@ -235,7 +235,7 @@ describe("ReferenceToggleExtension", () => {
   });
 
   describe("edge cases", () => {
-    it("should handle empty formula", () => {
+    test("should handle empty formula", () => {
       mockState.editingValue = "";
       mockState.cursorPosition = 0;
 
@@ -251,7 +251,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.type).toBe("none");
     });
 
-    it("should handle formula with no references", () => {
+    test("should handle formula with no references", () => {
       mockState.editingValue = "=1+2+3";
       mockState.cursorPosition = 3;
 
@@ -267,7 +267,7 @@ describe("ReferenceToggleExtension", () => {
       expect(result?.type).toBe("none");
     });
 
-    it("should handle cursor at end of text", () => {
+    test("should handle cursor at end of text", () => {
       mockState.editingValue = "=SUM(A1)";
       mockState.cursorPosition = mockState.editingValue.length;
 

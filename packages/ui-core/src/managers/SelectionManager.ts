@@ -177,8 +177,9 @@ export class DefaultSelectionManager implements SelectionManager {
         break;
 
       case "column":
-        for (const colIndex of selection.type.columns) {
-          for (let row = bounds.minRow; row <= bounds.maxRow; row++) {
+        // Iterate row by row for more natural ordering
+        for (let row = bounds.minRow; row <= bounds.maxRow; row++) {
+          for (const colIndex of selection.type.columns) {
             const address = CellAddress.create(row, colIndex);
             if (address.ok) {
               yield address.value;
