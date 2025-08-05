@@ -133,10 +133,6 @@ export class FormatUtils {
    * Convert a cell value to date if possible
    */
   static toDate(value: CellValue): Date | null {
-    if (value instanceof Date) {
-      return value;
-    }
-    
     if (typeof value === "number") {
       // Assume Excel-style date serial number
       const date = new Date((value - 25569) * 86400 * 1000);
@@ -512,14 +508,8 @@ export class BulkFormatOperation extends BaseBulkOperation {
         }
 
         // Get current cell value
-        const currentResult = await this.cellRepository.getCell(address);
-        if (!currentResult.ok) {
-          builder.addWarning(`Could not read cell ${address.row},${address.col}`);
-          skippedCount++;
-          continue;
-        }
-
-        const currentValue = currentResult.value?.value || null;
+        const currentCell = await this.cellRepository.get(address);
+        const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
         
         // Skip empty cells if configured
         if (this.options.skipEmpty && (currentValue === null || currentValue === "")) {

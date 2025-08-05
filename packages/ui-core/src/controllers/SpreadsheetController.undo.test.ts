@@ -197,8 +197,8 @@ describe("SpreadsheetController Undo/Redo System", () => {
       
       // Check that data was restored
       if (addr1.ok && addr2.ok) {
-        const cell1 = facade.getCell(addr1.value);
-        const cell2 = facade.getCell(addr2.value);
+        const cell1 = facade.get(addr1.value);
+        const cell2 = facade.get(addr2.value);
         
         if (cell1.ok && cell1.value && cell2.ok && cell2.value) {
           expect(cell1.value.rawValue).toBe("Row 2");
@@ -226,8 +226,8 @@ describe("SpreadsheetController Undo/Redo System", () => {
       
       // Check that data was restored
       if (addr1.ok && addr2.ok) {
-        const cell1 = facade.getCell(addr1.value);
-        const cell2 = facade.getCell(addr2.value);
+        const cell1 = facade.get(addr1.value);
+        const cell2 = facade.get(addr2.value);
         
         if (cell1.ok && cell1.value && cell2.ok && cell2.value) {
           expect(cell1.value.rawValue).toBe("Col 2");

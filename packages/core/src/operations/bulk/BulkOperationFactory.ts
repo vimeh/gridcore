@@ -1,5 +1,5 @@
 import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
-import type { Selection, BulkOperationFactory as IBulkOperationFactory, BulkOperation } from "./interfaces/BulkOperation";
+import type { Selection, IBulkOperationFactory, BulkOperation } from "./interfaces/BulkOperation";
 import { FindReplaceOperation, FindReplaceOptions } from "./implementations/FindReplaceOperation";
 import { BulkSetOperation, BulkSetOptions } from "./implementations/BulkSetOperation";
 import { BulkMathOperation, BulkMathOptions, MathOperationType } from "./implementations/BulkMathOperation";

@@ -43,19 +43,19 @@ function createTestRepository() {
   const repo = new MockCellRepository();
   
   // Add test data with various text cases
-  repo.setCell(new CellAddress(0, 0), { value: "hello world" });
-  repo.setCell(new CellAddress(0, 1), { value: "GOODBYE WORLD" });
-  repo.setCell(new CellAddress(0, 2), { value: "  spaced text  " });
-  repo.setCell(new CellAddress(0, 3), { value: "line\nbreak\ttext" });
-  repo.setCell(new CellAddress(0, 4), { value: "multiple   spaces   here" });
-  repo.setCell(new CellAddress(1, 0), { value: 42 });
-  repo.setCell(new CellAddress(1, 1), { value: true });
-  repo.setCell(new CellAddress(1, 2), { value: null });
-  repo.setCell(new CellAddress(1, 3), { value: "" });
-  repo.setCell(new CellAddress(1, 4), { value: "Mixed Case String" });
-  repo.setCell(new CellAddress(2, 0), { value: "trim  me\n" });
-  repo.setCell(new CellAddress(2, 1), { value: "123.45" });
-  repo.setCell(new CellAddress(2, 2), { value: "  \t\r\n  " });
+  repo.set(new CellAddress(0, 0), { value: "hello world" });
+  repo.set(new CellAddress(0, 1), { value: "GOODBYE WORLD" });
+  repo.set(new CellAddress(0, 2), { value: "  spaced text  " });
+  repo.set(new CellAddress(0, 3), { value: "line\nbreak\ttext" });
+  repo.set(new CellAddress(0, 4), { value: "multiple   spaces   here" });
+  repo.set(new CellAddress(1, 0), { value: 42 });
+  repo.set(new CellAddress(1, 1), { value: true });
+  repo.set(new CellAddress(1, 2), { value: null });
+  repo.set(new CellAddress(1, 3), { value: "" });
+  repo.set(new CellAddress(1, 4), { value: "Mixed Case String" });
+  repo.set(new CellAddress(2, 0), { value: "trim  me\n" });
+  repo.set(new CellAddress(2, 1), { value: "123.45" });
+  repo.set(new CellAddress(2, 2), { value: "  \t\r\n  " });
   
   return repo;
 }
@@ -241,7 +241,7 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
       
       // Check that "hello world" became "HELLO WORLD"
-      const cell = await repository.getCell(new CellAddress(0, 0));
+      const cell = await repository.get(new CellAddress(0, 0));
       expect(cell.value?.value).toBe("HELLO WORLD");
     });
 
@@ -275,7 +275,7 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
       
       // Check that "GOODBYE WORLD" became "goodbye world"
-      const cell = await repository.getCell(new CellAddress(0, 1));
+      const cell = await repository.get(new CellAddress(0, 1));
       expect(cell.value?.value).toBe("goodbye world");
     });
 
@@ -308,7 +308,7 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
       
       // Check that "  spaced text  " became "spaced text"
-      const cell = await repository.getCell(new CellAddress(0, 2));
+      const cell = await repository.get(new CellAddress(0, 2));
       expect(cell.value?.value).toBe("spaced text");
     });
 
@@ -341,7 +341,7 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
       
       // Check that "line\nbreak\ttext" became "line break text"
-      const cell = await repository.getCell(new CellAddress(0, 3));
+      const cell = await repository.get(new CellAddress(0, 3));
       expect(cell.value?.value).toBe("line break text");
     });
 
@@ -367,7 +367,7 @@ describe("BulkTransformOperation", () => {
       expect(result.success).toBe(true);
       
       // Check that "multiple   spaces   here" became "multiple spaces here"
-      const cell = await repository.getCell(new CellAddress(0, 4));
+      const cell = await repository.get(new CellAddress(0, 4));
       expect(cell.value?.value).toBe("multiple spaces here");
     });
 
@@ -389,7 +389,7 @@ describe("BulkTransformOperation", () => {
       expect(result.success).toBe(true);
       
       // Should remove line breaks and tabs but not normalize spaces
-      const cell = await repository.getCell(new CellAddress(0, 3));
+      const cell = await repository.get(new CellAddress(0, 3));
       expect(cell.value?.value).toBe("line break text");
     });
   });
@@ -412,14 +412,14 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBe(1);
       
       // Check that "Mixed Case String" became "MIXED CASE STRING"
-      const cell = await repository.getCell(new CellAddress(1, 4));
+      const cell = await repository.get(new CellAddress(1, 4));
       expect(cell.value?.value).toBe("MIXED CASE STRING");
       
       // Check that numeric and boolean values weren't changed
-      const numCell = await repository.getCell(new CellAddress(1, 0));
+      const numCell = await repository.get(new CellAddress(1, 0));
       expect(numCell.value?.value).toBe(42);
       
-      const boolCell = await repository.getCell(new CellAddress(1, 1));
+      const boolCell = await repository.get(new CellAddress(1, 1));
       expect(boolCell.value?.value).toBe(true);
     });
 
@@ -437,7 +437,7 @@ describe("BulkTransformOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(1);
       
       // Check that number was converted to string
-      const numCell = await repository.getCell(new CellAddress(1, 0));
+      const numCell = await repository.get(new CellAddress(1, 0));
       expect(numCell.value?.value).toBe("42");
     });
   });
@@ -516,7 +516,7 @@ describe("BulkTransformOperation", () => {
       for (let i = 0; i < 1000; i++) {
         const addr = new CellAddress(i, 0);
         addresses.push(addr);
-        largeRepo.setCell(addr, { value: `text${i}` });
+        largeRepo.set(addr, { value: `text${i}` });
       }
       
       const largeSelection = CellSelection.fromCells(addresses);

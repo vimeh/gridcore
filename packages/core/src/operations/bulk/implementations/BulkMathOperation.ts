@@ -349,14 +349,8 @@ export class BulkMathOperation extends BaseBulkOperation {
         }
 
         // Get current cell value
-        const currentResult = await this.cellRepository.getCell(address);
-        if (!currentResult.ok) {
-          builder.addWarning(`Could not read cell ${address.row},${address.col}`);
-          skippedCount++;
-          continue;
-        }
-
-        const currentValue = currentResult.value?.value || null;
+        const currentCell = await this.cellRepository.get(address);
+        const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
         
         // Skip empty cells
         if (currentValue === null || currentValue === "") {
@@ -402,14 +396,14 @@ export class BulkMathOperation extends BaseBulkOperation {
           before: currentValue,
           after: newValue,
           isFormula: false,
-          changeType: "mathOperation"
+          changeType: "value"
         };
 
         builder.addChange(change);
         modifiedCount++;
         previewCount++;
         
-        changesByType["mathOperation"] = (changesByType["mathOperation"] || 0) + 1;
+        changesByType["value"] = (changesByType["value"] || 0) + 1;
       }
 
       // Prepare operation-specific information

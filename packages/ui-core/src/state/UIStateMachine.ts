@@ -3,21 +3,25 @@ import type { Result } from "../utils/Result";
 import { err, ok } from "../utils/Result";
 import {
   type CellMode,
-  createBulkOperationState,
+  // createBulkOperationState,
   createCommandState,
   createEditingState,
-  createFillState,
+  // createFillState,
   createNavigationState,
   createResizeState,
   createSpreadsheetVisualState,
+  createInsertState,
+  createDeleteState,
   type InsertMode,
-  isBulkOperationMode,
+  // isBulkOperationMode,
   isCommandMode,
   isEditingMode,
-  isFillMode,
+  // isFillMode,
   isNavigationMode,
   isResizeMode,
   isSpreadsheetVisualMode,
+  isInsertMode,
+  isDeleteMode,
   type Selection,
   type SpreadsheetVisualMode,
   type UIState,
@@ -128,7 +132,7 @@ export class UIStateMachine {
       ["editing.UPDATE_EDITING_VALUE", this.updateEditingValue.bind(this)],
       ["command.EXIT_COMMAND_MODE", this.exitCommandMode.bind(this)],
       ["command.UPDATE_COMMAND_VALUE", this.updateCommandValue.bind(this)],
-      ["command.START_BULK_OPERATION", this.startBulkOperation.bind(this)],
+      // ["command.START_BULK_OPERATION", this.startBulkOperation.bind(this)],
       ["resize.EXIT_RESIZE_MODE", this.exitResizeMode.bind(this)],
       ["resize.UPDATE_RESIZE_SIZE", this.updateResizeSize.bind(this)],
       ["insert.EXIT_STRUCTURAL_INSERT_MODE", this.exitStructuralInsertMode.bind(this)],
@@ -415,90 +419,90 @@ export class UIStateMachine {
     return ok(createNavigationState(state.cursor, state.viewport));
   }
 
-  private enterFillMode(state: UIState, action: Action): Result<UIState> {
-    if (action.type !== "ENTER_FILL_MODE") {
-      return err("Invalid action type");
-    }
-    if (!isNavigationMode(state)) {
-      return err("Can only enter fill mode from navigation mode");
-    }
+  // private enterFillMode(state: UIState, action: Action): Result<UIState> {
+  //   if (action.type !== "ENTER_FILL_MODE") {
+  //     return err("Invalid action type");
+  //   }
+  //   if (!isNavigationMode(state)) {
+  //     return err("Can only enter fill mode from navigation mode");
+  //   }
 
-    // Create a single-cell range as the source (current cursor position)
-    const sourceRange = CellRange.create(state.cursor, state.cursor);
-    if (!sourceRange.ok) {
-      return err(`Failed to create source range: ${sourceRange.error}`);
-    }
+  //   // Create a single-cell range as the source (current cursor position)
+  //   const sourceRange = CellRange.create(state.cursor, state.cursor);
+  //   if (!sourceRange.ok) {
+  //     return err(`Failed to create source range: ${sourceRange.error}`);
+  //   }
 
-    // Initially, target is the same as source; it will be updated as user navigates
-    const targetRange = sourceRange.value;
+  //   // Initially, target is the same as source; it will be updated as user navigates
+  //   const targetRange = sourceRange.value;
 
-    const fillOptions: FillOptions = action.options || { type: "copy" };
+  //   const fillOptions: FillOptions = action.options || { type: "copy" };
 
-    return ok(
-      createFillState(
-        state.cursor,
-        state.viewport,
-        sourceRange.value,
-        targetRange,
-        action.direction,
-        fillOptions,
-      ),
-    );
-  }
+  //   return ok(
+  //     createFillState(
+  //       state.cursor,
+  //       state.viewport,
+  //       sourceRange.value,
+  //       targetRange,
+  //       action.direction,
+  //       fillOptions,
+  //     ),
+  //   );
+  // }
 
-  private exitFillMode(state: UIState): Result<UIState> {
-    if (!isFillMode(state)) {
-      return err("Can only exit fill mode when in fill mode");
-    }
+  // private exitFillMode(state: UIState): Result<UIState> {
+  //   if (!isFillMode(state)) {
+  //     return err("Can only exit fill mode when in fill mode");
+  //   }
 
-    return ok(createNavigationState(state.cursor, state.viewport));
-  }
+  //   return ok(createNavigationState(state.cursor, state.viewport));
+  // }
 
-  private confirmFill(state: UIState): Result<UIState> {
-    if (!isFillMode(state)) {
-      return err("Can only confirm fill when in fill mode");
-    }
+  // private confirmFill(state: UIState): Result<UIState> {
+  //   if (!isFillMode(state)) {
+  //     return err("Can only confirm fill when in fill mode");
+  //   }
 
-    // TODO: Actually execute the fill operation through SpreadsheetController
-    // For now, just exit to navigation mode
-    return ok(createNavigationState(state.cursor, state.viewport));
-  }
+  //   // TODO: Actually execute the fill operation through SpreadsheetController
+  //   // For now, just exit to navigation mode
+  //   return ok(createNavigationState(state.cursor, state.viewport));
+  // }
 
-  private cancelFill(state: UIState): Result<UIState> {
-    if (!isFillMode(state)) {
-      return err("Can only cancel fill when in fill mode");
-    }
+  // private cancelFill(state: UIState): Result<UIState> {
+  //   if (!isFillMode(state)) {
+  //     return err("Can only cancel fill when in fill mode");
+  //   }
 
-    return ok(createNavigationState(state.cursor, state.viewport));
-  }
+  //   return ok(createNavigationState(state.cursor, state.viewport));
+  // }
 
-  private updateFillTarget(state: UIState, action: Action): Result<UIState> {
-    if (action.type !== "UPDATE_FILL_TARGET") {
-      return err("Invalid action type");
-    }
-    if (!isFillMode(state)) {
-      return err("Can only update fill target in fill mode");
-    }
+  // private updateFillTarget(state: UIState, action: Action): Result<UIState> {
+  //   if (action.type !== "UPDATE_FILL_TARGET") {
+  //     return err("Invalid action type");
+  //   }
+  //   if (!isFillMode(state)) {
+  //     return err("Can only update fill target in fill mode");
+  //   }
 
-    return ok({
-      ...state,
-      fillTarget: action.target,
-    });
-  }
+  //   return ok({
+  //     ...state,
+  //     fillTarget: action.target,
+  //   });
+  // }
 
-  private updateFillOptions(state: UIState, action: Action): Result<UIState> {
-    if (action.type !== "UPDATE_FILL_OPTIONS") {
-      return err("Invalid action type");
-    }
-    if (!isFillMode(state)) {
-      return err("Can only update fill options in fill mode");
-    }
+  // private updateFillOptions(state: UIState, action: Action): Result<UIState> {
+  //   if (action.type !== "UPDATE_FILL_OPTIONS") {
+  //     return err("Invalid action type");
+  //   }
+  //   if (!isFillMode(state)) {
+  //     return err("Can only update fill options in fill mode");
+  //   }
 
-    return ok({
-      ...state,
-      fillOptions: action.options,
-    });
-  }
+  //   return ok({
+  //     ...state,
+  //     fillOptions: action.options,
+  //   });
+  // }
 
   private updateEditingValue(state: UIState, action: Action): Result<UIState> {
     if (action.type !== "UPDATE_EDITING_VALUE") {

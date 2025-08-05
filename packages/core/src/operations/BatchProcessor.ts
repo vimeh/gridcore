@@ -1,4 +1,4 @@
-import { CellAddress } from "../domain/models";
+import { Cell, CellAddress } from "../domain/models";
 import type { CellValue } from "../domain/models";
 import type { ICellRepository } from "../domain/interfaces/ICellRepository";
 import type { 
@@ -244,8 +244,8 @@ export class BatchProcessor {
         continue;
       }
       
-      const cellResult = await this.cellRepository.getCell(addressResult.value);
-      const originalValue = cellResult.ok ? (cellResult.value?.value || null) : null;
+      const cell = await this.cellRepository.get(addressResult.value);
+      const originalValue = cell ? (cell.value || null) : null;
       
       context.originalValues.set(cellKey, originalValue);
     }
@@ -380,7 +380,11 @@ export class BatchProcessor {
         }
 
         // Restore the original value
-        await this.cellRepository.setCell(addressResult.value, { value: originalValue });
+        // Create a cell with the original value
+        const cellResult = Cell.create(originalValue, addressResult.value);
+        if (cellResult.ok) {
+          await this.cellRepository.set(addressResult.value, cellResult.value);
+        }
       }
 
       // Mark batch as inactive

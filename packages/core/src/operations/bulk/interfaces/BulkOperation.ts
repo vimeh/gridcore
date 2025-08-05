@@ -120,7 +120,7 @@ export interface BulkOperationOptions {
 /**
  * Factory interface for creating bulk operations
  */
-export interface BulkOperationFactory {
+export interface IBulkOperationFactory {
   /**
    * Create a bulk operation from a command and selection
    */

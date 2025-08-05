@@ -52,29 +52,29 @@ function createTestRepository() {
   const repo = new MockCellRepository();
   
   // Add test data with various numeric values
-  repo.setCell(new CellAddress(0, 0), { value: 1234.56 });
-  repo.setCell(new CellAddress(0, 1), { value: 0.1234 });
-  repo.setCell(new CellAddress(0, 2), { value: 42 });
-  repo.setCell(new CellAddress(0, 3), { value: -999.99 });
-  repo.setCell(new CellAddress(0, 4), { value: 0 });
+  repo.set(new CellAddress(0, 0), { value: 1234.56 });
+  repo.set(new CellAddress(0, 1), { value: 0.1234 });
+  repo.set(new CellAddress(0, 2), { value: 42 });
+  repo.set(new CellAddress(0, 3), { value: -999.99 });
+  repo.set(new CellAddress(0, 4), { value: 0 });
   
   // String numbers
-  repo.setCell(new CellAddress(1, 0), { value: "567.89" });
-  repo.setCell(new CellAddress(1, 1), { value: "$123.45" });
-  repo.setCell(new CellAddress(1, 2), { value: "50%" });
-  repo.setCell(new CellAddress(1, 3), { value: "1,000.00" });
+  repo.set(new CellAddress(1, 0), { value: "567.89" });
+  repo.set(new CellAddress(1, 1), { value: "$123.45" });
+  repo.set(new CellAddress(1, 2), { value: "50%" });
+  repo.set(new CellAddress(1, 3), { value: "1,000.00" });
   
   // Date values
-  repo.setCell(new CellAddress(2, 0), { value: new Date("2024-01-15") });
-  repo.setCell(new CellAddress(2, 1), { value: new Date("2024-12-25T15:30:00") });
-  repo.setCell(new CellAddress(2, 2), { value: "2024-06-15" });
-  repo.setCell(new CellAddress(2, 3), { value: 45579 }); // Excel date serial number
+  repo.set(new CellAddress(2, 0), { value: new Date("2024-01-15") });
+  repo.set(new CellAddress(2, 1), { value: new Date("2024-12-25T15:30:00") });
+  repo.set(new CellAddress(2, 2), { value: "2024-06-15" });
+  repo.set(new CellAddress(2, 3), { value: 45579 }); // Excel date serial number
   
   // Non-numeric values
-  repo.setCell(new CellAddress(3, 0), { value: "hello world" });
-  repo.setCell(new CellAddress(3, 1), { value: true });
-  repo.setCell(new CellAddress(3, 2), { value: null });
-  repo.setCell(new CellAddress(3, 3), { value: "" });
+  repo.set(new CellAddress(3, 0), { value: "hello world" });
+  repo.set(new CellAddress(3, 1), { value: true });
+  repo.set(new CellAddress(3, 2), { value: null });
+  repo.set(new CellAddress(3, 3), { value: "" });
   
   return repo;
 }
@@ -299,7 +299,7 @@ describe("BulkFormatOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
       
       // Check that 1234.56 became formatted currency
-      const cell = await repository.getCell(new CellAddress(0, 0));
+      const cell = await repository.get(new CellAddress(0, 0));
       expect(cell.value?.value).toMatch(/\$1,234\.56/);
     });
 
@@ -324,7 +324,7 @@ describe("BulkFormatOperation", () => {
       const result = await operation.execute();
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(0, 3));
+      const cell = await repository.get(new CellAddress(0, 3));
       expect(cell.value?.value).toMatch(/-?\$999\.99/);
     });
 
@@ -343,7 +343,7 @@ describe("BulkFormatOperation", () => {
       const result = await operation.execute();
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(0, 0));
+      const cell = await repository.get(new CellAddress(0, 0));
       expect(cell.value?.value).toContain("€");
       expect(cell.value?.value).toMatch(/€1235/); // Rounded, no thousands separator
     });
@@ -370,7 +370,7 @@ describe("BulkFormatOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
       
       // Check that 0.1234 became 12.34%
-      const cell = await repository.getCell(new CellAddress(0, 1));
+      const cell = await repository.get(new CellAddress(0, 1));
       expect(cell.value?.value).toMatch(/12\.34%/);
     });
 
@@ -388,7 +388,7 @@ describe("BulkFormatOperation", () => {
       const result = await operation.execute();
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(0, 2));
+      const cell = await repository.get(new CellAddress(0, 2));
       expect(cell.value?.value).toMatch(/42\.0%/);
     });
   });
@@ -416,7 +416,7 @@ describe("BulkFormatOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
       
       // Check that Date object was formatted
-      const cell = await repository.getCell(new CellAddress(2, 0));
+      const cell = await repository.get(new CellAddress(2, 0));
       expect(cell.value?.value).toMatch(/01\/15\/2024/);
     });
 
@@ -435,7 +435,7 @@ describe("BulkFormatOperation", () => {
       const result = await operation.execute();
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(2, 1));
+      const cell = await repository.get(new CellAddress(2, 1));
       expect(cell.value?.value).toMatch(/12\/25\/2024 03:30 PM/);
     });
 
@@ -452,7 +452,7 @@ describe("BulkFormatOperation", () => {
       const result = await operation.execute();
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(2, 0));
+      const cell = await repository.get(new CellAddress(2, 0));
       expect(cell.value?.value).toBe("2024-01-15");
     });
 
@@ -462,7 +462,7 @@ describe("BulkFormatOperation", () => {
       
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(2, 3));
+      const cell = await repository.get(new CellAddress(2, 3));
       expect(cell.value?.value).toMatch(/\d{2}\/\d{2}\/\d{4}/);
     });
   });
@@ -488,7 +488,7 @@ describe("BulkFormatOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
       
       // Check that 1234.56 became formatted number
-      const cell = await repository.getCell(new CellAddress(0, 0));
+      const cell = await repository.get(new CellAddress(0, 0));
       expect(cell.value?.value).toMatch(/1,234\.56/);
     });
 
@@ -507,7 +507,7 @@ describe("BulkFormatOperation", () => {
       const result = await operation.execute();
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(0, 2));
+      const cell = await repository.get(new CellAddress(0, 2));
       expect(cell.value?.value).toMatch(/\+42/);
     });
   });
@@ -524,13 +524,13 @@ describe("BulkFormatOperation", () => {
       expect(result.cellsModified).toBe(3);
       
       // Check that all values became strings
-      const numCell = await repository.getCell(new CellAddress(0, 0));
+      const numCell = await repository.get(new CellAddress(0, 0));
       expect(numCell.value?.value).toBe("1234.56");
       
-      const strCell = await repository.getCell(new CellAddress(3, 0));
+      const strCell = await repository.get(new CellAddress(3, 0));
       expect(strCell.value?.value).toBe("hello world");
       
-      const boolCell = await repository.getCell(new CellAddress(3, 1));
+      const boolCell = await repository.get(new CellAddress(3, 1));
       expect(boolCell.value?.value).toBe("true");
     });
   });
@@ -555,7 +555,7 @@ describe("BulkFormatOperation", () => {
       expect(result.cellsModified).toBeGreaterThan(0);
       
       // Check that "567.89" became formatted currency
-      const cell = await repository.getCell(new CellAddress(1, 0));
+      const cell = await repository.get(new CellAddress(1, 0));
       expect(cell.value?.value).toMatch(/\$567\.89/);
     });
 
@@ -620,7 +620,7 @@ describe("BulkFormatOperation", () => {
       
       expect(result.success).toBe(true);
       // Should preserve original value
-      const cell = await repository.getCell(new CellAddress(3, 0));
+      const cell = await repository.get(new CellAddress(3, 0));
       expect(cell.value?.value).toBe("hello world");
     });
   });
@@ -640,7 +640,7 @@ describe("BulkFormatOperation", () => {
       const result = await operation.execute();
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(0, 0));
+      const cell = await repository.get(new CellAddress(0, 0));
       // German locale uses comma for decimal separator
       expect(cell.value?.value).toMatch(/€|EUR/);
     });
@@ -659,7 +659,7 @@ describe("BulkFormatOperation", () => {
       const result = await operation.execute();
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(2, 0));
+      const cell = await repository.get(new CellAddress(2, 0));
       expect(cell.value?.value).toMatch(/15\/01\/2024/); // UK format
     });
   });
@@ -710,7 +710,7 @@ describe("BulkFormatOperation", () => {
       const result = await operation.execute();
       expect(result.success).toBe(true);
       
-      const cell = await repository.getCell(new CellAddress(0, 4));
+      const cell = await repository.get(new CellAddress(0, 4));
       expect(cell.value?.value).toMatch(/\$0\.00/);
     });
   });
@@ -742,7 +742,7 @@ describe("BulkFormatOperation", () => {
       for (let i = 0; i < 1000; i++) {
         const addr = new CellAddress(i, 0);
         addresses.push(addr);
-        largeRepo.setCell(addr, { value: i * 10.5 });
+        largeRepo.set(addr, { value: i * 10.5 });
       }
       
       const largeSelection = CellSelection.fromCells(addresses);

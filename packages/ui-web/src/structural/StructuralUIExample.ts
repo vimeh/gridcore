@@ -5,7 +5,7 @@ import {
   WarningDialog,
   ConfirmationDialog,
   type StructuralUIEvent
-} from "@gridcore/ui-core/behaviors/structural";
+} from "@gridcore/ui-core";
 
 /**
  * Example integration of structural UI components with a web-based spreadsheet
@@ -17,10 +17,10 @@ import {
  */
 export class StructuralUIExample {
   private controller: SpreadsheetController;
-  private feedback: StructuralOperationFeedback;
-  private progressIndicator: ProgressIndicator;
-  private warningDialog: WarningDialog;
-  private confirmationDialog: ConfirmationDialog;
+  private feedback!: StructuralOperationFeedback;
+  private progressIndicator!: ProgressIndicator;
+  private warningDialog!: WarningDialog;
+  private confirmationDialog!: ConfirmationDialog;
   private gridContainer: HTMLElement;
   private uiContainer: HTMLElement;
 
@@ -100,8 +100,8 @@ export class StructuralUIExample {
 
     // Set up cancel callback for progress indicator
     this.progressIndicator.setCancelCallback(() => {
-      const manager = this.controller.getStructuralUIManager();
-      manager.cancelOperation();
+      // const manager = this.controller.getStructuralUIManager();
+      // manager.cancelOperation();
     });
   }
 
@@ -308,7 +308,7 @@ export class StructuralUIExample {
    */
   async testInsertRows(): Promise<void> {
     try {
-      await this.controller.insertRows(5, 3);
+      // await this.controller.insertRows(5, 3);
     } catch (error) {
       console.error("Failed to insert rows:", error);
     }
@@ -319,7 +319,7 @@ export class StructuralUIExample {
    */
   async testDeleteRows(): Promise<void> {
     try {
-      await this.controller.deleteRows(8, 2);
+      // await this.controller.deleteRows(8, 2);
     } catch (error) {
       console.error("Failed to delete rows:", error);
     }
@@ -331,7 +331,7 @@ export class StructuralUIExample {
   async testLargeOperation(): Promise<void> {
     try {
       // Insert many rows to trigger progress indicator
-      await this.controller.insertRows(10, 150);
+      // await this.controller.insertRows(10, 150);
     } catch (error) {
       console.error("Failed to perform large operation:", error);
     }

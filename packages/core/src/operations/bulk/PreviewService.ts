@@ -322,8 +322,8 @@ export class PreviewService {
     for (const cell of operation.selection.getCells()) {
       if (sampleCount >= maxSamples) break;
       
-      const currentResult = await this.cellRepository.getCell(cell);
-      const currentValue = currentResult.ok ? currentResult.value?.value : null;
+      const currentCell = await this.cellRepository.get(cell);
+      const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
       
       const cellKey = `${cell.row},${cell.col}`;
       const previewChange = preview.changes.get(cellKey);

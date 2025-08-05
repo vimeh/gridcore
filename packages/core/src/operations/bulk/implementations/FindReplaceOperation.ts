@@ -135,13 +135,8 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
     }
 
     // Get the cell to check if it has a formula
-    const cellResult = await this.cellRepository.getCell(address);
-    if (!cellResult.ok) {
-      return null;
-    }
-
-    const cell = cellResult.value;
-    const isFormula = cell?.hasFormula() === true;
+    const cell = await this.cellRepository.get(address);
+    const isFormula = cell?.formula !== undefined;
     
     // Determine what content to search
     let searchContent: string;

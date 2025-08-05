@@ -1,5 +1,4 @@
-import type { Cell } from "../domain/models/Cell";
-import type { CellAddress } from "../domain/models/CellAddress";
+import { Cell, CellAddress } from "../domain/models";
 import { err, ok, type Result } from "../shared/types/Result";
 
 /**
@@ -146,10 +145,15 @@ export class OptimizedSparseGrid {
         const shift = rowShifts.get(address.row) || 0;
         
         if (shift > 0) {
-          const newAddress = { row: address.row + shift, col: address.col };
+          const newAddressResult = CellAddress.create(address.row + shift, address.col);
+          if (!newAddressResult.ok) continue;
+          const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
-          updates.set(newKey, { ...cell });
-          toDelete.push(key);
+          const cellCopy = Cell.create(cell.value, newAddress);
+          if (cellCopy.ok) {
+            updates.set(newKey, cellCopy.value);
+            toDelete.push(key);
+          }
         }
       }
       
@@ -202,10 +206,15 @@ export class OptimizedSparseGrid {
           this.cellCount--;
         } else if (address.row >= startRow + count) {
           // Cell needs to move up
-          const newAddress = { row: address.row - count, col: address.col };
+          const newAddressResult = CellAddress.create(address.row - count, address.col);
+          if (!newAddressResult.ok) continue;
+          const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
-          updates.set(newKey, { ...cell });
-          toDelete.push(key);
+          const cellCopy = Cell.create(cell.value, newAddress);
+          if (cellCopy.ok) {
+            updates.set(newKey, cellCopy.value);
+            toDelete.push(key);
+          }
         }
       }
 
@@ -242,10 +251,15 @@ export class OptimizedSparseGrid {
       for (const [key, cell] of this.cells.entries()) {
         const address = this.keyToAddress(key);
         if (address.col >= beforeCol) {
-          const newAddress = { row: address.row, col: address.col + count };
+          const newAddressResult = CellAddress.create(address.row, address.col + count);
+          if (!newAddressResult.ok) continue;
+          const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
-          updates.set(newKey, { ...cell });
-          toDelete.push(key);
+          const cellCopy = Cell.create(cell.value, newAddress);
+          if (cellCopy.ok) {
+            updates.set(newKey, cellCopy.value);
+            toDelete.push(key);
+          }
         }
       }
 
@@ -287,10 +301,15 @@ export class OptimizedSparseGrid {
           this.cellCount--;
         } else if (address.col >= startCol + count) {
           // Cell needs to move left
-          const newAddress = { row: address.row, col: address.col - count };
+          const newAddressResult = CellAddress.create(address.row, address.col - count);
+          if (!newAddressResult.ok) continue;
+          const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
-          updates.set(newKey, { ...cell });
-          toDelete.push(key);
+          const cellCopy = Cell.create(cell.value, newAddress);
+          if (cellCopy.ok) {
+            updates.set(newKey, cellCopy.value);
+            toDelete.push(key);
+          }
         }
       }
 
@@ -437,7 +456,11 @@ export class OptimizedSparseGrid {
 
   private keyToAddress(key: string): CellAddress {
     const [row, col] = key.split(',').map(Number);
-    return { row, col };
+    const result = CellAddress.create(row, col);
+    if (!result.ok) {
+      throw new Error(`Invalid cell address: ${key}`);
+    }
+    return result.value;
   }
 
   private invalidateIndices(): void {
@@ -458,7 +481,9 @@ export class OptimizedSparseGrid {
     if (node.start <= endRow && node.end >= startRow) {
       for (const [col, cell] of node.cells.entries()) {
         for (let row = Math.max(startRow, node.start); row <= Math.min(endRow, node.end); row++) {
-          const address = { row, col };
+          const addressResult = CellAddress.create(row, col);
+          if (!addressResult.ok) continue;
+          const address = addressResult.value;
           const key = this.addressToKey(address);
           if (this.cells.has(key)) {
             result.set(address, this.cells.get(key)!);

@@ -287,7 +287,9 @@ export class PerformanceTimer {
       return process.memoryUsage().heapUsed;
     }
     // Browser fallback - rough estimation
-    return performance.memory ? performance.memory.usedJSHeapSize : 0;
+    // Type assertion for browser-specific performance API
+    const perfWithMemory = performance as any;
+    return perfWithMemory.memory ? perfWithMemory.memory.usedJSHeapSize : 0;
   }
 }
 

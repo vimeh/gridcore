@@ -29,7 +29,9 @@ describe("Performance Benchmarks", () => {
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         if (Math.random() < density) {
-          const address = { row, col };
+          const addressResult = CellAddress.create(row, col);
+          if (!addressResult.ok) continue;
+          const address = addressResult.value;
           const cell = createTestCell(`Data_${row}_${col}`);
           grid.setCell(address, cell);
         }
@@ -41,7 +43,9 @@ describe("Performance Benchmarks", () => {
   function populateGridWithFormulas(rows: number, cols: number): void {
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        const address = { row, col };
+        const addressResult = CellAddress.create(row, col);
+        if (!addressResult.ok) continue;
+        const address = addressResult.value;
         // Create formulas that reference other cells
         const refRow = Math.min(row + 1, rows - 1);
         const refCol = Math.min(col + 1, cols - 1);
@@ -222,7 +226,9 @@ describe("Performance Benchmarks", () => {
     it("should handle sparse grid operations efficiently", () => {
       // Sparse grid with only a few cells
       for (let i = 0; i < 10; i++) {
-        const address = { row: i * 100, col: i * 50 };
+        const addressResult = CellAddress.create(i * 100, i * 50);
+        if (!addressResult.ok) continue;
+        const address = addressResult.value;
         grid.setCell(address, createTestCell(`Sparse_${i}`));
       }
       
@@ -312,14 +318,20 @@ describe("Performance Benchmarks", () => {
         
         // Populate with data
         for (let i = 0; i < size; i++) {
-          testGrid.setCell({ row: i, col: i }, createTestCell(`Test_${i}`));
+          const addressResult = CellAddress.create(i, i);
+          if (!addressResult.ok) continue;
+          const address = addressResult.value;
+          testGrid.setCell(address, createTestCell(`Test_${i}`));
         }
         
         // Measure lookup performance
         const startTime = performance.now();
         for (let i = 0; i < 100; i++) {
           const randomRow = Math.floor(Math.random() * size);
-          testGrid.getCell({ row: randomRow, col: randomRow });
+          const addressResult = CellAddress.create(randomRow, randomRow);
+          if (addressResult.ok) {
+            testGrid.getCell(addressResult.value);
+          }
         }
         const duration = performance.now() - startTime;
         

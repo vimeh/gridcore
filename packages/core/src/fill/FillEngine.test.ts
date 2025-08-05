@@ -22,9 +22,9 @@ describe("FillEngine", () => {
       const addr2 = CellAddress.create(1, 0).value; // A2
       const addr3 = CellAddress.create(2, 0).value; // A3
       
-      await cellRepository.setCell(addr1, new Cell(addr1, 1));
-      await cellRepository.setCell(addr2, new Cell(addr2, 2));
-      await cellRepository.setCell(addr3, new Cell(addr3, 3));
+      await cellRepository.set(addr1, new Cell(addr1, 1));
+      await cellRepository.set(addr2, new Cell(addr2, 2));
+      await cellRepository.set(addr3, new Cell(addr3, 3));
 
       // Create source and target ranges
       const sourceRange = CellRange.create(addr1, addr3).value; // A1:A3
@@ -53,7 +53,7 @@ describe("FillEngine", () => {
     it("should handle copy pattern as fallback", async () => {
       // Set up source data: single value
       const addr1 = CellAddress.create(0, 0).value; // A1
-      await cellRepository.setCell(addr1, new Cell(addr1, "Hello"));
+      await cellRepository.set(addr1, new Cell(addr1, "Hello"));
 
       const sourceRange = CellRange.create(addr1, addr1).value; // A1:A1
       const targetRange = CellRange.create(
@@ -85,8 +85,8 @@ describe("FillEngine", () => {
       const addr1 = CellAddress.create(0, 0).value; // A1
       const addr2 = CellAddress.create(1, 0).value; // A2
       
-      await cellRepository.setCell(addr1, new Cell(addr1, 10));
-      await cellRepository.setCell(addr2, new Cell(addr2, 20));
+      await cellRepository.set(addr1, new Cell(addr1, 10));
+      await cellRepository.set(addr2, new Cell(addr2, 20));
 
       const sourceRange = CellRange.create(addr1, addr2).value;
       const targetRange = CellRange.create(
@@ -108,8 +108,8 @@ describe("FillEngine", () => {
       expect(preview.pattern).toBeDefined();
 
       // Original cells should be unchanged
-      const cellA3 = await cellRepository.getCell(CellAddress.create(2, 0).value);
-      expect(cellA3).toBeNull(); // Should still be empty
+      const cellA3 = await cellRepository.get(CellAddress.create(2, 0).value);
+      expect(cellA3).toBeUndefined(); // Should still be empty
     });
   });
 
@@ -132,7 +132,7 @@ describe("FillEngine", () => {
       const result = await fillEngine.fill(operation);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("No source values");
+      expect(result.error).toContain("No valid pattern detected");
     });
   });
 });

@@ -23,10 +23,10 @@ import {
   createResizeState,
   createSpreadsheetVisualState,
   type InsertMode,
-  isBulkOperationMode,
+  // isBulkOperationMode,
   isCommandMode,
   isEditingMode,
-  isFillMode,
+  // isFillMode,
   isNavigationMode,
   isResizeMode,
   isSpreadsheetVisualMode,
@@ -67,8 +67,8 @@ export type ControllerEvent =
   | { type: "structuralOperationCompleted"; operation: string; count: number; position: number }
   | { type: "structuralOperationFailed"; operation: string; error: string }
   | { type: "structuralUIEvent"; event: StructuralUIEvent }
-  | { type: "undoCompleted"; description: string; snapshot: StructuralSnapshot }
-  | { type: "redoCompleted"; description: string; snapshot: StructuralSnapshot }
+  // | { type: "undoCompleted"; description: string; snapshot: StructuralSnapshot }
+  // | { type: "redoCompleted"; description: string; snapshot: StructuralSnapshot }
   | { type: "undoRedoStateChanged"; canUndo: boolean; canRedo: boolean };
 
 export class SpreadsheetController {
@@ -76,7 +76,7 @@ export class SpreadsheetController {
   private vimBehavior: VimBehavior;
   private cellVimBehavior: CellVimBehavior;
   private resizeBehavior: ResizeBehavior;
-  private bulkCommandParser: VimBulkCommandParser;
+  // private bulkCommandParser: VimBulkCommandParser;
   private facade: SpreadsheetFacade;
   private viewportManager: ViewportManager;
   private selectionManager: SelectionManager;
@@ -93,8 +93,8 @@ export class SpreadsheetController {
     this.selectionManager = new DefaultSelectionManager(this.facade);
 
     // Initialize fill engine
-    const formulaAdjuster = createFormulaAdjuster();
-    this.fillEngine = new FillEngine(this.facade.getCellRepository(), formulaAdjuster);
+    // const formulaAdjuster = createFormulaAdjuster();
+    // this.fillEngine = new FillEngine(this.facade.getCellRepository(), formulaAdjuster);
 
     // Initialize state machine
     let initialState = options.initialState;
@@ -145,10 +145,10 @@ export class SpreadsheetController {
     } else if (isResizeMode(state)) {
       const action = this.resizeBehavior.handleKey(key, state);
       return this.processResizeAction(action, state);
-    } else if (isInsertMode(state)) {
-      return this.handleInsertMode(key, meta, state);
-    } else if (isDeleteMode(state)) {
-      return this.handleDeleteMode(key, meta, state);
+    // } else if (isInsertMode(state)) {
+    //   return this.handleInsertMode(key, meta, state);
+    // } else if (isDeleteMode(state)) {
+    //   return this.handleDeleteMode(key, meta, state);
     }
 
     return { ok: true, value: state };
@@ -198,10 +198,10 @@ export class SpreadsheetController {
       case "paste":
         // These would be implemented based on selection
         return this.handleCellOperation(action.type, action, state);
-      case "structuralInsert":
-        return this.handleStructuralInsert(action, state);
-      case "structuralDelete":
-        return this.handleStructuralDelete(action, state);
+      // case "structuralInsert":
+      //   return this.handleStructuralInsert(action, state);
+      // case "structuralDelete":
+      //   return this.handleStructuralDelete(action, state);
       default:
         return { ok: true, value: state };
     }
@@ -1004,9 +1004,9 @@ export class SpreadsheetController {
     return this.facade;
   }
 
-  getStructuralUIManager(): StructuralOperationManager {
-    return this.structuralUIManager;
-  }
+  // getStructuralUIManager(): StructuralOperationManager {
+  //   return this.structuralUIManager;
+  // }
 
   // Save cell and exit editing
   saveAndExitEditing(): Result<UIState> {

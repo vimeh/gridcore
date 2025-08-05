@@ -1,4 +1,4 @@
-import type { CellValue, CellAddress, CellRange } from "../domain/models";
+import { Cell, CellAddress, type CellValue, type CellRange } from "../domain/models";
 import type { ICellRepository } from "../domain/interfaces";
 import type {
   FillOperation,
@@ -86,7 +86,10 @@ export class FillEngine {
       for (const [addressStr, value] of filledCells) {
         const address = this.parseAddressString(addressStr);
         if (address) {
-          await this.cellRepository.setCell(address, value);
+          const cellResult = Cell.create(value, address);
+          if (cellResult.ok) {
+            await this.cellRepository.set(address, cellResult.value);
+          }
         }
       }
 
@@ -382,9 +385,9 @@ export class FillEngine {
     const cells = this.getRangeCells(sourceRange);
 
     for (const address of cells) {
-      const cell = await this.cellRepository.getCell(address);
+      const cell = await this.cellRepository.get(address);
       if (cell) {
-        values.push(cell.getValue());
+        values.push(cell.computedValue || cell.rawValue);
       } else {
         // Use empty value for missing cells
         values.push(this.createEmptyValue());

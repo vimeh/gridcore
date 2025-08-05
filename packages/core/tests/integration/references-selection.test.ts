@@ -1,4 +1,4 @@
-import { test, expect, describe } from "bun:test"
+import { test, expect, describe, beforeEach } from "bun:test"
 import type { SpreadsheetEngine } from "@gridcore/core"
 import type { UIState } from "@gridcore/ui-core"
 

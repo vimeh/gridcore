@@ -1,4 +1,4 @@
-import { CellAddress } from "../../../domain/models";
+import { Cell, CellAddress } from "../../../domain/models";
 import type { CellValue } from "../../../domain/models";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import type { 
@@ -66,17 +66,11 @@ export abstract class BaseBulkOperation implements BulkOperation {
         }
 
         // Get current cell value
-        const currentResult = await this.cellRepository.getCell(address);
-        if (!currentResult.ok) {
-          builder.addWarning(`Could not read cell ${address.row},${address.col}`);
-          skippedCount++;
-          continue;
-        }
-
-        const currentValue = currentResult.value?.value || null;
+        const currentCell = await this.cellRepository.get(address);
+        const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
         
         // Check if this is a formula cell
-        const isFormula = currentResult.value?.formula !== undefined;
+        const isFormula = currentCell?.formula !== undefined;
         if (isFormula) {
           formulaCount++;
         } else {
@@ -257,13 +251,8 @@ export abstract class BaseBulkOperation implements BulkOperation {
         processed++;
         
         // Get current cell value
-        const currentResult = await this.cellRepository.getCell(address);
-        if (!currentResult.ok) {
-          warnings.push(`Could not read cell ${address.row},${address.col}`);
-          continue;
-        }
-
-        const currentValue = currentResult.value?.value || null;
+        const currentCell = await this.cellRepository.get(address);
+        const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
         
         // Skip empty cells if configured
         if (this.options.skipEmpty && (currentValue === null || currentValue === "")) {
@@ -278,11 +267,12 @@ export abstract class BaseBulkOperation implements BulkOperation {
         }
 
         // Update the cell
-        const updateResult = await this.cellRepository.setCell(address, { value: newValue });
-        if (!updateResult.ok) {
-          errors.push(`Failed to update cell ${address.row},${address.col}: ${updateResult.error}`);
+        const cellResult = Cell.create(newValue, address);
+        if (!cellResult.ok) {
+          errors.push(`Failed to create cell ${address.row},${address.col}: ${cellResult.error}`);
           continue;
         }
+        await this.cellRepository.set(address, cellResult.value);
 
         // Record the change
         const change: CellChange = {

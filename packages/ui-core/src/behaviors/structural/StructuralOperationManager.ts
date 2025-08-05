@@ -1,4 +1,4 @@
-import type { CellAddress, StructuralAnalysis } from "@gridcore/core";
+import { CellAddress, type StructuralAnalysis } from "@gridcore/core";
 import type {
   CellHighlight,
   HighlightType,
@@ -394,13 +394,19 @@ export class StructuralOperationManager {
     if (operation.type === "deleteRow") {
       for (let row = operation.index; row < operation.index + operation.count; row++) {
         for (let col = 0; col < 20; col++) { // Assume max 20 columns for visualization
-          cells.push({ row, col });
+          const addressResult = CellAddress.create(row, col);
+          if (addressResult.ok) {
+            cells.push(addressResult.value);
+          }
         }
       }
     } else if (operation.type === "deleteColumn") {
       for (let col = operation.index; col < operation.index + operation.count; col++) {
         for (let row = 0; row < 50; row++) { // Assume max 50 rows for visualization
-          cells.push({ row, col });
+          const addressResult = CellAddress.create(row, col);
+          if (addressResult.ok) {
+            cells.push(addressResult.value);
+          }
         }
       }
     }
@@ -417,13 +423,19 @@ export class StructuralOperationManager {
     if (operation.type === "insertRow") {
       for (let row = operation.index; row < operation.index + operation.count; row++) {
         for (let col = 0; col < 20; col++) { // Assume max 20 columns for visualization
-          cells.push({ row, col });
+          const addressResult = CellAddress.create(row, col);
+          if (addressResult.ok) {
+            cells.push(addressResult.value);
+          }
         }
       }
     } else if (operation.type === "insertColumn") {
       for (let col = operation.index; col < operation.index + operation.count; col++) {
         for (let row = 0; row < 50; row++) { // Assume max 50 rows for visualization
-          cells.push({ row, col });
+          const addressResult = CellAddress.create(row, col);
+          if (addressResult.ok) {
+            cells.push(addressResult.value);
+          }
         }
       }
     }

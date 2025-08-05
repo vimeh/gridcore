@@ -66,7 +66,7 @@ function generateTestData(repository: MockCellRepository, count: number, dataTyp
       }
     }
     
-    repository.setCell(address, { value });
+    repository.set(address, { value });
   }
   
   return addresses;

@@ -270,14 +270,8 @@ export class BulkTransformOperation extends BaseBulkOperation {
         }
 
         // Get current cell value
-        const currentResult = await this.cellRepository.getCell(address);
-        if (!currentResult.ok) {
-          builder.addWarning(`Could not read cell ${address.row},${address.col}`);
-          skippedCount++;
-          continue;
-        }
-
-        const currentValue = currentResult.value?.value || null;
+        const currentCell = await this.cellRepository.get(address);
+        const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
         
         // Skip empty cells if configured
         if (this.options.skipEmpty && (currentValue === null || currentValue === "")) {
@@ -304,7 +298,7 @@ export class BulkTransformOperation extends BaseBulkOperation {
           before: currentValue,
           after: newValue,
           isFormula: false,
-          changeType: "transform"
+          changeType: "value"
         };
 
         builder.addChange(change);

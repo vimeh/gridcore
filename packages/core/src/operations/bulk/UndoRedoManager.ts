@@ -374,7 +374,11 @@ export class UndoRedoManager {
 
     // If all cells are being restored to the same value, use a single bulk set operation
     if (valueGroups.size === 1) {
-      const [value, addresses] = valueGroups.entries().next().value;
+      const firstEntry = valueGroups.entries().next();
+      if (!firstEntry.value) {
+        throw new Error("Unexpected empty value group");
+      }
+      const [value, addresses] = firstEntry.value;
       const selection = CellSelection.fromCells(addresses);
       
       return new BulkSetOperation(
@@ -404,7 +408,11 @@ export class UndoRedoManager {
     }
 
     if (valueGroups.size === 1) {
-      const [value, addresses] = valueGroups.entries().next().value;
+      const firstEntry = valueGroups.entries().next();
+      if (!firstEntry.value) {
+        throw new Error("Unexpected empty value group");
+      }
+      const [value, addresses] = firstEntry.value;
       const selection = CellSelection.fromCells(addresses);
       
       return new BulkSetOperation(

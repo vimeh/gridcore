@@ -38,7 +38,7 @@ export {
 } from "./controllers/SpreadsheetController";
 export {
   type CellMode,
-  createBulkOperationState,
+  // createBulkOperationState,
   createCommandState,
   createEditingState,
   createNavigationState,
@@ -77,3 +77,20 @@ export {
   generateMermaidDiagram,
   generateStateTable,
 } from "./utils/StateVisualizer";
+
+// Structural behaviors
+export {
+  StructuralOperationManager,
+  type CellHighlight,
+  type StructuralOperationState,
+  type StructuralUIConfig,
+  DEFAULT_STRUCTURAL_UI_CONFIG,
+  type StructuralOperation,
+  type StructuralUIEvent,
+  type StructuralWarning,
+  type HighlightType as StructuralHighlightType,
+  ConfirmationDialog,
+  ProgressIndicator,
+  WarningDialog,
+  StructuralOperationFeedback,
+} from "./behaviors/structural";

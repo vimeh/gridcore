@@ -1,16 +1,13 @@
-import { SpreadsheetBuilder } from "@gridcore/core";
-import type { CellAddress, SpreadsheetFacade } from "@gridcore/core";
+import { SpreadsheetFacade, CellAddress } from "@gridcore/core";
 
 /**
  * Creates a test spreadsheet with optional initial data
  */
 export function createTestSpreadsheet(rows = 100, cols = 26): SpreadsheetFacade {
-  const builder = new SpreadsheetBuilder()
-    .dimensions(rows, cols)
-    .enableHistory(true)
-    .evaluationMode("async");
+  // Create a new spreadsheet facade directly
+  const facade = new SpreadsheetFacade();
   
-  return builder.build();
+  return facade;
 }
 
 /**

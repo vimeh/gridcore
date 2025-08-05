@@ -51,7 +51,7 @@ export class ReferenceUpdater {
           };
 
           const originalText = refInfo.text;
-          const newText = this.parser.stringify(adjustedRef);
+          const newText = this.parser.stringifyCellReference(adjustedRef);
           
           updatedFormula = 
             updatedFormula.substring(0, refInfo.position) +
@@ -97,7 +97,7 @@ export class ReferenceUpdater {
             ...ref,
             row: ref.row - count
           };
-          newText = this.parser.stringify(adjustedRef);
+          newText = this.parser.stringifyCellReference(adjustedRef);
         } else {
           // Reference is before deleted rows - no change needed
           continue;
@@ -137,7 +137,7 @@ export class ReferenceUpdater {
           };
 
           const originalText = refInfo.text;
-          const newText = this.parser.stringify(adjustedRef);
+          const newText = this.parser.stringifyCellReference(adjustedRef);
           
           updatedFormula = 
             updatedFormula.substring(0, refInfo.position) +
@@ -183,7 +183,7 @@ export class ReferenceUpdater {
             ...ref,
             column: ref.column - count
           };
-          newText = this.parser.stringify(adjustedRef);
+          newText = this.parser.stringifyCellReference(adjustedRef);
         } else {
           // Reference is before deleted columns - no change needed
           continue;

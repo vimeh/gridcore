@@ -51,8 +51,6 @@ export { FormulaParser } from "./infrastructure/parsers/FormulaParser";
 export { InMemoryCellRepository } from "./infrastructure/repositories/InMemoryCellRepository";
 export { InMemoryDependencyRepository } from "./infrastructure/repositories/InMemoryDependencyRepository";
 export { EventStore } from "./infrastructure/stores/EventStore";
-// References System
-export * from "./references";
 // Structural Operations System
 export * from "./structure";
 // High-level API
@@ -61,7 +59,23 @@ export { Sheet } from "./Sheet";
 export type { Result } from "./shared/types/Result";
 export { err, ok } from "./shared/types/Result";
 // Fill Engine
-export * from "./fill";
+export {
+  FillEngine,
+  createFormulaAdjuster,
+  PlaceholderFormulaAdjuster,
+  type FillDirection as FillEngineDirection,
+  type PatternType,
+  type SeriesType,
+  type FillOptions,
+  type FillOperation,
+  type Pattern,
+  type PatternGenerator,
+  type PatternDetector,
+  type FormulaAdjuster,
+  type FillResult,
+  type FillPreview,
+  type PatternDetectionResult,
+} from "./fill";
 // Utility exports
 export * from "./utils/cellAddress";
 export { Workbook } from "./Workbook";

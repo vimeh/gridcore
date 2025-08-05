@@ -26,4 +26,4 @@ export {
   type StructuralOperationState,
   type StructuralUIConfig,
   DEFAULT_STRUCTURAL_UI_CONFIG
-} from "@gridcore/ui-core/behaviors/structural";
+} from "@gridcore/ui-core";

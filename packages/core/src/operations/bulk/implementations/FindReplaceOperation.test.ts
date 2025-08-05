@@ -425,8 +425,8 @@ describe("FindReplaceOperation", () => {
       expect(result.cellsModified).toBe(2);
       
       // Verify cells were actually updated
-      const cell1 = await cellRepository.getCell(new CellAddress(1, 1));
-      const cell2 = await cellRepository.getCell(new CellAddress(1, 2));
+      const cell1 = await cellRepository.get(new CellAddress(1, 1));
+      const cell2 = await cellRepository.get(new CellAddress(1, 2));
       
       expect(cell1.value?.value).toBe("Hello Universe");
       expect(cell2.value?.value).toBe("Universe Peace");

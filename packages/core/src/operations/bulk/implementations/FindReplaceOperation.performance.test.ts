@@ -67,7 +67,7 @@ describe("FindReplaceOperation Performance", () => {
         const value = `test_${i}_value`;
         
         // Set cell in repository
-        cellRepository.setCell(address, { value });
+        cellRepository.set(address, { value });
         selection.addCell(address);
       }
     }
@@ -217,7 +217,7 @@ describe("FindReplaceOperation Performance", () => {
           const address = addressResult.value;
           const value = `test test test test`; // Multiple matches per cell
           
-          cellRepository.setCell(address, { value });
+          cellRepository.set(address, { value });
           selection.addCell(address);
         }
       }

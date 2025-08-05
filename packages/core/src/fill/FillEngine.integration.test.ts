@@ -72,7 +72,7 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
     for (const { address, value } of values) {
       const addr = CellAddress.fromA1Notation(address);
       if (addr.ok) {
-        await cellRepository.setCell(addr.value, value);
+        await cellRepository.set(addr.value, value);
       }
     }
   };
@@ -197,9 +197,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("fibonacci");
 
       // Check generated values: should be 5, 8, 13
-      const a5 = await cellRepository.getCell(CellAddress.fromA1Notation("A5").value!);
-      const a6 = await cellRepository.getCell(CellAddress.fromA1Notation("A6").value!);
-      const a7 = await cellRepository.getCell(CellAddress.fromA1Notation("A7").value!);
+      const a5 = await cellRepository.get(CellAddress.fromA1Notation("A5").value!);
+      const a6 = await cellRepository.get(CellAddress.fromA1Notation("A6").value!);
+      const a7 = await cellRepository.get(CellAddress.fromA1Notation("A7").value!);
 
       expect(Number(a5?.getValue())).toBe(5);
       expect(Number(a6?.getValue())).toBe(8);
@@ -220,9 +220,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("exponential");
 
       // Check generated values: should be 16, 32, 64
-      const a4 = await cellRepository.getCell(CellAddress.fromA1Notation("A4").value!);
-      const a5 = await cellRepository.getCell(CellAddress.fromA1Notation("A5").value!);
-      const a6 = await cellRepository.getCell(CellAddress.fromA1Notation("A6").value!);
+      const a4 = await cellRepository.get(CellAddress.fromA1Notation("A4").value!);
+      const a5 = await cellRepository.get(CellAddress.fromA1Notation("A5").value!);
+      const a6 = await cellRepository.get(CellAddress.fromA1Notation("A6").value!);
 
       expect(Number(a4?.getValue())).toBe(16);
       expect(Number(a5?.getValue())).toBe(32);
@@ -243,9 +243,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("custom");
 
       // Check generated values: should be 16, 25, 36
-      const a4 = await cellRepository.getCell(CellAddress.fromA1Notation("A4").value!);
-      const a5 = await cellRepository.getCell(CellAddress.fromA1Notation("A5").value!);
-      const a6 = await cellRepository.getCell(CellAddress.fromA1Notation("A6").value!);
+      const a4 = await cellRepository.get(CellAddress.fromA1Notation("A4").value!);
+      const a5 = await cellRepository.get(CellAddress.fromA1Notation("A5").value!);
+      const a6 = await cellRepository.get(CellAddress.fromA1Notation("A6").value!);
 
       expect(Number(a4?.getValue())).toBe(16);
       expect(Number(a5?.getValue())).toBe(25);
@@ -267,9 +267,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("custom");
 
       // Check generated values: should be 11, 13, 17
-      const a5 = await cellRepository.getCell(CellAddress.fromA1Notation("A5").value!);
-      const a6 = await cellRepository.getCell(CellAddress.fromA1Notation("A6").value!);
-      const a7 = await cellRepository.getCell(CellAddress.fromA1Notation("A7").value!);
+      const a5 = await cellRepository.get(CellAddress.fromA1Notation("A5").value!);
+      const a6 = await cellRepository.get(CellAddress.fromA1Notation("A6").value!);
+      const a7 = await cellRepository.get(CellAddress.fromA1Notation("A7").value!);
 
       expect(Number(a5?.getValue())).toBe(11);
       expect(Number(a6?.getValue())).toBe(13);
@@ -294,9 +294,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("custom"); // Should detect squares from [1, 4, 9]
 
       // Check generated values: should be 16, 25, 36
-      const a6 = await cellRepository.getCell(CellAddress.fromA1Notation("A6").value!);
-      const a7 = await cellRepository.getCell(CellAddress.fromA1Notation("A7").value!);
-      const a8 = await cellRepository.getCell(CellAddress.fromA1Notation("A8").value!);
+      const a6 = await cellRepository.get(CellAddress.fromA1Notation("A6").value!);
+      const a7 = await cellRepository.get(CellAddress.fromA1Notation("A7").value!);
+      const a8 = await cellRepository.get(CellAddress.fromA1Notation("A8").value!);
 
       expect(Number(a6?.getValue())).toBe(16);
       expect(Number(a7?.getValue())).toBe(25);
@@ -324,7 +324,7 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       for (let i = 0; i < fibValues.length; i++) {
         const addr = CellAddress.create(i, 0);
         if (addr.ok) {
-          await cellRepository.setCell(addr.value, fibValues[i] as unknown as CellValue);
+          await cellRepository.set(addr.value, fibValues[i] as unknown as CellValue);
         }
       }
 

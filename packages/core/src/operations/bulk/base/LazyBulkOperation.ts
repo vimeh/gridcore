@@ -1,4 +1,4 @@
-import { CellAddress } from "../../../domain/models";
+import { Cell, CellAddress } from "../../../domain/models";
 import type { CellValue } from "../../../domain/models";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import type { Selection } from "../interfaces/BulkOperation";
@@ -162,14 +162,15 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
         }
 
         // Apply the change to the repository
-        const updateResult = await this.cellRepository.setCell(change.address, { value: change.after });
-        if (!updateResult.ok) {
-          errors.push(`Failed to update cell ${change.address.row},${change.address.col}: ${updateResult.error}`);
+        const cellResult = Cell.create(change.after, change.address);
+        if (!cellResult.ok) {
+          errors.push(`Failed to create cell ${change.address.row},${change.address.col}: ${cellResult.error}`);
           if (this.options.stopOnError) {
             break;
           }
           continue;
         }
+        await this.cellRepository.set(change.address, cellResult.value);
 
         changes.push(change);
         modified++;
@@ -196,12 +197,8 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
   protected async createChangeForCell(address: CellAddress): Promise<CellChange | null> {
     try {
       // Get current cell value
-      const currentResult = await this.cellRepository.getCell(address);
-      if (!currentResult.ok) {
-        return null;
-      }
-
-      const currentValue = currentResult.value?.value || null;
+      const currentCell = await this.cellRepository.get(address);
+      const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
       
       // Skip empty cells if configured
       if (this.options.skipEmpty && (currentValue === null || currentValue === "")) {

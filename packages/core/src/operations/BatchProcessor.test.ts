@@ -333,7 +333,7 @@ describe("BatchProcessor", () => {
           if (callCount > 2) {
             return { ok: false, error: "Simulated failure after partial execution" };
           }
-          return cellRepository.setCell(address, cell);
+          return cellRepository.set(address, cell);
         })
       };
       
@@ -351,7 +351,7 @@ describe("BatchProcessor", () => {
       // Verify original values were restored
       const cell1 = CellAddress.create(0, 0);
       if (cell1.ok) {
-        const cellResult = await cellRepository.getCell(cell1.value);
+        const cellResult = await cellRepository.get(cell1.value);
         expect(cellResult.ok).toBe(true);
         if (cellResult.ok && cellResult.value) {
           expect(cellResult.value.value).toBe("initial");
@@ -388,7 +388,7 @@ describe("BatchProcessor", () => {
       // Modify cells
       for (const cell of cells) {
         if (cell.ok) {
-          await cellRepository.setCell(cell.value, { value: "modified" });
+          await cellRepository.set(cell.value, { value: "modified" });
         }
       }
       
@@ -398,7 +398,7 @@ describe("BatchProcessor", () => {
       // Verify restoration
       for (const cell of cells) {
         if (cell.ok) {
-          const result = await cellRepository.getCell(cell.value);
+          const result = await cellRepository.get(cell.value);
           expect(result.ok).toBe(true);
           if (result.ok && result.value) {
             expect(result.value.value).toBe("original");
@@ -432,7 +432,7 @@ describe("BatchProcessor", () => {
       
       // Verify cell was updated
       if (cell.ok) {
-        const cellResult = await cellRepository.getCell(cell.value);
+        const cellResult = await cellRepository.get(cell.value);
         expect(cellResult.ok).toBe(true);
         if (cellResult.ok && cellResult.value) {
           expect(cellResult.value.value).toBe("single test");

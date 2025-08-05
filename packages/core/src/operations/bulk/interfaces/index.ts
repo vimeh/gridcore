@@ -5,7 +5,7 @@ export type {
   PreviewableBulkOperation,
   Selection,
   BulkOperationOptions,
-  BulkOperationFactory
+  IBulkOperationFactory
 } from "./BulkOperation";
 
 // Preview interfaces

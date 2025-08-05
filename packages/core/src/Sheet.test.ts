@@ -41,10 +41,10 @@ describe("Sheet", () => {
       }
       expect(setResult.ok).toBe(true);
 
-      const getResult = facade.getCell(addr);
+      const getResult = facade.getCellValue(addr);
       expect(getResult.ok).toBe(true);
       if (getResult.ok) {
-        expect(getResult.value.value).toBe("Hello");
+        expect(getResult.value).toBe("Hello");
       }
     }
   });

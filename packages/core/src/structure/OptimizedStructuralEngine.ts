@@ -1,4 +1,4 @@
-import type { Cell } from "../domain/models/Cell";
+import { Cell } from "../domain/models/Cell";
 import type { CellAddress } from "../domain/models/CellAddress";
 import { err, ok, type Result } from "../shared/types/Result";
 import type { StructuralChange } from "./ReferenceUpdater";
@@ -306,9 +306,10 @@ export class OptimizedStructuralEngine {
         const cell = this.grid.getCell(address);
         if (cell) {
           // Update the cell's formula
-          const updatedCell = { ...cell };
-          // In a real implementation, we'd call cell.setRawValue(newFormula) or similar
-          this.grid.setCell(address, updatedCell);
+          const cellResult = Cell.create(newFormula, address);
+          if (cellResult.ok) {
+            this.grid.setCell(address, cellResult.value);
+          }
         }
       }
 

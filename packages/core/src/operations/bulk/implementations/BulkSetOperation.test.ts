@@ -312,7 +312,7 @@ describe("BulkSetOperation", () => {
       // Verify cells were updated
       const cell1 = CellAddress.create(0, 0);
       if (cell1.ok) {
-        const cellResult = await cellRepository.getCell(cell1.value);
+        const cellResult = await cellRepository.get(cell1.value);
         expect(cellResult.ok).toBe(true);
         if (cellResult.ok && cellResult.value) {
           expect(cellResult.value.value).toBe("executed value");

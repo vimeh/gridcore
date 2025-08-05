@@ -1,5 +1,5 @@
-import type { Cell } from "../domain/models/Cell";
-import type { CellAddress } from "../domain/models/CellAddress";
+import { Cell } from "../domain/models/Cell";
+import { CellAddress } from "../domain/models/CellAddress";
 import { err, ok, type Result } from "../shared/types/Result";
 import type { StructuralChange } from "./ReferenceUpdater";
 import { ReferenceUpdater } from "./ReferenceUpdater";
@@ -92,7 +92,10 @@ export class StructuralUndoManager {
     for (const [address, cell] of allCells.entries()) {
       const key = `${address.row},${address.col}`;
       // Deep copy the cell to preserve its state
-      gridState.set(key, { ...cell });
+      const cellCopy = Cell.create(cell.rawValue, address);
+      if (cellCopy.ok) {
+        gridState.set(key, cellCopy.value);
+      }
     }
 
     return {
@@ -288,11 +291,15 @@ export class StructuralUndoManager {
       // Restore all cells from snapshot
       for (const [positionKey, cell] of snapshot.gridState.entries()) {
         const [row, col] = positionKey.split(',').map(Number);
-        const address: CellAddress = { row, col };
+        const addressResult = CellAddress.create(row, col);
+        if (!addressResult.ok) continue;
+        const address = addressResult.value;
         
         // Deep copy the cell to avoid reference issues
-        const restoredCell = { ...cell };
-        grid.setCell(address, restoredCell);
+        const cellCopy = Cell.create(cell.rawValue, address);
+        if (cellCopy.ok) {
+          grid.setCell(address, cellCopy.value);
+        }
       }
 
       return ok(undefined);

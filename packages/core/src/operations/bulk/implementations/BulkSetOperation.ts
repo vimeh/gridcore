@@ -46,8 +46,8 @@ export class BulkSetOperation extends BaseBulkOperation {
     
     // Check if this is a formula cell and we should preserve formulas
     if (options.preserveFormulas) {
-      const cellResult = await this.cellRepository.getCell(address);
-      if (cellResult.ok && cellResult.value?.formula) {
+      const cell = await this.cellRepository.get(address);
+      if (cell?.formula) {
         return null; // Skip formula cells if preserving formulas
       }
     }
