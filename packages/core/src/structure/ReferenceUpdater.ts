@@ -22,6 +22,7 @@ export interface StructuralChange {
  */
 export class ReferenceUpdater {
   private parser: ReferenceParser;
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used for reference adjustment operations
   private adjuster: ReferenceAdjuster;
   private detector: ReferenceDetector;
 

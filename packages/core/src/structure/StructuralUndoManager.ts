@@ -68,6 +68,7 @@ export class StructuralUndoManager {
   private undoStack: (StructuralOperation | StructuralTransaction)[] = [];
   private redoStack: (StructuralOperation | StructuralTransaction)[] = [];
   private maxStackSize: number;
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used for formula reference updates during undo/redo
   private referenceUpdater: ReferenceUpdater;
   private currentTransactionId?: string;
   private currentTransaction?: StructuralTransaction;

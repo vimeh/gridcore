@@ -20,6 +20,7 @@ interface IntervalNode {
 export class OptimizedSparseGrid {
   private cells: Map<string, Cell> = new Map();
   private rowTree: IntervalNode | null = null; // Tree indexed by row
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Placeholder for column-based spatial indexing
   private colTree: IntervalNode | null = null; // Tree indexed by column
   private maxRow: number = 0;
   private maxCol: number = 0;

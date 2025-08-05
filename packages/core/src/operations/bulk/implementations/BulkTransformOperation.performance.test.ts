@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import { Cell, CellAddress } from "../../../domain/models";
-import type { Result } from "../../../shared/types/Result";
 import { CellSelection } from "../base/CellSelection";
 import type { OperationResult } from "../interfaces/OperationResult";
 import {
