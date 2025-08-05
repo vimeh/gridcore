@@ -3,12 +3,14 @@ import type { Result } from "../utils/Result";
 import { err, ok } from "../utils/Result";
 import {
   type CellMode,
+  createBulkOperationState,
   createCommandState,
   createEditingState,
   createNavigationState,
   createResizeState,
   createSpreadsheetVisualState,
   type InsertMode,
+  isBulkOperationMode,
   isCommandMode,
   isEditingMode,
   isNavigationMode,
@@ -19,6 +21,7 @@ import {
   type UIState,
   type VisualMode,
 } from "./UIState";
+import type { ParsedBulkCommand } from "../commands/BulkCommandParser";
 
 // Action types for state transitions
 export type Action =
@@ -69,7 +72,17 @@ export type Action =
   | { type: "UPDATE_RESIZE_SIZE"; size: number }
   | { type: "UPDATE_CURSOR"; cursor: CellAddress }
   | { type: "UPDATE_VIEWPORT"; viewport: UIState["viewport"] }
-  | { type: "ESCAPE" };
+  | { type: "ESCAPE" }
+  | {
+      type: "START_BULK_OPERATION";
+      command: ParsedBulkCommand;
+      affectedCells?: number;
+    }
+  | { type: "SHOW_BULK_PREVIEW" }
+  | { type: "EXECUTE_BULK_OPERATION" }
+  | { type: "CANCEL_BULK_OPERATION" }
+  | { type: "COMPLETE_BULK_OPERATION" }
+  | { type: "BULK_OPERATION_ERROR"; error: string };
 
 // Transition handler type
 type TransitionHandler = (state: UIState, action: Action) => Result<UIState>;
@@ -113,6 +126,7 @@ export class UIStateMachine {
       ["editing.UPDATE_EDITING_VALUE", this.updateEditingValue.bind(this)],
       ["command.EXIT_COMMAND_MODE", this.exitCommandMode.bind(this)],
       ["command.UPDATE_COMMAND_VALUE", this.updateCommandValue.bind(this)],
+      ["command.START_BULK_OPERATION", this.startBulkOperation.bind(this)],
       ["resize.EXIT_RESIZE_MODE", this.exitResizeMode.bind(this)],
       ["resize.UPDATE_RESIZE_SIZE", this.updateResizeSize.bind(this)],
       ["insert.EXIT_STRUCTURAL_INSERT_MODE", this.exitStructuralInsertMode.bind(this)],

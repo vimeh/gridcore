@@ -15,10 +15,15 @@ import {
   VimBehavior,
 } from "../behaviors/VimBehavior";
 import {
+  VimBulkCommandParser,
+  type ParsedBulkCommand,
+} from "../commands/BulkCommandParser";
+import {
   createNavigationState,
   createResizeState,
   createSpreadsheetVisualState,
   type InsertMode,
+  isBulkOperationMode,
   isCommandMode,
   isEditingMode,
   isNavigationMode,
@@ -70,6 +75,7 @@ export class SpreadsheetController {
   private vimBehavior: VimBehavior;
   private cellVimBehavior: CellVimBehavior;
   private resizeBehavior: ResizeBehavior;
+  private bulkCommandParser: VimBulkCommandParser;
   private facade: SpreadsheetFacade;
   private viewportManager: ViewportManager;
   private selectionManager: SelectionManager;

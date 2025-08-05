@@ -1,4 +1,5 @@
 import type { CellAddress } from "@gridcore/core";
+import type { ParsedBulkCommand } from "../commands/BulkCommandParser";
 
 // Core shared state properties
 export interface ViewportInfo {
