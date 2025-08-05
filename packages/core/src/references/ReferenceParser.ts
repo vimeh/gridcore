@@ -67,7 +67,7 @@ export class ReferenceParser {
       };
 
       return ok(cellRef);
-    } catch (error) {
+    } catch (_error) {
       return err("INVALID_FORMAT" as RefError);
     }
   }
@@ -75,9 +75,7 @@ export class ReferenceParser {
   /**
    * Parse a range reference string into a RangeReference object.
    */
-  parseRangeReference(
-    reference: string,
-  ): Result<RangeReference, RefError> {
+  parseRangeReference(reference: string): Result<RangeReference, RefError> {
     const trimmed = reference.trim();
     if (!trimmed.includes(":")) {
       return err("INVALID_FORMAT" as RefError);

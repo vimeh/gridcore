@@ -71,10 +71,7 @@ export class ReferenceAdjuster {
     source: CellAddress,
     target: CellAddress,
     options: AdjustmentOptions = {},
-  ): Result<
-    { start: AdjustmentResult; end: AdjustmentResult },
-    RefError
-  > {
+  ): Result<{ start: AdjustmentResult; end: AdjustmentResult }, RefError> {
     const startResult = this.adjustForCopy(
       range.start,
       source,
