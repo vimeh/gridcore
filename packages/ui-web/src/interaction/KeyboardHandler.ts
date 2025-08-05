@@ -211,6 +211,13 @@ export class KeyboardHandler {
     if (activeCell) {
       this.facade.setCellValue(activeCell, "");
       this.canvasGrid?.render();
+      
+      // Update formula bar directly after clearing cell
+      // Get the formula bar element and update its content
+      const formulaBar = document.querySelector('.formula-bar-input') as HTMLElement;
+      if (formulaBar) {
+        formulaBar.textContent = "";
+      }
     }
   }
 
