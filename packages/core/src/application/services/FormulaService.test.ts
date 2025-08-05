@@ -194,4 +194,161 @@ describe("FormulaService", () => {
       expect(deps.size).toBe(0);
     });
   });
+
+  describe("transformFormulaForCopy", () => {
+    test("transforms relative references for copy operation", () => {
+      const source = CellAddress.create(0, 0).value; // A1
+      const target = CellAddress.create(1, 1).value; // B2
+
+      const result = service.transformFormulaForCopy(
+        "=A1 + B1",
+        source,
+        target,
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.formula).toBe("=B2 + C2");
+        expect(result.value.changed).toBe(true);
+        expect(result.value.adjustedCount).toBe(2);
+      }
+    });
+
+    test("preserves absolute references during copy", () => {
+      const source = CellAddress.create(0, 0).value; // A1
+      const target = CellAddress.create(1, 1).value; // B2
+
+      const result = service.transformFormulaForCopy(
+        "=$A$1 + A1",
+        source,
+        target,
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.formula).toBe("=$A$1 + B2");
+        expect(result.value.changed).toBe(true);
+        expect(result.value.adjustedCount).toBe(1); // Only A1 changes
+      }
+    });
+
+    test("handles formulas without references", () => {
+      const source = CellAddress.create(0, 0).value;
+      const target = CellAddress.create(1, 1).value;
+
+      const result = service.transformFormulaForCopy(
+        "=42 + 3.14",
+        source,
+        target,
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.formula).toBe("=42 + 3.14");
+        expect(result.value.changed).toBe(false);
+        expect(result.value.adjustedCount).toBe(0);
+      }
+    });
+  });
+
+  describe("transformFormulaForFill", () => {
+    test("transforms references for down fill", () => {
+      const fillStart = CellAddress.create(0, 0).value; // A1
+      const fillTarget = CellAddress.create(2, 0).value; // A3
+
+      const result = service.transformFormulaForFill(
+        "=A1 + B1",
+        fillStart,
+        fillTarget,
+        "down",
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.formula).toBe("=A3 + B3");
+        expect(result.value.changed).toBe(true);
+        expect(result.value.adjustedCount).toBe(2);
+      }
+    });
+
+    test("transforms references for right fill", () => {
+      const fillStart = CellAddress.create(0, 0).value; // A1
+      const fillTarget = CellAddress.create(0, 2).value; // C1
+
+      const result = service.transformFormulaForFill(
+        "=A1 + B1",
+        fillStart,
+        fillTarget,
+        "right",
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.formula).toBe("=C1 + D1");
+        expect(result.value.changed).toBe(true);
+        expect(result.value.adjustedCount).toBe(2);
+      }
+    });
+
+    test("respects absolute references in fill operations", () => {
+      const fillStart = CellAddress.create(0, 0).value; // A1
+      const fillTarget = CellAddress.create(1, 0).value; // A2
+
+      const result = service.transformFormulaForFill(
+        "=$A$1 + A1",
+        fillStart,
+        fillTarget,
+        "down",
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.formula).toBe("=$A$1 + A2");
+        expect(result.value.changed).toBe(true);
+        expect(result.value.adjustedCount).toBe(1); // Only A1 changes
+      }
+    });
+  });
+
+  describe("previewFormulaTransformation", () => {
+    test("provides preview of transformation changes", () => {
+      const source = CellAddress.create(0, 0).value; // A1
+      const target = CellAddress.create(1, 1).value; // B2
+
+      const result = service.previewFormulaTransformation(
+        "=A1 + B1 + $C$1",
+        source,
+        target,
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.original).toBe("=A1 + B1 + $C$1");
+        expect(result.value.transformed).toBe("=B2 + C2 + $C$1");
+        expect(result.value.changes).toHaveLength(2);
+
+        const changes = result.value.changes;
+        expect(changes).toContainEqual({ from: "A1", to: "B2" });
+        expect(changes).toContainEqual({ from: "B1", to: "C2" });
+      }
+    });
+
+    test("shows no changes for absolute references", () => {
+      const source = CellAddress.create(0, 0).value;
+      const target = CellAddress.create(1, 1).value;
+
+      const result = service.previewFormulaTransformation(
+        "=$A$1 + $B$1",
+        source,
+        target,
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.original).toBe("=$A$1 + $B$1");
+        expect(result.value.transformed).toBe("=$A$1 + $B$1");
+        expect(result.value.changes).toHaveLength(0);
+      }
+    });
+  });
 });

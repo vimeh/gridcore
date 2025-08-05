@@ -31,7 +31,9 @@ export class ReferenceDetector {
 
     let match: RegExpExecArray | null;
 
-    while ((match = cellPattern.exec(cleanFormula)) !== null) {
+    while (true) {
+      match = cellPattern.exec(cleanFormula);
+      if (match === null) break;
       const fullMatch = match[0];
       const position = match.index;
 
