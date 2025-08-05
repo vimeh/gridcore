@@ -322,3 +322,7 @@ export class BulkTransformOperation extends BaseBulkOperation {
     return null;
   }
 }
+
+// Re-export TextUtils functions as a namespace for tests
+import * as TextUtils from "./TextUtils";
+export { TextUtils };

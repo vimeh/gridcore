@@ -287,7 +287,9 @@ describe("UndoRedoManager", () => {
       await undoRedoManager.recordAction(operation, result);
 
       // Make repository fail on next set operation
-      (cellRepository as any).setCell = mock(async () => {
+      (
+        cellRepository as unknown as { setCell: typeof cellRepository.setCell }
+      ).setCell = mock(async () => {
         return { ok: false, error: "Undo failed" };
       });
 
@@ -398,7 +400,9 @@ describe("UndoRedoManager", () => {
       await undoRedoManager.undo();
 
       // Make repository fail on redo
-      (cellRepository as any).setCell = mock(async () => {
+      (
+        cellRepository as unknown as { setCell: typeof cellRepository.setCell }
+      ).setCell = mock(async () => {
         return { ok: false, error: "Redo failed" };
       });
 

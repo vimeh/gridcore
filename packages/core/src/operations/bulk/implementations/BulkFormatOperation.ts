@@ -513,3 +513,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
     return null;
   }
 }
+
+// Re-export FormatUtils functions as a namespace for tests
+import * as FormatUtils from "./FormatUtils";
+export { FormatUtils };

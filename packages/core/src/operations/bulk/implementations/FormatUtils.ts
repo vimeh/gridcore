@@ -36,6 +36,10 @@ export function toNumber(value: CellValue): number | null {
  * Convert a cell value to date if possible
  */
 export function toDate(value: CellValue): Date | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
   if (typeof value === "number") {
     // Assume Excel-style date serial number
     const date = new Date((value - 25569) * 86400 * 1000);

@@ -1,5 +1,6 @@
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import { Cell, type CellAddress, type CellValue } from "../../../domain/models";
+import type { Result } from "../../../shared/types/Result";
 import { BaseBulkOperation } from "../base/BaseBulkOperation";
 import type {
   BulkOperationOptions,
@@ -144,7 +145,9 @@ export class BulkSetOperation extends BaseBulkOperation {
         }
 
         // Check if setCell exists and returns a result (for test mocks)
-        const repo = this.cellRepository as any;
+        const repo = this.cellRepository as unknown as {
+          setCell?: (address: CellAddress, cell: Cell) => Promise<Result<void>>;
+        };
         if (typeof repo.setCell === "function") {
           const setResult = await repo.setCell(address, cellResult.value);
           if (setResult && !setResult.ok) {

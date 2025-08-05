@@ -60,3 +60,42 @@ export function applyTransform(
 export function isText(value: CellValue): boolean {
   return value !== null && value !== undefined;
 }
+
+// Wrapper functions for tests (backward compatibility)
+export function valueToString(value: CellValue): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return cellValueToString(value);
+}
+
+// Alias for backward compatibility with tests
+export { valueToString as toString };
+
+export function isTransformable(value: CellValue): boolean {
+  return isText(value);
+}
+
+export function applyUppercase(text: string): string {
+  return applyTransform(text, "upper");
+}
+
+export function applyLowercase(text: string): string {
+  return applyTransform(text, "lower");
+}
+
+export function applyTrim(text: string): string {
+  return applyTransform(text, "trim");
+}
+
+export function applyClean(
+  text: string,
+  options?: {
+    normalizeSpaces?: boolean;
+    removeLineBreaks?: boolean;
+    removeTabs?: boolean;
+    removeOtherWhitespace?: boolean;
+  },
+): string {
+  return applyTransform(text, "clean", options);
+}
