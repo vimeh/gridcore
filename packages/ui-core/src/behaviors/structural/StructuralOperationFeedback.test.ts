@@ -33,11 +33,11 @@ global.document = mockDocument;
 
 describe("StructuralOperationFeedback", () => {
   let feedback: StructuralOperationFeedback;
-  let container: any;
+  let container: HTMLElement;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    container = mockContainer;
+    container = mockContainer as unknown as HTMLElement;
     feedback = new StructuralOperationFeedback(container);
   });
 
@@ -299,7 +299,11 @@ describe("StructuralOperationFeedback", () => {
 
     test("should generate CSS for all highlight types", () => {
       // This tests the internal CSS generation
-      const css = (feedback as any).generateCSS();
+      const css = (
+        feedback as unknown as {
+          generateCSS: () => string;
+        }
+      ).generateCSS();
       expect(css).toContain(".structural-highlight-affected");
       expect(css).toContain(".structural-highlight-warning");
       expect(css).toContain(".structural-highlight-error");
@@ -321,7 +325,11 @@ describe("StructuralOperationFeedback", () => {
       };
       container.querySelector.mockReturnValue(mockElement);
 
-      (feedback as any).showCompletionFeedback(affectedCells);
+      (
+        feedback as unknown as {
+          showCompletionFeedback: (cells: CellAddress[]) => void;
+        }
+      ).showCompletionFeedback(affectedCells);
 
       expect(mockElement.classList.add).toHaveBeenCalledWith(
         "structural-operation-complete",
@@ -329,7 +337,11 @@ describe("StructuralOperationFeedback", () => {
     });
 
     test("should show error feedback", () => {
-      (feedback as any).showErrorFeedback();
+      (
+        feedback as unknown as {
+          showErrorFeedback: () => void;
+        }
+      ).showErrorFeedback();
 
       expect(container.classList.add).toHaveBeenCalledWith(
         "structural-operation-error",
@@ -351,7 +363,11 @@ describe("StructuralOperationFeedback", () => {
       };
       container.querySelector.mockReturnValue(mockElement);
 
-      (feedback as any).applyCellHighlight(cell, "affected");
+      (
+        feedback as unknown as {
+          applyCellHighlight: (cell: CellAddress, type: string) => void;
+        }
+      ).applyCellHighlight(cell, "affected");
 
       expect(mockElement.classList.add).toHaveBeenCalledWith(
         "structural-highlight-affected",
@@ -386,7 +402,11 @@ describe("StructuralOperationFeedback", () => {
       };
       container.querySelector.mockReturnValue(mockElement);
 
-      (feedback as any).removeCellHighlight(cell);
+      (
+        feedback as unknown as {
+          removeCellHighlight: (cell: CellAddress) => void;
+        }
+      ).removeCellHighlight(cell);
 
       expect(mockElement.style.removeProperty).toHaveBeenCalledWith(
         "--highlight-bg",

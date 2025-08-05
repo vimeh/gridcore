@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CellAddress } from "@gridcore/core";
+import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
 import type { Selection } from "../state/UIState";
 import {
   createNavigationState,
@@ -8,7 +8,7 @@ import {
 import { DefaultSelectionManager } from "./SelectionManager";
 
 // Mock SpreadsheetFacade for testing
-const mockFacade = {} as any;
+const mockFacade = {} as unknown as SpreadsheetFacade;
 
 describe("SelectionManager", () => {
   const manager = new DefaultSelectionManager(mockFacade);

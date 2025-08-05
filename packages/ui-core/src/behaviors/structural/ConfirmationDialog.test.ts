@@ -55,7 +55,7 @@ global.requestAnimationFrame = mock((cb) => setTimeout(cb, 16));
 
 describe("ConfirmationDialog", () => {
   let dialog: ConfirmationDialog;
-  let container: any;
+  let container: HTMLElement;
 
   beforeEach(() => {
     // Reset all mocks
@@ -67,7 +67,7 @@ describe("ConfirmationDialog", () => {
     mockDocument.removeEventListener.mockClear();
     mockContainer.appendChild.mockClear();
 
-    container = mockContainer;
+    container = mockContainer as unknown as HTMLElement;
     dialog = new ConfirmationDialog(container);
   });
 

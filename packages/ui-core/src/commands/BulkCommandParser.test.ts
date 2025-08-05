@@ -216,10 +216,14 @@ describe("VimBulkCommandParser", () => {
       const command = parser.parse(":set test");
       expect(command).not.toBeNull();
 
-      const error = parser.validateCommand(command!, false);
+      if (!command) {
+        throw new Error("Command should not be null");
+      }
+
+      const error = parser.validateCommand(command, false);
       expect(error).toBe("This operation requires a selection");
 
-      const noError = parser.validateCommand(command!, true);
+      const noError = parser.validateCommand(command, true);
       expect(noError).toBeNull();
     });
 

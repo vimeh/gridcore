@@ -313,14 +313,22 @@ describe("ProgressIndicator", () => {
 
       operations.forEach(({ type, count, expected }) => {
         const operation = {
-          type: type as any,
+          type: type as
+            | "insertRow"
+            | "deleteRow"
+            | "insertColumn"
+            | "deleteColumn",
           index: 0,
           count,
           timestamp: Date.now(),
           id: "test",
         };
 
-        const text = (indicator as any).getOperationText(operation);
+        const text = (
+          indicator as unknown as {
+            getOperationText: (op: StructuralOperation) => string;
+          }
+        ).getOperationText(operation);
         expect(text).toBe(expected);
       });
     });
@@ -337,7 +345,11 @@ describe("ProgressIndicator", () => {
       ];
 
       testCases.forEach(({ ms, expected }) => {
-        const formatted = (indicator as any).formatTime(ms);
+        const formatted = (
+          indicator as unknown as {
+            formatTime: (ms: number) => string;
+          }
+        ).formatTime(ms);
         expect(formatted).toBe(expected);
       });
     });

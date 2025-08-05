@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { SpreadsheetFacade } from "@gridcore/core";
 import { isCommandMode } from "../state/UIState";
-import type { ViewportManager } from "./SpreadsheetController";
+import type { ViewportManager, ControllerEvent } from "./SpreadsheetController";
 import { SpreadsheetController } from "./SpreadsheetController";
 
 describe("SpreadsheetController - Bulk Operations", () => {
@@ -25,7 +25,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
     mockFacade = {
       getCell: () => ({ ok: false, error: "Not implemented" }),
       setCellValue: () => {},
-    } as any;
+    } as unknown as ISpreadsheetFacade;
 
     controller = new SpreadsheetController({
       facade: mockFacade,
@@ -195,7 +195,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
 
   describe("Command Execution", () => {
     it("should transition to bulk operation mode for valid commands", () => {
-      const events: any[] = [];
+      const events: ControllerEvent[] = [];
       controller.subscribe((event) => events.push(event));
 
       // Enter command mode
@@ -237,7 +237,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
     });
 
     it("should emit error for invalid commands", () => {
-      const events: any[] = [];
+      const events: ControllerEvent[] = [];
       controller.subscribe((event) => events.push(event));
 
       // Enter command mode and execute invalid command
@@ -280,7 +280,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
 
   describe("Error Handling", () => {
     it("should validate commands requiring selection", () => {
-      const events: any[] = [];
+      const events: ControllerEvent[] = [];
       controller.subscribe((event) => events.push(event));
 
       // Enter command mode and try bulk set without selection
@@ -321,7 +321,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
     });
 
     it("should validate regex patterns", () => {
-      const events: any[] = [];
+      const events: ControllerEvent[] = [];
       controller.subscribe((event) => events.push(event));
 
       // Enter command mode with invalid regex

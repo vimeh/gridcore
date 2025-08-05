@@ -1,7 +1,7 @@
-import { CellAddress, Sheet } from "@gridcore/core";
+import { CellAddress, Sheet, type SpreadsheetFacade } from "@gridcore/core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createNavigationState } from "../state/UIState";
-import { SpreadsheetController } from "./SpreadsheetController";
+import { type ControllerEvent, SpreadsheetController } from "./SpreadsheetController";
 
 // Mock ViewportManager
 class MockViewportManager {
@@ -40,7 +40,7 @@ class MockViewportManager {
 describe("SpreadsheetController Undo/Redo System", () => {
   let controller: SpreadsheetController;
   let sheet: Sheet;
-  let facade: any;
+  let facade: SpreadsheetFacade;
   let viewportManager: MockViewportManager;
 
   beforeEach(async () => {
@@ -75,7 +75,7 @@ describe("SpreadsheetController Undo/Redo System", () => {
     });
 
     it("should track undo/redo state changes", async () => {
-      const events: any[] = [];
+      const events: ControllerEvent[] = [];
       controller.subscribe((event) => {
         if (event.type === "undoRedoStateChanged") {
           events.push(event);
@@ -382,7 +382,7 @@ describe("SpreadsheetController Undo/Redo System", () => {
 
   describe("Event Emission", () => {
     it("should emit events for completed undo operations", async () => {
-      const events: any[] = [];
+      const events: ControllerEvent[] = [];
       controller.subscribe((event) => {
         if (event.type === "undoCompleted") {
           events.push(event);
@@ -399,7 +399,7 @@ describe("SpreadsheetController Undo/Redo System", () => {
     });
 
     it("should emit events for completed redo operations", async () => {
-      const events: any[] = [];
+      const events: ControllerEvent[] = [];
       controller.subscribe((event) => {
         if (event.type === "redoCompleted") {
           events.push(event);

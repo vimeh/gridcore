@@ -134,7 +134,10 @@ describe("StructuralOperationManager", () => {
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe("structuralOperationConfirmationRequired");
 
-      const confirmationEvent = events[0] as any;
+      const confirmationEvent = events[0] as Extract<
+        StructuralUIEvent,
+        { type: "structuralOperationConfirmationRequired" }
+      >;
       expect(confirmationEvent.operation).toEqual(operation);
       expect(typeof confirmationEvent.onConfirm).toBe("function");
       expect(typeof confirmationEvent.onCancel).toBe("function");
@@ -157,7 +160,10 @@ describe("StructuralOperationManager", () => {
 
       const confirmationPromise = manager.startOperation(operation, analysis);
 
-      const confirmationEvent = events[0] as any;
+      const confirmationEvent = events[0] as Extract<
+        StructuralUIEvent,
+        { type: "structuralOperationConfirmationRequired" }
+      >;
       confirmationEvent.onCancel();
       const confirmed = await confirmationPromise;
 
@@ -188,7 +194,10 @@ describe("StructuralOperationManager", () => {
       expect(events[0].type).toBe("structuralOperationConfirmationRequired");
 
       // Cancel the confirmation to complete the test
-      const confirmationEvent = events[0] as any;
+      const confirmationEvent = events[0] as Extract<
+        StructuralUIEvent,
+        { type: "structuralOperationConfirmationRequired" }
+      >;
       confirmationEvent.onCancel();
 
       const result = await confirmationPromise;
@@ -219,7 +228,12 @@ describe("StructuralOperationManager", () => {
       const highlightEvent = events.find((e) => e.type === "highlightCells");
 
       expect(progressEvent).toBeDefined();
-      expect((progressEvent as any).progress).toBe(50);
+      expect(
+        (progressEvent as Extract<
+          StructuralUIEvent,
+          { type: "structuralOperationProgress" }
+        >).progress,
+      ).toBe(50);
       expect(highlightEvent).toBeDefined();
     });
 
@@ -310,8 +324,12 @@ describe("StructuralOperationManager", () => {
         (e) => e.type === "structuralOperationWarning",
       );
       expect(warningEvent).toBeDefined();
-      expect((warningEvent as any).warnings).toHaveLength(1);
-      expect((warningEvent as any).warnings[0].type).toBe("performanceImpact");
+      const typedWarningEvent = warningEvent as Extract<
+        StructuralUIEvent,
+        { type: "structuralOperationWarning" }
+      >;
+      expect(typedWarningEvent.warnings).toHaveLength(1);
+      expect(typedWarningEvent.warnings[0].type).toBe("performanceImpact");
     });
 
     test("should auto-hide warnings when configured", async () => {

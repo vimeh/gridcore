@@ -484,7 +484,13 @@ export class StructuralOperationManager {
   /**
    * Convert StructuralAnalysis warnings to UI warnings
    */
-  private convertAnalysisWarnings(warnings: any[]): StructuralWarning[] {
+  private convertAnalysisWarnings(
+    warnings: Array<{
+      type: string;
+      message: string;
+      affectedCells: CellAddress[];
+    }>,
+  ): StructuralWarning[] {
     return warnings.map((warning) => ({
       type: warning.type,
       message: warning.message,
