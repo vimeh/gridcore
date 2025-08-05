@@ -318,7 +318,7 @@ describe("BatchProcessor", () => {
 
       const failingOp = new BulkSetOperation(
         operation.selection,
-        { value: "failing" },
+        { value: "failing", overwriteExisting: true },
         failingRepository,
       );
 

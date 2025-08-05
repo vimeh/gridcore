@@ -1,12 +1,12 @@
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import { Cell, type CellAddress, type CellValue } from "../../../domain/models";
 import { BaseBulkOperation } from "../base/BaseBulkOperation";
-import type { CellChange } from "../interfaces/OperationPreview";
-import type { OperationResult } from "../interfaces/OperationResult";
 import type {
   BulkOperationOptions,
   Selection,
 } from "../interfaces/BulkOperation";
+import type { CellChange } from "../interfaces/OperationPreview";
+import type { OperationResult } from "../interfaces/OperationResult";
 
 /**
  * Options for bulk set operation
@@ -79,7 +79,7 @@ export class BulkSetOperation extends BaseBulkOperation {
     if (options.value === undefined) {
       return "Set value cannot be undefined";
     }
-    
+
     if (options.value === null) {
       return "Set value cannot be null";
     }
@@ -145,11 +145,11 @@ export class BulkSetOperation extends BaseBulkOperation {
 
         // Check if setCell exists and returns a result (for test mocks)
         const repo = this.cellRepository as any;
-        if (typeof repo.setCell === 'function') {
+        if (typeof repo.setCell === "function") {
           const setResult = await repo.setCell(address, cellResult.value);
           if (setResult && !setResult.ok) {
             errors.push(
-              `Failed to set cell ${address.row},${address.col}: ${setResult.error || 'Repository error'}`,
+              `Failed to set cell ${address.row},${address.col}: ${setResult.error || "Repository error"}`,
             );
             continue;
           }
@@ -195,7 +195,8 @@ export class BulkSetOperation extends BaseBulkOperation {
         endTime: Date.now(),
         memoryUsage: this.estimateMemoryUsage(cellsModified),
         performance: {
-          cellsPerSecond: cellsProcessed / Math.max(executionTime / 1000, 0.001),
+          cellsPerSecond:
+            cellsProcessed / Math.max(executionTime / 1000, 0.001),
           peakMemoryUsage: this.estimateMemoryUsage(cellsModified),
           batchCount: 1,
           averageBatchTime: executionTime,

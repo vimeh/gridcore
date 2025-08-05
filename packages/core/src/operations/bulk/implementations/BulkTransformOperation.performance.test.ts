@@ -401,7 +401,7 @@ describe("BulkTransformOperation Performance Tests", () => {
         console.error("Cells processed:", result.cellsProcessed);
         console.error("Cells modified:", result.cellsModified);
       }
-      
+
       expect(result.success).toBe(true);
       expect(timeMs).toBeLessThan(4000);
       expect(cellsPerSecond).toBeGreaterThan(10000); // Target: > 10k cells/second
