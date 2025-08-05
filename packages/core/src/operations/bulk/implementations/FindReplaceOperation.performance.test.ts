@@ -16,6 +16,39 @@ describe("FindReplaceOperation Performance", () => {
     const cells = new Map<string, Cell>();
 
     cellRepository = {
+      // Synchronous methods for ICellRepository interface
+      get(address: CellAddress) {
+        const key = `${address.row},${address.col}`;
+        return cells.get(key);
+      },
+
+      set(address: CellAddress, cell: Cell) {
+        const key = `${address.row},${address.col}`;
+        cells.set(key, cell);
+      },
+
+      delete(address: CellAddress) {
+        const key = `${address.row},${address.col}`;
+        cells.delete(key);
+      },
+
+      clear() {
+        cells.clear();
+      },
+
+      getAllInRange() {
+        return new Map();
+      },
+
+      getAll() {
+        return cells;
+      },
+
+      count() {
+        return cells.size;
+      },
+
+      // Async methods for test setup (not part of ICellRepository)
       async getCell(address: CellAddress) {
         const key = `${address.row},${address.col}`;
         const cell = cells.get(key);
@@ -56,7 +89,7 @@ describe("FindReplaceOperation Performance", () => {
     selection = new CellSelection();
   });
 
-  const createLargeDataset = (count: number): void => {
+  const createLargeDataset = async (count: number): Promise<void> => {
     console.log(`Creating ${count} cells for performance test...`);
     const startTime = Date.now();
 
@@ -70,7 +103,7 @@ describe("FindReplaceOperation Performance", () => {
         const value = `test_${i}_value`;
 
         // Set cell in repository
-        cellRepository.set(address, { value });
+        await cellRepository.setCell(address, { value });
         selection.addCell(address);
       }
     }
@@ -82,7 +115,7 @@ describe("FindReplaceOperation Performance", () => {
   describe("Large Scale Performance", () => {
     it("should handle 10,000 cells efficiently", async () => {
       const cellCount = 10000;
-      createLargeDataset(cellCount);
+      await createLargeDataset(cellCount);
 
       const options: FindReplaceOptions = {
         findPattern: "test",
@@ -112,6 +145,9 @@ describe("FindReplaceOperation Performance", () => {
       const result = await operation.execute();
       const executionTime = Date.now() - executionStartTime;
 
+      if (!result.success) {
+        console.error("Operation failed:", result.errors);
+      }
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBe(cellCount);
       expect(executionTime).toBeLessThan(2000); // Should execute in under 2 seconds
@@ -124,7 +160,7 @@ describe("FindReplaceOperation Performance", () => {
 
     it("should handle 50,000 cells within performance target", async () => {
       const cellCount = 50000;
-      createLargeDataset(cellCount);
+      await createLargeDataset(cellCount);
 
       const options: FindReplaceOptions = {
         findPattern: "test",
@@ -159,7 +195,7 @@ describe("FindReplaceOperation Performance", () => {
     it.skip("should handle 100,000 cells within 1 second target", async () => {
       // Skip by default as this is a heavy test
       const cellCount = 100000;
-      createLargeDataset(cellCount);
+      await createLargeDataset(cellCount);
 
       const options: FindReplaceOptions = {
         findPattern: "test",
@@ -197,7 +233,7 @@ describe("FindReplaceOperation Performance", () => {
   describe("Complex Operations Performance", () => {
     it("should handle regex operations efficiently", async () => {
       const cellCount = 10000;
-      createLargeDataset(cellCount);
+      await createLargeDataset(cellCount);
 
       const options: FindReplaceOptions = {
         findPattern: "test_\\d+_value",
@@ -242,7 +278,7 @@ describe("FindReplaceOperation Performance", () => {
           const address = addressResult.value;
           const value = `test test test test`; // Multiple matches per cell
 
-          cellRepository.set(address, { value });
+          await cellRepository.setCell(address, { value });
           selection.addCell(address);
         }
       }
@@ -281,7 +317,7 @@ describe("FindReplaceOperation Performance", () => {
   describe("Memory Efficiency", () => {
     it("should handle large selections without excessive memory usage", async () => {
       const cellCount = 20000;
-      createLargeDataset(cellCount);
+      await createLargeDataset(cellCount);
 
       const options: FindReplaceOptions = {
         findPattern: "test",
