@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import type { Cell } from "../../../domain/models";
 import { CellAddress } from "../../../domain/models/CellAddress";
-import type { Result } from "../../../shared/types/Result";
 import { CellSelection } from "../base/CellSelection";
 import {
   BulkTransformOperation,
@@ -57,7 +56,9 @@ function createTestRepository() {
   repo.set(new CellAddress(0, 1), { rawValue: "GOODBYE WORLD" } as Cell);
   repo.set(new CellAddress(0, 2), { rawValue: "  spaced text  " } as Cell);
   repo.set(new CellAddress(0, 3), { rawValue: "line\nbreak\ttext" } as Cell);
-  repo.set(new CellAddress(0, 4), { rawValue: "multiple   spaces   here" } as Cell);
+  repo.set(new CellAddress(0, 4), {
+    rawValue: "multiple   spaces   here",
+  } as Cell);
   repo.set(new CellAddress(1, 0), { rawValue: 42 } as Cell);
   repo.set(new CellAddress(1, 1), { rawValue: true } as Cell);
   repo.set(new CellAddress(1, 2), { rawValue: null } as Cell);
@@ -200,7 +201,6 @@ describe("BulkTransformOperation", () => {
     });
   });
 
-
   describe("uppercase transformation", () => {
     let operation: BulkTransformOperation;
 
@@ -293,7 +293,7 @@ describe("BulkTransformOperation", () => {
       expect(preview.affectedCells).toBe(5);
 
       // Find the change for "  spaced text  "
-      const change = preview.changes.get('0,2');
+      const change = preview.changes.get("0,2");
       expect(change?.before).toBe("  spaced text  ");
       expect(change?.after).toBe("spaced text");
     });
@@ -324,7 +324,7 @@ describe("BulkTransformOperation", () => {
       expect(preview.affectedCells).toBe(5);
 
       // Find the change for "line\nbreak\ttext"
-      const change = preview.changes.get('0,3');
+      const change = preview.changes.get("0,3");
       expect(change?.before).toBe("line\nbreak\ttext");
       expect(change?.after).toBe("line break text");
     });

@@ -89,7 +89,12 @@ export class CellEditor {
     this.editorDiv.style.display = "block";
 
     // Set initial text
-    console.log("CellEditor.startEditing: Setting initial value:", initialValue, "at position:", cursorPosition);
+    console.log(
+      "CellEditor.startEditing: Setting initial value:",
+      initialValue,
+      "at position:",
+      cursorPosition,
+    );
     this.editorDiv.textContent = initialValue;
 
     // Focus and set cursor position
@@ -110,7 +115,12 @@ export class CellEditor {
   updateContent(content: string, cursorPosition: number): void {
     if (!this.isEditing) return;
 
-    console.log("CellEditor.updateContent: Updating content to:", content, "at position:", cursorPosition);
+    console.log(
+      "CellEditor.updateContent: Updating content to:",
+      content,
+      "at position:",
+      cursorPosition,
+    );
     this.editorDiv.textContent = content;
     this.setCursorPosition(cursorPosition);
   }
@@ -163,10 +173,14 @@ export class CellEditor {
     // But only if we're in INSERT mode - in NORMAL mode, let controller handle vim commands
     if (isCharInput && this.controller) {
       const state = this.controller.getState();
-      const isInInsertMode = state.spreadsheetMode === "editing" && state.cellMode === "insert";
-      
+      const isInInsertMode =
+        state.spreadsheetMode === "editing" && state.cellMode === "insert";
+
       if (isInInsertMode) {
-        console.log("CellEditor: Letting browser handle character input:", event.key);
+        console.log(
+          "CellEditor: Letting browser handle character input:",
+          event.key,
+        );
         // Stop propagation but don't prevent default
         event.stopPropagation();
         // Let browser insert the character, then sync in handleInput
@@ -228,7 +242,7 @@ export class CellEditor {
     }
   }
 
-  private handleBeforeInput(event: InputEvent): void {
+  private handleBeforeInput(_event: InputEvent): void {
     // Allow default browser behavior for text replacement when there's a selection
     if (this.controller && window.getSelection()?.toString()) {
       console.log(
@@ -249,7 +263,7 @@ export class CellEditor {
     if (this.controller) {
       const newText = this.editorDiv.textContent || "";
       const selection = window.getSelection();
-      
+
       // Calculate cursor position more accurately
       let cursorPosition = 0;
       if (selection && selection.rangeCount > 0) {

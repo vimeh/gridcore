@@ -172,7 +172,13 @@ export function formatPercent(
  */
 export function formatDate(
   value: Date | CellValue,
-  formatOrOptions: string | { format?: string; includeTime?: boolean; timeFormat?: "12h" | "24h" } = "MM/DD/YYYY",
+  formatOrOptions:
+    | string
+    | {
+        format?: string;
+        includeTime?: boolean;
+        timeFormat?: "12h" | "24h";
+      } = "MM/DD/YYYY",
   locale: string = DEFAULT_LOCALE,
 ): string | null {
   const date = value instanceof Date ? value : toDate(value);
@@ -180,9 +186,10 @@ export function formatDate(
     return null;
   }
 
-  const dateOptions = typeof formatOrOptions === 'string' 
-    ? { format: formatOrOptions } 
-    : formatOrOptions;
+  const dateOptions =
+    typeof formatOrOptions === "string"
+      ? { format: formatOrOptions }
+      : formatOrOptions;
   const format = dateOptions.format || "MM/DD/YYYY";
 
   try {
@@ -192,21 +199,21 @@ export function formatDate(
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
       let result = `${year}-${month}-${day}`;
-      
+
       if (dateOptions.includeTime) {
         const hours = date.getHours();
         const minutes = String(date.getMinutes()).padStart(2, "0");
         if (dateOptions.timeFormat === "12h") {
           const isPM = hours >= 12;
           const displayHours = hours % 12 || 12;
-          result += ` ${displayHours}:${minutes} ${isPM ? 'PM' : 'AM'}`;
+          result += ` ${displayHours}:${minutes} ${isPM ? "PM" : "AM"}`;
         } else {
           result += ` ${String(hours).padStart(2, "0")}:${minutes}`;
         }
       }
       return result;
     }
-    
+
     // Simple format string parsing for other formats
     const formatMap: Record<string, Intl.DateTimeFormatOptions> = {
       "MM/DD/YYYY": { month: "2-digit", day: "2-digit", year: "numeric" },
@@ -216,7 +223,7 @@ export function formatDate(
     };
 
     let options = formatMap[format] || formatMap["MM/DD/YYYY"];
-    
+
     // Add time formatting if requested
     if (dateOptions.includeTime) {
       options = {
@@ -226,7 +233,7 @@ export function formatDate(
         hour12: dateOptions.timeFormat === "12h",
       };
     }
-    
+
     return new Intl.DateTimeFormat(locale, options).format(date);
   } catch (_error) {
     // Fallback formatting

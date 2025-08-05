@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import type { Cell } from "../../../domain/models";
 import { CellAddress } from "../../../domain/models/CellAddress";
-import type { Result } from "../../../shared/types/Result";
 import { CellSelection } from "../base/CellSelection";
 import {
   BulkFormatOperation,
@@ -71,7 +70,9 @@ function createTestRepository() {
 
   // Date values
   repo.set(new CellAddress(2, 0), { rawValue: new Date("2024-01-15") } as Cell);
-  repo.set(new CellAddress(2, 1), { rawValue: new Date("2024-12-25T15:30:00") } as Cell);
+  repo.set(new CellAddress(2, 1), {
+    rawValue: new Date("2024-12-25T15:30:00"),
+  } as Cell);
   repo.set(new CellAddress(2, 2), { rawValue: "2024-06-15" } as Cell);
   repo.set(new CellAddress(2, 3), { rawValue: 45579 } as Cell); // Excel date serial number
 
@@ -325,7 +326,7 @@ describe("BulkFormatOperation", () => {
       expect(preview.changes.size).toBeGreaterThan(0);
 
       // Find the change for 1234.56
-      const change = preview.changes.get('0,0');
+      const change = preview.changes.get("0,0");
       expect(change?.before).toBe(1234.56);
       expect(change?.after).toMatch(/\$1,234\.56/);
     });
@@ -635,7 +636,7 @@ describe("BulkFormatOperation", () => {
 
       expect(result.success).toBe(true);
       // Note: toNumber() automatically converts numeric strings, so they still get formatted
-      expect(result.cellsModified).toBeGreaterThan(0); 
+      expect(result.cellsModified).toBeGreaterThan(0);
     });
   });
 

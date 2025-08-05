@@ -65,8 +65,10 @@ export class KeyboardHandler {
     // Handle Delete/Backspace in navigation mode to clear cells
     if (this.controller && !this.cellEditor.isCurrentlyEditing()) {
       const state = this.controller.getState();
-      if (state.spreadsheetMode === "navigation" && 
-          (event.key === "Delete" || event.key === "Backspace")) {
+      if (
+        state.spreadsheetMode === "navigation" &&
+        (event.key === "Delete" || event.key === "Backspace")
+      ) {
         event.preventDefault();
         console.log("KeyboardHandler: Clearing cell with", event.key);
         this.deleteSelectedCells();
@@ -208,10 +210,12 @@ export class KeyboardHandler {
     if (activeCell) {
       this.facade.setCellValue(activeCell, "");
       this.canvasGrid?.render();
-      
+
       // Update formula bar directly after clearing cell
       // Get the formula bar element and update its content
-      const formulaBar = document.querySelector('.formula-bar-input') as HTMLElement;
+      const formulaBar = document.querySelector(
+        ".formula-bar-input",
+      ) as HTMLElement;
       if (formulaBar) {
         formulaBar.textContent = "";
       }
