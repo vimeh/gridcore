@@ -22,6 +22,7 @@ export interface StructuralChange {
  */
 export class ReferenceUpdater {
   private parser: ReferenceParser;
+  private adjuster: ReferenceAdjuster;
   private detector: ReferenceDetector;
 
   constructor() {
@@ -244,9 +245,9 @@ export class ReferenceUpdater {
       case "deleteColumn":
         return this.updateForDeleteColumns(formula, change.index, change.count);
       default: {
-        const exhaustiveCheck: never = change;
+        // This should never happen if StructuralChange type is exhaustive
         return err(
-          `Unknown structural change type: ${(exhaustiveCheck as unknown as { type: string }).type}`,
+          `Unknown structural change type: ${(change as { type: string }).type}`,
         );
       }
     }

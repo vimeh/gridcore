@@ -47,7 +47,7 @@ class CustomSequencePatternGenerator implements PatternGenerator {
   /**
    * Calculate the value of a sequence at given index
    */
-  private calculateSequenceValue(type: SequenceType, index: number): number {
+  public calculateSequenceValue(type: SequenceType, index: number): number {
     switch (type) {
       case "squares":
         return index ** 2;

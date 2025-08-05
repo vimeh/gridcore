@@ -622,9 +622,9 @@ export class OptimizedStructuralEngine {
       case "deleteColumn":
         return this.grid.deleteColumns(change.index, change.count);
       default: {
-        const exhaustiveCheck: never = change;
+        // This should never happen if StructuralChange type is exhaustive
         return err(
-          `Unknown structural change type: ${(exhaustiveCheck as unknown as { type: string }).type}`,
+          `Unknown structural change type: ${(change as { type: string }).type}`,
         );
       }
     }

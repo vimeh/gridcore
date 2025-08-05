@@ -168,7 +168,20 @@ export class OperationPreviewBuilder {
   }
 
   setSummary(summary: Partial<OperationSummary>): this {
-    this.preview.summary = { ...(this.preview.summary || {}), ...summary };
+    const defaultSummary: OperationSummary = {
+      totalCells: 0,
+      modifiedCells: 0,
+      skippedCells: 0,
+      formulaCells: 0,
+      valueCells: 0,
+      changesByType: {},
+      memoryEstimate: 0,
+    };
+    this.preview.summary = {
+      ...defaultSummary,
+      ...(this.preview.summary || {}),
+      ...summary,
+    } as OperationSummary;
     return this;
   }
 

@@ -32,7 +32,7 @@ export interface BulkOperation {
   readonly selection: Selection;
 
   /** Operation-specific options */
-  readonly options: Record<string, unknown>;
+  readonly options: BulkOperationOptions;
 
   /**
    * Generate a preview of what this operation will do
@@ -115,6 +115,9 @@ export interface BulkOperationOptions {
 
   /** Whether to process formulas or their calculated values */
   processFormulas?: boolean;
+
+  /** Allow additional properties for operation-specific options */
+  [key: string]: unknown;
 }
 
 /**
@@ -127,7 +130,7 @@ export interface IBulkOperationFactory {
   createOperation(
     type: string,
     selection: Selection,
-    options: Record<string, unknown>,
+    options: BulkOperationOptions,
   ): BulkOperation | null;
 
   /**
