@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { SpreadsheetFacade } from "@gridcore/core";
 import { isCommandMode } from "../state/UIState";
-import type { ViewportManager, ControllerEvent } from "./SpreadsheetController";
+import type { ControllerEvent, ViewportManager } from "./SpreadsheetController";
 import { SpreadsheetController } from "./SpreadsheetController";
 
 describe("SpreadsheetController - Bulk Operations", () => {

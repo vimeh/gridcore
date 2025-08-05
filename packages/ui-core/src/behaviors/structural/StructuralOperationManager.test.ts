@@ -229,10 +229,12 @@ describe("StructuralOperationManager", () => {
 
       expect(progressEvent).toBeDefined();
       expect(
-        (progressEvent as Extract<
-          StructuralUIEvent,
-          { type: "structuralOperationProgress" }
-        >).progress,
+        (
+          progressEvent as Extract<
+            StructuralUIEvent,
+            { type: "structuralOperationProgress" }
+          >
+        ).progress,
       ).toBe(50);
       expect(highlightEvent).toBeDefined();
     });

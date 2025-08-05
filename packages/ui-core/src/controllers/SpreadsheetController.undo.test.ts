@@ -1,7 +1,10 @@
 import { CellAddress, Sheet, type SpreadsheetFacade } from "@gridcore/core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createNavigationState } from "../state/UIState";
-import { type ControllerEvent, SpreadsheetController } from "./SpreadsheetController";
+import {
+  type ControllerEvent,
+  SpreadsheetController,
+} from "./SpreadsheetController";
 
 // Mock ViewportManager
 class MockViewportManager {
