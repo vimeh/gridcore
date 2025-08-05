@@ -470,7 +470,7 @@ describe("BulkFormatOperation", () => {
       expect(result.success).toBe(true);
 
       const cell = repository.get(new CellAddress(2, 1));
-      expect(cell?.rawValue).toMatch(/12\/25\/2024 03:30 PM/);
+      expect(cell?.rawValue).toMatch(/12\/25\/2024, 03:30 PM/);
     });
 
     it("should use custom date format", async () => {
@@ -651,12 +651,12 @@ describe("BulkFormatOperation", () => {
     it("should handle invalid locale", async () => {
       const options: BulkFormatOptions = {
         formatType: "currency",
-        locale: "invalid-locale",
+        locale: "!!!not-a-locale!!!",
       };
       const operation = new BulkFormatOperation(selection, options, repository);
 
       const validation = operation.validate();
-      expect(validation).toContain("Invalid locale");
+      expect(validation).toBe("Invalid locale: !!!not-a-locale!!!");
     });
 
     it("should handle invalid currency code", async () => {
@@ -838,7 +838,7 @@ describe("BulkFormatOperation", () => {
       for (let i = 0; i < 1000; i++) {
         const addr = new CellAddress(i, 0);
         addresses.push(addr);
-        largeRepo.set(addr, { value: i * 10.5 });
+        largeRepo.set(addr, { rawValue: i * 10.5 } as Cell);
       }
 
       const largeSelection = CellSelection.fromCells(addresses);
@@ -884,7 +884,7 @@ describe("BulkFormatOperation", () => {
       const preview = await operation.preview(2);
 
       expect(preview.changes.size).toBeLessThanOrEqual(2);
-      expect(preview.truncated).toBe(true);
+      expect(preview.isTruncated).toBe(true);
     });
 
     it("should track non-numeric cells in preview", async () => {

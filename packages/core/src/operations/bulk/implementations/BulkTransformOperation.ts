@@ -211,7 +211,8 @@ export class BulkTransformOperation extends BaseBulkOperation {
         if (newValue === null) {
           if (
             currentValue !== null &&
-            (currentValue === null || currentValue === undefined)
+            currentValue !== undefined &&
+            typeof currentValue !== "string"
           ) {
             nonTextCount++;
           } else {

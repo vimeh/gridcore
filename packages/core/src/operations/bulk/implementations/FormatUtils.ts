@@ -171,26 +171,62 @@ export function formatPercent(
  * Format a value as date
  */
 export function formatDate(
-  value: CellValue,
-  format: string = "MM/DD/YYYY",
+  value: Date | CellValue,
+  formatOrOptions: string | { format?: string; includeTime?: boolean; timeFormat?: "12h" | "24h" } = "MM/DD/YYYY",
   locale: string = DEFAULT_LOCALE,
 ): string | null {
-  const date = toDate(value);
+  const date = value instanceof Date ? value : toDate(value);
   if (!date) {
     return null;
   }
 
+  const dateOptions = typeof formatOrOptions === 'string' 
+    ? { format: formatOrOptions } 
+    : formatOrOptions;
+  const format = dateOptions.format || "MM/DD/YYYY";
+
   try {
-    // Simple format string parsing
+    // For YYYY-MM-DD format, use manual formatting to ensure correct order
+    if (format === "YYYY-MM-DD") {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      let result = `${year}-${month}-${day}`;
+      
+      if (dateOptions.includeTime) {
+        const hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        if (dateOptions.timeFormat === "12h") {
+          const isPM = hours >= 12;
+          const displayHours = hours % 12 || 12;
+          result += ` ${displayHours}:${minutes} ${isPM ? 'PM' : 'AM'}`;
+        } else {
+          result += ` ${String(hours).padStart(2, "0")}:${minutes}`;
+        }
+      }
+      return result;
+    }
+    
+    // Simple format string parsing for other formats
     const formatMap: Record<string, Intl.DateTimeFormatOptions> = {
       "MM/DD/YYYY": { month: "2-digit", day: "2-digit", year: "numeric" },
       "DD/MM/YYYY": { day: "2-digit", month: "2-digit", year: "numeric" },
-      "YYYY-MM-DD": { year: "numeric", month: "2-digit", day: "2-digit" },
       "MMM DD, YYYY": { month: "short", day: "numeric", year: "numeric" },
       "MMMM DD, YYYY": { month: "long", day: "numeric", year: "numeric" },
     };
 
-    const options = formatMap[format] || formatMap["MM/DD/YYYY"];
+    let options = formatMap[format] || formatMap["MM/DD/YYYY"];
+    
+    // Add time formatting if requested
+    if (dateOptions.includeTime) {
+      options = {
+        ...options,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: dateOptions.timeFormat === "12h",
+      };
+    }
+    
     return new Intl.DateTimeFormat(locale, options).format(date);
   } catch (_error) {
     // Fallback formatting

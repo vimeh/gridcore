@@ -263,8 +263,8 @@ export class BulkFormatOperation extends BaseBulkOperation {
     }
 
     return formatDate(
-      value,
-      this.formatOptions.dateOptions?.format || "MM/DD/YYYY",
+      dateValue,
+      this.formatOptions.dateOptions || "MM/DD/YYYY",
       this.formatOptions.locale,
     );
   }

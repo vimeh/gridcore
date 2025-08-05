@@ -3,9 +3,9 @@ import type { CellValue } from "../../../domain/models";
 /**
  * Convert cell value to string safely
  */
-export function cellValueToString(value: CellValue): string {
+export function cellValueToString(value: CellValue): string | null {
   if (value === null || value === undefined) {
-    return "";
+    return null;
   }
   return String(value);
 }
