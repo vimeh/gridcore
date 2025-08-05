@@ -140,6 +140,10 @@ describe("CellEditor", () => {
       // Also update the content to simulate the browser's behavior
       editorDiv.textContent = editorDiv.textContent + char;
     }
+    
+    // Trigger input event to sync the content with the controller
+    const inputEvent = new Event("input", { bubbles: true });
+    editorDiv.dispatchEvent(inputEvent);
 
     // Simulate first escape key press
     const firstEscape = new KeyboardEvent("keydown", {
