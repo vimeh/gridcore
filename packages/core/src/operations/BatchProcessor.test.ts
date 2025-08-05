@@ -13,37 +13,36 @@ const createMockCellRepository = (): ICellRepository & {
   const cells = new Map<string, Cell>();
 
   return {
-    getCell: mock(async (address: CellAddress) => {
+    get: mock((address: CellAddress) => {
       const key = `${address.row},${address.col}`;
-      const cell = cells.get(key);
-      if (cell) {
-        return { ok: true, value: cell };
-      }
-      return { ok: true, value: null };
+      return cells.get(key);
     }),
 
-    setCell: mock(async (address: CellAddress, cell: Partial<Cell>) => {
+    set: mock((address: CellAddress, cell: Cell) => {
       const key = `${address.row},${address.col}`;
-      const cellResult = Cell.create(null);
-      if (!cellResult.ok) {
-        return { ok: false, error: "Failed to create cell" };
-      }
-      const existingCell = cells.get(key) || cellResult.value;
-      const updatedCell = { ...existingCell, ...cell };
-      cells.set(key, updatedCell);
-      return { ok: true, value: updatedCell };
+      cells.set(key, cell);
     }),
 
-    hasCell: mock(async (address: CellAddress) => {
+    delete: mock((address: CellAddress) => {
       const key = `${address.row},${address.col}`;
-      return { ok: true, value: cells.has(key) };
-    }),
-
-    deleteCell: mock(async (address: CellAddress) => {
-      const key = `${address.row},${address.col}`;
-      const existed = cells.has(key);
       cells.delete(key);
-      return { ok: true, value: existed };
+    }),
+
+    clear: mock(() => {
+      cells.clear();
+    }),
+
+    getAllInRange: mock(() => {
+      // Not implemented for tests
+      return new Map();
+    }),
+
+    getAll: mock(() => {
+      return new Map(cells);
+    }),
+
+    count: mock(() => {
+      return cells.size;
     }),
 
     _setCellForTest: (address: CellAddress, value: CellValue) => {
@@ -312,7 +311,9 @@ describe("BatchProcessor", () => {
       // Create a failing repository
       const failingRepository = {
         ...cellRepository,
-        setCell: mock(async () => ({ ok: false, error: "Simulated failure" })),
+        set: mock(() => {
+          throw new Error("Simulated failure");
+        }),
       };
 
       const failingOp = new BulkSetOperation(
@@ -336,15 +337,12 @@ describe("BatchProcessor", () => {
       let callCount = 0;
       const conditionallyFailingRepo = {
         ...cellRepository,
-        setCell: mock(async (address: CellAddress, cell: Partial<Cell>) => {
+        set: mock((address: CellAddress, cell: Cell) => {
           callCount++;
           if (callCount > 2) {
-            return {
-              ok: false,
-              error: "Simulated failure after partial execution",
-            };
+            throw new Error("Simulated failure after partial execution");
           }
-          return cellRepository.set(address, cell);
+          cellRepository.set(address, cell);
         }),
       };
 
@@ -362,10 +360,10 @@ describe("BatchProcessor", () => {
       // Verify original values were restored
       const cell1 = CellAddress.create(0, 0);
       if (cell1.ok) {
-        const cellResult = await cellRepository.get(cell1.value);
-        expect(cellResult.ok).toBe(true);
-        if (cellResult.ok && cellResult.value) {
-          expect(cellResult.value.value).toBe("initial");
+        const cellValue = cellRepository.get(cell1.value);
+        expect(cellValue).toBeTruthy();
+        if (cellValue) {
+          expect(cellValue.rawValue).toBe("initial");
         }
       }
     });
@@ -396,7 +394,10 @@ describe("BatchProcessor", () => {
       // Modify cells
       for (const cell of cells) {
         if (cell.ok) {
-          await cellRepository.set(cell.value, { value: "modified" });
+          const cellResult = Cell.create("modified");
+          if (cellResult.ok) {
+            cellRepository.set(cell.value, cellResult.value);
+          }
         }
       }
 
@@ -406,10 +407,10 @@ describe("BatchProcessor", () => {
       // Verify restoration
       for (const cell of cells) {
         if (cell.ok) {
-          const result = await cellRepository.get(cell.value);
-          expect(result.ok).toBe(true);
-          if (result.ok && result.value) {
-            expect(result.value.value).toBe("original");
+          const result = cellRepository.get(cell.value);
+          expect(result).toBeTruthy();
+          if (result) {
+            expect(result.rawValue).toBe("original");
           }
         }
       }
@@ -440,10 +441,10 @@ describe("BatchProcessor", () => {
 
       // Verify cell was updated
       if (cell.ok) {
-        const cellResult = await cellRepository.get(cell.value);
-        expect(cellResult.ok).toBe(true);
-        if (cellResult.ok && cellResult.value) {
-          expect(cellResult.value.value).toBe("single test");
+        const cellResult = cellRepository.get(cell.value);
+        expect(cellResult).toBeTruthy();
+        if (cellResult) {
+          expect(cellResult.rawValue).toBe("single test");
         }
       }
     });

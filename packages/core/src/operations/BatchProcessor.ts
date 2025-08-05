@@ -69,6 +69,8 @@ export interface BatchProcessorConfig {
  */
 export class BatchProcessor {
   private contexts: Map<string, BatchContext> = new Map();
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: used in beginBatch method
+  private nextBatchId = 0;
 
   constructor(
     private cellRepository: ICellRepository,
@@ -254,8 +256,8 @@ export class BatchProcessor {
         continue;
       }
 
-      const cell = await this.cellRepository.get(addressResult.value);
-      const originalValue = cell ? cell.value || null : null;
+      const cell = this.cellRepository.get(addressResult.value);
+      const originalValue = cell ? (cell.computedValue ?? cell.rawValue) : null;
 
       context.originalValues.set(cellKey, originalValue);
     }
@@ -391,10 +393,13 @@ export class BatchProcessor {
         }
 
         // Restore the original value
-        // Create a cell with the original value
-        const cellResult = Cell.create(originalValue, addressResult.value);
-        if (cellResult.ok) {
-          await this.cellRepository.set(addressResult.value, cellResult.value);
+        if (originalValue !== null) {
+          const cellResult = Cell.create(originalValue);
+          if (cellResult.ok) {
+            this.cellRepository.set(addressResult.value, cellResult.value);
+          }
+        } else {
+          this.cellRepository.delete(addressResult.value);
         }
       }
 
