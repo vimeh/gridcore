@@ -222,11 +222,13 @@ export class FindReplaceOperation
     }> = [];
 
     if (this.findOptions.global) {
-      let match;
+      let match: RegExpExecArray | null;
       // Reset lastIndex to ensure we start from the beginning
       this.compiledPattern.lastIndex = 0;
 
-      while ((match = this.compiledPattern.exec(text)) !== null) {
+      while (true) {
+        match = this.compiledPattern.exec(text);
+        if (match === null) break;
         matches.push({
           start: match.index,
           end: match.index + match[0].length,

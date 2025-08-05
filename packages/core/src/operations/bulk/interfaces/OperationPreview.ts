@@ -23,7 +23,7 @@ export interface CellChange {
   changeType: "value" | "formula" | "format" | "clear";
 
   /** Optional metadata specific to the operation type */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -81,7 +81,7 @@ export interface OperationSummary {
   memoryEstimate: number;
 
   /** Optional operation-specific metadata */
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

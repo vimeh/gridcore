@@ -55,7 +55,7 @@ export interface OperationMetadata {
   userId?: string;
 
   /** Additional context data */
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 /**
@@ -199,7 +199,7 @@ export class OperationResultBuilder {
     return this;
   }
 
-  setContext(context: Record<string, any>): this {
+  setContext(context: Record<string, unknown>): this {
     this.result.metadata!.context = context;
     return this;
   }

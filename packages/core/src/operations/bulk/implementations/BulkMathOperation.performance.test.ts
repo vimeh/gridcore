@@ -37,7 +37,7 @@ class PerformanceMockCellRepository implements ICellRepository {
       const key = `${row},${col}`;
 
       // Mix of different value types for realistic testing
-      let value: any;
+      let value: string | number;
       const type = i % 4;
       switch (type) {
         case 0:
@@ -488,9 +488,11 @@ describe("BulkMathOperation Performance Tests", () => {
         );
 
         // Call the protected method through any to test it
-        const memoryEstimate = (operation as any).estimateMemoryUsage(
-          cellCount,
-        );
+        const memoryEstimate = (
+          operation as unknown as {
+            estimateMemoryUsage: (count: number) => number;
+          }
+        ).estimateMemoryUsage(cellCount);
 
         console.log(
           `${cellCount.toLocaleString()} cells - Memory estimate: ${(memoryEstimate / 1024).toFixed(1)}KB`,

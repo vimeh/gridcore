@@ -32,7 +32,7 @@ export interface BulkOperation {
   readonly selection: Selection;
 
   /** Operation-specific options */
-  readonly options: Record<string, any>;
+  readonly options: Record<string, unknown>;
 
   /**
    * Generate a preview of what this operation will do
@@ -127,7 +127,7 @@ export interface IBulkOperationFactory {
   createOperation(
     type: string,
     selection: Selection,
-    options: Record<string, any>,
+    options: Record<string, unknown>,
   ): BulkOperation | null;
 
   /**

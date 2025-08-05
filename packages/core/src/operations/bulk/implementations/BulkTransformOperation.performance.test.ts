@@ -4,6 +4,7 @@ import type { Cell } from "../../../domain/models";
 import { CellAddress } from "../../../domain/models/CellAddress";
 import type { Result } from "../../../shared/types/Result";
 import { CellSelection } from "../base/CellSelection";
+import type { OperationResult } from "../interfaces/OperationResult";
 import {
   BulkTransformOperation,
   type BulkTransformOptions,
@@ -56,7 +57,7 @@ function generateTestData(
     const address = new CellAddress(Math.floor(i / 1000), i % 1000);
     addresses.push(address);
 
-    let value: any;
+    let value: string | number | boolean;
     if (dataType === "mixed") {
       // Mix of text, numbers, and booleans
       switch (i % 4) {
@@ -106,26 +107,27 @@ function measurePerformance<T>(operation: () => Promise<T>): Promise<{
   cellsPerSecond: number;
   cellCount: number;
 }> {
-  return new Promise(async (resolve) => {
+  return new Promise((resolve) => {
     const startTime = Date.now();
-    const result = await operation();
-    const endTime = Date.now();
-    const timeMs = endTime - startTime;
+    operation().then((result) => {
+      const endTime = Date.now();
+      const timeMs = endTime - startTime;
 
-    // Extract cell count from result if it's an operation result
-    let cellCount = 0;
-    if (
-      typeof result === "object" &&
-      result !== null &&
-      "cellsProcessed" in result
-    ) {
-      cellCount = (result as any).cellsProcessed;
-    }
+      // Extract cell count from result if it's an operation result
+      let cellCount = 0;
+      if (
+        typeof result === "object" &&
+        result !== null &&
+        "cellsProcessed" in result
+      ) {
+        cellCount = (result as unknown as OperationResult).cellsProcessed;
+      }
 
-    const cellsPerSecond =
-      cellCount > 0 ? Math.round(cellCount / (timeMs / 1000)) : 0;
+      const cellsPerSecond =
+        cellCount > 0 ? Math.round(cellCount / (timeMs / 1000)) : 0;
 
-    resolve({ result, timeMs, cellsPerSecond, cellCount });
+      resolve({ result, timeMs, cellsPerSecond, cellCount });
+    });
   });
 }
 
@@ -473,9 +475,7 @@ describe("BulkTransformOperation Performance Tests", () => {
       // Measure memory before operation
       const memBefore = process.memoryUsage().heapUsed;
 
-      const { result, timeMs } = await measurePerformance(() =>
-        operation.execute(),
-      );
+      const { result } = await measurePerformance(() => operation.execute());
 
       // Measure memory after operation
       const memAfter = process.memoryUsage().heapUsed;
@@ -573,7 +573,7 @@ describe("BulkTransformOperation Performance Tests", () => {
     it("should maintain performance under concurrent operations", async () => {
       const cellCount = 15000;
       const numOperations = 3;
-      const promises: Promise<any>[] = [];
+      const promises: Promise<OperationResult>[] = [];
 
       for (let i = 0; i < numOperations; i++) {
         const freshRepo = new MockCellRepository();

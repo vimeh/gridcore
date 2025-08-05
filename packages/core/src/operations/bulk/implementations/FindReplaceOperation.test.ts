@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import { Cell, CellAddress, type CellValue } from "../../../domain/models";
+import type { Result } from "../../../shared/types/Result";
 import { CellSelection } from "../base/CellSelection";
 import {
   FindReplaceOperation,
@@ -48,7 +49,7 @@ const createMockCellRepository = (): ICellRepository => {
       formula?: string,
     ) => {
       const key = `${address.row},${address.col}`;
-      let cellResult;
+      let cellResult: Result<Cell>;
       if (formula) {
         // For formula cells, create using the formula string as the value
         cellResult = Cell.create(formula, address);
