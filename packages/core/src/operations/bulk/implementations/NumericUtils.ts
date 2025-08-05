@@ -55,18 +55,18 @@ export function performOperation(
       return value1 * value2;
     case "divide":
       if (value2 === 0) {
-        throw new Error("Division by zero");
+        return NaN;
       }
       return value1 / value2;
     case "modulo":
       if (value2 === 0) {
-        throw new Error("Modulo by zero");
+        return NaN;
       }
       return value1 % value2;
     case "percent":
-      return (value1 * value2) / 100;
+      return value1 + (value1 * value2) / 100;
     case "percentDecrease":
-      return value1 * (1 - value2 / 100);
+      return value1 - (value1 * value2) / 100;
     case "round":
       return Math.round(value1 * 10 ** decimalPlaces) / 10 ** decimalPlaces;
     case "floor":
