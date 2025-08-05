@@ -478,6 +478,146 @@ describe("SpreadsheetController", () => {
     });
   });
 
+  describe("structural commands", () => {
+    test("should execute :insert-row command", () => {
+      const events: ControllerEvent[] = [];
+      controller.subscribe((event) => events.push(event));
+
+      // Enter command mode
+      controller.handleKeyPress(":", {
+        key: ":",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+
+      // Type command
+      controller.handleKeyPress("i", {
+        key: "i",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      controller.handleKeyPress("n", {
+        key: "n",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      controller.handleKeyPress("s", {
+        key: "s",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      controller.handleKeyPress("e", {
+        key: "e",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      controller.handleKeyPress("r", {
+        key: "r",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      controller.handleKeyPress("t", {
+        key: "t",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      controller.handleKeyPress("-", {
+        key: "-",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      controller.handleKeyPress("r", {
+        key: "r",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      controller.handleKeyPress("o", {
+        key: "o",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+      controller.handleKeyPress("w", {
+        key: "w",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+
+      // Execute with Enter
+      controller.handleKeyPress("enter", {
+        key: "enter",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+
+      // Check that structural operation event was emitted
+      const structuralEvents = events.filter(e => e.type === "structuralOperationCompleted");
+      expect(structuralEvents.length).toBeGreaterThan(0);
+    });
+
+    test("should execute :delete-col command with count", () => {
+      const events: ControllerEvent[] = [];
+      controller.subscribe((event) => events.push(event));
+
+      // Enter command mode and type :3delete-col
+      controller.handleKeyPress(":", {
+        key: ":",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+
+      const command = "3delete-col";
+      for (const char of command) {
+        controller.handleKeyPress(char, {
+          key: char,
+          ctrl: false,
+          shift: false,
+          alt: false,
+        });
+      }
+
+      // Execute with Enter
+      controller.handleKeyPress("enter", {
+        key: "enter",
+        ctrl: false,
+        shift: false,
+        alt: false,
+      });
+
+      // Check that structural operation event was emitted
+      const structuralEvents = events.filter(e => e.type === "structuralOperationCompleted");
+      expect(structuralEvents.length).toBeGreaterThan(0);
+    });
+
+    test("should handle Ctrl+Shift+Plus keyboard shortcut", () => {
+      const events: ControllerEvent[] = [];
+      controller.subscribe((event) => events.push(event));
+
+      controller.handleKeyPress("+", {
+        key: "+",
+        ctrl: true,
+        shift: true,
+        alt: false,
+      });
+
+      // Check that structural operation event was emitted
+      const structuralEvents = events.filter(e => e.type === "structuralOperationCompleted");
+      expect(structuralEvents.length).toBeGreaterThan(0);
+    });
+  });
+
   describe("getEngine", () => {
     test("returns underlying spreadsheet engine", () => {
       expect(controller.getEngine()).toBe(

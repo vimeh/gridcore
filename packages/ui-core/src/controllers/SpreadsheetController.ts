@@ -44,7 +44,9 @@ export type ControllerEvent =
   | { type: "selectionChanged"; start: CellAddress; end?: CellAddress }
   | { type: "viewportChanged"; viewport: UIState["viewport"] }
   | { type: "commandExecuted"; command: string }
-  | { type: "error"; error: string };
+  | { type: "error"; error: string }
+  | { type: "structuralOperationCompleted"; operation: string; count: number; position: number }
+  | { type: "structuralOperationFailed"; operation: string; error: string };
 
 export class SpreadsheetController {
   private stateMachine: UIStateMachine;
@@ -158,6 +160,10 @@ export class SpreadsheetController {
       case "paste":
         // These would be implemented based on selection
         return this.handleCellOperation(action.type, action, state);
+      case "structuralInsert":
+        return this.handleStructuralInsert(action, state);
+      case "structuralDelete":
+        return this.handleStructuralDelete(action, state);
       default:
         return { ok: true, value: state };
     }
@@ -732,9 +738,133 @@ export class SpreadsheetController {
 
   // Command execution
   private executeCommand(command: string): void {
-    // This would handle vim commands like :w, :q, etc.
-    // For now, just emit the event
+    const state = this.stateMachine.getState();
+    
+    // Parse vim commands for structural operations
+    const trimmedCommand = command.trim();
+    
+    // Handle insert/delete commands
+    if (this.handleStructuralCommands(trimmedCommand, state)) {
+      return; // Command was handled
+    }
+    
+    // Fallback for other commands
     this.emit({ type: "commandExecuted", command });
+  }
+  
+  private handleStructuralCommands(command: string, state: UIState): boolean {
+    const cursor = state.cursor;
+    
+    // Parse count prefix (e.g., ":5insert-row")
+    const countMatch = command.match(/^:?(\d+)?(insert-row|insert-col|delete-row|delete-col)$/);
+    if (!countMatch) {
+      return false; // Not a structural command
+    }
+    
+    const count = countMatch[1] ? parseInt(countMatch[1], 10) : 1;
+    const operation = countMatch[2];
+    
+    let result: Result<UIState>;
+    
+    switch (operation) {
+      case "insert-row":
+        result = this.insertRows(cursor.row, count);
+        break;
+      case "insert-col":
+        result = this.insertColumns(cursor.col, count);
+        break;
+      case "delete-row":
+        result = this.deleteRows(cursor.row, count);
+        break;
+      case "delete-col":
+        result = this.deleteColumns(cursor.col, count);
+        break;
+      default:
+        return false;
+    }
+    
+    if (result.ok) {
+      this.emit({ 
+        type: "structuralOperationCompleted", 
+        operation,
+        count,
+        position: operation.includes("row") ? cursor.row : cursor.col
+      });
+    } else {
+      this.emit({ 
+        type: "structuralOperationFailed", 
+        operation,
+        error: result.error
+      });
+    }
+    
+    return true;
+  }
+
+  private handleStructuralInsert(action: any, state: UIState): Result<UIState> {
+    const cursor = state.cursor;
+    const count = action.count || 1;
+    
+    let result: Result<UIState>;
+    
+    if (action.target === "row") {
+      const insertIndex = action.position === "before" ? cursor.row : cursor.row + 1;
+      result = this.insertRows(insertIndex, count);
+    } else if (action.target === "column") {
+      const insertIndex = action.position === "before" ? cursor.col : cursor.col + 1;
+      result = this.insertColumns(insertIndex, count);
+    } else {
+      return { ok: false, error: "Invalid structural insert target" };
+    }
+    
+    if (result.ok) {
+      this.emit({ 
+        type: "structuralOperationCompleted", 
+        operation: `insert-${action.target}`,
+        count,
+        position: action.target === "row" ? cursor.row : cursor.col
+      });
+    } else {
+      this.emit({ 
+        type: "structuralOperationFailed", 
+        operation: `insert-${action.target}`,
+        error: result.error
+      });
+    }
+    
+    return result;
+  }
+
+  private handleStructuralDelete(action: any, state: UIState): Result<UIState> {
+    const cursor = state.cursor;
+    const count = action.count || 1;
+    
+    let result: Result<UIState>;
+    
+    if (action.target === "row") {
+      result = this.deleteRows(cursor.row, count);
+    } else if (action.target === "column") {
+      result = this.deleteColumns(cursor.col, count);
+    } else {
+      return { ok: false, error: "Invalid structural delete target" };
+    }
+    
+    if (result.ok) {
+      this.emit({ 
+        type: "structuralOperationCompleted", 
+        operation: `delete-${action.target}`,
+        count,
+        position: action.target === "row" ? cursor.row : cursor.col
+      });
+    } else {
+      this.emit({ 
+        type: "structuralOperationFailed", 
+        operation: `delete-${action.target}`,
+        error: result.error
+      });
+    }
+    
+    return result;
   }
 
   // Event handling
