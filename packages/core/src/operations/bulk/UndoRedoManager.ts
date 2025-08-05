@@ -64,6 +64,8 @@ export interface UndoRedoConfig {
 export class UndoRedoManager {
   private undoStack: UndoAction[] = [];
   private redoStack: UndoAction[] = [];
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used in actionId generation on lines 96 and 146
+  private nextActionId = 0;
 
   constructor(
     private cellRepository: ICellRepository,

@@ -14,6 +14,18 @@ const createMockCellRepository = (): ICellRepository & {
   const cells = new Map<string, Cell>();
 
   return {
+    // Method used by BaseBulkOperation
+    get: mock((address: CellAddress) => {
+      const key = `${address.row},${address.col}`;
+      return cells.get(key) || null;
+    }),
+
+    // Method used by BaseBulkOperation
+    set: mock((address: CellAddress, cell: Cell) => {
+      const key = `${address.row},${address.col}`;
+      cells.set(key, cell);
+    }),
+
     getCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
       const cell = cells.get(key);
@@ -49,7 +61,7 @@ const createMockCellRepository = (): ICellRepository & {
 
     _setCellForTest: (address: CellAddress, value: CellValue) => {
       const key = `${address.row},${address.col}`;
-      const cellResult = Cell.create(value);
+      const cellResult = Cell.create(value, address);
       if (cellResult.ok) {
         cells.set(key, cellResult.value);
       }
@@ -58,7 +70,7 @@ const createMockCellRepository = (): ICellRepository & {
     _getCellValue: (address: CellAddress): CellValue => {
       const key = `${address.row},${address.col}`;
       const cell = cells.get(key);
-      return cell?.value || null;
+      return cell?.computedValue || cell?.rawValue || null;
     },
   };
 };
@@ -274,11 +286,10 @@ describe("UndoRedoManager", () => {
       const result = await operation.execute();
       await undoRedoManager.recordAction(operation, result);
 
-      // Make repository fail on next setCell
-      cellRepository.setCell = mock(async () => ({
-        ok: false,
-        error: "Undo failed",
-      }));
+      // Make repository fail on next set operation
+      cellRepository.set = mock(() => {
+        throw new Error("Undo failed");
+      });
 
       const undoResult = await undoRedoManager.undo();
 
@@ -387,10 +398,9 @@ describe("UndoRedoManager", () => {
       await undoRedoManager.undo();
 
       // Make repository fail on redo
-      cellRepository.setCell = mock(async () => ({
-        ok: false,
-        error: "Redo failed",
-      }));
+      cellRepository.set = mock(() => {
+        throw new Error("Redo failed");
+      });
 
       const redoResult = await undoRedoManager.redo();
 
@@ -487,7 +497,7 @@ describe("UndoRedoManager", () => {
 
         const operation = new BulkSetOperation(
           selection,
-          { value: `value${i}` },
+          { value: `value${i}`, overwriteExisting: true },
           cellRepository,
         );
 

@@ -74,8 +74,8 @@ export class BulkSetOperation extends BaseBulkOperation {
     }
 
     const options = this.options as BulkSetOptions;
-    if (options.value === undefined || options.value === null) {
-      return "Set value cannot be null or undefined";
+    if (options.value === undefined) {
+      return "Set value cannot be undefined";
     }
 
     return null;
