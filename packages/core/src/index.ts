@@ -45,37 +45,37 @@ export { CellAddress } from "./domain/models/CellAddress";
 export { CellRange } from "./domain/models/CellRange";
 export type { CellValue } from "./domain/models/CellValue";
 export { Formula } from "./domain/models/Formula";
+// Fill Engine
+export {
+  createFormulaAdjuster,
+  type FillDirection as FillEngineDirection,
+  FillEngine,
+  type FillOperation,
+  type FillOptions,
+  type FillPreview,
+  type FillResult,
+  type FormulaAdjuster,
+  type Pattern,
+  type PatternDetectionResult,
+  type PatternDetector,
+  type PatternGenerator,
+  type PatternType,
+  PlaceholderFormulaAdjuster,
+  type SeriesType,
+} from "./fill";
 export { FormulaEvaluator } from "./infrastructure/evaluators/FormulaEvaluator";
 export { FormulaParser } from "./infrastructure/parsers/FormulaParser";
 // Infrastructure
 export { InMemoryCellRepository } from "./infrastructure/repositories/InMemoryCellRepository";
 export { InMemoryDependencyRepository } from "./infrastructure/repositories/InMemoryDependencyRepository";
 export { EventStore } from "./infrastructure/stores/EventStore";
-// Structural Operations System
-export * from "./structure";
 // High-level API
 export { Sheet } from "./Sheet";
 // Shared Types
 export type { Result } from "./shared/types/Result";
 export { err, ok } from "./shared/types/Result";
-// Fill Engine
-export {
-  FillEngine,
-  createFormulaAdjuster,
-  PlaceholderFormulaAdjuster,
-  type FillDirection as FillEngineDirection,
-  type PatternType,
-  type SeriesType,
-  type FillOptions,
-  type FillOperation,
-  type Pattern,
-  type PatternGenerator,
-  type PatternDetector,
-  type FormulaAdjuster,
-  type FillResult,
-  type FillPreview,
-  type PatternDetectionResult,
-} from "./fill";
+// Structural Operations System
+export * from "./structure";
 // Utility exports
 export * from "./utils/cellAddress";
 export { Workbook } from "./Workbook";

@@ -1,4 +1,8 @@
-import { ReferenceAdjuster, ReferenceDetector, type CellReference } from "@gridcore/core";
+import {
+  type CellReference,
+  ReferenceAdjuster,
+  ReferenceDetector,
+} from "@gridcore/core";
 import type { UIState } from "../../state/UIState";
 import { isEditingMode } from "../../state/UIState";
 import type { CellVimAction, KeyMeta } from "../VimBehavior";

@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { CustomSequencePatternDetector } from "./CustomSequencePatternDetector";
+import { describe, expect, it } from "bun:test";
 import type { CellValue } from "../../domain/models";
+import { CustomSequencePatternDetector } from "./CustomSequencePatternDetector";
 
 describe("CustomSequencePatternDetector", () => {
   const detector = new CustomSequencePatternDetector();
@@ -27,7 +27,9 @@ describe("CustomSequencePatternDetector", () => {
     });
 
     it("should detect longer square sequence", () => {
-      const values: CellValue[] = [1, 4, 9, 16, 25, 36] as unknown as CellValue[];
+      const values: CellValue[] = [
+        1, 4, 9, 16, 25, 36,
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
@@ -78,7 +80,9 @@ describe("CustomSequencePatternDetector", () => {
     });
 
     it("should detect longer prime sequence", () => {
-      const values: CellValue[] = [2, 3, 5, 7, 11, 13, 17] as unknown as CellValue[];
+      const values: CellValue[] = [
+        2, 3, 5, 7, 11, 13, 17,
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
@@ -266,7 +270,14 @@ describe("CustomSequencePatternDetector", () => {
 
   describe("Mixed Value Handling", () => {
     it("should handle mixed numeric and non-numeric values", () => {
-      const values: CellValue[] = [1, "text", 4, "", 9, 16] as unknown as CellValue[];
+      const values: CellValue[] = [
+        1,
+        "text",
+        4,
+        "",
+        9,
+        16,
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       // Should extract [1, 4, 9, 16] and detect squares
@@ -275,7 +286,12 @@ describe("CustomSequencePatternDetector", () => {
     });
 
     it("should require at least 3 valid numeric values", () => {
-      const values: CellValue[] = [1, "text", 4, "more text"] as unknown as CellValue[];
+      const values: CellValue[] = [
+        1,
+        "text",
+        4,
+        "more text",
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeNull();
@@ -285,7 +301,9 @@ describe("CustomSequencePatternDetector", () => {
   describe("Confidence Scoring", () => {
     it("should give higher confidence for longer sequences", () => {
       const shortSeq: CellValue[] = [1, 4, 9] as unknown as CellValue[];
-      const longSeq: CellValue[] = [1, 4, 9, 16, 25, 36] as unknown as CellValue[];
+      const longSeq: CellValue[] = [
+        1, 4, 9, 16, 25, 36,
+      ] as unknown as CellValue[];
 
       const shortPattern = detector.detect(shortSeq, "down");
       const longPattern = detector.detect(longSeq, "down");
@@ -304,24 +322,32 @@ describe("CustomSequencePatternDetector", () => {
 
       expect(squarePattern).toBeDefined();
       expect(pentagonalPattern).toBeDefined();
-      expect(squarePattern!.confidence).toBeGreaterThan(pentagonalPattern!.confidence);
+      expect(squarePattern!.confidence).toBeGreaterThan(
+        pentagonalPattern!.confidence,
+      );
     });
 
     it("should give higher confidence for sequences starting at natural indices", () => {
       const naturalStart: CellValue[] = [1, 4, 9, 16] as unknown as CellValue[]; // 1², 2², 3², 4²
-      const offsetStart: CellValue[] = [36, 49, 64, 81] as unknown as CellValue[]; // 6², 7², 8², 9²
+      const offsetStart: CellValue[] = [
+        36, 49, 64, 81,
+      ] as unknown as CellValue[]; // 6², 7², 8², 9²
 
       const naturalPattern = detector.detect(naturalStart, "down");
       const offsetPattern = detector.detect(offsetStart, "down");
 
       expect(naturalPattern).toBeDefined();
       expect(offsetPattern).toBeDefined();
-      expect(naturalPattern!.confidence).toBeGreaterThan(offsetPattern!.confidence);
+      expect(naturalPattern!.confidence).toBeGreaterThan(
+        offsetPattern!.confidence,
+      );
     });
 
     it("should reduce confidence for very large numbers", () => {
       const smallNumbers: CellValue[] = [1, 4, 9, 16] as unknown as CellValue[];
-      const largeNumbers: CellValue[] = [1000000, 4000000, 9000000, 16000000] as unknown as CellValue[];
+      const largeNumbers: CellValue[] = [
+        1000000, 4000000, 9000000, 16000000,
+      ] as unknown as CellValue[];
 
       const smallPattern = detector.detect(smallNumbers, "down");
       const largePattern = detector.detect(largeNumbers, "down");
@@ -329,7 +355,9 @@ describe("CustomSequencePatternDetector", () => {
       expect(smallPattern).toBeDefined();
       // Large numbers may not be detected due to their size
       if (largePattern) {
-        expect(smallPattern!.confidence).toBeGreaterThan(largePattern.confidence);
+        expect(smallPattern!.confidence).toBeGreaterThan(
+          largePattern.confidence,
+        );
       } else {
         // If large pattern is not detected, that's also acceptable behavior
         expect(largePattern).toBeNull();
@@ -351,7 +379,7 @@ describe("CustomSequencePatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         nextValues.push(Number(value));
       }
@@ -372,7 +400,7 @@ describe("CustomSequencePatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         nextValues.push(Number(value));
       }
@@ -393,7 +421,7 @@ describe("CustomSequencePatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         nextValues.push(Number(value));
       }
@@ -415,7 +443,7 @@ describe("CustomSequencePatternDetector", () => {
           values,
           25, // This should create 28! which is huge
           {} as any,
-          {} as any
+          {} as any,
         );
       }).toThrow("too large");
     });
@@ -431,7 +459,7 @@ describe("CustomSequencePatternDetector", () => {
             values,
             35, // This should create C(38) which is huge
             {} as any,
-            {} as any
+            {} as any,
           );
         }).toThrow("too large");
       } else {

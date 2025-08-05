@@ -1,15 +1,15 @@
-import { SpreadsheetController } from "@gridcore/ui-core";
 import {
-  StructuralOperationFeedback,
-  ProgressIndicator,
-  WarningDialog,
   ConfirmationDialog,
-  type StructuralUIEvent
+  ProgressIndicator,
+  type SpreadsheetController,
+  StructuralOperationFeedback,
+  type StructuralUIEvent,
+  WarningDialog,
 } from "@gridcore/ui-core";
 
 /**
  * Example integration of structural UI components with a web-based spreadsheet
- * 
+ *
  * This demonstrates how to:
  * 1. Set up all structural UI components
  * 2. Connect them to SpreadsheetController events
@@ -27,7 +27,7 @@ export class StructuralUIExample {
   constructor(
     controller: SpreadsheetController,
     gridContainer: HTMLElement,
-    uiContainer: HTMLElement
+    uiContainer: HTMLElement,
   ) {
     this.controller = controller;
     this.gridContainer = gridContainer;
@@ -48,22 +48,22 @@ export class StructuralUIExample {
         borderColor: "rgba(59, 130, 246, 0.4)",
         borderWidth: 2,
         opacity: 0.8,
-        animation: "pulse 1.5s infinite"
+        animation: "pulse 1.5s infinite",
       },
       deleted: {
         backgroundColor: "rgba(239, 68, 68, 0.25)",
         borderColor: "rgba(239, 68, 68, 0.6)",
         borderWidth: 2,
         opacity: 0.9,
-        animation: "fadeOut 1s ease-in-out"
+        animation: "fadeOut 1s ease-in-out",
       },
       warning: {
         backgroundColor: "rgba(245, 158, 11, 0.2)",
         borderColor: "rgba(245, 158, 11, 0.8)",
         borderWidth: 1,
         opacity: 0.85,
-        animation: "blink 0.8s infinite"
-      }
+        animation: "blink 0.8s infinite",
+      },
     });
 
     // Configure progress indicator for the web UI
@@ -74,7 +74,7 @@ export class StructuralUIExample {
       position: "top",
       theme: "auto",
       autoHide: true,
-      minDisplayTime: 800
+      minDisplayTime: 800,
     });
 
     // Configure warning dialog
@@ -84,7 +84,7 @@ export class StructuralUIExample {
       allowDismiss: true,
       autoHideMs: 6000,
       position: "top",
-      theme: "auto"
+      theme: "auto",
     });
 
     // Configure confirmation dialog
@@ -95,7 +95,7 @@ export class StructuralUIExample {
       defaultButton: "cancel",
       theme: "auto",
       blurBackground: true,
-      allowEscapeToCancel: true
+      allowEscapeToCancel: true,
     });
 
     // Set up cancel callback for progress indicator
@@ -149,11 +149,13 @@ export class StructuralUIExample {
   private onOperationStarted(event: any): void {
     // Add loading class to grid
     this.gridContainer.classList.add("structural-operation-active");
-    
+
     // Disable grid interactions during operation
     this.setGridInteractionEnabled(false);
 
-    console.log(`Started ${event.operation.type}: ${event.operation.count} items at index ${event.operation.index}`);
+    console.log(
+      `Started ${event.operation.type}: ${event.operation.count} items at index ${event.operation.index}`,
+    );
   }
 
   /**
@@ -162,14 +164,19 @@ export class StructuralUIExample {
   private onOperationCompleted(event: any): void {
     // Remove loading state
     this.gridContainer.classList.remove("structural-operation-active");
-    
+
     // Re-enable grid interactions
     this.setGridInteractionEnabled(true);
 
     // Show success notification
-    this.showNotification("success", `Operation completed successfully in ${event.duration}ms`);
+    this.showNotification(
+      "success",
+      `Operation completed successfully in ${event.duration}ms`,
+    );
 
-    console.log(`Completed ${event.operation.type}: affected ${event.affectedCells.length} cells`);
+    console.log(
+      `Completed ${event.operation.type}: affected ${event.affectedCells.length} cells`,
+    );
   }
 
   /**
@@ -178,7 +185,7 @@ export class StructuralUIExample {
   private onOperationFailed(event: any): void {
     // Remove loading state
     this.gridContainer.classList.remove("structural-operation-active");
-    
+
     // Re-enable grid interactions
     this.setGridInteractionEnabled(true);
 
@@ -218,17 +225,17 @@ export class StructuralUIExample {
     if (cells.length === 0) return;
 
     // Find the bounding box of all highlighted cells
-    const minRow = Math.min(...cells.map(c => c.row));
-    const maxRow = Math.max(...cells.map(c => c.row));
-    const minCol = Math.min(...cells.map(c => c.col));
-    const maxCol = Math.max(...cells.map(c => c.col));
+    const minRow = Math.min(...cells.map((c) => c.row));
+    const maxRow = Math.max(...cells.map((c) => c.row));
+    const minCol = Math.min(...cells.map((c) => c.col));
+    const maxCol = Math.max(...cells.map((c) => c.col));
 
     // Get current viewport
     const state = this.controller.getState();
     const viewport = state.viewport;
 
     // Check if cells are outside viewport
-    const needsScroll = 
+    const needsScroll =
       minRow < viewport.startRow ||
       maxRow >= viewport.startRow + viewport.rows ||
       minCol < viewport.startCol ||
@@ -238,7 +245,7 @@ export class StructuralUIExample {
       // Calculate new viewport to center the highlighted area
       const centerRow = Math.floor((minRow + maxRow) / 2);
       const centerCol = Math.floor((minCol + maxCol) / 2);
-      
+
       // Scroll to center the highlighted cells
       this.scrollToCell(centerRow, centerCol);
     }
@@ -250,24 +257,29 @@ export class StructuralUIExample {
   private scrollToCell(row: number, col: number): void {
     const state = this.controller.getState();
     const viewport = state.viewport;
-    
+
     const newStartRow = Math.max(0, row - Math.floor(viewport.rows / 2));
     const newStartCol = Math.max(0, col - Math.floor(viewport.cols / 2));
 
     // Use controller's viewport management
     // Note: This would typically integrate with the actual viewport manager
-    console.log(`Scrolling to show cell ${row},${col} - new viewport start: ${newStartRow},${newStartCol}`);
+    console.log(
+      `Scrolling to show cell ${row},${col} - new viewport start: ${newStartRow},${newStartCol}`,
+    );
   }
 
   /**
    * Show a notification to the user
    */
-  private showNotification(type: "success" | "error" | "info", message: string): void {
+  private showNotification(
+    type: "success" | "error" | "info",
+    message: string,
+  ): void {
     // Create a simple notification element
     const notification = document.createElement("div");
     notification.className = `structural-notification structural-notification-${type}`;
     notification.textContent = message;
-    
+
     // Style the notification
     Object.assign(notification.style, {
       position: "fixed",
@@ -281,7 +293,12 @@ export class StructuralUIExample {
       zIndex: "1003",
       transform: "translateX(100%)",
       transition: "transform 0.3s ease-in-out",
-      backgroundColor: type === "success" ? "#10b981" : type === "error" ? "#ef4444" : "#3b82f6"
+      backgroundColor:
+        type === "success"
+          ? "#10b981"
+          : type === "error"
+            ? "#ef4444"
+            : "#3b82f6",
     });
 
     // Add to UI container
@@ -343,19 +360,21 @@ export class StructuralUIExample {
   destroy(): void {
     // Clear any active highlights
     this.feedback.clearAllHighlights();
-    
+
     // Hide any visible dialogs
     if (this.warningDialog.isShowing()) {
       this.warningDialog.hide();
     }
-    
+
     if (this.confirmationDialog.isShowing()) {
       this.confirmationDialog.hide();
     }
 
     // Remove any active notifications
-    const notifications = this.uiContainer.querySelectorAll(".structural-notification");
-    notifications.forEach(n => n.remove());
+    const notifications = this.uiContainer.querySelectorAll(
+      ".structural-notification",
+    );
+    notifications.forEach((n) => n.remove());
 
     // Re-enable grid interactions
     this.setGridInteractionEnabled(true);
@@ -369,7 +388,7 @@ export class StructuralUIExample {
 export function createStructuralUI(
   controller: SpreadsheetController,
   gridContainer: HTMLElement,
-  uiContainer: HTMLElement = document.body
+  uiContainer: HTMLElement = document.body,
 ): StructuralUIExample {
   return new StructuralUIExample(controller, gridContainer, uiContainer);
 }

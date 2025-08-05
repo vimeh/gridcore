@@ -1,15 +1,12 @@
-import { CellAddress } from "../../domain/models";
-import type { CellValue } from "../../domain/models";
 import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
-import type { 
-  BulkOperation,
-  Selection 
-} from "./interfaces/BulkOperation";
-import type { 
-  OperationPreview,
+import type { CellValue } from "../../domain/models";
+import { CellAddress } from "../../domain/models";
+import type { BulkOperation, Selection } from "./interfaces/BulkOperation";
+import type {
   CellChange,
+  OperationPreview,
+  OperationSummary,
   PreviewOptions,
-  OperationSummary
 } from "./interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "./interfaces/OperationPreview";
 
@@ -19,19 +16,19 @@ import { OperationPreviewBuilder } from "./interfaces/OperationPreview";
 export interface PreviewServiceConfig {
   /** Default maximum number of changes to include in previews */
   defaultMaxChanges: number;
-  
+
   /** Maximum time to spend generating a preview (milliseconds) */
   maxPreviewTime: number;
-  
+
   /** Whether to cache previews for repeated operations */
   enableCaching: boolean;
-  
+
   /** Maximum size of preview cache */
   maxCacheSize: number;
-  
+
   /** Whether to calculate detailed memory estimates */
   calculateMemoryEstimates: boolean;
-  
+
   /** Whether to perform expensive validation during preview */
   enableExpensiveValidation: boolean;
 }
@@ -50,7 +47,7 @@ interface PreviewCacheEntry {
  */
 export class PreviewService {
   private cache = new Map<string, PreviewCacheEntry>();
-  
+
   constructor(
     private cellRepository: ICellRepository,
     private config: PreviewServiceConfig = {
@@ -59,8 +56,8 @@ export class PreviewService {
       enableCaching: true,
       maxCacheSize: 100,
       calculateMemoryEstimates: true,
-      enableExpensiveValidation: false
-    }
+      enableExpensiveValidation: false,
+    },
   ) {}
 
   /**
@@ -68,7 +65,7 @@ export class PreviewService {
    */
   async generatePreview(
     operation: BulkOperation,
-    options: PreviewOptions = {}
+    options: PreviewOptions = {},
   ): Promise<OperationPreview> {
     const effectiveOptions = {
       maxChanges: this.config.defaultMaxChanges,
@@ -76,7 +73,7 @@ export class PreviewService {
       calculateMemory: this.config.calculateMemoryEstimates,
       includeChangeTypes: undefined,
       validateChanges: this.config.enableExpensiveValidation,
-      ...options
+      ...options,
     };
 
     // Check cache first
@@ -89,22 +86,25 @@ export class PreviewService {
 
     const startTime = Date.now();
     const builder = new OperationPreviewBuilder();
-    
+
     try {
       // Set basic information
       const totalCells = operation.selection.count();
       builder.setAffectedCells(totalCells);
 
       // Generate the preview using the operation's preview method
-      const preview = await this.generateTimedPreview(operation, effectiveOptions, startTime);
-      
+      const preview = await this.generateTimedPreview(
+        operation,
+        effectiveOptions,
+        startTime,
+      );
+
       // Cache the result if caching is enabled
       if (this.config.enableCaching) {
         this.cachePreview(operation, effectiveOptions, preview);
       }
-      
-      return preview;
 
+      return preview;
     } catch (error) {
       // Return error preview
       return builder
@@ -120,12 +120,16 @@ export class PreviewService {
   private async generateTimedPreview(
     operation: BulkOperation,
     options: PreviewOptions,
-    startTime: number
+    startTime: number,
   ): Promise<OperationPreview> {
     return new Promise(async (resolve, reject) => {
       // Set up timeout
       const timeout = setTimeout(() => {
-        reject(new Error(`Preview generation timed out after ${this.config.maxPreviewTime}ms`));
+        reject(
+          new Error(
+            `Preview generation timed out after ${this.config.maxPreviewTime}ms`,
+          ),
+        );
       }, this.config.maxPreviewTime);
 
       try {
@@ -142,10 +146,12 @@ export class PreviewService {
   /**
    * Generate a quick preview with minimal computation
    */
-  async generateQuickPreview(operation: BulkOperation): Promise<OperationPreview> {
+  async generateQuickPreview(
+    operation: BulkOperation,
+  ): Promise<OperationPreview> {
     const builder = new OperationPreviewBuilder();
     const totalCells = operation.selection.count();
-    
+
     builder
       .setAffectedCells(totalCells)
       .setEstimatedTime(operation.estimateTime())
@@ -156,7 +162,7 @@ export class PreviewService {
         formulaCells: 0,
         valueCells: totalCells,
         changesByType: { [operation.type]: totalCells },
-        memoryEstimate: totalCells * 100 // Basic estimate
+        memoryEstimate: totalCells * 100, // Basic estimate
       });
 
     // Add quick validation
@@ -171,7 +177,10 @@ export class PreviewService {
   /**
    * Compare two operations for preview caching
    */
-  private generateOperationHash(operation: BulkOperation, options: PreviewOptions): string {
+  private generateOperationHash(
+    operation: BulkOperation,
+    options: PreviewOptions,
+  ): string {
     const selectionHash = this.hashSelection(operation.selection);
     const optionsHash = JSON.stringify(options);
     return `${operation.type}_${selectionHash}_${optionsHash}`;
@@ -184,37 +193,40 @@ export class PreviewService {
     // For performance, we'll use selection count and a sample of cells
     const count = selection.count();
     const sample: string[] = [];
-    
+
     let sampleCount = 0;
     const maxSample = 10;
-    
+
     for (const cell of selection.getCells()) {
       if (sampleCount >= maxSample) break;
       sample.push(`${cell.row},${cell.col}`);
       sampleCount++;
     }
-    
-    return `${count}_${sample.join('_')}`;
+
+    return `${count}_${sample.join("_")}`;
   }
 
   /**
    * Get cached preview if available and valid
    */
-  private getCachedPreview(operation: BulkOperation, options: PreviewOptions): OperationPreview | null {
+  private getCachedPreview(
+    operation: BulkOperation,
+    options: PreviewOptions,
+  ): OperationPreview | null {
     const hash = this.generateOperationHash(operation, options);
     const entry = this.cache.get(hash);
-    
+
     if (!entry) {
       return null;
     }
-    
+
     // Check if cache entry is still valid (5 minutes)
     const maxAge = 5 * 60 * 1000;
     if (Date.now() - entry.timestamp > maxAge) {
       this.cache.delete(hash);
       return null;
     }
-    
+
     return entry.preview;
   }
 
@@ -222,41 +234,43 @@ export class PreviewService {
    * Cache a preview result
    */
   private cachePreview(
-    operation: BulkOperation, 
-    options: PreviewOptions, 
-    preview: OperationPreview
+    operation: BulkOperation,
+    options: PreviewOptions,
+    preview: OperationPreview,
   ): void {
     // Don't cache error previews
     if (preview.errors.length > 0) {
       return;
     }
-    
+
     const hash = this.generateOperationHash(operation, options);
-    
+
     // Manage cache size
     if (this.cache.size >= this.config.maxCacheSize) {
       // Remove oldest entries
       const entries = Array.from(this.cache.entries());
       entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-      
+
       // Remove oldest 20%
       const toRemove = Math.floor(this.config.maxCacheSize * 0.2);
       for (let i = 0; i < toRemove; i++) {
         this.cache.delete(entries[i][0]);
       }
     }
-    
+
     this.cache.set(hash, {
       preview,
       timestamp: Date.now(),
-      operationHash: hash
+      operationHash: hash,
     });
   }
 
   /**
    * Generate a detailed summary for multiple operations
    */
-  async generateBatchPreview(operations: BulkOperation[]): Promise<BatchPreviewSummary> {
+  async generateBatchPreview(
+    operations: BulkOperation[],
+  ): Promise<BatchPreviewSummary> {
     const previews: OperationPreview[] = [];
     let totalCells = 0;
     let totalModified = 0;
@@ -264,28 +278,31 @@ export class PreviewService {
     const allErrors: string[] = [];
     const allWarnings: string[] = [];
     const changesByType: Record<string, number> = {};
-    
+
     for (const operation of operations) {
       try {
         const preview = await this.generateQuickPreview(operation);
         previews.push(preview);
-        
+
         totalCells += preview.affectedCells;
         totalModified += preview.summary.modifiedCells;
         totalTime += preview.estimatedTime;
         allErrors.push(...preview.errors);
         allWarnings.push(...preview.warnings);
-        
+
         // Merge change types
-        for (const [type, count] of Object.entries(preview.summary.changesByType)) {
+        for (const [type, count] of Object.entries(
+          preview.summary.changesByType,
+        )) {
           changesByType[type] = (changesByType[type] || 0) + count;
         }
-        
       } catch (error) {
-        allErrors.push(`Failed to preview operation ${operation.type}: ${error}`);
+        allErrors.push(
+          `Failed to preview operation ${operation.type}: ${error}`,
+        );
       }
     }
-    
+
     return {
       operationCount: operations.length,
       totalCells,
@@ -296,7 +313,7 @@ export class PreviewService {
       changesByType,
       previews,
       canExecute: allErrors.length === 0,
-      memoryEstimate: totalModified * 100
+      memoryEstimate: totalModified * 100,
     };
   }
 
@@ -304,41 +321,47 @@ export class PreviewService {
    * Validate that a preview is still accurate
    */
   async validatePreview(
-    operation: BulkOperation, 
-    preview: OperationPreview
+    operation: BulkOperation,
+    preview: OperationPreview,
   ): Promise<PreviewValidationResult> {
     const issues: string[] = [];
-    
+
     // Check if selection size has changed
     const currentSelectionSize = operation.selection.count();
     if (currentSelectionSize !== preview.affectedCells) {
-      issues.push(`Selection size changed: ${preview.affectedCells} -> ${currentSelectionSize}`);
+      issues.push(
+        `Selection size changed: ${preview.affectedCells} -> ${currentSelectionSize}`,
+      );
     }
-    
+
     // Sample a few cells to check if values have changed
     let sampleCount = 0;
     const maxSamples = 10;
-    
+
     for (const cell of operation.selection.getCells()) {
       if (sampleCount >= maxSamples) break;
-      
+
       const currentCell = await this.cellRepository.get(cell);
-      const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
-      
+      const currentValue = currentCell
+        ? currentCell.computedValue || currentCell.rawValue
+        : null;
+
       const cellKey = `${cell.row},${cell.col}`;
       const previewChange = preview.changes.get(cellKey);
-      
+
       if (previewChange && previewChange.before !== currentValue) {
-        issues.push(`Cell ${cellKey} value changed: expected ${previewChange.before}, got ${currentValue}`);
+        issues.push(
+          `Cell ${cellKey} value changed: expected ${previewChange.before}, got ${currentValue}`,
+        );
       }
-      
+
       sampleCount++;
     }
-    
+
     return {
       isValid: issues.length === 0,
       issues,
-      needsRegeneration: issues.length > 0
+      needsRegeneration: issues.length > 0,
     };
   }
 
@@ -355,7 +378,7 @@ export class PreviewService {
   getCacheStats(): { size: number; maxSize: number; hitRate?: number } {
     return {
       size: this.cache.size,
-      maxSize: this.config.maxCacheSize
+      maxSize: this.config.maxCacheSize,
       // Hit rate would require tracking cache hits/misses
     };
   }

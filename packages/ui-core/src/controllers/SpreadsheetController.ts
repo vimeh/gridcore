@@ -1,16 +1,20 @@
-import { 
-  CellAddress, 
-  type SpreadsheetFacade, 
-  ReferenceDetector, 
-  ReferenceAdjuster,
+import {
+  CellAddress,
   type CellReference,
+  ReferenceAdjuster,
+  ReferenceDetector,
+  type SpreadsheetFacade,
   StructuralEngine,
+  type StructuralSnapshot,
   StructuralUndoManager,
-  type StructuralSnapshot
 } from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
 import { type ResizeAction, ResizeBehavior } from "../behaviors/ResizeBehavior";
-import { StructuralOperationManager, type StructuralUIEvent, type StructuralOperation } from "../behaviors/structural";
+import {
+  type StructuralOperation,
+  StructuralOperationManager,
+  type StructuralUIEvent,
+} from "../behaviors/structural";
 import type { CellVimAction } from "../behaviors/VimBehavior";
 import {
   type KeyMeta,
@@ -18,9 +22,13 @@ import {
   VimBehavior,
 } from "../behaviors/VimBehavior";
 import {
-  VimBulkCommandParser,
   type ParsedBulkCommand,
+  VimBulkCommandParser,
 } from "../commands/BulkCommandParser";
+import {
+  DefaultSelectionManager,
+  type SelectionManager,
+} from "../managers/SelectionManager";
 import {
   createNavigationState,
   createResizeState,
@@ -37,10 +45,6 @@ import {
   type SpreadsheetVisualMode,
   type UIState,
 } from "../state/UIState";
-import {
-  type SelectionManager,
-  DefaultSelectionManager,
-} from "../managers/SelectionManager";
 import { type Action, UIStateMachine } from "../state/UIStateMachine";
 import type { Result } from "../utils/Result";
 
@@ -67,7 +71,12 @@ export type ControllerEvent =
   | { type: "viewportChanged"; viewport: UIState["viewport"] }
   | { type: "commandExecuted"; command: string }
   | { type: "error"; error: string }
-  | { type: "structuralOperationCompleted"; operation: string; count: number; position: number }
+  | {
+      type: "structuralOperationCompleted";
+      operation: string;
+      count: number;
+      position: number;
+    }
   | { type: "structuralOperationFailed"; operation: string; error: string }
   | { type: "structuralUIEvent"; event: StructuralUIEvent }
   // | { type: "undoCompleted"; description: string; snapshot: StructuralSnapshot }
@@ -90,7 +99,7 @@ export class SpreadsheetController {
 
   constructor(options: SpreadsheetControllerOptions | SpreadsheetFacade) {
     // Handle both constructor signatures for backward compatibility
-    if ('facade' in options) {
+    if ("facade" in options) {
       this.facade = options.facade;
       this.viewportManager = options.viewportManager;
     } else {
@@ -123,7 +132,8 @@ export class SpreadsheetController {
     // this.fillEngine = new FillEngine(this.facade.getCellRepository(), formulaAdjuster);
 
     // Initialize state machine
-    let initialState = ('initialState' in options) ? options.initialState : undefined;
+    let initialState =
+      "initialState" in options ? options.initialState : undefined;
     if (!initialState) {
       const defaultCursor = CellAddress.create(0, 0);
       if (!defaultCursor.ok) throw new Error("Failed to create default cursor");
@@ -144,7 +154,7 @@ export class SpreadsheetController {
     // Subscribe to structural operation events
     this.structuralManager.subscribe((event) => {
       this.emit({ type: "structuralUIEvent", event });
-      
+
       // Emit specific events for completed operations
       if (event.type === "structuralOperationCompleted" && event.operation) {
         this.emit({
@@ -153,7 +163,10 @@ export class SpreadsheetController {
           count: event.operation.count || 1,
           position: event.operation.index || 0,
         });
-      } else if (event.type === "structuralOperationFailed" && event.operation) {
+      } else if (
+        event.type === "structuralOperationFailed" &&
+        event.operation
+      ) {
         this.emit({
           type: "structuralOperationFailed",
           operation: event.operation.type,
@@ -192,10 +205,10 @@ export class SpreadsheetController {
     } else if (isResizeMode(state)) {
       const action = this.resizeBehavior.handleKey(key, state);
       return this.processResizeAction(action, state);
-    // } else if (isInsertMode(state)) {
-    //   return this.handleInsertMode(key, meta, state);
-    // } else if (isDeleteMode(state)) {
-    //   return this.handleDeleteMode(key, meta, state);
+      // } else if (isInsertMode(state)) {
+      //   return this.handleInsertMode(key, meta, state);
+      // } else if (isDeleteMode(state)) {
+      //   return this.handleDeleteMode(key, meta, state);
     }
 
     return { ok: true, value: state };
@@ -203,12 +216,22 @@ export class SpreadsheetController {
 
   // Wrapper method for tests that use handleKey
   handleKey(key: string): Result<UIState> {
-    return this.handleKeyPress(key, { key, ctrl: false, shift: false, alt: false });
+    return this.handleKeyPress(key, {
+      key,
+      ctrl: false,
+      shift: false,
+      alt: false,
+    });
   }
 
   // Wrapper method for tests that use handleControlKey
   handleControlKey(key: string): Result<UIState> {
-    return this.handleKeyPress(key, { key, ctrl: true, shift: false, alt: false });
+    return this.handleKeyPress(key, {
+      key,
+      ctrl: true,
+      shift: false,
+      alt: false,
+    });
   }
 
   // Process vim actions from navigation mode
@@ -297,7 +320,11 @@ export class SpreadsheetController {
       case "deleteText":
         return this.handleCellTextDelete(action.range, state);
       case "replaceFormula":
-        return this.handleReplaceFormula(action.newFormula, action.newCursorPosition, state);
+        return this.handleReplaceFormula(
+          action.newFormula,
+          action.newCursorPosition,
+          state,
+        );
       case "exitEditing":
         // Save the value when exiting editing mode
         return this.saveAndExitEditing();
@@ -351,7 +378,10 @@ export class SpreadsheetController {
         return this.stateMachine.transition({ type: "EXIT_COMMAND_MODE" });
       } catch (error) {
         console.error("Error executing command:", error);
-        return { ok: false, error: error instanceof Error ? error.message : String(error) };
+        return {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     }
 
@@ -877,39 +907,41 @@ export class SpreadsheetController {
   // Command execution
   private executeCommand(command: string): void {
     // Remove leading : if present
-    const trimmedCommand = command.trim().replace(/^:/, '');
-    
+    const trimmedCommand = command.trim().replace(/^:/, "");
+
     // Try to parse as bulk command first
     const bulkCommand = this.bulkCommandParser.parse(`:${trimmedCommand}`);
-    
+
     if (bulkCommand) {
       this.handleBulkCommand(bulkCommand);
       return;
     }
-    
+
     // Handle reference conversion commands
     if (trimmedCommand === "refrel") {
       this.convertAllReferencesToType("relative");
       return;
     }
-    
+
     if (trimmedCommand === "refabs") {
       this.convertAllReferencesToType("absolute");
       return;
     }
-    
+
     if (trimmedCommand === "refmix") {
       this.convertAllReferencesToType("mixed");
       return;
     }
-    
+
     // Handle structural commands
-    const structuralMatch = trimmedCommand.match(/^(\d*)?(insert-row|insert-col|delete-row|delete-col)$/);
+    const structuralMatch = trimmedCommand.match(
+      /^(\d*)?(insert-row|insert-col|delete-row|delete-col)$/,
+    );
     if (structuralMatch) {
       const count = structuralMatch[1] ? parseInt(structuralMatch[1], 10) : 1;
       const operation = structuralMatch[2];
       const cursor = this.stateMachine.getState().cursor;
-      
+
       switch (operation) {
         case "insert-row":
           this.insertRows(cursor.row, count);
@@ -926,7 +958,7 @@ export class SpreadsheetController {
       }
       return;
     }
-    
+
     // Handle other vim commands like :w, :q, etc.
     // For now, just emit the event for unhandled commands
     this.emit({ type: "commandExecuted", command });
@@ -934,11 +966,14 @@ export class SpreadsheetController {
 
   private handleBulkCommand(command: ParsedBulkCommand): void {
     const state = this.stateMachine.getState();
-    
+
     // Validate command
     const hasSelection = this.hasSelection();
-    const validationError = this.bulkCommandParser.validateCommand(command, hasSelection);
-    
+    const validationError = this.bulkCommandParser.validateCommand(
+      command,
+      hasSelection,
+    );
+
     if (validationError) {
       this.emit({ type: "error", error: validationError });
       return;
@@ -968,31 +1003,36 @@ export class SpreadsheetController {
 
   private hasSelection(): boolean {
     const state = this.stateMachine.getState();
-    return isSpreadsheetVisualMode(state) || 
-           (isNavigationMode(state) && state.selection !== undefined);
+    return (
+      isSpreadsheetVisualMode(state) ||
+      (isNavigationMode(state) && state.selection !== undefined)
+    );
   }
 
   private getAffectedCellCount(command: ParsedBulkCommand): number {
     const state = this.stateMachine.getState();
-    
+
     // For now, return a placeholder count
     // TODO: Calculate actual affected cells based on selection
     if (this.hasSelection()) {
       return 1; // Placeholder
     }
-    
+
     // For sheet-wide operations
     if (command.type === "findReplace" && command.options.scope === "sheet") {
-      return this.viewportManager.getTotalRows() * this.viewportManager.getTotalCols();
+      return (
+        this.viewportManager.getTotalRows() *
+        this.viewportManager.getTotalCols()
+      );
     }
-    
+
     return 0;
   }
 
   private executeBulkOperation(command: ParsedBulkCommand): void {
     // TODO: Implement actual bulk operation execution
     this.emit({ type: "bulkOperationExecuted", command });
-    
+
     // Return to navigation mode
     this.stateMachine.transition({ type: "BULK_OPERATION_COMPLETE" });
   }
@@ -1001,118 +1041,137 @@ export class SpreadsheetController {
   private getCommandCompletion(currentInput: string): string | null {
     const referenceCommands = ["refrel", "refabs", "refmix"];
     // Remove leading : for processing, but keep track if it was there
-    const hasColon = currentInput.startsWith(':');
-    const cleanInput = currentInput.replace(/^:/, '').trim().toLowerCase();
-    
+    const hasColon = currentInput.startsWith(":");
+    const cleanInput = currentInput.replace(/^:/, "").trim().toLowerCase();
+
     if (!cleanInput && !hasColon) {
       return null;
     }
-    
+
     // Try bulk command completions first
-    const bulkCompletions = this.bulkCommandParser.getCompletions(`:${cleanInput}`);
+    const bulkCompletions = this.bulkCommandParser.getCompletions(
+      `:${cleanInput}`,
+    );
     if (bulkCompletions.length > 0) {
       // Keep the : prefix if original input had it
-      const cleanedCompletions = bulkCompletions.map(c => hasColon ? c : c.substring(1));
+      const cleanedCompletions = bulkCompletions.map((c) =>
+        hasColon ? c : c.substring(1),
+      );
       if (cleanedCompletions.length === 1) {
         return cleanedCompletions[0];
       }
       // Return the first match for now
       return cleanedCompletions[0];
     }
-    
+
     // Find commands that start with the current input
-    const matches = referenceCommands.filter(cmd => 
-      cmd.startsWith(cleanInput)
+    const matches = referenceCommands.filter((cmd) =>
+      cmd.startsWith(cleanInput),
     );
-    
+
     if (matches.length === 1) {
       // Exact match found, complete it (with : prefix if original had it)
       return hasColon ? `:${matches[0]}` : matches[0];
     }
-    
+
     if (matches.length > 1) {
       // Multiple matches, find the longest common prefix
       let commonPrefix = matches[0];
       for (let i = 1; i < matches.length; i++) {
         let j = 0;
-        while (j < commonPrefix.length && j < matches[i].length && 
-               commonPrefix[j] === matches[i][j]) {
+        while (
+          j < commonPrefix.length &&
+          j < matches[i].length &&
+          commonPrefix[j] === matches[i][j]
+        ) {
           j++;
         }
         commonPrefix = commonPrefix.substring(0, j);
       }
-      
+
       // Only return if the common prefix is longer than current input
       if (commonPrefix.length > cleanInput.length) {
         return hasColon ? `:${commonPrefix}` : commonPrefix;
       }
     }
-    
+
     return null; // No completion found
   }
 
   // Convert all references in current cell to specified type
-  private convertAllReferencesToType(targetType: "relative" | "absolute" | "mixed"): void {
+  private convertAllReferencesToType(
+    targetType: "relative" | "absolute" | "mixed",
+  ): void {
     const state = this.stateMachine.getState();
-    
+
     // Only work if we're in editing mode with a formula
     if (!isEditingMode(state) || !state.editingValue.startsWith("=")) {
       return;
     }
-    
+
     try {
       const detector = new ReferenceDetector();
       const adjuster = new ReferenceAdjuster();
       const analysis = detector.analyzeFormula(state.editingValue);
-      
+
       if (analysis.references.length === 0) {
         return; // No references to convert
       }
-      
+
       let newFormula = state.editingValue;
       let cursorOffset = 0;
-      
+
       // Process references from right to left to avoid position shifts
-      const sortedRefs = analysis.references.sort((a, b) => b.position - a.position);
-      
+      const sortedRefs = analysis.references.sort(
+        (a, b) => b.position - a.position,
+      );
+
       for (const refInfo of sortedRefs) {
         let newRef: CellReference;
-        
+
         if (targetType === "relative") {
-          newRef = { ...refInfo.reference, columnAbsolute: false, rowAbsolute: false };
+          newRef = {
+            ...refInfo.reference,
+            columnAbsolute: false,
+            rowAbsolute: false,
+          };
         } else if (targetType === "absolute") {
-          newRef = { ...refInfo.reference, columnAbsolute: true, rowAbsolute: true };
-        } else { // mixed - alternate between mixed-column and mixed-row
+          newRef = {
+            ...refInfo.reference,
+            columnAbsolute: true,
+            rowAbsolute: true,
+          };
+        } else {
+          // mixed - alternate between mixed-column and mixed-row
           const isMixedColumn = Math.random() > 0.5; // Could be improved with better logic
-          newRef = { 
-            ...refInfo.reference, 
-            columnAbsolute: isMixedColumn, 
-            rowAbsolute: !isMixedColumn 
+          newRef = {
+            ...refInfo.reference,
+            columnAbsolute: isMixedColumn,
+            rowAbsolute: !isMixedColumn,
           };
         }
-        
+
         // Format the new reference
         const newRefText = this.formatCellReference(newRef);
-        
+
         // Replace in formula
         const before = newFormula.substring(0, refInfo.position);
         const after = newFormula.substring(refInfo.position + refInfo.length);
         newFormula = before + newRefText + after;
-        
+
         // Adjust cursor position if needed
         if (state.cursorPosition >= refInfo.position) {
           const lengthDiff = newRefText.length - refInfo.length;
           cursorOffset += lengthDiff;
         }
       }
-      
+
       // Update the editing state with the new formula
       this.stateMachine.transition({
         type: "UPDATE_EDITING_VALUE",
         value: newFormula,
         cursorPosition: Math.max(0, state.cursorPosition + cursorOffset),
       });
-      
     } catch (error) {
       // If anything fails, just ignore the command
       console.warn("Failed to convert references:", error);
@@ -1307,7 +1366,9 @@ export class SpreadsheetController {
       return { ok: false, error: "Not in spreadsheet visual mode" };
     }
 
-    return this.stateMachine.transition({ type: "EXIT_SPREADSHEET_VISUAL_MODE" });
+    return this.stateMachine.transition({
+      type: "EXIT_SPREADSHEET_VISUAL_MODE",
+    });
   }
 
   private calculateNewCursor(
@@ -1323,13 +1384,19 @@ export class SpreadsheetController {
         newRow = Math.max(0, newRow - count);
         break;
       case "down":
-        newRow = Math.min(this.viewportManager.getTotalRows() - 1, newRow + count);
+        newRow = Math.min(
+          this.viewportManager.getTotalRows() - 1,
+          newRow + count,
+        );
         break;
       case "left":
         newCol = Math.max(0, newCol - count);
         break;
       case "right":
-        newCol = Math.min(this.viewportManager.getTotalCols() - 1, newCol + count);
+        newCol = Math.min(
+          this.viewportManager.getTotalCols() - 1,
+          newCol + count,
+        );
         break;
     }
 
@@ -1343,7 +1410,9 @@ export class SpreadsheetController {
 
   // Public API for selection management
   getCurrentSelection(): Selection | undefined {
-    return this.selectionManager.getCurrentSelection(this.stateMachine.getState());
+    return this.selectionManager.getCurrentSelection(
+      this.stateMachine.getState(),
+    );
   }
 
   getSelectionBounds(selection?: Selection) {
@@ -1354,7 +1423,9 @@ export class SpreadsheetController {
     return this.selectionManager.getSelectionBounds(sel);
   }
 
-  getCellsInSelection(selection?: Selection): Iterable<CellAddress> | undefined {
+  getCellsInSelection(
+    selection?: Selection,
+  ): Iterable<CellAddress> | undefined {
     const sel = selection || this.getCurrentSelection();
     if (!sel) {
       return undefined;
@@ -1371,37 +1442,43 @@ export class SpreadsheetController {
   }
 
   // Structural operation handlers
-  private handleStructuralInsert(action: VimAction, state: UIState): Result<UIState> {
+  private handleStructuralInsert(
+    action: VimAction,
+    state: UIState,
+  ): Result<UIState> {
     if (action.type !== "structuralInsert") {
       return { ok: true, value: state };
     }
-    
+
     const cursor = state.cursor;
     const count = action.count || 1;
-    
+
     if (action.target === "row") {
       this.insertRows(cursor.row, count);
     } else if (action.target === "column") {
       this.insertColumns(cursor.col, count);
     }
-    
+
     return { ok: true, value: state };
   }
 
-  private handleStructuralDelete(action: VimAction, state: UIState): Result<UIState> {
+  private handleStructuralDelete(
+    action: VimAction,
+    state: UIState,
+  ): Result<UIState> {
     if (action.type !== "structuralDelete") {
       return { ok: true, value: state };
     }
-    
+
     const cursor = state.cursor;
     const count = action.count || 1;
-    
+
     if (action.target === "row") {
       this.deleteRows(cursor.row, count);
     } else if (action.target === "column") {
       this.deleteColumns(cursor.col, count);
     }
-    
+
     return { ok: true, value: state };
   }
 
@@ -1420,15 +1497,18 @@ export class SpreadsheetController {
   }
 
   // Structural operations
-  async insertRows(beforeRow: number, count: number = 1): Promise<Result<UIState>> {
-    const operation: StructuralOperation = { 
+  async insertRows(
+    beforeRow: number,
+    count: number = 1,
+  ): Promise<Result<UIState>> {
+    const operation: StructuralOperation = {
       type: "insertRow",
       index: beforeRow,
       count,
       timestamp: Date.now(),
-      id: `insertRow-${Date.now()}-${Math.random()}`
+      id: `insertRow-${Date.now()}-${Math.random()}`,
     };
-    
+
     // Capture state before operation for undo
     const currentState = this.getState();
     const beforeSnapshot = this.structuralUndoManager.createSnapshot(
@@ -1437,9 +1517,9 @@ export class SpreadsheetController {
         cursor: currentState.cursor,
         selection: undefined,
       },
-      currentState.viewport
+      currentState.viewport,
     );
-    
+
     // Start operation with UI feedback
     await this.structuralManager.startOperation(operation, {
       affectedCells: [],
@@ -1448,25 +1528,25 @@ export class SpreadsheetController {
       estimatedTime: 100,
       requiresConfirmation: false,
     });
-    
+
     try {
       // Execute the actual operation
       const result = await this.structuralEngine.insertRows(beforeRow, count);
-      
+
       if (!result.ok) {
         this.structuralManager.failOperation(operation, result.error);
         return { ok: false, error: result.error };
       }
-      
+
       // Update cursor if needed (move down if inserting above current position)
       const state = this.stateMachine.getState();
       if (state.cursor.row >= beforeRow) {
         this.stateMachine.transition({
           type: "UPDATE_CURSOR",
-          cursor: { ...state.cursor, row: state.cursor.row + count }
+          cursor: { ...state.cursor, row: state.cursor.row + count },
         });
       }
-      
+
       // Capture state after operation for redo
       const afterState = this.getState();
       const afterSnapshot = this.structuralUndoManager.createSnapshot(
@@ -1475,21 +1555,21 @@ export class SpreadsheetController {
           cursor: afterState.cursor,
           selection: undefined,
         },
-        afterState.viewport
+        afterState.viewport,
       );
-      
+
       // Record the operation for undo/redo
       this.structuralUndoManager.recordOperation(
         operation.id,
         operation,
-        `Insert ${count} row${count === 1 ? '' : 's'} at row ${beforeRow + 1}`,
+        `Insert ${count} row${count === 1 ? "" : "s"} at row ${beforeRow + 1}`,
         beforeSnapshot,
-        afterSnapshot
+        afterSnapshot,
       );
-      
+
       this.structuralManager.completeOperation([], new Map());
       this.emitUndoRedoStateChanged();
-      
+
       return { ok: true, value: this.stateMachine.getState() };
     } catch (error) {
       this.structuralManager.failOperation(operation, String(error));
@@ -1497,15 +1577,18 @@ export class SpreadsheetController {
     }
   }
 
-  async insertColumns(beforeCol: number, count: number = 1): Promise<Result<UIState>> {
+  async insertColumns(
+    beforeCol: number,
+    count: number = 1,
+  ): Promise<Result<UIState>> {
     const operation: StructuralOperation = {
       type: "insertColumn",
       index: beforeCol,
       count,
       timestamp: Date.now(),
-      id: `insertColumn-${Date.now()}-${Math.random()}`
+      id: `insertColumn-${Date.now()}-${Math.random()}`,
     };
-    
+
     // Capture state before operation for undo
     const currentState = this.getState();
     const beforeSnapshot = this.structuralUndoManager.createSnapshot(
@@ -1514,9 +1597,9 @@ export class SpreadsheetController {
         cursor: currentState.cursor,
         selection: undefined,
       },
-      currentState.viewport
+      currentState.viewport,
     );
-    
+
     await this.structuralManager.startOperation(operation, {
       affectedCells: [],
       formulaUpdates: [],
@@ -1524,33 +1607,39 @@ export class SpreadsheetController {
       estimatedTime: 100,
       requiresConfirmation: false,
     });
-    
+
     try {
       // Execute the actual operation
-      const result = await this.structuralEngine.insertColumns(beforeCol, count);
-      
+      const result = await this.structuralEngine.insertColumns(
+        beforeCol,
+        count,
+      );
+
       if (!result.ok) {
         this.structuralManager.failOperation(operation, result.error);
         return { ok: false, error: result.error };
       }
-      
+
       // Update cursor if needed (move right if inserting before current position)
       const state = this.stateMachine.getState();
       if (state.cursor.col >= beforeCol) {
         this.stateMachine.transition({
           type: "UPDATE_CURSOR",
-          cursor: { ...state.cursor, col: state.cursor.col + count }
+          cursor: { ...state.cursor, col: state.cursor.col + count },
         });
       }
-      
+
       // Update viewport if inserting columns affects it
       if (state.viewport.startCol >= beforeCol) {
         this.stateMachine.transition({
           type: "UPDATE_VIEWPORT",
-          viewport: { ...state.viewport, startCol: state.viewport.startCol + count }
+          viewport: {
+            ...state.viewport,
+            startCol: state.viewport.startCol + count,
+          },
         });
       }
-      
+
       // Capture state after operation for redo
       const afterState = this.getState();
       const afterSnapshot = this.structuralUndoManager.createSnapshot(
@@ -1559,21 +1648,21 @@ export class SpreadsheetController {
           cursor: afterState.cursor,
           selection: undefined,
         },
-        afterState.viewport
+        afterState.viewport,
       );
-      
+
       // Record the operation for undo/redo
       this.structuralUndoManager.recordOperation(
         operation.id,
         operation,
-        `Insert ${count} column${count === 1 ? '' : 's'} at column ${beforeCol + 1}`,
+        `Insert ${count} column${count === 1 ? "" : "s"} at column ${beforeCol + 1}`,
         beforeSnapshot,
-        afterSnapshot
+        afterSnapshot,
       );
-      
+
       this.structuralManager.completeOperation([], new Map());
       this.emitUndoRedoStateChanged();
-      
+
       return { ok: true, value: this.stateMachine.getState() };
     } catch (error) {
       this.structuralManager.failOperation(operation, String(error));
@@ -1581,15 +1670,18 @@ export class SpreadsheetController {
     }
   }
 
-  async deleteRows(startRow: number, count: number = 1): Promise<Result<UIState>> {
+  async deleteRows(
+    startRow: number,
+    count: number = 1,
+  ): Promise<Result<UIState>> {
     const operation: StructuralOperation = {
       type: "deleteRow",
       index: startRow,
       count,
       timestamp: Date.now(),
-      id: `deleteRow-${Date.now()}-${Math.random()}`
+      id: `deleteRow-${Date.now()}-${Math.random()}`,
     };
-    
+
     // Capture state before operation for undo
     const currentState = this.getState();
     const beforeSnapshot = this.structuralUndoManager.createSnapshot(
@@ -1598,9 +1690,9 @@ export class SpreadsheetController {
         cursor: currentState.cursor,
         selection: undefined,
       },
-      currentState.viewport
+      currentState.viewport,
     );
-    
+
     await this.structuralManager.startOperation(operation, {
       affectedCells: [],
       formulaUpdates: [],
@@ -1608,20 +1700,20 @@ export class SpreadsheetController {
       estimatedTime: 100,
       requiresConfirmation: count > 5,
     });
-    
+
     try {
       // Execute the actual operation
       const result = await this.structuralEngine.deleteRows(startRow, count);
-      
+
       if (!result.ok) {
         this.structuralManager.failOperation(operation, result.error);
         return { ok: false, error: result.error };
       }
-      
+
       // Update cursor if needed
       const state = this.stateMachine.getState();
       let newCursorRow = state.cursor.row;
-      
+
       if (state.cursor.row >= startRow + count) {
         // Cursor is below deleted rows, move up
         newCursorRow = state.cursor.row - count;
@@ -1629,14 +1721,14 @@ export class SpreadsheetController {
         // Cursor is within deleted rows, move to start of deletion
         newCursorRow = Math.max(0, startRow - 1);
       }
-      
+
       if (newCursorRow !== state.cursor.row) {
         this.stateMachine.transition({
           type: "UPDATE_CURSOR",
-          cursor: { ...state.cursor, row: newCursorRow }
+          cursor: { ...state.cursor, row: newCursorRow },
         });
       }
-      
+
       // Capture state after operation for redo
       const afterState = this.getState();
       const afterSnapshot = this.structuralUndoManager.createSnapshot(
@@ -1645,21 +1737,21 @@ export class SpreadsheetController {
           cursor: afterState.cursor,
           selection: undefined,
         },
-        afterState.viewport
+        afterState.viewport,
       );
-      
+
       // Record the operation for undo/redo
       this.structuralUndoManager.recordOperation(
         operation.id,
         operation,
-        `Delete ${count} row${count === 1 ? '' : 's'} starting at row ${startRow + 1}`,
+        `Delete ${count} row${count === 1 ? "" : "s"} starting at row ${startRow + 1}`,
         beforeSnapshot,
-        afterSnapshot
+        afterSnapshot,
       );
-      
+
       this.structuralManager.completeOperation([], new Map());
       this.emitUndoRedoStateChanged();
-      
+
       return { ok: true, value: this.stateMachine.getState() };
     } catch (error) {
       this.structuralManager.failOperation(operation, String(error));
@@ -1667,15 +1759,18 @@ export class SpreadsheetController {
     }
   }
 
-  async deleteColumns(startCol: number, count: number = 1): Promise<Result<UIState>> {
+  async deleteColumns(
+    startCol: number,
+    count: number = 1,
+  ): Promise<Result<UIState>> {
     const operation: StructuralOperation = {
       type: "deleteColumn",
       index: startCol,
       count,
       timestamp: Date.now(),
-      id: `deleteColumn-${Date.now()}-${Math.random()}`
+      id: `deleteColumn-${Date.now()}-${Math.random()}`,
     };
-    
+
     // Capture state before operation for undo
     const currentState = this.getState();
     const beforeSnapshot = this.structuralUndoManager.createSnapshot(
@@ -1684,9 +1779,9 @@ export class SpreadsheetController {
         cursor: currentState.cursor,
         selection: undefined,
       },
-      currentState.viewport
+      currentState.viewport,
     );
-    
+
     await this.structuralManager.startOperation(operation, {
       affectedCells: [],
       formulaUpdates: [],
@@ -1694,20 +1789,20 @@ export class SpreadsheetController {
       estimatedTime: 100,
       requiresConfirmation: count > 5,
     });
-    
+
     try {
       // Execute the actual operation
       const result = await this.structuralEngine.deleteColumns(startCol, count);
-      
+
       if (!result.ok) {
         this.structuralManager.failOperation(operation, result.error);
         return { ok: false, error: result.error };
       }
-      
+
       // Update cursor if needed
       const state = this.stateMachine.getState();
       let newCursorCol = state.cursor.col;
-      
+
       if (state.cursor.col >= startCol + count) {
         // Cursor is to the right of deleted columns, move left
         newCursorCol = state.cursor.col - count;
@@ -1715,14 +1810,14 @@ export class SpreadsheetController {
         // Cursor is within deleted columns, move to start of deletion
         newCursorCol = Math.max(0, startCol - 1);
       }
-      
+
       if (newCursorCol !== state.cursor.col) {
         this.stateMachine.transition({
           type: "UPDATE_CURSOR",
-          cursor: { ...state.cursor, col: newCursorCol }
+          cursor: { ...state.cursor, col: newCursorCol },
         });
       }
-      
+
       // Capture state after operation for redo
       const afterState = this.getState();
       const afterSnapshot = this.structuralUndoManager.createSnapshot(
@@ -1731,21 +1826,21 @@ export class SpreadsheetController {
           cursor: afterState.cursor,
           selection: undefined,
         },
-        afterState.viewport
+        afterState.viewport,
       );
-      
+
       // Record the operation for undo/redo
       this.structuralUndoManager.recordOperation(
         operation.id,
         operation,
-        `Delete ${count} column${count === 1 ? '' : 's'} starting at column ${startCol + 1}`,
+        `Delete ${count} column${count === 1 ? "" : "s"} starting at column ${startCol + 1}`,
         beforeSnapshot,
-        afterSnapshot
+        afterSnapshot,
       );
-      
+
       this.structuralManager.completeOperation([], new Map());
       this.emitUndoRedoStateChanged();
-      
+
       return { ok: true, value: this.stateMachine.getState() };
     } catch (error) {
       this.structuralManager.failOperation(operation, String(error));
@@ -1756,7 +1851,7 @@ export class SpreadsheetController {
   // Update cursor position (used in tests)
   updateCursor(cursor: CellAddress): Result<UIState> {
     const state = this.stateMachine.getState();
-    
+
     // In visual mode, we need to extend the selection
     if (isSpreadsheetVisualMode(state)) {
       const newSelection = this.selectionManager.extendSelection(
@@ -1764,23 +1859,23 @@ export class SpreadsheetController {
         cursor,
         state.visualMode,
       );
-      
+
       // Update both cursor and selection
       const cursorResult = this.stateMachine.transition({
         type: "UPDATE_CURSOR",
         cursor,
       });
-      
+
       if (!cursorResult.ok) {
         return cursorResult;
       }
-      
+
       return this.stateMachine.transition({
         type: "UPDATE_SELECTION",
         selection: newSelection,
       });
     }
-    
+
     // Normal cursor update
     return this.stateMachine.transition({
       type: "UPDATE_CURSOR",
@@ -1793,10 +1888,10 @@ export class SpreadsheetController {
     try {
       const grid = this.structuralEngine.getGrid();
       const result = await this.structuralUndoManager.undo(grid);
-      
+
       if (result.ok) {
         const snapshot = result.value;
-        
+
         // Restore cursor and viewport state if available
         if (snapshot.cursorState) {
           this.stateMachine.transition({
@@ -1804,20 +1899,20 @@ export class SpreadsheetController {
             cursor: snapshot.cursorState.cursor,
           });
         }
-        
+
         if (snapshot.viewportState) {
           this.stateMachine.transition({
             type: "UPDATE_VIEWPORT",
             viewport: snapshot.viewportState,
           });
         }
-        
+
         this.emit({
           type: "undoCompleted",
           description: "Structural operation undone",
           snapshot,
         });
-        
+
         this.emitUndoRedoStateChanged();
       } else {
         this.emit({
@@ -1837,31 +1932,31 @@ export class SpreadsheetController {
     try {
       const grid = this.structuralEngine.getGrid();
       const result = await this.structuralUndoManager.redo(grid);
-      
+
       if (result.ok) {
         const snapshot = result.value;
-        
-        // Restore cursor and viewport state if available  
+
+        // Restore cursor and viewport state if available
         if (snapshot.cursorState) {
           this.stateMachine.transition({
             type: "UPDATE_CURSOR",
             cursor: snapshot.cursorState.cursor,
           });
         }
-        
+
         if (snapshot.viewportState) {
           this.stateMachine.transition({
             type: "UPDATE_VIEWPORT",
             viewport: snapshot.viewportState,
           });
         }
-        
+
         this.emit({
           type: "redoCompleted",
           description: "Structural operation redone",
           snapshot,
         });
-        
+
         this.emitUndoRedoStateChanged();
       } else {
         this.emit({
@@ -1904,7 +1999,8 @@ export class SpreadsheetController {
 
   // Transaction methods for grouping undo/redo operations
   startTransaction(description: string): string {
-    const transactionId = this.structuralUndoManager.startTransaction(description);
+    const transactionId =
+      this.structuralUndoManager.startTransaction(description);
     return transactionId;
   }
 
@@ -1933,16 +2029,36 @@ export class SpreadsheetController {
         await this.redo();
         break;
       case "menu:copy":
-        this.handleKeyPress("y", { key: "y", ctrl: false, shift: false, alt: false });
+        this.handleKeyPress("y", {
+          key: "y",
+          ctrl: false,
+          shift: false,
+          alt: false,
+        });
         break;
       case "menu:paste":
-        this.handleKeyPress("p", { key: "p", ctrl: false, shift: false, alt: false });
+        this.handleKeyPress("p", {
+          key: "p",
+          ctrl: false,
+          shift: false,
+          alt: false,
+        });
         break;
       case "menu:cut":
-        this.handleKeyPress("d", { key: "d", ctrl: false, shift: false, alt: false });
+        this.handleKeyPress("d", {
+          key: "d",
+          ctrl: false,
+          shift: false,
+          alt: false,
+        });
         break;
       case "menu:selectAll":
-        this.handleKeyPress("a", { key: "a", ctrl: true, shift: false, alt: false });
+        this.handleKeyPress("a", {
+          key: "a",
+          ctrl: true,
+          shift: false,
+          alt: false,
+        });
         break;
       default:
         // Handle other menu events if needed

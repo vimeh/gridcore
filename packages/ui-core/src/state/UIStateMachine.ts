@@ -1,33 +1,33 @@
 import { CellAddress, CellRange } from "@gridcore/core";
+import type { ParsedBulkCommand } from "../commands/BulkCommandParser";
 import type { Result } from "../utils/Result";
 import { err, ok } from "../utils/Result";
 import {
   type CellMode,
   createBulkOperationState,
   createCommandState,
+  createDeleteState,
   createEditingState,
+  createInsertState,
   // createFillState,
   createNavigationState,
   createResizeState,
   createSpreadsheetVisualState,
-  createInsertState,
-  createDeleteState,
   type InsertMode,
   isBulkOperationMode,
   isCommandMode,
+  isDeleteMode,
   isEditingMode,
+  isInsertMode,
   // isFillMode,
   isNavigationMode,
   isResizeMode,
   isSpreadsheetVisualMode,
-  isInsertMode,
-  isDeleteMode,
   type Selection,
   type SpreadsheetVisualMode,
   type UIState,
   type VisualMode,
 } from "./UIState";
-import type { ParsedBulkCommand } from "../commands/BulkCommandParser";
 
 // Action types for state transitions
 export type Action =
@@ -121,8 +121,14 @@ export class UIStateMachine {
       ["navigation.START_EDITING", this.startEditing.bind(this)],
       ["navigation.ENTER_COMMAND_MODE", this.enterCommandMode.bind(this)],
       ["navigation.ENTER_RESIZE_MODE", this.enterResizeMode.bind(this)],
-      ["navigation.ENTER_SPREADSHEET_VISUAL_MODE", this.handleEnterSpreadsheetVisualMode.bind(this)],
-      ["visual.EXIT_SPREADSHEET_VISUAL_MODE", this.handleExitSpreadsheetVisualMode.bind(this)],
+      [
+        "navigation.ENTER_SPREADSHEET_VISUAL_MODE",
+        this.handleEnterSpreadsheetVisualMode.bind(this),
+      ],
+      [
+        "visual.EXIT_SPREADSHEET_VISUAL_MODE",
+        this.handleExitSpreadsheetVisualMode.bind(this),
+      ],
       ["visual.UPDATE_SELECTION", this.updateSelection.bind(this)],
       ["editing.EXIT_TO_NAVIGATION", this.exitToNavigation.bind(this)],
       ["editing.normal.ENTER_INSERT_MODE", this.enterInsertMode.bind(this)],
@@ -134,10 +140,16 @@ export class UIStateMachine {
       ["command.UPDATE_COMMAND_VALUE", this.updateCommandValue.bind(this)],
       ["command.START_BULK_OPERATION", this.startBulkOperation.bind(this)],
       ["bulkOperation.SHOW_BULK_PREVIEW", this.showBulkPreview.bind(this)],
-      ["bulkOperation.BULK_OPERATION_COMPLETE", this.completeBulkOperation.bind(this)],
+      [
+        "bulkOperation.BULK_OPERATION_COMPLETE",
+        this.completeBulkOperation.bind(this),
+      ],
       ["resize.EXIT_RESIZE_MODE", this.exitResizeMode.bind(this)],
       ["resize.UPDATE_RESIZE_SIZE", this.updateResizeSize.bind(this)],
-      ["insert.EXIT_STRUCTURAL_INSERT_MODE", this.exitStructuralInsertMode.bind(this)],
+      [
+        "insert.EXIT_STRUCTURAL_INSERT_MODE",
+        this.exitStructuralInsertMode.bind(this),
+      ],
       ["insert.UPDATE_INSERT_COUNT", this.updateInsertCount.bind(this)],
       ["delete.EXIT_DELETE_MODE", this.exitDeleteMode.bind(this)],
       ["delete.CONFIRM_DELETE", this.confirmDelete.bind(this)],
@@ -339,7 +351,10 @@ export class UIStateMachine {
     });
   }
 
-  private handleEnterSpreadsheetVisualMode(state: UIState, action: Action): Result<UIState> {
+  private handleEnterSpreadsheetVisualMode(
+    state: UIState,
+    action: Action,
+  ): Result<UIState> {
     if (action.type !== "ENTER_SPREADSHEET_VISUAL_MODE") {
       return err("Invalid action type");
     }
@@ -347,13 +362,15 @@ export class UIStateMachine {
       return err("Can only enter spreadsheet visual mode from navigation mode");
     }
 
-    return ok(createSpreadsheetVisualState(
-      state.cursor,
-      state.viewport,
-      action.visualMode,
-      state.cursor, // anchor starts at current cursor
-      action.selection,
-    ));
+    return ok(
+      createSpreadsheetVisualState(
+        state.cursor,
+        state.viewport,
+        action.visualMode,
+        state.cursor, // anchor starts at current cursor
+        action.selection,
+      ),
+    );
   }
 
   private handleExitSpreadsheetVisualMode(state: UIState): Result<UIState> {
@@ -361,7 +378,9 @@ export class UIStateMachine {
       return err("Can only exit spreadsheet visual mode when in visual mode");
     }
 
-    return ok(createNavigationState(state.cursor, state.viewport, state.selection));
+    return ok(
+      createNavigationState(state.cursor, state.viewport, state.selection),
+    );
   }
 
   private updateSelection(state: UIState, action: Action): Result<UIState> {
@@ -401,7 +420,9 @@ export class UIStateMachine {
     if (!isCommandMode(state)) {
       return err("Can only start bulk operation from command mode");
     }
-    return ok(createBulkOperationState(state.cursor, state.viewport, action.command));
+    return ok(
+      createBulkOperationState(state.cursor, state.viewport, action.command),
+    );
   }
 
   private showBulkPreview(state: UIState): Result<UIState> {
@@ -416,7 +437,9 @@ export class UIStateMachine {
 
   private completeBulkOperation(state: UIState): Result<UIState> {
     if (!isBulkOperationMode(state)) {
-      return err("Can only complete bulk operation when in bulk operation mode");
+      return err(
+        "Can only complete bulk operation when in bulk operation mode",
+      );
     }
     return ok(createNavigationState(state.cursor, state.viewport));
   }
@@ -625,7 +648,10 @@ export class UIStateMachine {
   }
 
   // Structural insert mode handlers
-  private enterStructuralInsertMode(state: UIState, action: Action): Result<UIState> {
+  private enterStructuralInsertMode(
+    state: UIState,
+    action: Action,
+  ): Result<UIState> {
     if (action.type !== "ENTER_STRUCTURAL_INSERT_MODE") {
       return err("Invalid action type");
     }

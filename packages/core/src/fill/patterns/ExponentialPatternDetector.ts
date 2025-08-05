@@ -1,9 +1,9 @@
-import type { CellValue, CellAddress, CellRange } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import type {
-  PatternDetector,
-  Pattern,
-  PatternGenerator,
   FillDirection,
+  Pattern,
+  PatternDetector,
+  PatternGenerator,
   PatternType,
 } from "../types";
 
@@ -26,20 +26,20 @@ class ExponentialPatternGenerator implements PatternGenerator {
     // For geometric progression, each next value is previous value * ratio
     const sourceLength = sourceValues.length;
     const lastValue = Number(sourceValues[sourceLength - 1]);
-    
+
     // Generate the next value by multiplying the last value by ratio (index + 1) times
-    const value = lastValue * Math.pow(this.ratio, index + 1);
-    
+    const value = lastValue * this.ratio ** (index + 1);
+
     // Handle very large or very small numbers
     if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
       throw new Error("Exponential value out of safe range");
     }
-    
+
     // Round to avoid floating point precision issues for nice ratios and very small results
     if (this.isNiceRatio(this.ratio) && Math.abs(value) >= 1) {
       return Math.round(value) as unknown as CellValue;
     }
-    
+
     return value as unknown as CellValue;
   }
 
@@ -47,7 +47,12 @@ class ExponentialPatternGenerator implements PatternGenerator {
    * Check if ratio is a "nice" number that should produce integers
    */
   private isNiceRatio(ratio: number): boolean {
-    return Number.isInteger(ratio) || ratio === 0.5 || ratio === 0.25 || ratio === 0.1;
+    return (
+      Number.isInteger(ratio) ||
+      ratio === 0.5 ||
+      ratio === 0.25 ||
+      ratio === 0.1
+    );
   }
 }
 
@@ -71,7 +76,7 @@ export class ExponentialPatternDetector implements PatternDetector {
     }
 
     // Filter out zeros as they break geometric sequences
-    const nonZeroNumbers = numbers.filter(n => n !== 0);
+    const nonZeroNumbers = numbers.filter((n) => n !== 0);
     if (nonZeroNumbers.length < 2) {
       return null;
     }
@@ -83,7 +88,10 @@ export class ExponentialPatternDetector implements PatternDetector {
     }
 
     // Calculate confidence based on consistency and properties
-    const confidence = this.calculateConfidence(nonZeroNumbers, geometricResult);
+    const confidence = this.calculateConfidence(
+      nonZeroNumbers,
+      geometricResult,
+    );
     if (confidence < 0.6) {
       return null;
     }
@@ -113,7 +121,7 @@ export class ExponentialPatternDetector implements PatternDetector {
    */
   private extractNumbers(values: CellValue[]): number[] {
     const numbers: number[] = [];
-    
+
     for (const value of values) {
       const num = this.parseNumber(value);
       if (num !== null) {
@@ -149,7 +157,7 @@ export class ExponentialPatternDetector implements PatternDetector {
    * Check if the numbers follow a geometric pattern
    */
   private checkGeometricPattern(numbers: number[]): {
-    type: 'standard' | 'power-of-base';
+    type: "standard" | "power-of-base";
     ratio: number;
     baseValue: number;
     startIndex: number;
@@ -157,13 +165,13 @@ export class ExponentialPatternDetector implements PatternDetector {
     // Try standard geometric sequence (a, ar, ar², ar³, ...)
     const standardResult = this.checkStandardGeometric(numbers);
     if (standardResult) {
-      return { type: 'standard', ...standardResult };
+      return { type: "standard", ...standardResult };
     }
 
     // Try power-of-base sequences (2¹, 2², 2³, ... or 3¹, 3², 3³, ...)
     const powerResult = this.checkPowerOfBase(numbers);
     if (powerResult) {
-      return { type: 'power-of-base', ...powerResult };
+      return { type: "power-of-base", ...powerResult };
     }
 
     return null;
@@ -217,7 +225,7 @@ export class ExponentialPatternDetector implements PatternDetector {
 
     // Try common bases
     const commonBases = [2, 3, 4, 5, 10];
-    
+
     for (const base of commonBases) {
       const result = this.checkSpecificPowerBase(numbers, base);
       if (result) {
@@ -243,7 +251,10 @@ export class ExponentialPatternDetector implements PatternDetector {
   /**
    * Check if numbers match b^n pattern for specific base
    */
-  private checkSpecificPowerBase(numbers: number[], base: number): {
+  private checkSpecificPowerBase(
+    numbers: number[],
+    base: number,
+  ): {
     ratio: number;
     baseValue: number;
     startIndex: number;
@@ -254,8 +265,11 @@ export class ExponentialPatternDetector implements PatternDetector {
       const tolerance = 0.001;
 
       for (let i = 0; i < numbers.length; i++) {
-        const expectedValue = Math.pow(base, startPower + i);
-        if (Math.abs(numbers[i] - expectedValue) > Math.max(tolerance, expectedValue * tolerance)) {
+        const expectedValue = base ** (startPower + i);
+        if (
+          Math.abs(numbers[i] - expectedValue) >
+          Math.max(tolerance, expectedValue * tolerance)
+        ) {
           isMatch = false;
           break;
         }
@@ -264,7 +278,7 @@ export class ExponentialPatternDetector implements PatternDetector {
       if (isMatch) {
         return {
           ratio: base,
-          baseValue: Math.pow(base, startPower),
+          baseValue: base ** startPower,
           startIndex: 0, // Generator will handle the power calculation
         };
       }
@@ -292,7 +306,7 @@ export class ExponentialPatternDetector implements PatternDetector {
     }
 
     // Boost confidence for power-of-base sequences
-    if (geoResult.type === 'power-of-base') {
+    if (geoResult.type === "power-of-base") {
       confidence += 0.05;
     }
 
@@ -315,7 +329,10 @@ export class ExponentialPatternDetector implements PatternDetector {
     // Check for potential overflow issues
     const lastValue = numbers[numbers.length - 1];
     const nextValue = lastValue * geoResult.ratio;
-    if (!Number.isFinite(nextValue) || Math.abs(nextValue) > Number.MAX_SAFE_INTEGER) {
+    if (
+      !Number.isFinite(nextValue) ||
+      Math.abs(nextValue) > Number.MAX_SAFE_INTEGER
+    ) {
       confidence *= 0.5; // Reduce confidence if we'll overflow soon
     }
 
@@ -346,7 +363,10 @@ export class ExponentialPatternDetector implements PatternDetector {
     const end = numbers[numbers.length - 1];
     const next = end * geoResult.ratio;
 
-    if (geoResult.type === 'power-of-base' && Number.isInteger(geoResult.ratio)) {
+    if (
+      geoResult.type === "power-of-base" &&
+      Number.isInteger(geoResult.ratio)
+    ) {
       return `Powers of ${geoResult.ratio} (${start}, ${end}, ${Math.round(next)}, ...)`;
     } else if (geoResult.ratio === 2) {
       return `Double each time (${start}, ${end}, ${Math.round(next)}, ...)`;

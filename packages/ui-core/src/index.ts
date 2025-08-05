@@ -1,10 +1,23 @@
 // State types and utilities
 
-// Commands
-export * from "./commands";
-
 export { CellVimBehavior } from "./behaviors/CellVimBehavior";
 export { type ResizeAction, ResizeBehavior } from "./behaviors/ResizeBehavior";
+// Structural behaviors
+export {
+  type CellHighlight,
+  ConfirmationDialog,
+  DEFAULT_STRUCTURAL_UI_CONFIG,
+  type HighlightType as StructuralHighlightType,
+  ProgressIndicator,
+  type StructuralOperation,
+  StructuralOperationFeedback,
+  StructuralOperationManager,
+  type StructuralOperationState,
+  type StructuralUIConfig,
+  type StructuralUIEvent,
+  type StructuralWarning,
+  WarningDialog,
+} from "./behaviors/structural";
 
 // Behaviors
 export {
@@ -13,14 +26,6 @@ export {
   type VimAction,
   VimBehavior,
 } from "./behaviors/VimBehavior";
-
-// Managers
-export {
-  type SelectionBounds,
-  type SelectionManager,
-  DefaultSelectionManager,
-} from "./managers/SelectionManager";
-
 // VimMode - unified interface for vim text editing
 export {
   type EditMode,
@@ -29,6 +34,8 @@ export {
   type VimModeType,
   type VimState,
 } from "./behaviors/VimMode";
+// Commands
+export * from "./commands";
 // Controller
 export {
   type ControllerEvent,
@@ -36,6 +43,12 @@ export {
   type SpreadsheetControllerOptions,
   type ViewportManager,
 } from "./controllers/SpreadsheetController";
+// Managers
+export {
+  DefaultSelectionManager,
+  type SelectionBounds,
+  type SelectionManager,
+} from "./managers/SelectionManager";
 export {
   type CellMode,
   // createBulkOperationState,
@@ -77,20 +90,3 @@ export {
   generateMermaidDiagram,
   generateStateTable,
 } from "./utils/StateVisualizer";
-
-// Structural behaviors
-export {
-  StructuralOperationManager,
-  type CellHighlight,
-  type StructuralOperationState,
-  type StructuralUIConfig,
-  DEFAULT_STRUCTURAL_UI_CONFIG,
-  type StructuralOperation,
-  type StructuralUIEvent,
-  type StructuralWarning,
-  type HighlightType as StructuralHighlightType,
-  ConfirmationDialog,
-  ProgressIndicator,
-  WarningDialog,
-  StructuralOperationFeedback,
-} from "./behaviors/structural";

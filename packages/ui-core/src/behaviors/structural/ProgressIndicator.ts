@@ -34,7 +34,7 @@ export class ProgressIndicator {
 
   constructor(
     container?: HTMLElement,
-    config: Partial<ProgressIndicatorConfig> = {}
+    config: Partial<ProgressIndicatorConfig> = {},
   ) {
     this.container = container;
     this.config = { ...DEFAULT_PROGRESS_CONFIG, ...config };
@@ -86,9 +86,15 @@ export class ProgressIndicator {
       return;
     }
 
-    const progressBar = this.progressElement.querySelector(".progress-bar") as HTMLElement;
-    const progressText = this.progressElement.querySelector(".progress-text") as HTMLElement;
-    const timeText = this.progressElement.querySelector(".time-text") as HTMLElement;
+    const progressBar = this.progressElement.querySelector(
+      ".progress-bar",
+    ) as HTMLElement;
+    const progressText = this.progressElement.querySelector(
+      ".progress-text",
+    ) as HTMLElement;
+    const timeText = this.progressElement.querySelector(
+      ".time-text",
+    ) as HTMLElement;
 
     if (progressBar) {
       progressBar.style.width = `${progress}%`;
@@ -146,24 +152,27 @@ export class ProgressIndicator {
   /**
    * Create progress element
    */
-  private createProgressElement(operation: StructuralOperation, estimatedDuration: number): void {
+  private createProgressElement(
+    operation: StructuralOperation,
+    estimatedDuration: number,
+  ): void {
     this.progressElement = document.createElement("div");
     this.progressElement.className = `structural-progress-indicator structural-progress-${this.config.position} structural-progress-${this.config.theme}`;
 
     const operationText = this.getOperationText(operation);
-    
+
     this.progressElement.innerHTML = `
       <div class="progress-content">
         <div class="progress-header">
           <span class="operation-text">${operationText}</span>
-          ${this.config.showCancelButton ? '<button class="cancel-button" type="button">Cancel</button>' : ''}
+          ${this.config.showCancelButton ? '<button class="cancel-button" type="button">Cancel</button>' : ""}
         </div>
         <div class="progress-bar-container">
           <div class="progress-bar"></div>
         </div>
         <div class="progress-footer">
-          ${this.config.showPercentage ? '<span class="progress-text">0%</span>' : ''}
-          ${this.config.showEstimatedTime ? '<span class="time-text">Calculating...</span>' : ''}
+          ${this.config.showPercentage ? '<span class="progress-text">0%</span>' : ""}
+          ${this.config.showEstimatedTime ? '<span class="time-text">Calculating...</span>' : ""}
         </div>
       </div>
     `;
@@ -218,7 +227,7 @@ export class ProgressIndicator {
    */
   private getOperationText(operation: StructuralOperation): string {
     const count = operation.count > 1 ? `${operation.count} ` : "";
-    
+
     switch (operation.type) {
       case "insertRow":
         return `Inserting ${count}row${operation.count > 1 ? "s" : ""}...`;
@@ -240,12 +249,12 @@ export class ProgressIndicator {
     if (ms < 1000) {
       return "Less than 1 second";
     }
-    
+
     const seconds = Math.ceil(ms / 1000);
     if (seconds < 60) {
       return `${seconds} second${seconds > 1 ? "s" : ""}`;
     }
-    
+
     const minutes = Math.ceil(seconds / 60);
     return `${minutes} minute${minutes > 1 ? "s" : ""}`;
   }
@@ -256,7 +265,7 @@ export class ProgressIndicator {
   private setupStyles(): void {
     const style = document.createElement("style");
     style.id = "structural-progress-indicator-styles";
-    
+
     style.textContent = `
       .structural-progress-indicator {
         position: fixed;
@@ -397,13 +406,15 @@ export class ProgressIndicator {
         font-style: italic;
       }
     `;
-    
+
     // Remove existing styles if any
-    const existing = document.getElementById("structural-progress-indicator-styles");
+    const existing = document.getElementById(
+      "structural-progress-indicator-styles",
+    );
     if (existing) {
       existing.remove();
     }
-    
+
     document.head.appendChild(style);
   }
 }

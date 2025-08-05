@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, mock } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { ProgressIndicator } from "./ProgressIndicator";
 import type { StructuralUIEvent } from "./types";
 
@@ -11,15 +11,15 @@ const createMockElement = (tag: string) => ({
   className: "",
   classList: {
     add: mock(() => {}),
-    remove: mock(() => {})
+    remove: mock(() => {}),
   },
   appendChild: mock(() => {}),
   remove: mock(() => {}),
   style: {},
   querySelector: mock(() => null),
   parentNode: {
-    removeChild: mock(() => {})
-  }
+    removeChild: mock(() => {}),
+  },
 });
 
 // Mock DOM environment
@@ -27,15 +27,15 @@ const mockDocument = {
   createElement: mock((tag: string) => createMockElement(tag)),
   getElementById: mock(() => null),
   head: {
-    appendChild: mock(() => {})
+    appendChild: mock(() => {}),
   },
   body: {
-    appendChild: mock(() => {})
-  }
+    appendChild: mock(() => {}),
+  },
 };
 
 const mockContainer = {
-  appendChild: mock(() => {})
+  appendChild: mock(() => {}),
 };
 
 // @ts-ignore
@@ -54,7 +54,7 @@ describe("ProgressIndicator", () => {
     mockDocument.head.appendChild.mockClear();
     mockDocument.body.appendChild.mockClear();
     mockContainer.appendChild.mockClear();
-    
+
     container = mockContainer;
     indicator = new ProgressIndicator(container);
   });
@@ -68,9 +68,9 @@ describe("ProgressIndicator", () => {
     test("should create with custom config", () => {
       const customConfig = {
         showPercentage: false,
-        showCancelButton: false
+        showCancelButton: false,
       };
-      
+
       const customIndicator = new ProgressIndicator(container, customConfig);
       expect(mockDocument.createElement.mock.calls[0]).toEqual(["style"]);
     });
@@ -83,18 +83,20 @@ describe("ProgressIndicator", () => {
         index: 5,
         count: 100,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       const event: StructuralUIEvent = {
         type: "structuralOperationStarted",
         operation,
-        estimatedDuration: 2000
+        estimatedDuration: 2000,
       };
 
       indicator.handleEvent(event);
 
-      expect(mockDocument.createElement.mock.calls.length).toBeGreaterThanOrEqual(1);
+      expect(
+        mockDocument.createElement.mock.calls.length,
+      ).toBeGreaterThanOrEqual(1);
       expect(container.appendChild.mock.calls.length).toBeGreaterThan(0);
     });
 
@@ -104,13 +106,13 @@ describe("ProgressIndicator", () => {
         index: 5,
         count: 1,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       const event: StructuralUIEvent = {
         type: "structuralOperationStarted",
         operation,
-        estimatedDuration: 500 // Short duration
+        estimatedDuration: 500, // Short duration
       };
 
       indicator.handleEvent(event);
@@ -125,7 +127,7 @@ describe("ProgressIndicator", () => {
         index: 2,
         count: 50,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       // First show the indicator
@@ -135,7 +137,7 @@ describe("ProgressIndicator", () => {
         type: "structuralOperationProgress",
         operation,
         progress: 75,
-        affectedCells: []
+        affectedCells: [],
       };
 
       indicator.handleEvent(event);
@@ -150,24 +152,24 @@ describe("ProgressIndicator", () => {
         index: 3,
         count: 10,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       // Show first
       indicator.show(operation, 2000);
-      
+
       const event: StructuralUIEvent = {
         type: "structuralOperationCompleted",
         operation,
         affectedCells: [],
         formulaUpdates: new Map(),
-        duration: 1500
+        duration: 1500,
       };
 
       indicator.handleEvent(event);
 
       // Wait for minimum display time (500ms) + hide animation (300ms)
-      await new Promise(resolve => setTimeout(resolve, 850));
+      await new Promise((resolve) => setTimeout(resolve, 850));
       expect(indicator.isShowing()).toBe(false);
     });
 
@@ -177,7 +179,7 @@ describe("ProgressIndicator", () => {
         index: 1,
         count: 5,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       indicator.show(operation, 2000);
@@ -185,13 +187,13 @@ describe("ProgressIndicator", () => {
       const event: StructuralUIEvent = {
         type: "structuralOperationFailed",
         operation,
-        error: "Test error"
+        error: "Test error",
       };
 
       indicator.handleEvent(event);
 
       // Wait for minimum display time (500ms) + hide animation (300ms)
-      await new Promise(resolve => setTimeout(resolve, 850));
+      await new Promise((resolve) => setTimeout(resolve, 850));
       expect(indicator.isShowing()).toBe(false);
     });
 
@@ -201,20 +203,20 @@ describe("ProgressIndicator", () => {
         index: 0,
         count: 20,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       indicator.show(operation, 2000);
 
       const event: StructuralUIEvent = {
         type: "structuralOperationCancelled",
-        operation
+        operation,
       };
 
       indicator.handleEvent(event);
 
       // Wait for minimum display time (500ms) + hide animation (300ms)
-      await new Promise(resolve => setTimeout(resolve, 850));
+      await new Promise((resolve) => setTimeout(resolve, 850));
       expect(indicator.isShowing()).toBe(false);
     });
   });
@@ -226,7 +228,7 @@ describe("ProgressIndicator", () => {
         index: 5,
         count: 100,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       indicator.show(operation, 5000);
@@ -241,7 +243,7 @@ describe("ProgressIndicator", () => {
         index: 10,
         count: 25,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       indicator.show(operation, 3000);
@@ -257,14 +259,14 @@ describe("ProgressIndicator", () => {
         index: 0,
         count: 50,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       indicator.show(operation, 2000);
       indicator.hide();
 
       // Wait for minimum display time (500ms) + hide animation (300ms)
-      await new Promise(resolve => setTimeout(resolve, 850));
+      await new Promise((resolve) => setTimeout(resolve, 850));
       expect(indicator.isShowing()).toBe(false);
     });
 
@@ -274,12 +276,14 @@ describe("ProgressIndicator", () => {
         index: 2,
         count: 10,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       // Configure with minimum display time
-      const quickIndicator = new ProgressIndicator(container, { minDisplayTime: 100 });
-      
+      const quickIndicator = new ProgressIndicator(container, {
+        minDisplayTime: 100,
+      });
+
       quickIndicator.show(operation, 1000);
 
       const startTime = Date.now();
@@ -304,7 +308,7 @@ describe("ProgressIndicator", () => {
         { type: "deleteRow", count: 1, expected: "Deleting row..." },
         { type: "deleteRow", count: 10, expected: "Deleting 10 rows..." },
         { type: "deleteColumn", count: 1, expected: "Deleting column..." },
-        { type: "deleteColumn", count: 7, expected: "Deleting 7 columns..." }
+        { type: "deleteColumn", count: 7, expected: "Deleting 7 columns..." },
       ];
 
       operations.forEach(({ type, count, expected }) => {
@@ -313,7 +317,7 @@ describe("ProgressIndicator", () => {
           index: 0,
           count,
           timestamp: Date.now(),
-          id: "test"
+          id: "test",
         };
 
         const text = (indicator as any).getOperationText(operation);
@@ -329,7 +333,7 @@ describe("ProgressIndicator", () => {
         { ms: 1500, expected: "2 seconds" },
         { ms: 30000, expected: "30 seconds" },
         { ms: 65000, expected: "2 minutes" },
-        { ms: 120000, expected: "2 minutes" }
+        { ms: 120000, expected: "2 minutes" },
       ];
 
       testCases.forEach(({ ms, expected }) => {
@@ -349,7 +353,7 @@ describe("ProgressIndicator", () => {
         index: 5,
         count: 20,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       indicator.show(operation, 3000);
@@ -359,66 +363,76 @@ describe("ProgressIndicator", () => {
     });
 
     test("should hide cancel button when configured", () => {
-      const noCancelIndicator = new ProgressIndicator(container, { showCancelButton: false });
-      
+      const noCancelIndicator = new ProgressIndicator(container, {
+        showCancelButton: false,
+      });
+
       const operation = {
         type: "insertRow" as const,
         index: 0,
         count: 100,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       noCancelIndicator.show(operation, 5000);
 
       expect(noCancelIndicator.isShowing()).toBe(true);
-      
+
       // Check that the cancel button is not included in the innerHTML
       const createdElements = mockDocument.createElement.mock.results;
       const progressDiv = createdElements[createdElements.length - 1]?.value;
       expect(progressDiv?.innerHTML).toBeDefined();
-      expect(progressDiv?.innerHTML.includes('class="cancel-button"')).toBe(false);
+      expect(progressDiv?.innerHTML.includes('class="cancel-button"')).toBe(
+        false,
+      );
     });
   });
 
   describe("configuration options", () => {
     test("should respect showPercentage config", () => {
-      const noPercentageIndicator = new ProgressIndicator(container, { showPercentage: false });
-      
+      const noPercentageIndicator = new ProgressIndicator(container, {
+        showPercentage: false,
+      });
+
       const operation = {
         type: "insertColumn" as const,
         index: 0,
         count: 50,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       noPercentageIndicator.show(operation, 3000);
 
       expect(noPercentageIndicator.isShowing()).toBe(true);
-      
+
       // Check that the progress text element is not included in the innerHTML
       const createdElements = mockDocument.createElement.mock.results;
       const progressDiv = createdElements[createdElements.length - 1]?.value;
       expect(progressDiv?.innerHTML).toBeDefined();
-      expect(progressDiv?.innerHTML.includes('class="progress-text"')).toBe(false);
+      expect(progressDiv?.innerHTML.includes('class="progress-text"')).toBe(
+        false,
+      );
     });
 
     test("should respect showEstimatedTime config", () => {
-      const noTimeIndicator = new ProgressIndicator(container, { showEstimatedTime: false });
-      
+      const noTimeIndicator = new ProgressIndicator(container, {
+        showEstimatedTime: false,
+      });
+
       const operation = {
         type: "deleteColumn" as const,
         index: 5,
         count: 30,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       noTimeIndicator.show(operation, 4000);
 
       expect(noTimeIndicator.isShowing()).toBe(true);
-      
+
       // Check that the time text element is not included in the innerHTML
       const createdElements = mockDocument.createElement.mock.results;
       const progressDiv = createdElements[createdElements.length - 1]?.value;
@@ -427,23 +441,23 @@ describe("ProgressIndicator", () => {
     });
 
     test("should apply position and theme classes", () => {
-      const customIndicator = new ProgressIndicator(container, { 
+      const customIndicator = new ProgressIndicator(container, {
         position: "bottom",
-        theme: "dark"
+        theme: "dark",
       });
-      
+
       const operation = {
         type: "insertRow" as const,
         index: 0,
         count: 75,
         timestamp: Date.now(),
-        id: "test-op"
+        id: "test-op",
       };
 
       customIndicator.show(operation, 3000);
 
       expect(customIndicator.isShowing()).toBe(true);
-      
+
       // Check that the proper classes were added
       const createdElements = mockDocument.createElement.mock.results;
       const progressDiv = createdElements[createdElements.length - 1]?.value;

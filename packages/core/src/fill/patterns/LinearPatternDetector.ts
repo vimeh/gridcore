@@ -1,9 +1,9 @@
-import type { CellValue, CellAddress, CellRange } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import type {
-  PatternDetector,
-  Pattern,
-  PatternGenerator,
   FillDirection,
+  Pattern,
+  PatternDetector,
+  PatternGenerator,
   PatternType,
 } from "../types";
 
@@ -22,7 +22,7 @@ class LinearPatternGenerator implements PatternGenerator {
     _sourceRange: CellRange,
     _targetCell: CellAddress,
   ): CellValue {
-    const value = this.startValue + (this.step * (index + 1));
+    const value = this.startValue + this.step * (index + 1);
     return value as unknown as CellValue;
   }
 }
@@ -74,7 +74,7 @@ export class LinearPatternDetector implements PatternDetector {
    */
   private extractNumbers(values: CellValue[]): number[] {
     const numbers: number[] = [];
-    
+
     for (const value of values) {
       const num = this.parseNumber(value);
       if (num !== null) {
@@ -171,7 +171,7 @@ export class LinearPatternDetector implements PatternDetector {
     }
 
     // Check if it's a simple fraction (like 0.5, 0.25, etc.)
-    const decimals = num.toString().split('.')[1];
+    const decimals = num.toString().split(".")[1];
     if (decimals && decimals.length <= 2) {
       return true;
     }

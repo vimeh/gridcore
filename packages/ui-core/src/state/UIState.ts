@@ -16,13 +16,18 @@ export type CellMode = "normal" | "insert" | "visual";
 export type VisualMode = "character" | "line" | "block";
 
 // Spreadsheet-level visual selection modes
-export type SpreadsheetVisualMode = "char" | "line" | "block" | "column" | "row";
+export type SpreadsheetVisualMode =
+  | "char"
+  | "line"
+  | "block"
+  | "column"
+  | "row";
 
 // Insert mode variants
 export type InsertMode = "i" | "a" | "A" | "I" | "o" | "O";
 
 // Selection types for spreadsheet-level selections
-export type SelectionType = 
+export type SelectionType =
   | { type: "cell"; address: CellAddress }
   | { type: "range"; start: CellAddress; end: CellAddress }
   | { type: "column"; columns: number[] }
@@ -89,7 +94,7 @@ export type UIState =
       spreadsheetMode: "delete";
       cursor: CellAddress;
       viewport: ViewportInfo;
-      deleteType: "row" | "column"; 
+      deleteType: "row" | "column";
       selection: number[]; // Indices to delete
       confirmationPending: boolean;
     }
@@ -137,7 +142,10 @@ export function isResizeMode(
 
 export function isInsertMode(
   state: UIState,
-): state is Extract<UIState, { spreadsheetMode: "editing"; cellMode: "insert" }> {
+): state is Extract<
+  UIState,
+  { spreadsheetMode: "editing"; cellMode: "insert" }
+> {
   return state.spreadsheetMode === "editing" && state.cellMode === "insert";
 }
 
@@ -256,7 +264,7 @@ export function createInsertState(
   cursor: CellAddress,
   viewport: ViewportInfo,
   insertType: "row" | "column",
-  insertPosition: "before" | "after"
+  insertPosition: "before" | "after",
 ): UIState {
   return {
     spreadsheetMode: "insert",
@@ -273,7 +281,7 @@ export function createDeleteState(
   cursor: CellAddress,
   viewport: ViewportInfo,
   deleteType: "row" | "column",
-  selection: number[]
+  selection: number[],
 ): UIState {
   return {
     spreadsheetMode: "delete",
@@ -288,7 +296,7 @@ export function createDeleteState(
 export function createBulkOperationState(
   cursor: CellAddress,
   viewport: ViewportInfo,
-  command: ParsedBulkCommand
+  command: ParsedBulkCommand,
 ): UIState {
   return {
     spreadsheetMode: "bulkOperation",

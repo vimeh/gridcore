@@ -1,12 +1,15 @@
-import { SpreadsheetFacade, CellAddress } from "@gridcore/core";
+import { type CellAddress, SpreadsheetFacade } from "@gridcore/core";
 
 /**
  * Creates a test spreadsheet with optional initial data
  */
-export function createTestSpreadsheet(rows = 100, cols = 26): SpreadsheetFacade {
+export function createTestSpreadsheet(
+  rows = 100,
+  cols = 26,
+): SpreadsheetFacade {
   // Create a new spreadsheet facade directly
   const facade = new SpreadsheetFacade();
-  
+
   return facade;
 }
 
@@ -15,7 +18,7 @@ export function createTestSpreadsheet(rows = 100, cols = 26): SpreadsheetFacade 
  */
 export function populateWithFormulas(
   spreadsheet: SpreadsheetFacade,
-  formulaCount = 10
+  formulaCount = 10,
 ): void {
   const formulas = [
     "=A1+B1",
@@ -27,7 +30,7 @@ export function populateWithFormulas(
     "=VLOOKUP(A1,$B$1:$D$10,2,FALSE)",
     "=INDEX($A$1:$D$10,2,3)",
     "=A1+A2+A3",
-    "=$A$1+$B$1+$C$1"
+    "=$A$1+$B$1+$C$1",
   ];
 
   for (let i = 0; i < Math.min(formulaCount, formulas.length); i++) {
@@ -39,7 +42,7 @@ export function populateWithFormulas(
  * Measures operation execution time
  */
 export async function measureOperationTime<T>(
-  operation: () => T | Promise<T>
+  operation: () => T | Promise<T>,
 ): Promise<{ result: T; timeMs: number }> {
   const start = performance.now();
   const result = await operation();
@@ -52,11 +55,11 @@ export async function measureOperationTime<T>(
  */
 export function validateReferences(
   spreadsheet: SpreadsheetFacade,
-  expectedErrors: CellAddress[] = []
+  expectedErrors: CellAddress[] = [],
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   const grid = spreadsheet.getGrid();
-  
+
   // Check all cells for #REF! errors
   for (let row = 0; row < grid.getRowCount(); row++) {
     for (let col = 0; col < grid.getColumnCount(); col++) {
@@ -64,18 +67,22 @@ export function validateReferences(
       if (cell?.formula) {
         const value = cell.value;
         const isExpectedError = expectedErrors.some(
-          addr => addr.row === row && addr.col === col
+          (addr) => addr.row === row && addr.col === col,
         );
-        
-        if (typeof value === 'string' && value === '#REF!' && !isExpectedError) {
+
+        if (
+          typeof value === "string" &&
+          value === "#REF!" &&
+          !isExpectedError
+        ) {
           errors.push(`Unexpected #REF! error at ${row},${col}`);
-        } else if (isExpectedError && value !== '#REF!') {
+        } else if (isExpectedError && value !== "#REF!") {
           errors.push(`Expected #REF! error at ${row},${col} but got ${value}`);
         }
       }
     }
   }
-  
+
   return { valid: errors.length === 0, errors };
 }
 
@@ -84,14 +91,14 @@ export function validateReferences(
  */
 export async function checkFormulaIntegrity(
   spreadsheet: SpreadsheetFacade,
-  beforeValues: Map<string, any>
+  beforeValues: Map<string, any>,
 ): Promise<{ intact: boolean; changes: string[] }> {
   const changes: string[] = [];
   const grid = spreadsheet.getGrid();
-  
+
   // Force re-evaluation
   await spreadsheet.evaluate();
-  
+
   // Compare values
   for (let row = 0; row < grid.getRowCount(); row++) {
     for (let col = 0; col < grid.getColumnCount(); col++) {
@@ -100,26 +107,33 @@ export async function checkFormulaIntegrity(
         const key = `${row},${col}`;
         const oldValue = beforeValues.get(key);
         const newValue = cell.value;
-        
-        if (oldValue !== newValue && 
-            !(typeof oldValue === 'number' && typeof newValue === 'number' && 
-              Math.abs(oldValue - newValue) < 0.0001)) {
+
+        if (
+          oldValue !== newValue &&
+          !(
+            typeof oldValue === "number" &&
+            typeof newValue === "number" &&
+            Math.abs(oldValue - newValue) < 0.0001
+          )
+        ) {
           changes.push(`Cell ${key}: ${oldValue} → ${newValue}`);
         }
       }
     }
   }
-  
+
   return { intact: changes.length === 0, changes };
 }
 
 /**
  * Captures current formula values for later comparison
  */
-export function captureFormulaValues(spreadsheet: SpreadsheetFacade): Map<string, any> {
+export function captureFormulaValues(
+  spreadsheet: SpreadsheetFacade,
+): Map<string, any> {
   const values = new Map<string, any>();
   const grid = spreadsheet.getGrid();
-  
+
   for (let row = 0; row < grid.getRowCount(); row++) {
     for (let col = 0; col < grid.getColumnCount(); col++) {
       const cell = grid.getCell(row, col);
@@ -128,7 +142,7 @@ export function captureFormulaValues(spreadsheet: SpreadsheetFacade): Map<string
       }
     }
   }
-  
+
   return values;
 }
 
@@ -139,7 +153,7 @@ export function createLargeDataset(
   spreadsheet: SpreadsheetFacade,
   rows: number,
   cols: number,
-  formulaRatio = 0.2
+  formulaRatio = 0.2,
 ): void {
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -163,7 +177,7 @@ export const PERFORMANCE_TARGETS = {
   columnSelection: { rows: 10000, targetMs: 50 },
   findReplace: { cells: 100000, targetMs: 1000 },
   insertDelete: { rows: 1000, targetMs: 200 },
-  formulaFill: { cells: 10000, targetMs: 200 }
+  formulaFill: { cells: 10000, targetMs: 200 },
 };
 
 /**
@@ -171,16 +185,16 @@ export const PERFORMANCE_TARGETS = {
  */
 export function validatePerformance(
   operation: keyof typeof PERFORMANCE_TARGETS,
-  actualMs: number
+  actualMs: number,
 ): { passed: boolean; message: string } {
   const target = PERFORMANCE_TARGETS[operation];
   const passed = actualMs <= target.targetMs;
   const ratio = (actualMs / target.targetMs).toFixed(2);
-  
+
   return {
     passed,
-    message: passed 
+    message: passed
       ? `✅ ${operation}: ${actualMs.toFixed(2)}ms (${ratio}x of target)`
-      : `❌ ${operation}: ${actualMs.toFixed(2)}ms (${ratio}x of target)`
+      : `❌ ${operation}: ${actualMs.toFixed(2)}ms (${ratio}x of target)`,
   };
 }

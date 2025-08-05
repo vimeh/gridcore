@@ -1,5 +1,9 @@
 import type { CellAddress } from "../domain/models/CellAddress";
-import { ReferenceAdjuster, ReferenceDetector, ReferenceParser } from "../references";
+import {
+  ReferenceAdjuster,
+  ReferenceDetector,
+  ReferenceParser,
+} from "../references";
 import type { CellReference, Reference } from "../references/types";
 import { err, ok, type Result } from "../shared/types/Result";
 
@@ -31,29 +35,35 @@ export class ReferenceUpdater {
   /**
    * Update formula references when rows are inserted
    */
-  updateForInsertRows(formula: string, insertRow: number, count: number): Result<string, string> {
+  updateForInsertRows(
+    formula: string,
+    insertRow: number,
+    count: number,
+  ): Result<string, string> {
     try {
       const analysis = this.detector.analyzeFormula(formula);
       let updatedFormula = formula;
-      let offset = 0;
+      const offset = 0;
 
       // Process references from right to left to maintain positions
-      const sortedRefs = [...analysis.references].sort((a, b) => b.position - a.position);
+      const sortedRefs = [...analysis.references].sort(
+        (a, b) => b.position - a.position,
+      );
 
       for (const refInfo of sortedRefs) {
         const ref = refInfo.reference;
-        
+
         // Only update if the row needs adjustment
         if (ref.row >= insertRow && !ref.rowAbsolute) {
           const adjustedRef: CellReference = {
             ...ref,
-            row: ref.row + count
+            row: ref.row + count,
           };
 
           const originalText = refInfo.text;
           const newText = this.parser.stringifyCellReference(adjustedRef);
-          
-          updatedFormula = 
+
+          updatedFormula =
             updatedFormula.substring(0, refInfo.position) +
             newText +
             updatedFormula.substring(refInfo.position + refInfo.length);
@@ -69,17 +79,23 @@ export class ReferenceUpdater {
   /**
    * Update formula references when rows are deleted
    */
-  updateForDeleteRows(formula: string, deleteRow: number, count: number): Result<string, string> {
+  updateForDeleteRows(
+    formula: string,
+    deleteRow: number,
+    count: number,
+  ): Result<string, string> {
     try {
       const analysis = this.detector.analyzeFormula(formula);
       let updatedFormula = formula;
 
       // Process references from right to left to maintain positions
-      const sortedRefs = [...analysis.references].sort((a, b) => b.position - a.position);
+      const sortedRefs = [...analysis.references].sort(
+        (a, b) => b.position - a.position,
+      );
 
       for (const refInfo of sortedRefs) {
         const ref = refInfo.reference;
-        
+
         if (ref.rowAbsolute) {
           // Absolute references don't change
           continue;
@@ -95,7 +111,7 @@ export class ReferenceUpdater {
           // Reference is after deleted rows - shift up
           const adjustedRef: CellReference = {
             ...ref,
-            row: ref.row - count
+            row: ref.row - count,
           };
           newText = this.parser.stringifyCellReference(adjustedRef);
         } else {
@@ -103,7 +119,7 @@ export class ReferenceUpdater {
           continue;
         }
 
-        updatedFormula = 
+        updatedFormula =
           updatedFormula.substring(0, refInfo.position) +
           newText +
           updatedFormula.substring(refInfo.position + refInfo.length);
@@ -118,28 +134,34 @@ export class ReferenceUpdater {
   /**
    * Update formula references when columns are inserted
    */
-  updateForInsertColumns(formula: string, insertCol: number, count: number): Result<string, string> {
+  updateForInsertColumns(
+    formula: string,
+    insertCol: number,
+    count: number,
+  ): Result<string, string> {
     try {
       const analysis = this.detector.analyzeFormula(formula);
       let updatedFormula = formula;
 
       // Process references from right to left to maintain positions
-      const sortedRefs = [...analysis.references].sort((a, b) => b.position - a.position);
+      const sortedRefs = [...analysis.references].sort(
+        (a, b) => b.position - a.position,
+      );
 
       for (const refInfo of sortedRefs) {
         const ref = refInfo.reference;
-        
+
         // Only update if the column needs adjustment
         if (ref.column >= insertCol && !ref.columnAbsolute) {
           const adjustedRef: CellReference = {
             ...ref,
-            column: ref.column + count
+            column: ref.column + count,
           };
 
           const originalText = refInfo.text;
           const newText = this.parser.stringifyCellReference(adjustedRef);
-          
-          updatedFormula = 
+
+          updatedFormula =
             updatedFormula.substring(0, refInfo.position) +
             newText +
             updatedFormula.substring(refInfo.position + refInfo.length);
@@ -155,17 +177,23 @@ export class ReferenceUpdater {
   /**
    * Update formula references when columns are deleted
    */
-  updateForDeleteColumns(formula: string, deleteCol: number, count: number): Result<string, string> {
+  updateForDeleteColumns(
+    formula: string,
+    deleteCol: number,
+    count: number,
+  ): Result<string, string> {
     try {
       const analysis = this.detector.analyzeFormula(formula);
       let updatedFormula = formula;
 
       // Process references from right to left to maintain positions
-      const sortedRefs = [...analysis.references].sort((a, b) => b.position - a.position);
+      const sortedRefs = [...analysis.references].sort(
+        (a, b) => b.position - a.position,
+      );
 
       for (const refInfo of sortedRefs) {
         const ref = refInfo.reference;
-        
+
         if (ref.columnAbsolute) {
           // Absolute references don't change
           continue;
@@ -181,7 +209,7 @@ export class ReferenceUpdater {
           // Reference is after deleted columns - shift left
           const adjustedRef: CellReference = {
             ...ref,
-            column: ref.column - count
+            column: ref.column - count,
           };
           newText = this.parser.stringifyCellReference(adjustedRef);
         } else {
@@ -189,7 +217,7 @@ export class ReferenceUpdater {
           continue;
         }
 
-        updatedFormula = 
+        updatedFormula =
           updatedFormula.substring(0, refInfo.position) +
           newText +
           updatedFormula.substring(refInfo.position + refInfo.length);
@@ -204,7 +232,10 @@ export class ReferenceUpdater {
   /**
    * Generic update method that dispatches to appropriate handler
    */
-  updateForStructuralChange(formula: string, change: StructuralChange): Result<string, string> {
+  updateForStructuralChange(
+    formula: string,
+    change: StructuralChange,
+  ): Result<string, string> {
     switch (change.type) {
       case "insertRow":
         return this.updateForInsertRows(formula, change.index, change.count);
@@ -225,10 +256,10 @@ export class ReferenceUpdater {
   wouldBeAffected(formula: string, change: StructuralChange): boolean {
     try {
       const analysis = this.detector.analyzeFormula(formula);
-      
+
       for (const refInfo of analysis.references) {
         const ref = refInfo.reference;
-        
+
         switch (change.type) {
           case "insertRow":
           case "deleteRow":
@@ -244,7 +275,7 @@ export class ReferenceUpdater {
             break;
         }
       }
-      
+
       return false;
     } catch {
       return false;

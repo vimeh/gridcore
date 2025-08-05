@@ -1,9 +1,9 @@
-import type { CellValue, CellAddress, CellRange } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import type {
-  PatternDetector,
-  Pattern,
-  PatternGenerator,
   FillDirection,
+  Pattern,
+  PatternDetector,
+  PatternGenerator,
   PatternType,
 } from "../types";
 
@@ -33,8 +33,8 @@ class FibonacciPatternGenerator implements PatternGenerator {
    */
   private getFibonacciValue(index: number): number {
     // Extend the sequence as needed
-    let extendedSequence = [...this.sequence];
-    
+    const extendedSequence = [...this.sequence];
+
     while (extendedSequence.length <= index) {
       const len = extendedSequence.length;
       if (len < 2) {
@@ -87,7 +87,10 @@ export class FibonacciPatternDetector implements PatternDetector {
       type: this.patternType,
       confidence,
       description,
-      generator: new FibonacciPatternGenerator(numbers, fibonacciResult.startIndex),
+      generator: new FibonacciPatternGenerator(
+        numbers,
+        fibonacciResult.startIndex,
+      ),
       sequence: numbers,
       metadata: {
         fibonacciType: fibonacciResult.type,
@@ -102,7 +105,7 @@ export class FibonacciPatternDetector implements PatternDetector {
    */
   private extractNumbers(values: CellValue[]): number[] {
     const numbers: number[] = [];
-    
+
     for (const value of values) {
       const num = this.parseNumber(value);
       if (num !== null) {
@@ -138,35 +141,35 @@ export class FibonacciPatternDetector implements PatternDetector {
    * Check if the numbers follow a Fibonacci pattern or variant
    */
   private checkFibonacciPattern(numbers: number[]): {
-    type: 'classic' | 'scaled' | 'shifted';
+    type: "classic" | "scaled" | "shifted";
     startIndex: number;
     multiplier: number;
   } | null {
     // Try classic Fibonacci first with multiplier = 1
     const classicResult = this.checkClassicFibonacci(numbers);
     if (classicResult && classicResult.multiplier === 1) {
-      return { type: 'classic', ...classicResult };
+      return { type: "classic", ...classicResult };
     }
 
     // Try shifted Fibonacci (starting from different index) with multiplier = 1
     const shiftedResult = this.checkShiftedFibonacci(numbers);
     if (shiftedResult && shiftedResult.multiplier === 1) {
-      return { type: 'shifted', ...shiftedResult };
+      return { type: "shifted", ...shiftedResult };
     }
 
     // Try scaled Fibonacci (2,2,4,6,10,16,... = 2*Fibonacci)
     const scaledResult = this.checkScaledFibonacci(numbers);
     if (scaledResult) {
-      return { type: 'scaled', ...scaledResult };
+      return { type: "scaled", ...scaledResult };
     }
 
     // Return classic or shifted even if multiplier is not exactly 1
     if (classicResult) {
-      return { type: 'classic', ...classicResult };
+      return { type: "classic", ...classicResult };
     }
 
     if (shiftedResult) {
-      return { type: 'shifted', ...shiftedResult };
+      return { type: "shifted", ...shiftedResult };
     }
 
     return null;
@@ -175,7 +178,9 @@ export class FibonacciPatternDetector implements PatternDetector {
   /**
    * Check for classic Fibonacci sequence
    */
-  private checkClassicFibonacci(numbers: number[]): { startIndex: number; multiplier: number } | null {
+  private checkClassicFibonacci(
+    numbers: number[],
+  ): { startIndex: number; multiplier: number } | null {
     // Try different starting indices for classic Fibonacci
     for (let startIndex = 1; startIndex <= 5; startIndex++) {
       const result = this.checkFibonacciWithParams(numbers, 1, startIndex);
@@ -189,10 +194,12 @@ export class FibonacciPatternDetector implements PatternDetector {
   /**
    * Check for scaled Fibonacci sequence (multiplied by a constant)
    */
-  private checkScaledFibonacci(numbers: number[]): { startIndex: number; multiplier: number } | null {
+  private checkScaledFibonacci(
+    numbers: number[],
+  ): { startIndex: number; multiplier: number } | null {
     // Try different multipliers
     const possibleMultipliers = [2, 3, 5, 10, 0.5, 0.1];
-    
+
     for (const multiplier of possibleMultipliers) {
       const result = this.checkFibonacciWithParams(numbers, multiplier, 0);
       if (result) {
@@ -208,7 +215,11 @@ export class FibonacciPatternDetector implements PatternDetector {
         const fibValue = this.getStandardFibonacci(startIndex);
         if (fibValue > 0) {
           const possibleMultiplier = numbers[0] / fibValue;
-          const result = this.checkFibonacciWithParams(numbers, possibleMultiplier, startIndex);
+          const result = this.checkFibonacciWithParams(
+            numbers,
+            possibleMultiplier,
+            startIndex,
+          );
           if (result) {
             return result;
           }
@@ -222,7 +233,9 @@ export class FibonacciPatternDetector implements PatternDetector {
   /**
    * Check for shifted Fibonacci sequence (starting from different index)
    */
-  private checkShiftedFibonacci(numbers: number[]): { startIndex: number; multiplier: number } | null {
+  private checkShiftedFibonacci(
+    numbers: number[],
+  ): { startIndex: number; multiplier: number } | null {
     // Try different starting indices
     for (let startIndex = 0; startIndex < 20; startIndex++) {
       const result = this.checkFibonacciWithParams(numbers, 1, startIndex);
@@ -243,12 +256,15 @@ export class FibonacciPatternDetector implements PatternDetector {
     startIndex: number,
   ): { startIndex: number; multiplier: number } | null {
     const tolerance = 0.001;
-    
+
     for (let i = 0; i < numbers.length; i++) {
       const expectedFib = this.getStandardFibonacci(startIndex + i);
       const expected = expectedFib * multiplier;
-      
-      if (Math.abs(numbers[i] - expected) > Math.max(tolerance, Math.abs(expected) * tolerance)) {
+
+      if (
+        Math.abs(numbers[i] - expected) >
+        Math.max(tolerance, Math.abs(expected) * tolerance)
+      ) {
         return null;
       }
     }
@@ -262,14 +278,15 @@ export class FibonacciPatternDetector implements PatternDetector {
   private getStandardFibonacci(index: number): number {
     if (index <= 0) return 0;
     if (index === 1 || index === 2) return 1;
-    
-    let a = 1, b = 1; // F(1) = 1, F(2) = 1
+
+    let a = 1,
+      b = 1; // F(1) = 1, F(2) = 1
     for (let i = 3; i <= index; i++) {
       const temp = a + b;
       a = b;
       b = temp;
     }
-    
+
     return b;
   }
 
@@ -287,7 +304,7 @@ export class FibonacciPatternDetector implements PatternDetector {
     confidence += lengthBonus;
 
     // Boost confidence for classic Fibonacci
-    if (fibResult.type === 'classic') {
+    if (fibResult.type === "classic") {
       confidence += 0.1;
     }
 
@@ -318,7 +335,7 @@ export class FibonacciPatternDetector implements PatternDetector {
     }
 
     // Check if it's a simple fraction
-    const decimals = num.toString().split('.')[1];
+    const decimals = num.toString().split(".")[1];
     if (decimals && decimals.length <= 2) {
       return true;
     }
@@ -335,10 +352,10 @@ export class FibonacciPatternDetector implements PatternDetector {
   ): string {
     const start = numbers[0];
     const end = numbers[numbers.length - 1];
-    
-    if (fibResult.type === 'classic') {
+
+    if (fibResult.type === "classic") {
       return `Fibonacci sequence (${start}, ${end}, ${end + numbers[numbers.length - 2]}, ...)`;
-    } else if (fibResult.type === 'scaled') {
+    } else if (fibResult.type === "scaled") {
       return `Fibonacci × ${fibResult.multiplier} (${start}, ${end}, ...)`;
     } else {
       return `Fibonacci pattern starting at F(${fibResult.startIndex}) (${start}, ${end}, ...)`;

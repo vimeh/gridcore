@@ -1,37 +1,37 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { CellAddress, Sheet } from "@gridcore/core";
-import { SpreadsheetController } from "./SpreadsheetController";
+import { beforeEach, describe, expect, it } from "vitest";
 import { createNavigationState } from "../state/UIState";
+import { SpreadsheetController } from "./SpreadsheetController";
 
 // Mock ViewportManager
 class MockViewportManager {
   private columnWidths = new Map<number, number>();
   private rowHeights = new Map<number, number>();
-  
+
   getColumnWidth(index: number): number {
     return this.columnWidths.get(index) || 100;
   }
-  
+
   setColumnWidth(index: number, width: number): void {
     this.columnWidths.set(index, width);
   }
-  
+
   getRowHeight(index: number): number {
     return this.rowHeights.get(index) || 25;
   }
-  
+
   setRowHeight(index: number, height: number): void {
     this.rowHeights.set(index, height);
   }
-  
+
   getTotalRows(): number {
     return 1000;
   }
-  
+
   getTotalCols(): number {
     return 100;
   }
-  
+
   scrollTo(row: number, col: number): void {
     // Mock implementation
   }
@@ -47,10 +47,10 @@ describe("SpreadsheetController Undo/Redo System", () => {
     sheet = new Sheet("test");
     facade = sheet.getFacade();
     viewportManager = new MockViewportManager();
-    
+
     const defaultCursor = CellAddress.create(0, 0);
     if (!defaultCursor.ok) throw new Error("Failed to create default cursor");
-    
+
     const initialState = createNavigationState(defaultCursor.value, {
       startRow: 0,
       startCol: 0,
@@ -63,9 +63,9 @@ describe("SpreadsheetController Undo/Redo System", () => {
       viewportManager,
       initialState,
     });
-    
+
     // Wait for initialization
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
   describe("Basic Undo/Redo Functionality", () => {
@@ -84,7 +84,7 @@ describe("SpreadsheetController Undo/Redo System", () => {
 
       // Perform an operation
       await controller.insertRows(0, 1);
-      
+
       expect(events).toHaveLength(1);
       expect(events[0]).toEqual({
         type: "undoRedoStateChanged",
@@ -99,7 +99,7 @@ describe("SpreadsheetController Undo/Redo System", () => {
       expect(stats.redoStackSize).toBe(0);
 
       await controller.insertRows(0, 1);
-      
+
       stats = controller.getUndoRedoStats();
       expect(stats.undoStackSize).toBe(1);
       expect(stats.redoStackSize).toBe(0);
@@ -116,19 +116,19 @@ describe("SpreadsheetController Undo/Redo System", () => {
 
       // Insert row before row 0
       await controller.insertRows(0, 2);
-      
+
       expect(controller.canUndo()).toBe(true);
       expect(controller.canRedo()).toBe(false);
 
       // Undo the insert
       await controller.undo();
-      
+
       expect(controller.canUndo()).toBe(false);
       expect(controller.canRedo()).toBe(true);
 
       // Redo the insert
       await controller.redo();
-      
+
       expect(controller.canUndo()).toBe(true);
       expect(controller.canRedo()).toBe(false);
     });
@@ -138,13 +138,13 @@ describe("SpreadsheetController Undo/Redo System", () => {
       const initialCursor = initialState.cursor;
 
       await controller.insertRows(0, 1);
-      
+
       // Cursor should move down due to insertion
       const afterInsertState = controller.getState();
       expect(afterInsertState.cursor.row).toBe(initialCursor.row + 1);
 
       await controller.undo();
-      
+
       // Cursor should be restored to original position
       const afterUndoState = controller.getState();
       expect(afterUndoState.cursor.row).toBe(initialCursor.row);
@@ -155,29 +155,33 @@ describe("SpreadsheetController Undo/Redo System", () => {
   describe("Insert Columns Undo/Redo", () => {
     it("should undo and redo insert columns operation", async () => {
       await controller.insertColumns(1, 3);
-      
+
       expect(controller.canUndo()).toBe(true);
-      
+
       await controller.undo();
       expect(controller.canRedo()).toBe(true);
-      
+
       await controller.redo();
       expect(controller.canUndo()).toBe(true);
     });
 
     it("should handle viewport changes correctly", async () => {
       const initialState = controller.getState();
-      
+
       // Insert columns before current viewport
       await controller.insertColumns(0, 2);
-      
+
       const afterInsertState = controller.getState();
-      expect(afterInsertState.viewport.startCol).toBe(initialState.viewport.startCol + 2);
-      
+      expect(afterInsertState.viewport.startCol).toBe(
+        initialState.viewport.startCol + 2,
+      );
+
       await controller.undo();
-      
+
       const afterUndoState = controller.getState();
-      expect(afterUndoState.viewport.startCol).toBe(initialState.viewport.startCol);
+      expect(afterUndoState.viewport.startCol).toBe(
+        initialState.viewport.startCol,
+      );
     });
   });
 
@@ -192,16 +196,16 @@ describe("SpreadsheetController Undo/Redo System", () => {
       }
 
       await controller.deleteRows(2, 2);
-      
+
       expect(controller.canUndo()).toBe(true);
-      
+
       await controller.undo();
-      
+
       // Check that data was restored
       if (addr1.ok && addr2.ok) {
         const cell1 = facade.getCell(addr1.value);
         const cell2 = facade.getCell(addr2.value);
-        
+
         if (cell1.ok && cell1.value && cell2.ok && cell2.value) {
           expect(cell1.value.rawValue).toBe("Row 2");
           expect(cell2.value.rawValue).toBe("Row 3");
@@ -221,16 +225,16 @@ describe("SpreadsheetController Undo/Redo System", () => {
       }
 
       await controller.deleteColumns(2, 2);
-      
+
       expect(controller.canUndo()).toBe(true);
-      
+
       await controller.undo();
-      
+
       // Check that data was restored
       if (addr1.ok && addr2.ok) {
         const cell1 = facade.getCell(addr1.value);
         const cell2 = facade.getCell(addr2.value);
-        
+
         if (cell1.ok && cell1.value && cell2.ok && cell2.value) {
           expect(cell1.value.rawValue).toBe("Col 2");
           expect(cell2.value.rawValue).toBe("Col 3");
@@ -244,19 +248,19 @@ describe("SpreadsheetController Undo/Redo System", () => {
       await controller.insertRows(0, 1);
       await controller.insertColumns(0, 1);
       await controller.deleteRows(2, 1);
-      
+
       expect(controller.canUndo()).toBe(true);
       const stats = controller.getUndoRedoStats();
       expect(stats.undoStackSize).toBe(3);
-      
+
       // Undo all operations
       await controller.undo(); // Undo delete rows
       await controller.undo(); // Undo insert columns
       await controller.undo(); // Undo insert rows
-      
+
       expect(controller.canUndo()).toBe(false);
       expect(controller.canRedo()).toBe(true);
-      
+
       const finalStats = controller.getUndoRedoStats();
       expect(finalStats.redoStackSize).toBe(3);
     });
@@ -264,12 +268,12 @@ describe("SpreadsheetController Undo/Redo System", () => {
     it("should clear redo stack when new operation is performed", async () => {
       await controller.insertRows(0, 1);
       await controller.undo();
-      
+
       expect(controller.canRedo()).toBe(true);
-      
+
       // Perform new operation - should clear redo stack
       await controller.insertColumns(0, 1);
-      
+
       expect(controller.canRedo()).toBe(false);
       const stats = controller.getUndoRedoStats();
       expect(stats.redoStackSize).toBe(0);
@@ -279,30 +283,30 @@ describe("SpreadsheetController Undo/Redo System", () => {
   describe("Transaction Grouping", () => {
     it("should group operations in transactions", async () => {
       const txnId = controller.startTransaction("Bulk operations");
-      
+
       await controller.insertRows(0, 1);
       await controller.insertColumns(0, 1);
-      
+
       controller.endTransaction();
-      
+
       // Should have only one item in undo stack (the transaction)
       const stats = controller.getUndoRedoStats();
       expect(stats.undoStackSize).toBe(1);
-      
+
       // Undo should revert both operations
       await controller.undo();
-      
+
       expect(controller.canUndo()).toBe(false);
       expect(controller.canRedo()).toBe(true);
     });
 
     it("should handle transaction cancellation", async () => {
       controller.startTransaction("Test transaction");
-      
+
       await controller.insertRows(0, 1);
-      
+
       controller.cancelTransaction();
-      
+
       // Transaction should not be recorded
       const stats = controller.getUndoRedoStats();
       expect(stats.undoStackSize).toBe(0);
@@ -313,7 +317,7 @@ describe("SpreadsheetController Undo/Redo System", () => {
     it("should handle vim undo commands", async () => {
       await controller.insertRows(0, 1);
       expect(controller.canUndo()).toBe(true);
-      
+
       // Simulate vim undo command
       const result = controller.handleKeyPress(":", { key: "colon" });
       if (result.ok) {
@@ -329,10 +333,10 @@ describe("SpreadsheetController Undo/Redo System", () => {
     it("should handle menu events", async () => {
       await controller.insertRows(0, 1);
       expect(controller.canUndo()).toBe(true);
-      
+
       await controller.handleMenuEvent("menu:undo");
       expect(controller.canRedo()).toBe(true);
-      
+
       await controller.handleMenuEvent("menu:redo");
       expect(controller.canUndo()).toBe(true);
     });
@@ -341,19 +345,19 @@ describe("SpreadsheetController Undo/Redo System", () => {
   describe("Error Handling", () => {
     it("should handle undo when nothing to undo", async () => {
       expect(controller.canUndo()).toBe(false);
-      
+
       // Should not throw error
       await controller.undo();
-      
+
       expect(controller.canUndo()).toBe(false);
     });
 
     it("should handle redo when nothing to redo", async () => {
       expect(controller.canRedo()).toBe(false);
-      
+
       // Should not throw error
       await controller.redo();
-      
+
       expect(controller.canRedo()).toBe(false);
     });
   });
@@ -362,14 +366,14 @@ describe("SpreadsheetController Undo/Redo System", () => {
     it("should clear undo history", async () => {
       await controller.insertRows(0, 1);
       await controller.insertColumns(0, 1);
-      
+
       expect(controller.canUndo()).toBe(true);
-      
+
       controller.clearUndoHistory();
-      
+
       expect(controller.canUndo()).toBe(false);
       expect(controller.canRedo()).toBe(false);
-      
+
       const stats = controller.getUndoRedoStats();
       expect(stats.undoStackSize).toBe(0);
       expect(stats.redoStackSize).toBe(0);
@@ -387,7 +391,7 @@ describe("SpreadsheetController Undo/Redo System", () => {
 
       await controller.insertRows(0, 1);
       await controller.undo();
-      
+
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe("undoCompleted");
       expect(events[0].description).toBe("Structural operation undone");
@@ -405,7 +409,7 @@ describe("SpreadsheetController Undo/Redo System", () => {
       await controller.insertRows(0, 1);
       await controller.undo();
       await controller.redo();
-      
+
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe("redoCompleted");
       expect(events[0].description).toBe("Structural operation redone");

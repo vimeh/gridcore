@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { FibonacciPatternDetector } from "./FibonacciPatternDetector";
+import { describe, expect, it } from "bun:test";
 import type { CellValue } from "../../domain/models";
+import { FibonacciPatternDetector } from "./FibonacciPatternDetector";
 
 describe("FibonacciPatternDetector", () => {
   const detector = new FibonacciPatternDetector();
@@ -28,7 +28,9 @@ describe("FibonacciPatternDetector", () => {
     });
 
     it("should detect longer Fibonacci sequence", () => {
-      const values: CellValue[] = [1, 1, 2, 3, 5, 8, 13, 21] as unknown as CellValue[];
+      const values: CellValue[] = [
+        1, 1, 2, 3, 5, 8, 13, 21,
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
@@ -59,7 +61,9 @@ describe("FibonacciPatternDetector", () => {
     });
 
     it("should detect fractional scaled Fibonacci: 0.5,0.5,1,1.5,2.5", () => {
-      const values: CellValue[] = [0.5, 0.5, 1, 1.5, 2.5] as unknown as CellValue[];
+      const values: CellValue[] = [
+        0.5, 0.5, 1, 1.5, 2.5,
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
@@ -107,7 +111,15 @@ describe("FibonacciPatternDetector", () => {
 
   describe("Mixed Value Handling", () => {
     it("should handle mixed numeric and non-numeric values", () => {
-      const values: CellValue[] = [1, "text", 1, 2, "", 3, 5] as unknown as CellValue[];
+      const values: CellValue[] = [
+        1,
+        "text",
+        1,
+        2,
+        "",
+        3,
+        5,
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       // Should extract [1, 1, 2, 3, 5] and detect Fibonacci
@@ -116,7 +128,12 @@ describe("FibonacciPatternDetector", () => {
     });
 
     it("should require at least 3 numeric values", () => {
-      const values: CellValue[] = [1, "text", 1, "more text"] as unknown as CellValue[];
+      const values: CellValue[] = [
+        1,
+        "text",
+        1,
+        "more text",
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeNull();
@@ -145,19 +162,25 @@ describe("FibonacciPatternDetector", () => {
 
       expect(classicPattern).toBeDefined();
       expect(scaledPattern).toBeDefined();
-      expect(classicPattern!.confidence).toBeGreaterThan(scaledPattern!.confidence);
+      expect(classicPattern!.confidence).toBeGreaterThan(
+        scaledPattern!.confidence,
+      );
     });
 
     it("should reduce confidence for very large multipliers", () => {
       const normalFib: CellValue[] = [2, 2, 4, 6, 10] as unknown as CellValue[];
-      const largeFib: CellValue[] = [200, 200, 400, 600, 1000] as unknown as CellValue[];
+      const largeFib: CellValue[] = [
+        200, 200, 400, 600, 1000,
+      ] as unknown as CellValue[];
 
       const normalPattern = detector.detect(normalFib, "down");
       const largePattern = detector.detect(largeFib, "down");
 
       expect(normalPattern).toBeDefined();
       expect(largePattern).toBeDefined();
-      expect(normalPattern!.confidence).toBeGreaterThan(largePattern!.confidence);
+      expect(normalPattern!.confidence).toBeGreaterThan(
+        largePattern!.confidence,
+      );
     });
   });
 
@@ -175,7 +198,7 @@ describe("FibonacciPatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         nextValues.push(Number(value));
       }
@@ -196,7 +219,7 @@ describe("FibonacciPatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         nextValues.push(Number(value));
       }
@@ -217,7 +240,7 @@ describe("FibonacciPatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         nextValues.push(Number(value));
       }
@@ -236,7 +259,9 @@ describe("FibonacciPatternDetector", () => {
     });
 
     it("should handle large Fibonacci numbers", () => {
-      const values: CellValue[] = [89, 144, 233, 377, 610] as unknown as CellValue[];
+      const values: CellValue[] = [
+        89, 144, 233, 377, 610,
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
@@ -244,7 +269,9 @@ describe("FibonacciPatternDetector", () => {
     });
 
     it("should handle negative Fibonacci (Negafibonacci)", () => {
-      const values: CellValue[] = [-1, -1, -2, -3, -5] as unknown as CellValue[];
+      const values: CellValue[] = [
+        -1, -1, -2, -3, -5,
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();

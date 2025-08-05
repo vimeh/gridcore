@@ -2,9 +2,27 @@ import type { CellAddress, CellRange, CellValue } from "../domain/models";
 
 export type FillDirection = "down" | "up" | "left" | "right" | "auto";
 
-export type PatternType = "linear" | "growth" | "date" | "text" | "formula" | "copy" | "fibonacci" | "exponential" | "custom";
+export type PatternType =
+  | "linear"
+  | "growth"
+  | "date"
+  | "text"
+  | "formula"
+  | "copy"
+  | "fibonacci"
+  | "exponential"
+  | "custom";
 
-export type SeriesType = "linear" | "growth" | "date" | "weekdays" | "months" | "fibonacci" | "exponential" | "custom" | "auto";
+export type SeriesType =
+  | "linear"
+  | "growth"
+  | "date"
+  | "weekdays"
+  | "months"
+  | "fibonacci"
+  | "exponential"
+  | "custom"
+  | "auto";
 
 export interface FillOptions {
   type: "copy" | "series" | "format" | "values";

@@ -19,12 +19,12 @@ interface IntervalNode {
  */
 export class OptimizedSparseGrid {
   private cells: Map<string, Cell> = new Map();
-  private rowTree: IntervalNode | null = null;  // Tree indexed by row
-  private colTree: IntervalNode | null = null;  // Tree indexed by column
+  private rowTree: IntervalNode | null = null; // Tree indexed by row
+  private colTree: IntervalNode | null = null; // Tree indexed by column
   private maxRow: number = 0;
   private maxCol: number = 0;
   private cellCount: number = 0;
-  
+
   // Performance monitoring
   private performanceMetrics = {
     operationCount: 0,
@@ -41,9 +41,11 @@ export class OptimizedSparseGrid {
   getPerformanceMetrics() {
     return {
       ...this.performanceMetrics,
-      averageOperationTime: this.performanceMetrics.operationCount > 0 
-        ? this.performanceMetrics.totalOperationTime / this.performanceMetrics.operationCount 
-        : 0,
+      averageOperationTime:
+        this.performanceMetrics.operationCount > 0
+          ? this.performanceMetrics.totalOperationTime /
+            this.performanceMetrics.operationCount
+          : 0,
       currentMemoryUsage: this.estimateMemoryUsage(),
       cellCount: this.cellCount,
       maxRow: this.maxRow,
@@ -76,23 +78,23 @@ export class OptimizedSparseGrid {
    */
   setCell(address: CellAddress, cell: Cell): void {
     const startTime = performance.now();
-    
+
     const key = this.addressToKey(address);
     const isNewCell = !this.cells.has(key);
-    
+
     this.cells.set(key, cell);
-    
+
     if (isNewCell) {
       this.cellCount++;
     }
-    
+
     // Update bounds
     this.maxRow = Math.max(this.maxRow, address.row);
     this.maxCol = Math.max(this.maxCol, address.col);
-    
+
     // Update spatial indices lazily when needed
     this.invalidateIndices();
-    
+
     this.recordOperation(startTime);
   }
 
@@ -101,15 +103,15 @@ export class OptimizedSparseGrid {
    */
   removeCell(address: CellAddress): boolean {
     const startTime = performance.now();
-    
+
     const key = this.addressToKey(address);
     const existed = this.cells.delete(key);
-    
+
     if (existed) {
       this.cellCount--;
       this.invalidateIndices();
     }
-    
+
     this.recordOperation(startTime);
     return existed;
   }
@@ -117,17 +119,19 @@ export class OptimizedSparseGrid {
   /**
    * Batch insert rows - optimized for large operations
    */
-  insertRowsBatch(operations: Array<{beforeRow: number, count: number}>): Result<void, string> {
+  insertRowsBatch(
+    operations: Array<{ beforeRow: number; count: number }>,
+  ): Result<void, string> {
     const startTime = performance.now();
-    
+
     try {
       // Sort operations by row (descending) to avoid conflicts
       const sortedOps = operations.sort((a, b) => b.beforeRow - a.beforeRow);
-      
+
       // Create a mapping of row shifts
       const rowShifts = new Map<number, number>();
       let totalShift = 0;
-      
+
       for (const op of sortedOps) {
         for (let row = op.beforeRow; row <= this.maxRow + totalShift; row++) {
           const currentShift = rowShifts.get(row) || 0;
@@ -135,17 +139,20 @@ export class OptimizedSparseGrid {
         }
         totalShift += op.count;
       }
-      
+
       // Apply shifts efficiently
       const updates = new Map<string, Cell>();
       const toDelete: string[] = [];
-      
+
       for (const [key, cell] of this.cells.entries()) {
         const address = this.keyToAddress(key);
         const shift = rowShifts.get(address.row) || 0;
-        
+
         if (shift > 0) {
-          const newAddressResult = CellAddress.create(address.row + shift, address.col);
+          const newAddressResult = CellAddress.create(
+            address.row + shift,
+            address.col,
+          );
           if (!newAddressResult.ok) continue;
           const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
@@ -156,7 +163,7 @@ export class OptimizedSparseGrid {
           }
         }
       }
-      
+
       // Batch update
       for (const key of toDelete) {
         this.cells.delete(key);
@@ -164,11 +171,11 @@ export class OptimizedSparseGrid {
       for (const [key, cell] of updates.entries()) {
         this.cells.set(key, cell);
       }
-      
+
       // Update bounds
       this.maxRow += totalShift;
       this.invalidateIndices();
-      
+
       this.recordOperation(startTime);
       return ok(undefined);
     } catch (error) {
@@ -181,7 +188,7 @@ export class OptimizedSparseGrid {
    * Insert rows at the specified index, shifting existing rows down - Optimized
    */
   insertRows(beforeRow: number, count: number): Result<void, string> {
-    return this.insertRowsBatch([{beforeRow, count}]);
+    return this.insertRowsBatch([{ beforeRow, count }]);
   }
 
   /**
@@ -189,24 +196,30 @@ export class OptimizedSparseGrid {
    */
   deleteRows(startRow: number, count: number): Result<void, string> {
     const startTime = performance.now();
-    
+
     try {
       const updates = new Map<string, Cell>();
       const toDelete: string[] = [];
 
       // Use spatial index for efficient range queries if available
-      const affectedCells = this.getCellsInRowRange(startRow, startRow + count - 1);
-      
+      const affectedCells = this.getCellsInRowRange(
+        startRow,
+        startRow + count - 1,
+      );
+
       for (const [key, cell] of this.cells.entries()) {
         const address = this.keyToAddress(key);
-        
+
         if (address.row >= startRow && address.row < startRow + count) {
           // Cell is in deleted range
           toDelete.push(key);
           this.cellCount--;
         } else if (address.row >= startRow + count) {
           // Cell needs to move up
-          const newAddressResult = CellAddress.create(address.row - count, address.col);
+          const newAddressResult = CellAddress.create(
+            address.row - count,
+            address.col,
+          );
           if (!newAddressResult.ok) continue;
           const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
@@ -229,7 +242,7 @@ export class OptimizedSparseGrid {
       // Update bounds
       this.maxRow = Math.max(0, this.maxRow - count);
       this.invalidateIndices();
-      
+
       this.recordOperation(startTime);
       return ok(undefined);
     } catch (error) {
@@ -243,7 +256,7 @@ export class OptimizedSparseGrid {
    */
   insertColumns(beforeCol: number, count: number): Result<void, string> {
     const startTime = performance.now();
-    
+
     try {
       const updates = new Map<string, Cell>();
       const toDelete: string[] = [];
@@ -251,7 +264,10 @@ export class OptimizedSparseGrid {
       for (const [key, cell] of this.cells.entries()) {
         const address = this.keyToAddress(key);
         if (address.col >= beforeCol) {
-          const newAddressResult = CellAddress.create(address.row, address.col + count);
+          const newAddressResult = CellAddress.create(
+            address.row,
+            address.col + count,
+          );
           if (!newAddressResult.ok) continue;
           const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
@@ -273,7 +289,7 @@ export class OptimizedSparseGrid {
 
       this.maxCol += count;
       this.invalidateIndices();
-      
+
       this.recordOperation(startTime);
       return ok(undefined);
     } catch (error) {
@@ -287,21 +303,24 @@ export class OptimizedSparseGrid {
    */
   deleteColumns(startCol: number, count: number): Result<void, string> {
     const startTime = performance.now();
-    
+
     try {
       const updates = new Map<string, Cell>();
       const toDelete: string[] = [];
 
       for (const [key, cell] of this.cells.entries()) {
         const address = this.keyToAddress(key);
-        
+
         if (address.col >= startCol && address.col < startCol + count) {
           // Cell is in deleted range
           toDelete.push(key);
           this.cellCount--;
         } else if (address.col >= startCol + count) {
           // Cell needs to move left
-          const newAddressResult = CellAddress.create(address.row, address.col - count);
+          const newAddressResult = CellAddress.create(
+            address.row,
+            address.col - count,
+          );
           if (!newAddressResult.ok) continue;
           const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
@@ -323,7 +342,7 @@ export class OptimizedSparseGrid {
 
       this.maxCol = Math.max(0, this.maxCol - count);
       this.invalidateIndices();
-      
+
       this.recordOperation(startTime);
       return ok(undefined);
     } catch (error) {
@@ -337,12 +356,12 @@ export class OptimizedSparseGrid {
    */
   getAllCells(): Map<CellAddress, Cell> {
     const result = new Map<CellAddress, Cell>();
-    
+
     for (const [key, cell] of this.cells.entries()) {
       const address = this.keyToAddress(key);
       result.set(address, cell);
     }
-    
+
     return result;
   }
 
@@ -351,7 +370,7 @@ export class OptimizedSparseGrid {
    */
   getCellsInRowRange(startRow: number, endRow: number): Map<CellAddress, Cell> {
     const result = new Map<CellAddress, Cell>();
-    
+
     // If spatial index is available, use it for efficient range query
     if (this.rowTree) {
       this.queryRowTree(this.rowTree, startRow, endRow, result);
@@ -364,7 +383,7 @@ export class OptimizedSparseGrid {
         }
       }
     }
-    
+
     return result;
   }
 
@@ -373,14 +392,14 @@ export class OptimizedSparseGrid {
    */
   getCellsInRow(row: number): Map<number, Cell> {
     const result = new Map<number, Cell>();
-    
+
     for (const [key, cell] of this.cells.entries()) {
       const address = this.keyToAddress(key);
       if (address.row === row) {
         result.set(address.col, cell);
       }
     }
-    
+
     return result;
   }
 
@@ -389,14 +408,14 @@ export class OptimizedSparseGrid {
    */
   getCellsInColumn(col: number): Map<number, Cell> {
     const result = new Map<number, Cell>();
-    
+
     for (const [key, cell] of this.cells.entries()) {
       const address = this.keyToAddress(key);
       if (address.col === col) {
         result.set(address.row, cell);
       }
     }
-    
+
     return result;
   }
 
@@ -455,7 +474,7 @@ export class OptimizedSparseGrid {
   }
 
   private keyToAddress(key: string): CellAddress {
-    const [row, col] = key.split(',').map(Number);
+    const [row, col] = key.split(",").map(Number);
     const result = CellAddress.create(row, col);
     if (!result.ok) {
       throw new Error(`Invalid cell address: ${key}`);
@@ -474,13 +493,17 @@ export class OptimizedSparseGrid {
     node: IntervalNode,
     startRow: number,
     endRow: number,
-    result: Map<CellAddress, Cell>
+    result: Map<CellAddress, Cell>,
   ): void {
     // Simplified interval tree query - in a real implementation
     // this would be more sophisticated
     if (node.start <= endRow && node.end >= startRow) {
       for (const [col, cell] of node.cells.entries()) {
-        for (let row = Math.max(startRow, node.start); row <= Math.min(endRow, node.end); row++) {
+        for (
+          let row = Math.max(startRow, node.start);
+          row <= Math.min(endRow, node.end);
+          row++
+        ) {
           const addressResult = CellAddress.create(row, col);
           if (!addressResult.ok) continue;
           const address = addressResult.value;
@@ -505,11 +528,11 @@ export class OptimizedSparseGrid {
     this.performanceMetrics.operationCount++;
     this.performanceMetrics.totalOperationTime += operationTime;
     this.performanceMetrics.lastOperationTime = operationTime;
-    
+
     const currentMemory = this.estimateMemoryUsage();
     this.performanceMetrics.peakMemoryUsage = Math.max(
       this.performanceMetrics.peakMemoryUsage,
-      currentMemory
+      currentMemory,
     );
   }
 

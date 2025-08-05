@@ -1,11 +1,11 @@
 // Export all interfaces
-export * from "./interfaces";
+
+// Export factory for creating operations
+export * from "./BulkOperationFactory";
 
 // Export base classes
 export * from "./base";
 
 // Export concrete implementations
 export * from "./implementations";
-
-// Export factory for creating operations
-export * from "./BulkOperationFactory";
+export * from "./interfaces";

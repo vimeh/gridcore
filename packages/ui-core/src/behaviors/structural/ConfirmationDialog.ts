@@ -1,4 +1,8 @@
-import type { StructuralOperation, StructuralUIEvent, StructuralWarning } from "./types";
+import type {
+  StructuralOperation,
+  StructuralUIEvent,
+  StructuralWarning,
+} from "./types";
 
 export interface ConfirmationDialogConfig {
   showWarnings: boolean;
@@ -36,7 +40,7 @@ export class ConfirmationDialog {
 
   constructor(
     container?: HTMLElement,
-    config: Partial<ConfirmationDialogConfig> = {}
+    config: Partial<ConfirmationDialogConfig> = {},
   ) {
     this.container = container;
     this.config = { ...DEFAULT_CONFIRMATION_CONFIG, ...config };
@@ -49,7 +53,12 @@ export class ConfirmationDialog {
   handleEvent(event: StructuralUIEvent): void {
     switch (event.type) {
       case "structuralOperationConfirmationRequired":
-        this.show(event.operation, event.warnings, event.onConfirm, event.onCancel);
+        this.show(
+          event.operation,
+          event.warnings,
+          event.onConfirm,
+          event.onCancel,
+        );
         break;
     }
   }
@@ -61,7 +70,7 @@ export class ConfirmationDialog {
     operation: StructuralOperation,
     warnings: StructuralWarning[],
     onConfirm: () => void,
-    onCancel: () => void
+    onCancel: () => void,
   ): void {
     if (this.isVisible) {
       this.hide();
@@ -151,9 +160,12 @@ export class ConfirmationDialog {
     this.dialogElement.className = `structural-confirmation-dialog structural-confirmation-${this.config.theme}`;
 
     const operationText = this.getOperationText(this.currentOperation);
-    const severity = this.getOperationSeverity(this.currentOperation, this.currentWarnings);
+    const severity = this.getOperationSeverity(
+      this.currentOperation,
+      this.currentWarnings,
+    );
     const icon = this.getSeverityIcon(severity);
-    
+
     this.dialogElement.innerHTML = `
       <div class="confirmation-content">
         <div class="confirmation-header">
@@ -166,15 +178,15 @@ export class ConfirmationDialog {
           </div>
         </div>
         
-        ${this.config.showCellCount ? this.renderCellCountInfo() : ''}
-        ${this.config.showWarnings && this.currentWarnings.length > 0 ? this.renderWarnings() : ''}
-        ${this.config.showFormulaImpact ? this.renderFormulaImpact() : ''}
+        ${this.config.showCellCount ? this.renderCellCountInfo() : ""}
+        ${this.config.showWarnings && this.currentWarnings.length > 0 ? this.renderWarnings() : ""}
+        ${this.config.showFormulaImpact ? this.renderFormulaImpact() : ""}
         
         <div class="confirmation-actions">
-          <button class="cancel-button ${this.config.defaultButton === 'cancel' ? 'default' : ''}" type="button">
+          <button class="cancel-button ${this.config.defaultButton === "cancel" ? "default" : ""}" type="button">
             Cancel
           </button>
-          <button class="confirm-button ${this.config.defaultButton === 'confirm' ? 'default' : ''} ${severity}" type="button">
+          <button class="confirm-button ${this.config.defaultButton === "confirm" ? "default" : ""} ${severity}" type="button">
             ${this.getConfirmButtonText(this.currentOperation.type)}
           </button>
         </div>
@@ -195,8 +207,10 @@ export class ConfirmationDialog {
 
     const count = this.currentOperation.count;
     const type = this.currentOperation.type.includes("Row") ? "row" : "column";
-    const action = this.currentOperation.type.includes("delete") ? "deleted" : "inserted";
-    
+    const action = this.currentOperation.type.includes("delete")
+      ? "deleted"
+      : "inserted";
+
     return `
       <div class="confirmation-section">
         <h4>Impact Summary</h4>
@@ -245,12 +259,17 @@ export class ConfirmationDialog {
    * Render formula impact information
    */
   private renderFormulaImpact(): string {
-    const formulaWarnings = this.currentWarnings.filter(w => w.type === "formulaReference");
+    const formulaWarnings = this.currentWarnings.filter(
+      (w) => w.type === "formulaReference",
+    );
     if (formulaWarnings.length === 0) {
       return "";
     }
 
-    const totalAffectedCells = formulaWarnings.reduce((sum, w) => sum + w.affectedCells.length, 0);
+    const totalAffectedCells = formulaWarnings.reduce(
+      (sum, w) => sum + w.affectedCells.length,
+      0,
+    );
 
     return `
       <div class="confirmation-section formula-impact">
@@ -272,7 +291,7 @@ export class ConfirmationDialog {
   private getOperationText(operation: StructuralOperation): string {
     const count = operation.count > 1 ? `${operation.count} ` : "";
     const position = operation.index + 1; // 1-indexed for user display
-    
+
     switch (operation.type) {
       case "insertRow":
         return `Insert ${count}row${operation.count > 1 ? "s" : ""} before row ${position}`;
@@ -324,13 +343,16 @@ export class ConfirmationDialog {
   /**
    * Get operation severity
    */
-  private getOperationSeverity(operation: StructuralOperation, warnings: StructuralWarning[]): string {
+  private getOperationSeverity(
+    operation: StructuralOperation,
+    warnings: StructuralWarning[],
+  ): string {
     // Check for high-severity warnings
-    if (warnings.some(w => w.severity === "error")) {
+    if (warnings.some((w) => w.severity === "error")) {
       return "error";
     }
-    
-    if (warnings.some(w => w.severity === "warning")) {
+
+    if (warnings.some((w) => w.severity === "warning")) {
       return "warning";
     }
 
@@ -421,7 +443,9 @@ export class ConfirmationDialog {
       return;
     }
 
-    const defaultButton = this.dialogElement.querySelector(`.${this.config.defaultButton}-button`) as HTMLElement;
+    const defaultButton = this.dialogElement.querySelector(
+      `.${this.config.defaultButton}-button`,
+    ) as HTMLElement;
     if (defaultButton) {
       setTimeout(() => defaultButton.focus(), 100);
     }
@@ -450,7 +474,10 @@ export class ConfirmationDialog {
   private removeDialogElements(): void {
     // Remove keydown listener
     if (this.dialogElement && (this.dialogElement as any)._keydownHandler) {
-      document.removeEventListener("keydown", (this.dialogElement as any)._keydownHandler);
+      document.removeEventListener(
+        "keydown",
+        (this.dialogElement as any)._keydownHandler,
+      );
     }
 
     if (this.overlayElement) {
@@ -469,7 +496,7 @@ export class ConfirmationDialog {
   private setupStyles(): void {
     const style = document.createElement("style");
     style.id = "structural-confirmation-dialog-styles";
-    
+
     style.textContent = `
       .structural-confirmation-overlay {
         position: fixed;
@@ -754,13 +781,15 @@ export class ConfirmationDialog {
         box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
       }
     `;
-    
+
     // Remove existing styles if any
-    const existing = document.getElementById("structural-confirmation-dialog-styles");
+    const existing = document.getElementById(
+      "structural-confirmation-dialog-styles",
+    );
     if (existing) {
       existing.remove();
     }
-    
+
     document.head.appendChild(style);
   }
 }

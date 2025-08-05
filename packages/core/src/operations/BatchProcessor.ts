@@ -1,17 +1,14 @@
-import { Cell, CellAddress } from "../domain/models";
-import type { CellValue } from "../domain/models";
 import type { ICellRepository } from "../domain/interfaces/ICellRepository";
-import type { 
-  BulkOperation, 
-  Selection 
-} from "./bulk/interfaces/BulkOperation";
-import type { 
-  CellChange, 
-  OperationPreview 
+import type { CellValue } from "../domain/models";
+import { Cell, CellAddress } from "../domain/models";
+import type { BulkOperation, Selection } from "./bulk/interfaces/BulkOperation";
+import type {
+  CellChange,
+  OperationPreview,
 } from "./bulk/interfaces/OperationPreview";
-import type { 
-  OperationResult, 
-  BatchOperationResult 
+import type {
+  BatchOperationResult,
+  OperationResult,
 } from "./bulk/interfaces/OperationResult";
 
 /**
@@ -20,22 +17,22 @@ import type {
 export interface BatchContext {
   /** Unique identifier for the batch */
   batchId: string;
-  
+
   /** Operations in this batch */
   operations: BulkOperation[];
-  
+
   /** All cells affected by this batch */
   affectedCells: Set<string>;
-  
+
   /** Original values for rollback */
   originalValues: Map<string, CellValue>;
-  
+
   /** Timestamp when batch started */
   startTime: number;
-  
+
   /** Whether the batch is currently active */
   isActive: boolean;
-  
+
   /** Metadata about the batch */
   metadata: Record<string, any>;
 }
@@ -46,22 +43,22 @@ export interface BatchContext {
 export interface BatchProcessorConfig {
   /** Maximum number of operations per batch */
   maxOperationsPerBatch?: number;
-  
+
   /** Maximum number of cells affected per batch */
   maxCellsPerBatch?: number;
-  
+
   /** Whether to automatically rollback on any error */
   autoRollbackOnError?: boolean;
-  
+
   /** Whether to validate operations before execution */
   validateBeforeExecution?: boolean;
-  
+
   /** Timeout for batch operations (milliseconds) */
   batchTimeout?: number;
-  
+
   /** Whether to enable parallel processing */
   enableParallelProcessing?: boolean;
-  
+
   /** Number of worker threads for parallel processing */
   workerThreads?: number;
 }
@@ -73,10 +70,10 @@ export interface BatchProcessorConfig {
 export class BatchProcessor {
   private contexts: Map<string, BatchContext> = new Map();
   private nextBatchId: number = 1;
-  
+
   constructor(
     private cellRepository: ICellRepository,
-    private config: BatchProcessorConfig = {}
+    private config: BatchProcessorConfig = {},
   ) {
     // Set default configuration
     this.config = {
@@ -87,7 +84,7 @@ export class BatchProcessor {
       batchTimeout: 300000, // 5 minutes
       enableParallelProcessing: false,
       workerThreads: 4,
-      ...config
+      ...config,
     };
   }
 
@@ -96,7 +93,7 @@ export class BatchProcessor {
    */
   beginBatch(metadata: Record<string, any> = {}): BatchContext {
     const batchId = `batch_${this.nextBatchId++}`;
-    
+
     const context: BatchContext = {
       batchId,
       operations: [],
@@ -104,9 +101,9 @@ export class BatchProcessor {
       originalValues: new Map(),
       startTime: Date.now(),
       isActive: true,
-      metadata
+      metadata,
     };
-    
+
     this.contexts.set(batchId, context);
     return context;
   }
@@ -121,15 +118,17 @@ export class BatchProcessor {
 
     // Check batch size limits
     if (context.operations.length >= this.config.maxOperationsPerBatch!) {
-      throw new Error(`Batch size limit exceeded (max: ${this.config.maxOperationsPerBatch})`);
+      throw new Error(
+        `Batch size limit exceeded (max: ${this.config.maxOperationsPerBatch})`,
+      );
     }
 
     // Check for conflicts with existing operations
     this.checkForConflicts(context, operation);
-    
+
     // Add operation to batch
     context.operations.push(operation);
-    
+
     // Track affected cells for conflict detection
     for (const cell of operation.selection.getCells()) {
       const key = `${cell.row},${cell.col}`;
@@ -140,18 +139,26 @@ export class BatchProcessor {
   /**
    * Check for conflicts between operations
    */
-  private checkForConflicts(context: BatchContext, newOperation: BulkOperation): void {
+  private checkForConflicts(
+    context: BatchContext,
+    newOperation: BulkOperation,
+  ): void {
     for (const cell of newOperation.selection.getCells()) {
       const key = `${cell.row},${cell.col}`;
       if (context.affectedCells.has(key)) {
-        throw new Error(`Cell conflict detected at ${key}. Cell is already affected by another operation in this batch.`);
+        throw new Error(
+          `Cell conflict detected at ${key}. Cell is already affected by another operation in this batch.`,
+        );
       }
     }
-    
+
     // Check total cell limit
-    const totalCells = context.affectedCells.size + newOperation.selection.count();
+    const totalCells =
+      context.affectedCells.size + newOperation.selection.count();
     if (totalCells > this.config.maxCellsPerBatch!) {
-      throw new Error(`Batch cell limit exceeded (max: ${this.config.maxCellsPerBatch})`);
+      throw new Error(
+        `Batch cell limit exceeded (max: ${this.config.maxCellsPerBatch})`,
+      );
     }
   }
 
@@ -164,7 +171,7 @@ export class BatchProcessor {
     }
 
     const previews: OperationPreview[] = [];
-    
+
     for (const operation of context.operations) {
       try {
         const preview = await operation.preview();
@@ -186,12 +193,12 @@ export class BatchProcessor {
             formulaCells: 0,
             valueCells: 0,
             changesByType: {},
-            memoryEstimate: 0
-          }
+            memoryEstimate: 0,
+          },
         });
       }
     }
-    
+
     return previews;
   }
 
@@ -200,23 +207,25 @@ export class BatchProcessor {
    */
   validateBatch(context: BatchContext): string[] {
     const errors: string[] = [];
-    
+
     if (!context.isActive) {
       errors.push("Batch is not active");
       return errors;
     }
-    
+
     if (context.operations.length === 0) {
       errors.push("Batch contains no operations");
       return errors;
     }
-    
+
     // Check timeout
     const elapsed = Date.now() - context.startTime;
     if (elapsed > this.config.batchTimeout!) {
-      errors.push(`Batch timeout exceeded (${elapsed}ms > ${this.config.batchTimeout}ms)`);
+      errors.push(
+        `Batch timeout exceeded (${elapsed}ms > ${this.config.batchTimeout}ms)`,
+      );
     }
-    
+
     // Validate each operation
     for (let i = 0; i < context.operations.length; i++) {
       const operation = context.operations[i];
@@ -225,7 +234,7 @@ export class BatchProcessor {
         errors.push(`Operation ${i}: ${validationError}`);
       }
     }
-    
+
     return errors;
   }
 
@@ -237,16 +246,16 @@ export class BatchProcessor {
       if (context.originalValues.has(cellKey)) {
         continue; // Already captured
       }
-      
-      const [row, col] = cellKey.split(',').map(Number);
+
+      const [row, col] = cellKey.split(",").map(Number);
       const addressResult = CellAddress.create(row, col);
       if (!addressResult.ok) {
         continue;
       }
-      
+
       const cell = await this.cellRepository.get(addressResult.value);
-      const originalValue = cell ? (cell.value || null) : null;
-      
+      const originalValue = cell ? cell.value || null : null;
+
       context.originalValues.set(cellKey, originalValue);
     }
   }
@@ -256,7 +265,7 @@ export class BatchProcessor {
    */
   async commitBatch(context: BatchContext): Promise<BatchOperationResult> {
     const startTime = Date.now();
-    
+
     try {
       // Validate before execution if configured
       if (this.config.validateBeforeExecution) {
@@ -270,7 +279,7 @@ export class BatchProcessor {
             totalExecutionTime: Date.now() - startTime,
             wasRolledBack: false,
             batchErrors: errors,
-            consolidatedChanges: new Map()
+            consolidatedChanges: new Map(),
           };
         }
       }
@@ -286,22 +295,24 @@ export class BatchProcessor {
 
       for (let i = 0; i < context.operations.length; i++) {
         const operation = context.operations[i];
-        
+
         try {
           const result = await operation.execute();
           operationResults.push(result);
-          
+
           if (result.success) {
             totalCellsModified += result.cellsModified;
-            
+
             // Consolidate changes
             for (const [key, change] of result.actualChanges) {
               consolidatedChanges.set(key, change);
             }
           } else {
             // Operation failed
-            batchErrors.push(`Operation ${i} failed: ${result.errors.join(", ")}`);
-            
+            batchErrors.push(
+              `Operation ${i} failed: ${result.errors.join(", ")}`,
+            );
+
             if (this.config.autoRollbackOnError) {
               // Rollback and return
               await this.rollbackBatch(context);
@@ -313,13 +324,13 @@ export class BatchProcessor {
                 totalExecutionTime: Date.now() - startTime,
                 wasRolledBack: true,
                 batchErrors,
-                consolidatedChanges: new Map()
+                consolidatedChanges: new Map(),
               };
             }
           }
         } catch (error) {
           batchErrors.push(`Operation ${i} threw error: ${error}`);
-          
+
           if (this.config.autoRollbackOnError) {
             await this.rollbackBatch(context);
             return {
@@ -330,7 +341,7 @@ export class BatchProcessor {
               totalExecutionTime: Date.now() - startTime,
               wasRolledBack: true,
               batchErrors,
-              consolidatedChanges: new Map()
+              consolidatedChanges: new Map(),
             };
           }
         }
@@ -347,9 +358,8 @@ export class BatchProcessor {
         totalExecutionTime: Date.now() - startTime,
         wasRolledBack: false,
         batchErrors,
-        consolidatedChanges
+        consolidatedChanges,
       };
-
     } catch (error) {
       // Critical error during batch execution
       await this.rollbackBatch(context);
@@ -361,7 +371,7 @@ export class BatchProcessor {
         totalExecutionTime: Date.now() - startTime,
         wasRolledBack: true,
         batchErrors: [`Critical batch error: ${error}`],
-        consolidatedChanges: new Map()
+        consolidatedChanges: new Map(),
       };
     }
   }
@@ -373,7 +383,7 @@ export class BatchProcessor {
     try {
       // Restore original values
       for (const [cellKey, originalValue] of context.originalValues) {
-        const [row, col] = cellKey.split(',').map(Number);
+        const [row, col] = cellKey.split(",").map(Number);
         const addressResult = CellAddress.create(row, col);
         if (!addressResult.ok) {
           continue;
@@ -389,7 +399,6 @@ export class BatchProcessor {
 
       // Mark batch as inactive
       context.isActive = false;
-
     } catch (error) {
       throw new Error(`Rollback failed: ${error}`);
     }
@@ -414,7 +423,7 @@ export class BatchProcessor {
    * Get all active batches
    */
   getActiveBatches(): BatchContext[] {
-    return Array.from(this.contexts.values()).filter(ctx => ctx.isActive);
+    return Array.from(this.contexts.values()).filter((ctx) => ctx.isActive);
   }
 
   /**
@@ -434,13 +443,13 @@ export class BatchProcessor {
   async executeSingle(operation: BulkOperation): Promise<OperationResult> {
     const batch = this.beginBatch({ singleOperation: true });
     this.addOperation(batch, operation);
-    
+
     const result = await this.commitBatch(batch);
-    
+
     if (result.operationResults.length > 0) {
       return result.operationResults[0];
     }
-    
+
     // Fallback result
     return {
       success: false,
@@ -461,9 +470,9 @@ export class BatchProcessor {
           averageBatchTime: result.totalExecutionTime,
           validationTime: 0,
           updateTime: result.totalExecutionTime,
-          recalculationTime: 0
-        }
-      }
+          recalculationTime: 0,
+        },
+      },
     };
   }
 }

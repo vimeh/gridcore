@@ -7,25 +7,25 @@ import type { CellChange } from "./OperationPreview";
 export interface OperationResult {
   /** Whether the operation succeeded */
   success: boolean;
-  
+
   /** Number of cells that were successfully modified */
   cellsModified: number;
-  
+
   /** Number of cells that were processed (including skipped) */
   cellsProcessed: number;
-  
+
   /** Time taken to execute the operation (in milliseconds) */
   executionTime: number;
-  
+
   /** List of errors that occurred during execution */
   errors: string[];
-  
+
   /** List of warnings generated during execution */
   warnings: string[];
-  
+
   /** Changes that were actually made (for undo) */
   actualChanges: Map<string, CellChange>;
-  
+
   /** Additional metadata about the operation */
   metadata: OperationMetadata;
 }
@@ -36,25 +36,25 @@ export interface OperationResult {
 export interface OperationMetadata {
   /** Type of operation that was executed */
   operationType: string;
-  
+
   /** Timestamp when the operation started */
   startTime: number;
-  
+
   /** Timestamp when the operation completed */
   endTime: number;
-  
+
   /** Memory usage during the operation */
   memoryUsage?: number;
-  
+
   /** Number of formula recalculations triggered */
   formulaRecalculations?: number;
-  
+
   /** Performance metrics */
   performance: PerformanceMetrics;
-  
+
   /** User who executed the operation */
   userId?: string;
-  
+
   /** Additional context data */
   context?: Record<string, any>;
 }
@@ -65,22 +65,22 @@ export interface OperationMetadata {
 export interface PerformanceMetrics {
   /** Cells processed per second */
   cellsPerSecond: number;
-  
+
   /** Peak memory usage during operation */
   peakMemoryUsage: number;
-  
+
   /** Number of batches the operation was split into */
   batchCount: number;
-  
+
   /** Average time per batch */
   averageBatchTime: number;
-  
+
   /** Time spent on validation */
   validationTime: number;
-  
+
   /** Time spent on actual cell updates */
   updateTime: number;
-  
+
   /** Time spent on formula recalculation */
   recalculationTime: number;
 }
@@ -91,25 +91,25 @@ export interface PerformanceMetrics {
 export interface BatchOperationResult {
   /** Whether all operations in the batch succeeded */
   success: boolean;
-  
+
   /** Results of individual operations */
   operationResults: OperationResult[];
-  
+
   /** Total number of operations in the batch */
   operationCount: number;
-  
+
   /** Total number of cells modified across all operations */
   totalCellsModified: number;
-  
+
   /** Total execution time for the entire batch */
   totalExecutionTime: number;
-  
+
   /** Whether the batch was rolled back due to errors */
   wasRolledBack: boolean;
-  
+
   /** Errors that occurred at the batch level */
   batchErrors: string[];
-  
+
   /** Consolidated changes from all operations */
   consolidatedChanges: Map<string, CellChange>;
 }
@@ -137,9 +137,9 @@ export class OperationResultBuilder {
         averageBatchTime: 0,
         validationTime: 0,
         updateTime: 0,
-        recalculationTime: 0
-      }
-    }
+        recalculationTime: 0,
+      },
+    },
   };
 
   setSuccess(success: boolean): this {
@@ -160,13 +160,13 @@ export class OperationResultBuilder {
   setExecutionTime(time: number): this {
     this.result.executionTime = time;
     this.result.metadata!.endTime = this.result.metadata!.startTime + time;
-    
+
     // Calculate cells per second
     if (time > 0 && this.result.cellsProcessed! > 0) {
-      this.result.metadata!.performance.cellsPerSecond = 
+      this.result.metadata!.performance.cellsPerSecond =
         this.result.cellsProcessed! / (time / 1000);
     }
-    
+
     return this;
   }
 
@@ -195,7 +195,7 @@ export class OperationResultBuilder {
   setPerformanceMetrics(metrics: Partial<PerformanceMetrics>): this {
     this.result.metadata!.performance = {
       ...this.result.metadata!.performance,
-      ...metrics
+      ...metrics,
     };
     return this;
   }

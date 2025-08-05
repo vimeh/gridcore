@@ -174,14 +174,12 @@ export function getVimCommandDisplay(
   return `${numberBuffer || ""}${commandBuffer || ""}`;
 }
 
-export function getResizeModeDisplay(
-  info: {
-    target: string;
-    index: number;
-    currentSize: number;
-    originalSize: number;
-  }
-): string {
+export function getResizeModeDisplay(info: {
+  target: string;
+  index: number;
+  currentSize: number;
+  originalSize: number;
+}): string {
   const targetName = info.target.toUpperCase();
   const delta = info.currentSize - info.originalSize;
   const sign = delta >= 0 ? "+" : "";

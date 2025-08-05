@@ -1,5 +1,5 @@
-import { CellAddress } from "@gridcore/core";
 import { beforeEach, describe, expect, test } from "bun:test";
+import { CellAddress } from "@gridcore/core";
 import type { UIState, ViewportInfo } from "../../state/UIState";
 import type { KeyMeta } from "../VimBehavior";
 import { ReferenceToggleExtension } from "./ReferenceToggleExtension";
@@ -11,8 +11,13 @@ describe("ReferenceToggleExtension", () => {
   beforeEach(() => {
     extension = new ReferenceToggleExtension();
     const cursor = new CellAddress(0, 0); // A1
-    const viewport: ViewportInfo = { startRow: 0, startCol: 0, rows: 10, cols: 10 };
-    
+    const viewport: ViewportInfo = {
+      startRow: 0,
+      startCol: 0,
+      rows: 10,
+      cols: 10,
+    };
+
     mockState = {
       spreadsheetMode: "editing",
       cursor,

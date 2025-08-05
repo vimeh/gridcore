@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { CellAddress, CellValue, Cell } from "../domain/models";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { ICellRepository } from "../domain/interfaces/ICellRepository";
+import { Cell, CellAddress, type CellValue } from "../domain/models";
 import { BatchProcessor } from "./BatchProcessor";
 import { CellSelection } from "./bulk/base/CellSelection";
 import { BulkSetOperation } from "./bulk/implementations/BulkSetOperation";
 
 // Mock ICellRepository
-const createMockCellRepository = (): ICellRepository & { 
+const createMockCellRepository = (): ICellRepository & {
   _setCellForTest: (address: CellAddress, value: CellValue) => void;
   _getCellsMap: () => Map<string, Cell>;
 } => {
   const cells = new Map<string, Cell>();
-  
+
   return {
     getCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
@@ -21,7 +21,7 @@ const createMockCellRepository = (): ICellRepository & {
       }
       return { ok: true, value: null };
     }),
-    
+
     setCell: mock(async (address: CellAddress, cell: Partial<Cell>) => {
       const key = `${address.row},${address.col}`;
       const existingCell = cells.get(key) || Cell.create(null).value!;
@@ -29,19 +29,19 @@ const createMockCellRepository = (): ICellRepository & {
       cells.set(key, updatedCell);
       return { ok: true, value: updatedCell };
     }),
-    
+
     hasCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
       return { ok: true, value: cells.has(key) };
     }),
-    
+
     deleteCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
       const existed = cells.has(key);
       cells.delete(key);
       return { ok: true, value: existed };
     }),
-    
+
     _setCellForTest: (address: CellAddress, value: CellValue) => {
       const key = `${address.row},${address.col}`;
       const cellResult = Cell.create(value);
@@ -49,13 +49,13 @@ const createMockCellRepository = (): ICellRepository & {
         cells.set(key, cellResult.value);
       }
     },
-    
-    _getCellsMap: () => cells
+
+    _getCellsMap: () => cells,
   };
 };
 
 describe("BatchProcessor", () => {
-  let cellRepository: ICellRepository & { 
+  let cellRepository: ICellRepository & {
     _setCellForTest: (address: CellAddress, value: CellValue) => void;
     _getCellsMap: () => Map<string, Cell>;
   };
@@ -67,14 +67,14 @@ describe("BatchProcessor", () => {
       maxOperationsPerBatch: 10,
       maxCellsPerBatch: 1000,
       autoRollbackOnError: true,
-      validateBeforeExecution: true
+      validateBeforeExecution: true,
     });
   });
 
   describe("beginBatch", () => {
     it("should create new batch context", () => {
       const context = processor.beginBatch({ testMetadata: "value" });
-      
+
       expect(context.batchId).toBeTruthy();
       expect(context.operations.length).toBe(0);
       expect(context.isActive).toBe(true);
@@ -84,7 +84,7 @@ describe("BatchProcessor", () => {
     it("should generate unique batch IDs", () => {
       const context1 = processor.beginBatch();
       const context2 = processor.beginBatch();
-      
+
       expect(context1.batchId).not.toBe(context2.batchId);
     });
   });
@@ -95,23 +95,23 @@ describe("BatchProcessor", () => {
 
     beforeEach(() => {
       context = processor.beginBatch();
-      
+
       const selection = new CellSelection();
       const cell = CellAddress.create(0, 0);
       if (cell.ok) {
         selection.addCell(cell.value);
       }
-      
+
       operation = new BulkSetOperation(
         selection,
         { value: "test" },
-        cellRepository
+        cellRepository,
       );
     });
 
     it("should add operation to batch", () => {
       processor.addOperation(context, operation);
-      
+
       expect(context.operations.length).toBe(1);
       expect(context.operations[0]).toBe(operation);
       expect(context.affectedCells.size).toBe(1);
@@ -120,66 +120,70 @@ describe("BatchProcessor", () => {
 
     it("should detect cell conflicts", () => {
       processor.addOperation(context, operation);
-      
+
       // Try to add another operation affecting the same cell
       const conflictingOp = new BulkSetOperation(
         operation.selection,
         { value: "conflict" },
-        cellRepository
+        cellRepository,
       );
-      
-      expect(() => processor.addOperation(context, conflictingOp))
-        .toThrow(/conflict/i);
+
+      expect(() => processor.addOperation(context, conflictingOp)).toThrow(
+        /conflict/i,
+      );
     });
 
     it("should enforce batch size limits", () => {
       const smallProcessor = new BatchProcessor(cellRepository, {
-        maxOperationsPerBatch: 1
+        maxOperationsPerBatch: 1,
       });
-      
+
       const smallContext = smallProcessor.beginBatch();
       smallProcessor.addOperation(smallContext, operation);
-      
+
       const operation2 = new BulkSetOperation(
         new CellSelection(),
         { value: "test2" },
-        cellRepository
+        cellRepository,
       );
-      
-      expect(() => smallProcessor.addOperation(smallContext, operation2))
-        .toThrow(/size limit/i);
+
+      expect(() =>
+        smallProcessor.addOperation(smallContext, operation2),
+      ).toThrow(/size limit/i);
     });
 
     it("should enforce cell count limits", () => {
       const limitedProcessor = new BatchProcessor(cellRepository, {
-        maxCellsPerBatch: 1
+        maxCellsPerBatch: 1,
       });
-      
+
       const limitedContext = limitedProcessor.beginBatch();
       limitedProcessor.addOperation(limitedContext, operation);
-      
+
       // Add another operation with different cells
       const selection2 = new CellSelection();
       const cell2 = CellAddress.create(1, 1);
       if (cell2.ok) {
         selection2.addCell(cell2.value);
       }
-      
+
       const operation2 = new BulkSetOperation(
         selection2,
         { value: "test2" },
-        cellRepository
+        cellRepository,
       );
-      
-      expect(() => limitedProcessor.addOperation(limitedContext, operation2))
-        .toThrow(/cell limit/i);
+
+      expect(() =>
+        limitedProcessor.addOperation(limitedContext, operation2),
+      ).toThrow(/cell limit/i);
     });
 
     it("should reject operations on inactive batch", () => {
       context.isActive = false;
-      
-      expect(() => processor.addOperation(context, operation))
-        .toThrow(/inactive/i);
+
+      expect(() => processor.addOperation(context, operation)).toThrow(
+        /inactive/i,
+      );
     });
   });
 
@@ -196,22 +200,22 @@ describe("BatchProcessor", () => {
       if (cell.ok) {
         selection.addCell(cell.value);
       }
-      
+
       const operation = new BulkSetOperation(
         selection,
         { value: "test" },
-        cellRepository
+        cellRepository,
       );
-      
+
       processor.addOperation(context, operation);
-      
+
       const errors = processor.validateBatch(context);
       expect(errors.length).toBe(0);
     });
 
     it("should reject inactive batch", () => {
       context.isActive = false;
-      
+
       const errors = processor.validateBatch(context);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0]).toContain("not active");
@@ -229,11 +233,11 @@ describe("BatchProcessor", () => {
       const invalidOp = new BulkSetOperation(
         emptySelection,
         { value: "test" },
-        cellRepository
+        cellRepository,
       );
-      
+
       context.operations.push(invalidOp);
-      
+
       const errors = processor.validateBatch(context);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0]).toContain("Operation 0");
@@ -246,14 +250,14 @@ describe("BatchProcessor", () => {
 
     beforeEach(() => {
       context = processor.beginBatch();
-      
+
       const selection = new CellSelection();
       const cells = [
         CellAddress.create(0, 0),
         CellAddress.create(1, 1),
-        CellAddress.create(2, 2)
+        CellAddress.create(2, 2),
       ];
-      
+
       for (const cell of cells) {
         if (cell.ok) {
           selection.addCell(cell.value);
@@ -261,19 +265,19 @@ describe("BatchProcessor", () => {
           cellRepository._setCellForTest(cell.value, "initial");
         }
       }
-      
+
       operation = new BulkSetOperation(
         selection,
         { value: "batch test", overwriteExisting: true },
-        cellRepository
+        cellRepository,
       );
-      
+
       processor.addOperation(context, operation);
     });
 
     it("should execute batch successfully", async () => {
       const result = await processor.commitBatch(context);
-      
+
       expect(result.success).toBe(true);
       expect(result.operationCount).toBe(1);
       expect(result.totalCellsModified).toBe(3);
@@ -283,9 +287,9 @@ describe("BatchProcessor", () => {
 
     it("should consolidate changes", async () => {
       const result = await processor.commitBatch(context);
-      
+
       expect(result.consolidatedChanges.size).toBe(3);
-      
+
       const change = result.consolidatedChanges.get("0,0");
       expect(change).toBeTruthy();
       if (change) {
@@ -296,7 +300,7 @@ describe("BatchProcessor", () => {
 
     it("should mark batch as inactive after completion", async () => {
       await processor.commitBatch(context);
-      
+
       expect(context.isActive).toBe(false);
     });
 
@@ -304,20 +308,20 @@ describe("BatchProcessor", () => {
       // Create a failing repository
       const failingRepository = {
         ...cellRepository,
-        setCell: mock(async () => ({ ok: false, error: "Simulated failure" }))
+        setCell: mock(async () => ({ ok: false, error: "Simulated failure" })),
       };
-      
+
       const failingOp = new BulkSetOperation(
         operation.selection,
         { value: "failing" },
-        failingRepository
+        failingRepository,
       );
-      
+
       const failingContext = processor.beginBatch();
       processor.addOperation(failingContext, failingOp);
-      
+
       const result = await processor.commitBatch(failingContext);
-      
+
       expect(result.success).toBe(false);
       expect(result.wasRolledBack).toBe(true);
       expect(result.batchErrors.length).toBeGreaterThan(0);
@@ -331,23 +335,26 @@ describe("BatchProcessor", () => {
         setCell: mock(async (address: CellAddress, cell: Partial<Cell>) => {
           callCount++;
           if (callCount > 2) {
-            return { ok: false, error: "Simulated failure after partial execution" };
+            return {
+              ok: false,
+              error: "Simulated failure after partial execution",
+            };
           }
           return cellRepository.set(address, cell);
-        })
+        }),
       };
-      
+
       const failingOp = new BulkSetOperation(
         operation.selection,
         { value: "will fail" },
-        conditionallyFailingRepo
+        conditionallyFailingRepo,
       );
-      
+
       const failingContext = processor.beginBatch();
       processor.addOperation(failingContext, failingOp);
-      
+
       await processor.commitBatch(failingContext);
-      
+
       // Verify original values were restored
       const cell1 = CellAddress.create(0, 0);
       if (cell1.ok) {
@@ -363,19 +370,16 @@ describe("BatchProcessor", () => {
   describe("rollbackBatch", () => {
     it("should restore original values", async () => {
       const context = processor.beginBatch();
-      
+
       // Set up cells with initial values
-      const cells = [
-        CellAddress.create(0, 0),
-        CellAddress.create(1, 1)
-      ];
-      
+      const cells = [CellAddress.create(0, 0), CellAddress.create(1, 1)];
+
       for (const cell of cells) {
         if (cell.ok) {
           cellRepository._setCellForTest(cell.value, "original");
         }
       }
-      
+
       // Capture original values
       for (const cell of cells) {
         if (cell.ok) {
@@ -384,17 +388,17 @@ describe("BatchProcessor", () => {
           context.originalValues.set(key, "original");
         }
       }
-      
+
       // Modify cells
       for (const cell of cells) {
         if (cell.ok) {
           await cellRepository.set(cell.value, { value: "modified" });
         }
       }
-      
+
       // Rollback
       await processor.rollbackBatch(context);
-      
+
       // Verify restoration
       for (const cell of cells) {
         if (cell.ok) {
@@ -405,7 +409,7 @@ describe("BatchProcessor", () => {
           }
         }
       }
-      
+
       expect(context.isActive).toBe(false);
     });
   });
@@ -418,18 +422,18 @@ describe("BatchProcessor", () => {
         selection.addCell(cell.value);
         cellRepository._setCellForTest(cell.value, "before");
       }
-      
+
       const operation = new BulkSetOperation(
         selection,
         { value: "single test", overwriteExisting: true },
-        cellRepository
+        cellRepository,
       );
-      
+
       const result = await processor.executeSingle(operation);
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBe(1);
-      
+
       // Verify cell was updated
       if (cell.ok) {
         const cellResult = await cellRepository.get(cell.value);
@@ -445,7 +449,7 @@ describe("BatchProcessor", () => {
     it("should track active batches", () => {
       const context1 = processor.beginBatch();
       const context2 = processor.beginBatch();
-      
+
       const activeBatches = processor.getActiveBatches();
       expect(activeBatches.length).toBe(2);
       expect(activeBatches).toContain(context1);
@@ -454,31 +458,31 @@ describe("BatchProcessor", () => {
 
     it("should get batch status", () => {
       const context = processor.beginBatch();
-      
+
       const status = processor.getBatchStatus(context.batchId);
       expect(status).toBe(context);
-      
+
       const nonExistentStatus = processor.getBatchStatus("nonexistent");
       expect(nonExistentStatus).toBeNull();
     });
 
     it("should cancel batch", () => {
       const context = processor.beginBatch();
-      
+
       processor.cancelBatch(context);
-      
+
       expect(context.isActive).toBe(false);
       expect(processor.getBatchStatus(context.batchId)).toBeNull();
     });
 
     it("should cleanup completed batches", async () => {
       const context = processor.beginBatch();
-      
+
       // Complete the batch
       context.isActive = false;
-      
+
       processor.cleanup();
-      
+
       expect(processor.getBatchStatus(context.batchId)).toBeNull();
     });
   });
@@ -486,7 +490,7 @@ describe("BatchProcessor", () => {
   describe("performance", () => {
     it("should handle multiple operations efficiently", async () => {
       const context = processor.beginBatch();
-      
+
       // Add multiple non-conflicting operations
       for (let i = 0; i < 5; i++) {
         const selection = new CellSelection();
@@ -495,24 +499,24 @@ describe("BatchProcessor", () => {
           selection.addCell(cell.value);
           cellRepository._setCellForTest(cell.value, `initial${i}`);
         }
-        
+
         const operation = new BulkSetOperation(
           selection,
           { value: `value${i}`, overwriteExisting: true },
-          cellRepository
+          cellRepository,
         );
-        
+
         processor.addOperation(context, operation);
       }
-      
+
       const startTime = Date.now();
       const result = await processor.commitBatch(context);
       const executionTime = Date.now() - startTime;
-      
+
       expect(result.success).toBe(true);
       expect(result.operationCount).toBe(5);
       expect(result.totalCellsModified).toBe(5);
-      
+
       // Should complete in reasonable time
       expect(executionTime).toBeLessThan(1000);
     });

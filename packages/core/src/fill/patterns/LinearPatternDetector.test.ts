@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { LinearPatternDetector } from "./LinearPatternDetector";
+import { describe, expect, it } from "bun:test";
 import type { CellValue } from "../../domain/models";
+import { LinearPatternDetector } from "./LinearPatternDetector";
 
 describe("LinearPatternDetector", () => {
   const detector = new LinearPatternDetector();
@@ -81,7 +81,9 @@ describe("LinearPatternDetector", () => {
 
     it("should give higher confidence for integer steps", () => {
       const integerValues: CellValue[] = [1, 2, 3] as unknown as CellValue[];
-      const decimalValues: CellValue[] = [1.333, 2.666, 3.999] as unknown as CellValue[];
+      const decimalValues: CellValue[] = [
+        1.333, 2.666, 3.999,
+      ] as unknown as CellValue[];
 
       const intPattern = detector.detect(integerValues, "down");
       const decPattern = detector.detect(decimalValues, "down");
@@ -98,13 +100,13 @@ describe("LinearPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      
+
       // Generate next value (should be 20)
       const nextValue = pattern!.generator.generateValue(
         values,
         0, // First generated value
         {} as any, // Mock source range
-        {} as any  // Mock target cell
+        {} as any, // Mock target cell
       );
 
       expect(Number(nextValue)).toBe(20);
@@ -115,7 +117,7 @@ describe("LinearPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      
+
       // Generate next 3 values
       const generated = [];
       for (let i = 0; i < 3; i++) {
@@ -123,7 +125,7 @@ describe("LinearPatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         generated.push(Number(value));
       }

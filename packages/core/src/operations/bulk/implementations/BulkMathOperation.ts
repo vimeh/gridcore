@@ -1,19 +1,24 @@
-import { CellAddress } from "../../../domain/models";
-import type { CellValue } from "../../../domain/models";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
-import type { Selection, BulkOperationOptions } from "../interfaces/BulkOperation";
-import type { OperationPreview, CellChange } from "../interfaces/OperationPreview";
+import type { CellAddress, CellValue } from "../../../domain/models";
 import { BaseBulkOperation } from "../base/BaseBulkOperation";
+import type {
+  BulkOperationOptions,
+  Selection,
+} from "../interfaces/BulkOperation";
+import type {
+  CellChange,
+  OperationPreview,
+} from "../interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
 
 /**
  * Supported math operations
  */
-export type MathOperationType = 
-  | "add" 
-  | "subtract" 
-  | "multiply" 
-  | "divide" 
+export type MathOperationType =
+  | "add"
+  | "subtract"
+  | "multiply"
+  | "divide"
   | "modulo"
   | "percent"
   | "percentDecrease"
@@ -27,19 +32,19 @@ export type MathOperationType =
 export interface BulkMathOptions extends BulkOperationOptions {
   /** The type of math operation to perform */
   operation: MathOperationType;
-  
+
   /** The operand value for the operation */
   value: number;
-  
+
   /** Number of decimal places for rounding operations */
   decimalPlaces?: number;
-  
+
   /** Whether to skip non-numeric cells */
   skipNonNumeric?: boolean;
-  
+
   /** Whether to attempt conversion of string numbers */
   convertStrings?: boolean;
-  
+
   /** Whether to preserve the original data type when possible */
   preserveType?: boolean;
 }
@@ -55,39 +60,47 @@ export class NumericUtils {
     if (typeof value === "number") {
       return value;
     }
-    
+
     if (typeof value === "string") {
       // Remove common formatting characters
       const cleaned = value.replace(/[\s,$%]/g, "");
       const parsed = parseFloat(cleaned);
       return isNaN(parsed) ? null : parsed;
     }
-    
+
     if (typeof value === "boolean") {
       return value ? 1 : 0;
     }
-    
+
     return null;
   }
-  
+
   /**
    * Check if a value can be converted to a number
    */
   static isNumeric(value: CellValue): boolean {
     return NumericUtils.toNumber(value) !== null;
   }
-  
+
   /**
    * Format a number back to the appropriate type
    */
-  static formatResult(result: number, originalValue: CellValue, preserveType: boolean = true): CellValue {
+  static formatResult(
+    result: number,
+    originalValue: CellValue,
+    preserveType: boolean = true,
+  ): CellValue {
     // Handle special cases
     if (!isFinite(result)) {
       return result; // NaN, Infinity, -Infinity
     }
-    
+
     // If preserving type and original was a string that looked numeric, return as string
-    if (preserveType && typeof originalValue === "string" && NumericUtils.isNumeric(originalValue)) {
+    if (
+      preserveType &&
+      typeof originalValue === "string" &&
+      NumericUtils.isNumeric(originalValue)
+    ) {
       // Try to preserve the original string format style
       if (originalValue.includes("%")) {
         return `${result}%`;
@@ -100,75 +113,76 @@ export class NumericUtils {
         return result.toString();
       }
     }
-    
+
     return result;
   }
-  
+
   /**
    * Perform a math operation safely
    */
   static performOperation(
-    operation: MathOperationType, 
-    value: number, 
-    operand: number, 
-    decimalPlaces?: number
+    operation: MathOperationType,
+    value: number,
+    operand: number,
+    decimalPlaces?: number,
   ): number {
     let result: number;
-    
+
     switch (operation) {
       case "add":
         result = value + operand;
         break;
-        
+
       case "subtract":
         result = value - operand;
         break;
-        
+
       case "multiply":
         result = value * operand;
         break;
-        
+
       case "divide":
         if (operand === 0) {
           return NaN; // Division by zero
         }
         result = value / operand;
         break;
-        
+
       case "modulo":
         if (operand === 0) {
           return NaN; // Modulo by zero
         }
         result = value % operand;
         break;
-        
+
       case "percent":
         // Increase by percentage: value * (1 + operand/100)
         result = value * (1 + operand / 100);
         break;
-        
+
       case "percentDecrease":
         // Decrease by percentage: value * (1 - operand/100)
         result = value * (1 - operand / 100);
         break;
-        
-      case "round":
-        const factor = Math.pow(10, decimalPlaces || 0);
+
+      case "round": {
+        const factor = 10 ** (decimalPlaces || 0);
         result = Math.round(value * factor) / factor;
         break;
-        
+      }
+
       case "floor":
         result = Math.floor(value);
         break;
-        
+
       case "ceil":
         result = Math.ceil(value);
         break;
-        
+
       default:
         throw new Error(`Unsupported operation: ${operation}`);
     }
-    
+
     return result;
   }
 }
@@ -178,58 +192,75 @@ export class NumericUtils {
  */
 export class BulkMathOperation extends BaseBulkOperation {
   private mathOptions: BulkMathOptions;
-  
+
   constructor(
     selection: Selection,
     options: BulkMathOptions,
-    cellRepository: ICellRepository
+    cellRepository: ICellRepository,
   ) {
     super("mathOperation", selection, options, cellRepository);
     this.mathOptions = {
       skipNonNumeric: true,
       convertStrings: true,
       preserveType: true,
-      ...options
+      ...options,
     };
   }
 
   /**
    * Transform each cell using the specified math operation
    */
-  protected async transformCell(address: CellAddress, currentValue: CellValue): Promise<CellValue | null> {
-    const { operation, value: operand, decimalPlaces, skipNonNumeric, convertStrings, preserveType } = this.mathOptions;
-    
+  protected async transformCell(
+    address: CellAddress,
+    currentValue: CellValue,
+  ): Promise<CellValue | null> {
+    const {
+      operation,
+      value: operand,
+      decimalPlaces,
+      skipNonNumeric,
+      convertStrings,
+      preserveType,
+    } = this.mathOptions;
+
     // Skip null/undefined values
     if (currentValue === null || currentValue === undefined) {
       return null;
     }
-    
+
     // Skip empty strings
     if (currentValue === "") {
       return null;
     }
-    
+
     // Convert to number
     let numericValue: number | null = null;
-    
+
     if (convertStrings) {
       numericValue = NumericUtils.toNumber(currentValue);
     } else if (typeof currentValue === "number") {
       numericValue = currentValue;
     }
-    
+
     // Skip if not numeric and configured to skip
     if (numericValue === null) {
       if (skipNonNumeric) {
         return null;
       } else {
-        throw new Error(`Cannot perform ${operation} on non-numeric value: ${currentValue}`);
+        throw new Error(
+          `Cannot perform ${operation} on non-numeric value: ${currentValue}`,
+        );
       }
     }
-    
+
     // Perform the operation
-    const result = NumericUtils.performOperation(operation, numericValue, operand, decimalPlaces);
-    
+    const result = NumericUtils.performOperation(
+      operation,
+      numericValue,
+      operand,
+      decimalPlaces,
+    );
+
     // Handle invalid results
     if (!isFinite(result)) {
       if (skipNonNumeric) {
@@ -238,7 +269,7 @@ export class BulkMathOperation extends BaseBulkOperation {
         return result; // Return NaN/Infinity if not skipping
       }
     }
-    
+
     // Format the result appropriately
     return NumericUtils.formatResult(result, currentValue, preserveType);
   }
@@ -251,31 +282,35 @@ export class BulkMathOperation extends BaseBulkOperation {
     if (baseValidation) {
       return baseValidation;
     }
-    
+
     const { operation, value: operand, decimalPlaces } = this.mathOptions;
-    
+
     // Validate operand
     if (typeof operand !== "number" || !isFinite(operand)) {
       return "Math operation requires a valid finite number";
     }
-    
+
     // Check for division/modulo by zero
     if ((operation === "divide" || operation === "modulo") && operand === 0) {
       return `Cannot ${operation} by zero`;
     }
-    
+
     // Validate decimal places for rounding
     if (operation === "round" && decimalPlaces !== undefined) {
-      if (!Number.isInteger(decimalPlaces) || decimalPlaces < 0 || decimalPlaces > 10) {
+      if (
+        !Number.isInteger(decimalPlaces) ||
+        decimalPlaces < 0 ||
+        decimalPlaces > 10
+      ) {
         return "Decimal places must be an integer between 0 and 10";
       }
     }
-    
+
     // Validate percentage ranges
     if (operation === "percentDecrease" && operand >= 100) {
       return "Percentage decrease cannot be 100% or greater";
     }
-    
+
     return null;
   }
 
@@ -285,7 +320,7 @@ export class BulkMathOperation extends BaseBulkOperation {
   getDescription(): string {
     const { operation, value: operand, decimalPlaces } = this.mathOptions;
     const cellCount = this.selection.count();
-    
+
     switch (operation) {
       case "add":
         return `Add ${operand} to ${cellCount} numeric cells`;
@@ -301,9 +336,10 @@ export class BulkMathOperation extends BaseBulkOperation {
         return `Increase ${cellCount} numeric cells by ${operand}%`;
       case "percentDecrease":
         return `Decrease ${cellCount} numeric cells by ${operand}%`;
-      case "round":
+      case "round": {
         const places = decimalPlaces || 0;
         return `Round ${cellCount} numeric cells to ${places} decimal places`;
+      }
       case "floor":
         return `Apply floor to ${cellCount} numeric cells`;
       case "ceil":
@@ -322,23 +358,27 @@ export class BulkMathOperation extends BaseBulkOperation {
     const cellsPerSecond = 100000;
     return Math.max(50, (cellCount / cellsPerSecond) * 1000); // Minimum 50ms
   }
-  
+
   /**
    * Generate enhanced preview with calculation examples
    */
   async preview(limit: number = 100): Promise<OperationPreview> {
     const builder = new OperationPreviewBuilder();
     const totalCells = this.selection.count();
-    
+
     builder.setAffectedCells(totalCells);
-    
+
     let previewCount = 0;
     let modifiedCount = 0;
     let skippedCount = 0;
     let numericCount = 0;
     let nonNumericCount = 0;
-    
-    const examples: Array<{ before: CellValue; after: CellValue; calculation: string }> = [];
+
+    const examples: Array<{
+      before: CellValue;
+      after: CellValue;
+      calculation: string;
+    }> = [];
     const changesByType: Record<string, number> = {};
 
     try {
@@ -350,8 +390,10 @@ export class BulkMathOperation extends BaseBulkOperation {
 
         // Get current cell value
         const currentCell = await this.cellRepository.get(address);
-        const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
-        
+        const currentValue = currentCell
+          ? currentCell.computedValue || currentCell.rawValue
+          : null;
+
         // Skip empty cells
         if (currentValue === null || currentValue === "") {
           skippedCount++;
@@ -372,21 +414,24 @@ export class BulkMathOperation extends BaseBulkOperation {
 
         // Transform the cell value
         const newValue = await this.transformCell(address, currentValue);
-        
+
         if (newValue === null || newValue === currentValue) {
           skippedCount++;
           continue;
         }
 
         // Create calculation explanation
-        const calculation = this.getCalculationExplanation(currentValue, newValue);
+        const calculation = this.getCalculationExplanation(
+          currentValue,
+          newValue,
+        );
 
         // Store example if we have fewer than 5
         if (examples.length < 5) {
           examples.push({
             before: currentValue,
             after: newValue,
-            calculation
+            calculation,
           });
         }
 
@@ -396,23 +441,30 @@ export class BulkMathOperation extends BaseBulkOperation {
           before: currentValue,
           after: newValue,
           isFormula: false,
-          changeType: "value"
+          changeType: "value",
         };
 
         builder.addChange(change);
         modifiedCount++;
         previewCount++;
-        
+
         changesByType["value"] = (changesByType["value"] || 0) + 1;
       }
 
       // Prepare operation-specific information
-      const operationSummary = this.getOperationSummary(numericCount, nonNumericCount, skippedCount);
-      
-      // Prepare examples information  
-      const exampleInfo = examples.length > 0 ? 
-        examples.map(ex => `${ex.before} → ${ex.after} (${ex.calculation})`).join(", ") : 
-        "No examples available";
+      const operationSummary = this.getOperationSummary(
+        numericCount,
+        nonNumericCount,
+        skippedCount,
+      );
+
+      // Prepare examples information
+      const exampleInfo =
+        examples.length > 0
+          ? examples
+              .map((ex) => `${ex.before} → ${ex.after} (${ex.calculation})`)
+              .join(", ")
+          : "No examples available";
 
       // Set summary information
       builder.setSummary({
@@ -427,16 +479,15 @@ export class BulkMathOperation extends BaseBulkOperation {
           numericCells: numericCount,
           nonNumericCells: nonNumericCount,
           operation: this.mathOptions.operation,
-          operand: this.mathOptions.value
+          operand: this.mathOptions.value,
         },
         operationSummary,
-        examples: exampleInfo
+        examples: exampleInfo,
       });
 
       // Estimate execution time
       const estimatedTime = this.estimateTime();
       builder.setEstimatedTime(estimatedTime);
-
     } catch (error) {
       builder.addError(`Preview generation failed: ${error}`);
     }
@@ -447,14 +498,17 @@ export class BulkMathOperation extends BaseBulkOperation {
   /**
    * Get a human-readable explanation of the calculation
    */
-  private getCalculationExplanation(before: CellValue, after: CellValue): string {
+  private getCalculationExplanation(
+    before: CellValue,
+    after: CellValue,
+  ): string {
     const { operation, value: operand, decimalPlaces } = this.mathOptions;
     const beforeNum = NumericUtils.toNumber(before);
-    
+
     if (beforeNum === null) {
       return `non-numeric value skipped`;
     }
-    
+
     switch (operation) {
       case "add":
         return `${beforeNum} + ${operand}`;
@@ -470,9 +524,10 @@ export class BulkMathOperation extends BaseBulkOperation {
         return `${beforeNum} + ${operand}%`;
       case "percentDecrease":
         return `${beforeNum} - ${operand}%`;
-      case "round":
+      case "round": {
         const places = decimalPlaces || 0;
         return `round(${beforeNum}, ${places})`;
+      }
       case "floor":
         return `floor(${beforeNum})`;
       case "ceil":
@@ -485,41 +540,58 @@ export class BulkMathOperation extends BaseBulkOperation {
   /**
    * Get operation-specific summary text
    */
-  private getOperationSummary(numericCount: number, nonNumericCount: number, skippedCount: number): string {
+  private getOperationSummary(
+    numericCount: number,
+    nonNumericCount: number,
+    skippedCount: number,
+  ): string {
     const { operation, value: operand } = this.mathOptions;
     const total = numericCount + nonNumericCount;
-    
+
     let summary = `Math Operation: ${operation.toUpperCase()}`;
-    
-    if (operation === "add" || operation === "subtract" || operation === "multiply" || operation === "divide" || operation === "modulo") {
+
+    if (
+      operation === "add" ||
+      operation === "subtract" ||
+      operation === "multiply" ||
+      operation === "divide" ||
+      operation === "modulo"
+    ) {
       summary += ` by ${operand}`;
     } else if (operation === "percent" || operation === "percentDecrease") {
       summary += ` ${operand}%`;
-    } else if (operation === "round" && this.mathOptions.decimalPlaces !== undefined) {
+    } else if (
+      operation === "round" &&
+      this.mathOptions.decimalPlaces !== undefined
+    ) {
       summary += ` to ${this.mathOptions.decimalPlaces} decimal places`;
     }
-    
+
     summary += `\n${numericCount} numeric cells will be modified`;
-    
+
     if (nonNumericCount > 0) {
-      summary += `, ${nonNumericCount} non-numeric cells will be ${this.mathOptions.skipNonNumeric ? 'skipped' : 'cause errors'}`;
+      summary += `, ${nonNumericCount} non-numeric cells will be ${this.mathOptions.skipNonNumeric ? "skipped" : "cause errors"}`;
     }
-    
+
     if (skippedCount > 0) {
       summary += `, ${skippedCount} cells skipped (empty or unchanged)`;
     }
-    
+
     return summary;
   }
 
   /**
    * Get operation details for external use
    */
-  getOperationDetails(): { operation: MathOperationType; operand: number; decimalPlaces?: number } {
+  getOperationDetails(): {
+    operation: MathOperationType;
+    operand: number;
+    decimalPlaces?: number;
+  } {
     return {
       operation: this.mathOptions.operation,
       operand: this.mathOptions.value,
-      decimalPlaces: this.mathOptions.decimalPlaces
+      decimalPlaces: this.mathOptions.decimalPlaces,
     };
   }
 }

@@ -52,13 +52,13 @@ export class StructuralOperationManager {
    */
   startOperation(
     operation: StructuralOperation,
-    analysis: StructuralAnalysis
+    analysis: StructuralAnalysis,
   ): Promise<boolean> {
     return new Promise((resolve) => {
       this.state.isActive = true;
       this.state.operation = operation;
       this.state.warnings = this.convertAnalysisWarnings(analysis.warnings);
-      
+
       this.currentOperation = {
         operation,
         startTime: Date.now(),
@@ -85,7 +85,7 @@ export class StructuralOperationManager {
     }
 
     this.state.progress = Math.min(100, Math.max(0, progress));
-    
+
     this.emit({
       type: "structuralOperationProgress",
       operation: this.currentOperation.operation,
@@ -104,14 +104,14 @@ export class StructuralOperationManager {
    */
   completeOperation(
     affectedCells: CellAddress[],
-    formulaUpdates: Map<CellAddress, string>
+    formulaUpdates: Map<CellAddress, string>,
   ): void {
     if (!this.currentOperation) {
       return;
     }
 
     const duration = Date.now() - this.currentOperation.startTime;
-    
+
     // Clear progress interval
     if (this.currentOperation.progressInterval) {
       clearInterval(this.currentOperation.progressInterval);
@@ -126,7 +126,11 @@ export class StructuralOperationManager {
     });
 
     // Highlight affected cells
-    this.highlightCells(affectedCells, "affected", this.config.highlightDuration);
+    this.highlightCells(
+      affectedCells,
+      "affected",
+      this.config.highlightDuration,
+    );
 
     // Show warnings if any
     if (this.state.warnings.length > 0) {
@@ -145,10 +149,12 @@ export class StructuralOperationManager {
     }
 
     // Store warnings before reset if auto-hide is configured
-    const warningsToPreserve = this.config.autoHideWarnings ? [...this.state.warnings] : [];
-    
+    const warningsToPreserve = this.config.autoHideWarnings
+      ? [...this.state.warnings]
+      : [];
+
     this.resetState();
-    
+
     // Restore warnings if auto-hide is configured (they'll be cleared by the timeout)
     if (warningsToPreserve.length > 0) {
       this.state.warnings = warningsToPreserve;
@@ -194,7 +200,7 @@ export class StructuralOperationManager {
   highlightCells(
     cells: CellAddress[],
     type: HighlightType,
-    duration?: number
+    duration?: number,
   ): void {
     const highlights: CellHighlight[] = cells.map((address) => ({
       address,
@@ -226,7 +232,9 @@ export class StructuralOperationManager {
    */
   clearHighlights(type?: HighlightType): void {
     if (type) {
-      this.state.highlights = this.state.highlights.filter((h) => h.type !== type);
+      this.state.highlights = this.state.highlights.filter(
+        (h) => h.type !== type,
+      );
     } else {
       this.state.highlights = [];
       // Clear all timeouts
@@ -265,7 +273,7 @@ export class StructuralOperationManager {
    */
   private needsConfirmation(
     operation: StructuralOperation,
-    analysis: StructuralAnalysis
+    analysis: StructuralAnalysis,
   ): boolean {
     // Always confirm deletions above threshold
     if (
@@ -297,7 +305,7 @@ export class StructuralOperationManager {
   private showConfirmationDialog(
     operation: StructuralOperation,
     analysis: StructuralAnalysis,
-    resolve: (confirmed: boolean) => void
+    resolve: (confirmed: boolean) => void,
   ): void {
     this.state.showConfirmation = true;
 
@@ -323,7 +331,7 @@ export class StructuralOperationManager {
    */
   private proceedWithOperation(
     operation: StructuralOperation,
-    analysis: StructuralAnalysis
+    analysis: StructuralAnalysis,
   ): void {
     // Estimate duration for progress indicator
     const estimatedDuration = this.estimateOperationDuration(operation);
@@ -355,9 +363,11 @@ export class StructuralOperationManager {
     this.currentOperation.progressInterval = setInterval(() => {
       // Simulate progress - in real implementation this would be tied to actual operation progress
       const elapsed = Date.now() - this.currentOperation!.startTime;
-      const estimatedTotal = this.estimateOperationDuration(this.currentOperation!.operation);
+      const estimatedTotal = this.estimateOperationDuration(
+        this.currentOperation!.operation,
+      );
       const progress = Math.min(95, (elapsed / estimatedTotal) * 100);
-      
+
       this.updateProgress(progress);
     }, this.config.progressThrottleMs);
   }
@@ -367,7 +377,7 @@ export class StructuralOperationManager {
    */
   private highlightAffectedAreas(
     operation: StructuralOperation,
-    analysis: StructuralAnalysis
+    analysis: StructuralAnalysis,
   ): void {
     // Highlight affected cells
     if (analysis.affectedCells.length > 0) {
@@ -398,10 +408,15 @@ export class StructuralOperationManager {
    */
   private getDeletedCells(operation: StructuralOperation): CellAddress[] {
     const cells: CellAddress[] = [];
-    
+
     if (operation.type === "deleteRow") {
-      for (let row = operation.index; row < operation.index + operation.count; row++) {
-        for (let col = 0; col < 20; col++) { // Assume max 20 columns for visualization
+      for (
+        let row = operation.index;
+        row < operation.index + operation.count;
+        row++
+      ) {
+        for (let col = 0; col < 20; col++) {
+          // Assume max 20 columns for visualization
           const addressResult = CellAddress.create(row, col);
           if (addressResult.ok) {
             cells.push(addressResult.value);
@@ -409,8 +424,13 @@ export class StructuralOperationManager {
         }
       }
     } else if (operation.type === "deleteColumn") {
-      for (let col = operation.index; col < operation.index + operation.count; col++) {
-        for (let row = 0; row < 50; row++) { // Assume max 50 rows for visualization
+      for (
+        let col = operation.index;
+        col < operation.index + operation.count;
+        col++
+      ) {
+        for (let row = 0; row < 50; row++) {
+          // Assume max 50 rows for visualization
           const addressResult = CellAddress.create(row, col);
           if (addressResult.ok) {
             cells.push(addressResult.value);
@@ -427,10 +447,15 @@ export class StructuralOperationManager {
    */
   private getInsertedCells(operation: StructuralOperation): CellAddress[] {
     const cells: CellAddress[] = [];
-    
+
     if (operation.type === "insertRow") {
-      for (let row = operation.index; row < operation.index + operation.count; row++) {
-        for (let col = 0; col < 20; col++) { // Assume max 20 columns for visualization
+      for (
+        let row = operation.index;
+        row < operation.index + operation.count;
+        row++
+      ) {
+        for (let col = 0; col < 20; col++) {
+          // Assume max 20 columns for visualization
           const addressResult = CellAddress.create(row, col);
           if (addressResult.ok) {
             cells.push(addressResult.value);
@@ -438,8 +463,13 @@ export class StructuralOperationManager {
         }
       }
     } else if (operation.type === "insertColumn") {
-      for (let col = operation.index; col < operation.index + operation.count; col++) {
-        for (let row = 0; row < 50; row++) { // Assume max 50 rows for visualization
+      for (
+        let col = operation.index;
+        col < operation.index + operation.count;
+        col++
+      ) {
+        for (let row = 0; row < 50; row++) {
+          // Assume max 50 rows for visualization
           const addressResult = CellAddress.create(row, col);
           if (addressResult.ok) {
             cells.push(addressResult.value);
@@ -459,7 +489,8 @@ export class StructuralOperationManager {
       type: warning.type,
       message: warning.message,
       affectedCells: warning.affectedCells,
-      severity: warning.type === "dataLoss" ? "error" as const : "warning" as const,
+      severity:
+        warning.type === "dataLoss" ? ("error" as const) : ("warning" as const),
     }));
   }
 
@@ -470,7 +501,7 @@ export class StructuralOperationManager {
     // Simple estimation: 10ms per affected item + base overhead
     const baseMs = 100;
     const perItemMs = 10;
-    return baseMs + (operation.count * perItemMs);
+    return baseMs + operation.count * perItemMs;
   }
 
   /**

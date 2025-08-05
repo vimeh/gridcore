@@ -1,8 +1,10 @@
-import { CellAddress } from "../../../domain/models";
-import type { CellValue } from "../../../domain/models";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
-import type { Selection, BulkOperationOptions } from "../interfaces/BulkOperation";
+import type { CellAddress, CellValue } from "../../../domain/models";
 import { BaseBulkOperation } from "../base/BaseBulkOperation";
+import type {
+  BulkOperationOptions,
+  Selection,
+} from "../interfaces/BulkOperation";
 
 /**
  * Options for bulk set operation
@@ -10,10 +12,10 @@ import { BaseBulkOperation } from "../base/BaseBulkOperation";
 export interface BulkSetOptions extends BulkOperationOptions {
   /** The value to set in all selected cells */
   value: CellValue;
-  
+
   /** Whether to overwrite existing values */
   overwriteExisting?: boolean;
-  
+
   /** Whether to preserve formulas */
   preserveFormulas?: boolean;
 }
@@ -23,11 +25,11 @@ export interface BulkSetOptions extends BulkOperationOptions {
  */
 export class BulkSetOperation extends BaseBulkOperation {
   private setValue: CellValue;
-  
+
   constructor(
     selection: Selection,
     options: BulkSetOptions,
-    cellRepository: ICellRepository
+    cellRepository: ICellRepository,
   ) {
     super("bulkSet", selection, options, cellRepository);
     this.setValue = options.value;
@@ -36,14 +38,21 @@ export class BulkSetOperation extends BaseBulkOperation {
   /**
    * Transform each cell to the target value
    */
-  protected async transformCell(address: CellAddress, currentValue: CellValue): Promise<CellValue | null> {
+  protected async transformCell(
+    address: CellAddress,
+    currentValue: CellValue,
+  ): Promise<CellValue | null> {
     const options = this.options as BulkSetOptions;
-    
+
     // Check if we should skip this cell
-    if (!options.overwriteExisting && currentValue !== null && currentValue !== "") {
+    if (
+      !options.overwriteExisting &&
+      currentValue !== null &&
+      currentValue !== ""
+    ) {
       return null; // Skip non-empty cells if not overwriting
     }
-    
+
     // Check if this is a formula cell and we should preserve formulas
     if (options.preserveFormulas) {
       const cell = await this.cellRepository.get(address);
@@ -51,7 +60,7 @@ export class BulkSetOperation extends BaseBulkOperation {
         return null; // Skip formula cells if preserving formulas
       }
     }
-    
+
     return this.setValue;
   }
 
@@ -63,12 +72,12 @@ export class BulkSetOperation extends BaseBulkOperation {
     if (baseValidation) {
       return baseValidation;
     }
-    
+
     const options = this.options as BulkSetOptions;
     if (options.value === undefined || options.value === null) {
       return "Set value cannot be null or undefined";
     }
-    
+
     return null;
   }
 

@@ -82,7 +82,7 @@ export type VimAction =
   | { type: "selectEntireRow" }
   | { type: "selectColumnData" }
   | { type: "selectRowData" }
-  | { 
+  | {
       type: "structuralInsert";
       target: "row" | "column";
       position: "before" | "after";
@@ -189,8 +189,8 @@ export class VimBehavior {
       return { type: "exitEditing" };
     } else if (isResizeMode(state)) {
       return this.handleResizeMode(key, meta, state);
-    // } else if (isFillMode(state)) {
-    //   return this.handleFillMode(key, meta, state);
+      // } else if (isFillMode(state)) {
+      //   return this.handleFillMode(key, meta, state);
     }
 
     return { type: "none" };
@@ -205,8 +205,8 @@ export class VimBehavior {
       return { type: "exitVisual" };
     } else if (isResizeMode(state)) {
       return { type: "exitMode" };
-    // } else if (isFillMode(state)) {
-    //   return { type: "cancelFill" };
+      // } else if (isFillMode(state)) {
+      //   return { type: "cancelFill" };
     }
 
     // Already in navigation
@@ -296,7 +296,12 @@ export class VimBehavior {
         this.clearBuffers();
         // Check if we're in visual line mode for structural insert
         if (this.isInVisualLineMode(state)) {
-          return { type: "structuralInsert", target: "row", position: "before", count };
+          return {
+            type: "structuralInsert",
+            target: "row",
+            position: "before",
+            count,
+          };
         }
         return { type: "startEditing", editVariant: "I" };
       case "o":
@@ -471,7 +476,7 @@ export class VimBehavior {
       case "y":
         this.clearBuffers();
         return { type: "yank" };
-      
+
       // Exit visual mode
       case "v":
         this.clearBuffers();
@@ -549,7 +554,7 @@ export class VimBehavior {
   //     case "ArrowDown":
   //     case "ArrowUp":
   //     case "ArrowRight":
-  //       const direction = 
+  //       const direction =
   //         key === "h" || key === "ArrowLeft" ? "left" :
   //         key === "j" || key === "ArrowDown" ? "down" :
   //         key === "k" || key === "ArrowUp" ? "up" : "right";
@@ -566,7 +571,12 @@ export class VimBehavior {
 
     // Handle Ctrl+Shift+Plus for insert operations
     if (meta.shift && (key === "+" || key === "=")) {
-      return { type: "structuralInsert", target: "row", position: "before", count: 1 };
+      return {
+        type: "structuralInsert",
+        target: "row",
+        position: "before",
+        count: 1,
+      };
     }
 
     // Handle Ctrl+Minus for delete operations
@@ -657,9 +667,17 @@ export class VimBehavior {
       case "gC":
         return { type: "enterSpreadsheetVisual", visualMode: "column" };
       case "gfd":
-        return { type: "startFill", direction: "down", options: { series: true, count } };
+        return {
+          type: "startFill",
+          direction: "down",
+          options: { series: true, count },
+        };
       case "gfr":
-        return { type: "startFill", direction: "right", options: { series: true, count } };
+        return {
+          type: "startFill",
+          direction: "right",
+          options: { series: true, count },
+        };
       case "gF":
         return { type: "startFill", direction: "smart", options: { count } };
       default:

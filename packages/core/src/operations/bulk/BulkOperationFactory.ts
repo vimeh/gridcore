@@ -1,10 +1,32 @@
 import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
-import type { Selection, IBulkOperationFactory, BulkOperation } from "./interfaces/BulkOperation";
-import { FindReplaceOperation, FindReplaceOptions } from "./implementations/FindReplaceOperation";
-import { BulkSetOperation, BulkSetOptions } from "./implementations/BulkSetOperation";
-import { BulkMathOperation, BulkMathOptions, MathOperationType } from "./implementations/BulkMathOperation";
-import { BulkTransformOperation, BulkTransformOptions, TransformationType } from "./implementations/BulkTransformOperation";
-import { BulkFormatOperation, BulkFormatOptions, FormatType } from "./implementations/BulkFormatOperation";
+import {
+  BulkFormatOperation,
+  type BulkFormatOptions,
+  type FormatType,
+} from "./implementations/BulkFormatOperation";
+import {
+  BulkMathOperation,
+  type BulkMathOptions,
+  type MathOperationType,
+} from "./implementations/BulkMathOperation";
+import {
+  BulkSetOperation,
+  type BulkSetOptions,
+} from "./implementations/BulkSetOperation";
+import {
+  BulkTransformOperation,
+  type BulkTransformOptions,
+  type TransformationType,
+} from "./implementations/BulkTransformOperation";
+import {
+  FindReplaceOperation,
+  type FindReplaceOptions,
+} from "./implementations/FindReplaceOperation";
+import type {
+  BulkOperation,
+  IBulkOperationFactory,
+  Selection,
+} from "./interfaces/BulkOperation";
 
 /**
  * Factory for creating bulk operations from command parser results
@@ -19,27 +41,27 @@ export class BulkOperationFactory implements IBulkOperationFactory {
   createOperation(
     type: string,
     selection: Selection,
-    options: Record<string, any>
+    options: Record<string, any>,
   ): BulkOperation | null {
     switch (type) {
       case "findReplace":
         return this.createFindReplaceOperation(selection, options);
-      
+
       case "bulkSet":
         return this.createBulkSetOperation(selection, options);
-      
+
       case "mathOperation":
         return this.createMathOperation(selection, options);
-      
+
       case "fill":
         return this.createFillOperation(selection, options);
-      
+
       case "transform":
         return this.createTransformOperation(selection, options);
-      
+
       case "format":
         return this.createFormatOperation(selection, options);
-      
+
       default:
         return null;
     }
@@ -51,11 +73,11 @@ export class BulkOperationFactory implements IBulkOperationFactory {
   getSupportedTypes(): string[] {
     return [
       "findReplace",
-      "bulkSet", 
+      "bulkSet",
       "mathOperation",
       "fill",
       "transform",
-      "format"
+      "format",
     ];
   }
 
@@ -69,7 +91,10 @@ export class BulkOperationFactory implements IBulkOperationFactory {
   /**
    * Create a find/replace operation from command options
    */
-  private createFindReplaceOperation(selection: Selection, options: any): FindReplaceOperation {
+  private createFindReplaceOperation(
+    selection: Selection,
+    options: any,
+  ): FindReplaceOperation {
     const findReplaceOptions: FindReplaceOptions = {
       findPattern: options.findPattern,
       replaceWith: options.replaceWith,
@@ -79,21 +104,28 @@ export class BulkOperationFactory implements IBulkOperationFactory {
       scope: options.options?.scope ?? "selection",
       searchInFormulas: options.options?.searchInFormulas ?? false,
       searchInValues: options.options?.searchInValues ?? true,
-      wholeCellMatch: options.options?.wholeCellMatch ?? false
+      wholeCellMatch: options.options?.wholeCellMatch ?? false,
     };
 
-    return new FindReplaceOperation(selection, findReplaceOptions, this.cellRepository);
+    return new FindReplaceOperation(
+      selection,
+      findReplaceOptions,
+      this.cellRepository,
+    );
   }
 
   /**
    * Create a bulk set operation from command options
    */
-  private createBulkSetOperation(selection: Selection, options: any): BulkSetOperation {
+  private createBulkSetOperation(
+    selection: Selection,
+    options: any,
+  ): BulkSetOperation {
     const bulkSetOptions: BulkSetOptions = {
       value: options.value,
       overwriteExisting: options.overwriteExisting ?? true,
       preserveFormulas: options.preserveFormulas ?? false,
-      skipEmpty: options.skipEmpty ?? false
+      skipEmpty: options.skipEmpty ?? false,
     };
 
     return new BulkSetOperation(selection, bulkSetOptions, this.cellRepository);
@@ -102,24 +134,27 @@ export class BulkOperationFactory implements IBulkOperationFactory {
   /**
    * Create a math operation from command options
    */
-  private createMathOperation(selection: Selection, options: any): BulkMathOperation | null {
+  private createMathOperation(
+    selection: Selection,
+    options: any,
+  ): BulkMathOperation | null {
     // Map command operation names to MathOperationType
     const operationMap: Record<string, MathOperationType> = {
-      "add": "add",
-      "sub": "subtract", 
-      "subtract": "subtract",
-      "mul": "multiply",
-      "multiply": "multiply",
-      "div": "divide",
-      "divide": "divide",
-      "mod": "modulo",
-      "modulo": "modulo",
-      "percent": "percent",
-      "percentd": "percentDecrease",
-      "percentDecrease": "percentDecrease",
-      "round": "round",
-      "floor": "floor",
-      "ceil": "ceil"
+      add: "add",
+      sub: "subtract",
+      subtract: "subtract",
+      mul: "multiply",
+      multiply: "multiply",
+      div: "divide",
+      divide: "divide",
+      mod: "modulo",
+      modulo: "modulo",
+      percent: "percent",
+      percentd: "percentDecrease",
+      percentDecrease: "percentDecrease",
+      round: "round",
+      floor: "floor",
+      ceil: "ceil",
     };
 
     const operation = operationMap[options.operation];
@@ -138,7 +173,7 @@ export class BulkOperationFactory implements IBulkOperationFactory {
       skipEmpty: options.skipEmpty ?? true,
       batchSize: options.batchSize,
       onProgress: options.onProgress,
-      stopOnError: options.stopOnError ?? false
+      stopOnError: options.stopOnError ?? false,
     };
 
     return new BulkMathOperation(selection, mathOptions, this.cellRepository);
@@ -147,7 +182,10 @@ export class BulkOperationFactory implements IBulkOperationFactory {
   /**
    * Create a fill operation (placeholder for future implementation)
    */
-  private createFillOperation(selection: Selection, options: any): BulkOperation | null {
+  private createFillOperation(
+    selection: Selection,
+    options: any,
+  ): BulkOperation | null {
     // TODO: Implement FillOperation class
     // This would handle fill down, up, left, right, series operations
     console.warn("Fill operations not yet implemented");
@@ -157,15 +195,18 @@ export class BulkOperationFactory implements IBulkOperationFactory {
   /**
    * Create a transform operation from command options
    */
-  private createTransformOperation(selection: Selection, options: any): BulkTransformOperation | null {
+  private createTransformOperation(
+    selection: Selection,
+    options: any,
+  ): BulkTransformOperation | null {
     // Map command transformation names to TransformationType
     const transformationMap: Record<string, TransformationType> = {
-      "upper": "upper",
-      "uppercase": "upper",
-      "lower": "lower",
-      "lowercase": "lower",
-      "trim": "trim",
-      "clean": "clean"
+      upper: "upper",
+      uppercase: "upper",
+      lower: "lower",
+      lowercase: "lower",
+      trim: "trim",
+      clean: "clean",
     };
 
     const transformation = transformationMap[options.transformation];
@@ -183,33 +224,40 @@ export class BulkOperationFactory implements IBulkOperationFactory {
         normalizeSpaces: true,
         removeLineBreaks: true,
         removeTabs: true,
-        removeOtherWhitespace: false
+        removeOtherWhitespace: false,
       },
       skipEmpty: options.skipEmpty ?? true,
       batchSize: options.batchSize,
       onProgress: options.onProgress,
-      stopOnError: options.stopOnError ?? false
+      stopOnError: options.stopOnError ?? false,
     };
 
-    return new BulkTransformOperation(selection, transformOptions, this.cellRepository);
+    return new BulkTransformOperation(
+      selection,
+      transformOptions,
+      this.cellRepository,
+    );
   }
 
   /**
    * Create a format operation from command options
    */
-  private createFormatOperation(selection: Selection, options: any): BulkFormatOperation | null {
+  private createFormatOperation(
+    selection: Selection,
+    options: any,
+  ): BulkFormatOperation | null {
     // Map command format names to FormatType
     const formatMap: Record<string, FormatType> = {
-      "currency": "currency",
-      "money": "currency",
-      "percent": "percent",
-      "percentage": "percent",
-      "date": "date",
-      "datetime": "date",
-      "number": "number",
-      "numeric": "number",
-      "text": "text",
-      "string": "text"
+      currency: "currency",
+      money: "currency",
+      percent: "percent",
+      percentage: "percent",
+      date: "date",
+      datetime: "date",
+      number: "number",
+      numeric: "number",
+      text: "text",
+      string: "text",
     };
 
     const formatType = formatMap[options.formatType];
@@ -230,38 +278,44 @@ export class BulkOperationFactory implements IBulkOperationFactory {
         decimals: options.currencyDecimals ?? 2,
         showSymbol: options.showCurrencySymbol ?? true,
         useThousandsSeparator: options.useThousandsSeparator ?? true,
-        ...options.currencyOptions
+        ...options.currencyOptions,
       },
       percentOptions: {
         decimals: options.percentDecimals ?? 2,
         multiplyBy100: options.multiplyBy100 ?? true,
-        ...options.percentOptions
+        ...options.percentOptions,
       },
       dateOptions: {
         format: options.dateFormat ?? "MM/DD/YYYY",
         includeTime: options.includeTime ?? false,
         timeFormat: options.timeFormat ?? "12h",
-        ...options.dateOptions
+        ...options.dateOptions,
       },
       numberOptions: {
         decimals: options.numberDecimals ?? 2,
         useThousandsSeparator: options.useThousandsSeparator ?? true,
         showPositiveSign: options.showPositiveSign ?? false,
-        ...options.numberOptions
+        ...options.numberOptions,
       },
       skipEmpty: options.skipEmpty ?? true,
       batchSize: options.batchSize,
       onProgress: options.onProgress,
-      stopOnError: options.stopOnError ?? false
+      stopOnError: options.stopOnError ?? false,
     };
 
-    return new BulkFormatOperation(selection, formatOptions, this.cellRepository);
+    return new BulkFormatOperation(
+      selection,
+      formatOptions,
+      this.cellRepository,
+    );
   }
 }
 
 /**
  * Convenience function to create a factory instance
  */
-export function createBulkOperationFactory(cellRepository: ICellRepository): BulkOperationFactory {
+export function createBulkOperationFactory(
+  cellRepository: ICellRepository,
+): BulkOperationFactory {
   return new BulkOperationFactory(cellRepository);
 }

@@ -1,12 +1,12 @@
 import type { CellAddress } from "../domain/models/CellAddress";
 import { err, ok, type Result } from "../shared/types/Result";
 import {
-  RefError,
   type AdjustmentOptions,
   type AdjustmentResult,
   type CellReference,
   type FillDirection,
   type RangeReference,
+  RefError,
 } from "./types";
 
 /**

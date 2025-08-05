@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { ExponentialPatternDetector } from "./ExponentialPatternDetector";
+import { describe, expect, it } from "bun:test";
 import type { CellValue } from "../../domain/models";
+import { ExponentialPatternDetector } from "./ExponentialPatternDetector";
 
 describe("ExponentialPatternDetector", () => {
   const detector = new ExponentialPatternDetector();
@@ -165,7 +165,14 @@ describe("ExponentialPatternDetector", () => {
 
   describe("Mixed Value Handling", () => {
     it("should handle mixed numeric and non-numeric values", () => {
-      const values: CellValue[] = [1, "text", 2, "", 4, 8] as unknown as CellValue[];
+      const values: CellValue[] = [
+        1,
+        "text",
+        2,
+        "",
+        4,
+        8,
+      ] as unknown as CellValue[];
       const pattern = detector.detect(values, "down");
 
       // Should extract [1, 2, 4, 8] and detect exponential pattern
@@ -200,7 +207,9 @@ describe("ExponentialPatternDetector", () => {
 
     it("should give higher confidence for nice ratios", () => {
       const niceRatio: CellValue[] = [1, 2, 4] as unknown as CellValue[];
-      const uglyRatio: CellValue[] = [1, 2.333, 5.444] as unknown as CellValue[];
+      const uglyRatio: CellValue[] = [
+        1, 2.333, 5.444,
+      ] as unknown as CellValue[];
 
       const nicePattern = detector.detect(niceRatio, "down");
       const uglyPattern = detector.detect(uglyRatio, "down");
@@ -219,7 +228,9 @@ describe("ExponentialPatternDetector", () => {
 
       expect(standardPattern).toBeDefined();
       expect(powerPattern).toBeDefined();
-      expect(powerPattern!.confidence).toBeGreaterThan(standardPattern!.confidence);
+      expect(powerPattern!.confidence).toBeGreaterThan(
+        standardPattern!.confidence,
+      );
     });
 
     it("should reduce confidence for very large/small ratios", () => {
@@ -231,7 +242,9 @@ describe("ExponentialPatternDetector", () => {
 
       expect(normalPattern).toBeDefined();
       expect(largePattern).toBeDefined();
-      expect(normalPattern!.confidence).toBeGreaterThan(largePattern!.confidence);
+      expect(normalPattern!.confidence).toBeGreaterThan(
+        largePattern!.confidence,
+      );
     });
 
     it("should reduce confidence for negative ratios", () => {
@@ -243,7 +256,9 @@ describe("ExponentialPatternDetector", () => {
 
       expect(positivePattern).toBeDefined();
       expect(negativePattern).toBeDefined();
-      expect(positivePattern!.confidence).toBeGreaterThan(negativePattern!.confidence);
+      expect(positivePattern!.confidence).toBeGreaterThan(
+        negativePattern!.confidence,
+      );
     });
   });
 
@@ -261,7 +276,7 @@ describe("ExponentialPatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         nextValues.push(Number(value));
       }
@@ -282,7 +297,7 @@ describe("ExponentialPatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         nextValues.push(Number(value));
       }
@@ -303,7 +318,7 @@ describe("ExponentialPatternDetector", () => {
           values,
           i,
           {} as any,
-          {} as any
+          {} as any,
         );
         nextValues.push(Number(value));
       }
@@ -321,7 +336,7 @@ describe("ExponentialPatternDetector", () => {
         values,
         0,
         {} as any,
-        {} as any
+        {} as any,
       );
 
       // Should be exactly 8, not 8.000000001
@@ -332,7 +347,9 @@ describe("ExponentialPatternDetector", () => {
 
   describe("Overflow Protection", () => {
     it("should reduce confidence for sequences that will overflow", () => {
-      const largeValues: CellValue[] = [1000000, 10000000, 100000000] as unknown as CellValue[];
+      const largeValues: CellValue[] = [
+        1000000, 10000000, 100000000,
+      ] as unknown as CellValue[];
       const smallValues: CellValue[] = [1, 10, 100] as unknown as CellValue[];
 
       const largePattern = detector.detect(largeValues, "down");
@@ -341,7 +358,9 @@ describe("ExponentialPatternDetector", () => {
       expect(largePattern).toBeDefined();
       expect(smallPattern).toBeDefined();
       // Large values should have reduced confidence due to potential overflow
-      expect(smallPattern!.confidence).toBeGreaterThanOrEqual(largePattern!.confidence);
+      expect(smallPattern!.confidence).toBeGreaterThanOrEqual(
+        largePattern!.confidence,
+      );
     });
 
     it("should throw error for values that overflow", () => {
@@ -356,7 +375,7 @@ describe("ExponentialPatternDetector", () => {
           values,
           20, // This should create a huge number
           {} as any,
-          {} as any
+          {} as any,
         );
       }).toThrow("out of safe range");
     });

@@ -1,9 +1,16 @@
-import { CellAddress } from "../../../domain/models";
-import type { CellValue } from "../../../domain/models";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
-import type { Selection, BulkOperationOptions, UndoableBulkOperation } from "../interfaces/BulkOperation";
-import type { OperationPreview, CellChange, PreviewOptions } from "../interfaces/OperationPreview";
+import type { CellAddress, CellValue } from "../../../domain/models";
 import { BaseBulkOperation } from "../base/BaseBulkOperation";
+import type {
+  BulkOperationOptions,
+  Selection,
+  UndoableBulkOperation,
+} from "../interfaces/BulkOperation";
+import type {
+  CellChange,
+  OperationPreview,
+  PreviewOptions,
+} from "../interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
 
 /**
@@ -12,28 +19,28 @@ import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
 export interface FindReplaceOptions extends BulkOperationOptions {
   /** The pattern to search for */
   findPattern: string;
-  
+
   /** The replacement text */
   replaceWith: string;
-  
+
   /** Whether to use regex pattern matching */
   useRegex?: boolean;
-  
+
   /** Whether to perform case-sensitive matching */
   caseSensitive?: boolean;
-  
+
   /** Whether to replace all occurrences in each cell (global) */
   global?: boolean;
-  
+
   /** The scope of the operation */
   scope?: "selection" | "sheet" | "allSheets";
-  
+
   /** Whether to search in formula content */
   searchInFormulas?: boolean;
-  
+
   /** Whether to search only in cell values */
   searchInValues?: boolean;
-  
+
   /** Whether to match whole cells only */
   wholeCellMatch?: boolean;
 }
@@ -44,13 +51,13 @@ export interface FindReplaceOptions extends BulkOperationOptions {
 export interface MatchResult {
   /** The cell address where the match was found */
   address: CellAddress;
-  
+
   /** The original cell value */
   originalValue: string;
-  
+
   /** The new value after replacement */
   newValue: string;
-  
+
   /** Array of individual matches found in the cell */
   matches: {
     /** Start position of the match */
@@ -62,10 +69,10 @@ export interface MatchResult {
     /** The replacement text */
     replacementText: string;
   }[];
-  
+
   /** Whether this cell contains a formula */
   isFormula: boolean;
-  
+
   /** The type of content that was searched */
   searchType: "value" | "formula";
 }
@@ -74,15 +81,18 @@ export interface MatchResult {
  * Find and Replace operation that searches for patterns and replaces them
  * Supports regex patterns, case sensitivity, and different scopes
  */
-export class FindReplaceOperation extends BaseBulkOperation implements UndoableBulkOperation {
+export class FindReplaceOperation
+  extends BaseBulkOperation
+  implements UndoableBulkOperation
+{
   private compiledPattern: RegExp | null = null;
   private findOptions: FindReplaceOptions;
   private matchResults: MatchResult[] = [];
-  
+
   constructor(
     selection: Selection,
     options: FindReplaceOptions,
-    cellRepository: ICellRepository
+    cellRepository: ICellRepository,
   ) {
     super("findReplace", selection, options, cellRepository);
     this.findOptions = options;
@@ -96,15 +106,17 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
     try {
       const pattern = this.findOptions.findPattern;
       const flags = this.buildRegexFlags();
-      
+
       if (this.findOptions.useRegex) {
         this.compiledPattern = new RegExp(pattern, flags);
       } else {
         // Escape special regex characters for literal matching
-        const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         this.compiledPattern = new RegExp(
-          this.findOptions.wholeCellMatch ? `^${escapedPattern}$` : escapedPattern,
-          flags
+          this.findOptions.wholeCellMatch
+            ? `^${escapedPattern}$`
+            : escapedPattern,
+          flags,
         );
       }
     } catch (error) {
@@ -116,12 +128,12 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
    * Build regex flags based on options
    */
   private buildRegexFlags(): string {
-    let flags = '';
+    let flags = "";
     if (this.findOptions.global) {
-      flags += 'g';
+      flags += "g";
     }
     if (!this.findOptions.caseSensitive) {
-      flags += 'i';
+      flags += "i";
     }
     return flags;
   }
@@ -129,7 +141,10 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
   /**
    * Transform each cell by finding and replacing matches
    */
-  protected async transformCell(address: CellAddress, currentValue: CellValue): Promise<CellValue | null> {
+  protected async transformCell(
+    address: CellAddress,
+    currentValue: CellValue,
+  ): Promise<CellValue | null> {
     if (!this.compiledPattern) {
       return null;
     }
@@ -137,19 +152,19 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
     // Get the cell to check if it has a formula
     const cell = await this.cellRepository.get(address);
     const isFormula = cell?.formula !== undefined;
-    
+
     // Determine what content to search
     let searchContent: string;
     let searchType: "value" | "formula";
-    
+
     if (isFormula && this.findOptions.searchInFormulas) {
       searchContent = cell!.rawValue as string; // Formula is stored in rawValue
       searchType = "formula";
-    } else if (!isFormula && (this.findOptions.searchInValues !== false)) {
+    } else if (!isFormula && this.findOptions.searchInValues !== false) {
       // Search in values by default if not a formula
       searchContent = String(currentValue || "");
       searchType = "value";
-    } else if (isFormula && (this.findOptions.searchInValues !== false)) {
+    } else if (isFormula && this.findOptions.searchInValues !== false) {
       // For formula cells, search in the calculated value if searching values
       searchContent = String(currentValue || "");
       searchType = "value";
@@ -165,7 +180,7 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
 
     // Perform replacement
     const newContent = this.performReplacement(searchContent, matches);
-    
+
     // Store match result for preview
     this.matchResults.push({
       address,
@@ -173,7 +188,7 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
       newValue: newContent,
       matches,
       isFormula,
-      searchType
+      searchType,
     });
 
     // Return the appropriate new value
@@ -190,26 +205,36 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
   /**
    * Find all matches of the pattern in the given text
    */
-  private findMatches(text: string): Array<{ start: number; end: number; matchedText: string; replacementText: string }> {
+  private findMatches(text: string): Array<{
+    start: number;
+    end: number;
+    matchedText: string;
+    replacementText: string;
+  }> {
     if (!this.compiledPattern) {
       return [];
     }
 
-    const matches: Array<{ start: number; end: number; matchedText: string; replacementText: string }> = [];
-    
+    const matches: Array<{
+      start: number;
+      end: number;
+      matchedText: string;
+      replacementText: string;
+    }> = [];
+
     if (this.findOptions.global) {
       let match;
       // Reset lastIndex to ensure we start from the beginning
       this.compiledPattern.lastIndex = 0;
-      
+
       while ((match = this.compiledPattern.exec(text)) !== null) {
         matches.push({
           start: match.index,
           end: match.index + match[0].length,
           matchedText: match[0],
-          replacementText: this.findOptions.replaceWith
+          replacementText: this.findOptions.replaceWith,
         });
-        
+
         // Prevent infinite loop on zero-length matches
         if (match.index === this.compiledPattern.lastIndex) {
           this.compiledPattern.lastIndex++;
@@ -223,7 +248,7 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
           start: match.index,
           end: match.index + match[0].length,
           matchedText: match[0],
-          replacementText: this.findOptions.replaceWith
+          replacementText: this.findOptions.replaceWith,
         });
       }
     }
@@ -234,7 +259,15 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
   /**
    * Perform the replacement using the found matches
    */
-  private performReplacement(text: string, matches: Array<{ start: number; end: number; matchedText: string; replacementText: string }>): string {
+  private performReplacement(
+    text: string,
+    matches: Array<{
+      start: number;
+      end: number;
+      matchedText: string;
+      replacementText: string;
+    }>,
+  ): string {
     if (matches.length === 0) {
       return text;
     }
@@ -251,12 +284,13 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
     // For literal replacements, use manual replacement
     // Sort matches by start position in reverse order to avoid index shifting
     const sortedMatches = [...matches].sort((a, b) => b.start - a.start);
-    
+
     let result = text;
     for (const match of sortedMatches) {
-      result = result.substring(0, match.start) + 
-               match.replacementText + 
-               result.substring(match.end);
+      result =
+        result.substring(0, match.start) +
+        match.replacementText +
+        result.substring(match.end);
     }
 
     return result;
@@ -268,19 +302,19 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
   async preview(limit: number = 100): Promise<OperationPreview> {
     // Clear previous match results
     this.matchResults = [];
-    
+
     // Call parent preview to get base functionality
     const basePreview = await super.preview(limit);
-    
+
     // Create enhanced preview with match highlighting
     const builder = new OperationPreviewBuilder();
-    
+
     // Copy base preview data
     builder.setAffectedCells(basePreview.affectedCells);
     builder.setTruncated(basePreview.isTruncated);
     builder.setSummary(basePreview.summary);
     builder.setEstimatedTime(basePreview.estimatedTime);
-    
+
     // Add match-specific information
     for (const error of basePreview.errors) {
       builder.addError(error);
@@ -300,25 +334,28 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
         metadata: {
           matches: matchResult.matches,
           searchType: matchResult.searchType,
-          matchCount: matchResult.matches.length
-        }
+          matchCount: matchResult.matches.length,
+        },
       };
-      
+
       builder.addChange(change);
     }
 
     // Add find/replace specific summary
-    const totalMatches = this.matchResults.reduce((sum, result) => sum + result.matches.length, 0);
+    const totalMatches = this.matchResults.reduce(
+      (sum, result) => sum + result.matches.length,
+      0,
+    );
     const enhancedSummary = {
       ...basePreview.summary,
       totalMatches,
       findPattern: this.findOptions.findPattern,
       replaceWith: this.findOptions.replaceWith,
-      searchScope: this.findOptions.scope || 'selection',
+      searchScope: this.findOptions.scope || "selection",
       caseSensitive: this.findOptions.caseSensitive || false,
-      useRegex: this.findOptions.useRegex || false
+      useRegex: this.findOptions.useRegex || false,
     };
-    
+
     builder.setSummary(enhancedSummary);
 
     return builder.build();
@@ -354,12 +391,14 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
    * Get description of the operation
    */
   getDescription(): string {
-    const scope = this.findOptions.scope || 'selection';
+    const scope = this.findOptions.scope || "selection";
     const pattern = this.findOptions.findPattern;
     const replacement = this.findOptions.replaceWith;
-    const matchType = this.findOptions.caseSensitive ? 'case-sensitive' : 'case-insensitive';
-    const patternType = this.findOptions.useRegex ? 'regex' : 'literal';
-    
+    const matchType = this.findOptions.caseSensitive
+      ? "case-sensitive"
+      : "case-insensitive";
+    const patternType = this.findOptions.useRegex ? "regex" : "literal";
+
     return `Find "${pattern}" and replace with "${replacement}" (${patternType}, ${matchType}) in ${scope}`;
   }
 
@@ -374,10 +413,14 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
       replaceWith: this.findOptions.findPattern,
       // For undo, we need to be more precise to avoid unintended replacements
       useRegex: false,
-      wholeCellMatch: true
+      wholeCellMatch: true,
     };
 
-    return new FindReplaceOperation(this.selection, undoOptions, this.cellRepository);
+    return new FindReplaceOperation(
+      this.selection,
+      undoOptions,
+      this.cellRepository,
+    );
   }
 
   /**
@@ -397,15 +440,15 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
     // Find/replace is more complex than simple set operations
     // Estimate based on pattern complexity and scope
     let cellsPerSecond = 15000; // Base rate for simple patterns
-    
+
     if (this.findOptions.useRegex) {
       cellsPerSecond = Math.floor(cellsPerSecond * 0.7); // Regex is slower
     }
-    
+
     if (this.findOptions.searchInFormulas) {
       cellsPerSecond = Math.floor(cellsPerSecond * 0.8); // Formula search is slower
     }
-    
+
     const calculatedTime = Math.ceil((cellCount / cellsPerSecond) * 1000);
     return Math.max(200, calculatedTime); // Minimum 200ms
   }
@@ -421,6 +464,9 @@ export class FindReplaceOperation extends BaseBulkOperation implements UndoableB
    * Get total number of matches found
    */
   getTotalMatches(): number {
-    return this.matchResults.reduce((sum, result) => sum + result.matches.length, 0);
+    return this.matchResults.reduce(
+      (sum, result) => sum + result.matches.length,
+      0,
+    );
   }
 }

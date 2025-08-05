@@ -30,7 +30,17 @@ export interface BulkSetCommand extends BulkCommand {
 
 export interface MathOperationCommand extends BulkCommand {
   type: "mathOperation";
-  operation: "add" | "sub" | "mul" | "div" | "mod" | "percent" | "percentd" | "round" | "floor" | "ceil";
+  operation:
+    | "add"
+    | "sub"
+    | "mul"
+    | "div"
+    | "mod"
+    | "percent"
+    | "percentd"
+    | "round"
+    | "floor"
+    | "ceil";
   value: number;
   decimalPlaces?: number; // For rounding operations
   requiresPreview: false;
@@ -58,7 +68,7 @@ export interface FormatCommand extends BulkCommand {
   requiresSelection: true;
 }
 
-export type ParsedBulkCommand = 
+export type ParsedBulkCommand =
   | FindReplaceCommand
   | BulkSetCommand
   | MathOperationCommand
@@ -69,7 +79,10 @@ export type ParsedBulkCommand =
 export interface BulkCommandParser {
   parse(command: string): ParsedBulkCommand | null;
   getCompletions(partial: string): string[];
-  validateCommand(command: ParsedBulkCommand, hasSelection: boolean): string | null;
+  validateCommand(
+    command: ParsedBulkCommand,
+    hasSelection: boolean,
+  ): string | null;
 }
 
 /**
@@ -77,7 +90,7 @@ export interface BulkCommandParser {
  * Supports:
  * - Find/Replace: :s/pattern/replacement/g, :%s/pattern/replacement/g
  * - Bulk set: :set value
- * - Math operations: :add 10, :sub 5, :mul 2, :div 3  
+ * - Math operations: :add 10, :sub 5, :mul 2, :div 3
  * - Fill operations: :fill down, :fill series
  * - Transform: :upper, :lower, :trim, :clean
  * - Format: :format currency, :format percent
@@ -90,7 +103,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
     bulkSet: /^:set\s+(.+)$/,
     // Basic math operations: :add 10, :sub 5, :mul 2, :div 3, :mod 7
     mathOp: /^:(add|sub|mul|div|mod)\s+(-?\d+(?:\.\d+)?)$/,
-    // Percentage operations: :percent 20, :percentd 15  
+    // Percentage operations: :percent 20, :percentd 15
     percentOp: /^:(percent|percentd)\s+(-?\d+(?:\.\d+)?)$/,
     // Rounding with decimal places: :round 2 (2 decimal places)
     roundOp: /^:round(?:\s+(\d+))?$/,
@@ -118,20 +131,20 @@ export class VimBulkCommandParser implements BulkCommandParser {
     ":floor",
     ":ceil",
     ":fill down",
-    ":fill up", 
+    ":fill up",
     ":fill left",
     ":fill right",
     ":fill series",
     ":upper",
     ":lower",
-    ":trim", 
+    ":trim",
     ":clean",
     ":format currency",
     ":format percent",
     ":format date",
     ":format number",
     ":s///g",
-    ":%s///g"
+    ":%s///g",
   ];
 
   parse(command: string): ParsedBulkCommand | null {
@@ -144,13 +157,13 @@ export class VimBulkCommandParser implements BulkCommandParser {
         findPattern: pattern,
         replaceWith: replacement,
         options: {
-          global: flags.includes('g'),
-          caseSensitive: !flags.includes('i'),
+          global: flags.includes("g"),
+          caseSensitive: !flags.includes("i"),
           useRegex: true, // vim substitute uses regex by default
-          scope: scope === '%' ? 'sheet' : 'selection'
+          scope: scope === "%" ? "sheet" : "selection",
         },
         requiresPreview: true,
-        requiresSelection: scope !== '%'  // Only require selection for non-sheet-wide operations
+        requiresSelection: scope !== "%", // Only require selection for non-sheet-wide operations
       };
     }
 
@@ -161,7 +174,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
         type: "bulkSet",
         value: bulkSetMatch[1],
         requiresPreview: false,
-        requiresSelection: true
+        requiresSelection: true,
       };
     }
 
@@ -175,7 +188,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
         operation,
         value,
         requiresPreview: false,
-        requiresSelection: true
+        requiresSelection: true,
       };
     }
 
@@ -189,7 +202,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
         operation,
         value,
         requiresPreview: false,
-        requiresSelection: true
+        requiresSelection: true,
       };
     }
 
@@ -203,7 +216,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
         value: 0, // Not used for rounding
         decimalPlaces,
         requiresPreview: false,
-        requiresSelection: true
+        requiresSelection: true,
       };
     }
 
@@ -216,31 +229,40 @@ export class VimBulkCommandParser implements BulkCommandParser {
         operation,
         value: 0, // Not used for floor/ceil
         requiresPreview: false,
-        requiresSelection: true
+        requiresSelection: true,
       };
     }
 
     // Fill operations
     const fillMatch = command.match(this.patterns.fill);
     if (fillMatch) {
-      const direction = fillMatch[1] as "down" | "up" | "left" | "right" | "series";
+      const direction = fillMatch[1] as
+        | "down"
+        | "up"
+        | "left"
+        | "right"
+        | "series";
       return {
         type: "fill",
         direction,
         requiresPreview: false,
-        requiresSelection: true
+        requiresSelection: true,
       };
     }
 
     // Transform operations
     const transformMatch = command.match(this.patterns.transform);
     if (transformMatch) {
-      const transformation = transformMatch[1] as "upper" | "lower" | "trim" | "clean";
+      const transformation = transformMatch[1] as
+        | "upper"
+        | "lower"
+        | "trim"
+        | "clean";
       return {
         type: "transform",
         transformation,
         requiresPreview: false,
-        requiresSelection: true
+        requiresSelection: true,
       };
     }
 
@@ -251,7 +273,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
         type: "format",
         formatType: formatMatch[1],
         requiresPreview: false,
-        requiresSelection: true
+        requiresSelection: true,
       };
     }
 
@@ -259,16 +281,19 @@ export class VimBulkCommandParser implements BulkCommandParser {
   }
 
   getCompletions(partial: string): string[] {
-    if (!partial.startsWith(':')) {
+    if (!partial.startsWith(":")) {
       return [];
     }
 
-    return this.completions.filter(completion => 
-      completion.toLowerCase().startsWith(partial.toLowerCase())
+    return this.completions.filter((completion) =>
+      completion.toLowerCase().startsWith(partial.toLowerCase()),
     );
   }
 
-  validateCommand(command: ParsedBulkCommand, hasSelection: boolean): string | null {
+  validateCommand(
+    command: ParsedBulkCommand,
+    hasSelection: boolean,
+  ): string | null {
     // Validate specific command types first (before checking selection requirement)
     switch (command.type) {
       case "findReplace":
@@ -277,7 +302,10 @@ export class VimBulkCommandParser implements BulkCommandParser {
         }
         if (command.options.useRegex) {
           try {
-            new RegExp(command.findPattern, command.options.caseSensitive ? 'g' : 'gi');
+            new RegExp(
+              command.findPattern,
+              command.options.caseSensitive ? "g" : "gi",
+            );
           } catch (error) {
             return `Invalid regex pattern: ${error}`;
           }
@@ -292,32 +320,43 @@ export class VimBulkCommandParser implements BulkCommandParser {
 
       case "mathOperation":
         // Skip validation for operations that don't use the value parameter
-        if (command.operation !== "round" && command.operation !== "floor" && command.operation !== "ceil") {
+        if (
+          command.operation !== "round" &&
+          command.operation !== "floor" &&
+          command.operation !== "ceil"
+        ) {
           if (isNaN(command.value)) {
             return "Math operation requires a valid number";
           }
-          if ((command.operation === "div" || command.operation === "mod") && command.value === 0) {
+          if (
+            (command.operation === "div" || command.operation === "mod") &&
+            command.value === 0
+          ) {
             return `Cannot ${command.operation === "div" ? "divide" : "mod"} by zero`;
           }
           if (command.operation === "percentd" && command.value >= 100) {
             return "Percentage decrease cannot be 100% or greater";
           }
         }
-        
+
         // Validate decimal places for rounding
-        if (command.operation === "round" && command.decimalPlaces !== undefined) {
+        if (
+          command.operation === "round" &&
+          command.decimalPlaces !== undefined
+        ) {
           if (command.decimalPlaces < 0 || command.decimalPlaces > 10) {
             return "Decimal places must be between 0 and 10";
           }
         }
         break;
 
-      case "format":
+      case "format": {
         const validFormats = ["currency", "percent", "date", "number", "text"];
         if (!validFormats.includes(command.formatType)) {
           return `Invalid format type. Valid types: ${validFormats.join(", ")}`;
         }
         break;
+      }
     }
 
     // Check if command requires selection but none exists (after validating command structure)

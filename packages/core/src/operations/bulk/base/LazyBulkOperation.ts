@@ -1,10 +1,13 @@
-import { Cell, CellAddress } from "../../../domain/models";
-import type { CellValue } from "../../../domain/models";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
+import type { CellValue } from "../../../domain/models";
+import { Cell, type CellAddress } from "../../../domain/models";
 import type { Selection } from "../interfaces/BulkOperation";
-import type { CellChange, OperationPreview } from "../interfaces/OperationPreview";
-import { BaseBulkOperation } from "./BaseBulkOperation";
+import type {
+  CellChange,
+  OperationPreview,
+} from "../interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
+import { BaseBulkOperation } from "./BaseBulkOperation";
 
 /**
  * Lazy bulk operation that uses generators for memory-efficient processing
@@ -12,12 +15,12 @@ import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
  */
 export abstract class LazyBulkOperation extends BaseBulkOperation {
   private changeGenerator: Generator<Promise<CellChange | null>> | null = null;
-  
+
   constructor(
     type: string,
     selection: Selection,
     options: any,
-    cellRepository: ICellRepository
+    cellRepository: ICellRepository,
   ) {
     super(type, selection, options, cellRepository);
   }
@@ -25,7 +28,9 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
   /**
    * Create a generator that yields cell changes lazily
    */
-  protected abstract createChangeGenerator(): Generator<Promise<CellChange | null>>;
+  protected abstract createChangeGenerator(): Generator<
+    Promise<CellChange | null>
+  >;
 
   /**
    * Get the change generator (create if not exists)
@@ -44,20 +49,20 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
   async preview(limit: number = 100): Promise<OperationPreview> {
     const builder = new OperationPreviewBuilder();
     const totalCells = this.selection.count();
-    
+
     builder.setAffectedCells(totalCells);
-    
+
     let previewCount = 0;
     let estimatedModified = 0;
     const sampleSize = Math.min(limit * 2, 1000); // Sample larger than preview for estimation
     let sampleCount = 0;
-    
+
     const changesByType: Record<string, number> = {};
 
     try {
       // Create a fresh generator for preview
       const previewGenerator = this.createChangeGenerator();
-      
+
       for (const changePromise of previewGenerator) {
         if (previewCount >= limit && sampleCount >= sampleSize) {
           break;
@@ -65,7 +70,7 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
 
         const change = await changePromise;
         sampleCount++;
-        
+
         if (change === null) {
           continue; // Skip unchanged cells
         }
@@ -74,18 +79,21 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
           builder.addChange(change);
           previewCount++;
         }
-        
+
         estimatedModified++;
-        changesByType[change.changeType] = (changesByType[change.changeType] || 0) + 1;
+        changesByType[change.changeType] =
+          (changesByType[change.changeType] || 0) + 1;
       }
 
       // Estimate total changes based on sample
       const sampleRatio = sampleCount > 0 ? estimatedModified / sampleCount : 0;
       const estimatedTotalModified = Math.round(totalCells * sampleRatio);
-      
+
       if (previewCount >= limit && estimatedTotalModified > previewCount) {
         builder.setTruncated(true);
-        builder.addWarning(`Preview shows ${previewCount} changes. Estimated total: ${estimatedTotalModified}`);
+        builder.addWarning(
+          `Preview shows ${previewCount} changes. Estimated total: ${estimatedTotalModified}`,
+        );
       }
 
       // Set summary information
@@ -95,15 +103,20 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
         skippedCells: totalCells - estimatedTotalModified,
         formulaCells: 0, // Would need to be calculated based on actual implementation
         valueCells: totalCells,
-        changesByType: this.projectChangesByType(changesByType, sampleCount, totalCells),
-        memoryEstimate: this.estimateMemoryUsage(estimatedTotalModified)
+        changesByType: this.projectChangesByType(
+          changesByType,
+          sampleCount,
+          totalCells,
+        ),
+        memoryEstimate: this.estimateMemoryUsage(estimatedTotalModified),
       });
 
       // Estimate execution time based on projected changes
       const baseTime = this.estimateTime();
-      const adjustedTime = Math.round(baseTime * (estimatedTotalModified / totalCells));
+      const adjustedTime = Math.round(
+        baseTime * (estimatedTotalModified / totalCells),
+      );
       builder.setEstimatedTime(adjustedTime);
-
     } catch (error) {
       builder.addError(`Preview generation failed: ${error}`);
     }
@@ -115,17 +128,17 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
    * Project change counts from sample to full population
    */
   private projectChangesByType(
-    sampleChanges: Record<string, number>, 
-    sampleSize: number, 
-    totalSize: number
+    sampleChanges: Record<string, number>,
+    sampleSize: number,
+    totalSize: number,
   ): Record<string, number> {
     const projected: Record<string, number> = {};
     const ratio = totalSize / sampleSize;
-    
+
     for (const [type, count] of Object.entries(sampleChanges)) {
       projected[type] = Math.round(count * ratio);
     }
-    
+
     return projected;
   }
 
@@ -134,7 +147,7 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
    */
   async execute() {
     this.startTime = Date.now();
-    
+
     // Use the base implementation but with our generator
     return super.execute();
   }
@@ -145,7 +158,7 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
   protected async processBatch(cells: CellAddress[]) {
     // Create a generator for just this batch
     const batchGenerator = this.createBatchGenerator(cells);
-    
+
     const changes: CellChange[] = [];
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -155,7 +168,7 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
     try {
       for (const changePromise of batchGenerator) {
         processed++;
-        
+
         const change = await changePromise;
         if (change === null) {
           continue; // Skip unchanged cells
@@ -164,7 +177,9 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
         // Apply the change to the repository
         const cellResult = Cell.create(change.after, change.address);
         if (!cellResult.ok) {
-          errors.push(`Failed to create cell ${change.address.row},${change.address.col}: ${cellResult.error}`);
+          errors.push(
+            `Failed to create cell ${change.address.row},${change.address.col}: ${cellResult.error}`,
+          );
           if (this.options.stopOnError) {
             break;
           }
@@ -185,7 +200,9 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
   /**
    * Create a generator for a specific batch of cells
    */
-  private *createBatchGenerator(cells: CellAddress[]): Generator<Promise<CellChange | null>> {
+  private *createBatchGenerator(
+    cells: CellAddress[],
+  ): Generator<Promise<CellChange | null>> {
     for (const address of cells) {
       yield this.createChangeForCell(address);
     }
@@ -194,20 +211,27 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
   /**
    * Create a change for a specific cell (to be implemented by subclasses)
    */
-  protected async createChangeForCell(address: CellAddress): Promise<CellChange | null> {
+  protected async createChangeForCell(
+    address: CellAddress,
+  ): Promise<CellChange | null> {
     try {
       // Get current cell value
       const currentCell = await this.cellRepository.get(address);
-      const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
-      
+      const currentValue = currentCell
+        ? currentCell.computedValue || currentCell.rawValue
+        : null;
+
       // Skip empty cells if configured
-      if (this.options.skipEmpty && (currentValue === null || currentValue === "")) {
+      if (
+        this.options.skipEmpty &&
+        (currentValue === null || currentValue === "")
+      ) {
         return null;
       }
 
       // Transform the cell value
       const newValue = await this.transformCell(address, currentValue);
-      
+
       if (newValue === null || newValue === currentValue) {
         return null;
       }
@@ -218,9 +242,8 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
         before: currentValue,
         after: newValue,
         isFormula: false,
-        changeType: "value"
+        changeType: "value",
       };
-
     } catch (error) {
       // Return null for errors in individual cells (let batch handle error reporting)
       return null;

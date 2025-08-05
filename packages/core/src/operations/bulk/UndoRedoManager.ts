@@ -1,20 +1,19 @@
-import { CellAddress } from "../../domain/models";
-import type { CellValue } from "../../domain/models";
 import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
-import type { 
-  BulkOperation,
-  UndoableBulkOperation 
-} from "./interfaces/BulkOperation";
-import type { 
-  CellChange,
-  OperationPreview 
-} from "./interfaces/OperationPreview";
-import type { 
-  OperationResult,
-  BatchOperationResult 
-} from "./interfaces/OperationResult";
+import type { CellAddress, CellValue } from "../../domain/models";
 import { CellSelection } from "./base/CellSelection";
 import { BulkSetOperation } from "./implementations/BulkSetOperation";
+import type {
+  BulkOperation,
+  UndoableBulkOperation,
+} from "./interfaces/BulkOperation";
+import type {
+  CellChange,
+  OperationPreview,
+} from "./interfaces/OperationPreview";
+import type {
+  BatchOperationResult,
+  OperationResult,
+} from "./interfaces/OperationResult";
 
 /**
  * Represents an undoable action in the undo/redo stack
@@ -22,25 +21,25 @@ import { BulkSetOperation } from "./implementations/BulkSetOperation";
 export interface UndoAction {
   /** Unique identifier for this action */
   actionId: string;
-  
+
   /** Type of the original operation */
   operationType: string;
-  
+
   /** Description for UI display */
   description: string;
-  
+
   /** Timestamp when action was created */
   timestamp: number;
-  
+
   /** Operation to undo this action */
   undoOperation: BulkOperation;
-  
+
   /** Operation to redo this action (if available) */
   redoOperation?: BulkOperation;
-  
+
   /** Changes that were made */
   changes: Map<string, CellChange>;
-  
+
   /** Metadata about the action */
   metadata: Record<string, any>;
 }
@@ -51,16 +50,16 @@ export interface UndoAction {
 export interface UndoRedoConfig {
   /** Maximum number of actions to keep in history */
   maxHistorySize: number;
-  
+
   /** Whether to automatically clean up old actions */
   autoCleanup: boolean;
-  
+
   /** Maximum age of actions to keep (milliseconds) */
   maxActionAge: number;
-  
+
   /** Whether to compress similar consecutive actions */
   compressActions: boolean;
-  
+
   /** Whether to validate undo operations before execution */
   validateUndo: boolean;
 }
@@ -72,7 +71,7 @@ export class UndoRedoManager {
   private undoStack: UndoAction[] = [];
   private redoStack: UndoAction[] = [];
   private nextActionId = 1;
-  
+
   constructor(
     private cellRepository: ICellRepository,
     private config: UndoRedoConfig = {
@@ -80,8 +79,8 @@ export class UndoRedoManager {
       autoCleanup: true,
       maxActionAge: 24 * 60 * 60 * 1000, // 24 hours
       compressActions: false,
-      validateUndo: true
-    }
+      validateUndo: true,
+    },
   ) {}
 
   /**
@@ -89,7 +88,7 @@ export class UndoRedoManager {
    */
   async recordAction(
     operation: BulkOperation,
-    result: OperationResult
+    result: OperationResult,
   ): Promise<void> {
     if (!result.success || result.cellsModified === 0) {
       return; // Don't record failed or no-op operations
@@ -98,7 +97,7 @@ export class UndoRedoManager {
     try {
       // Create undo operation from the changes
       const undoOperation = await this.createUndoOperation(result);
-      
+
       const action: UndoAction = {
         actionId: `action_${this.nextActionId++}`,
         operationType: operation.type,
@@ -110,24 +109,23 @@ export class UndoRedoManager {
         metadata: {
           cellsModified: result.cellsModified,
           executionTime: result.executionTime,
-          originalOperationType: operation.type
-        }
+          originalOperationType: operation.type,
+        },
       };
 
       // Add to undo stack
       this.undoStack.push(action);
-      
+
       // Clear redo stack (new action invalidates redo history)
       this.redoStack.length = 0;
-      
+
       // Manage stack size
       this.maintainStackSize();
-      
+
       // Auto cleanup if enabled
       if (this.config.autoCleanup) {
         this.cleanupOldActions();
       }
-
     } catch (error) {
       console.warn(`Failed to record undo action: ${error}`);
     }
@@ -138,7 +136,7 @@ export class UndoRedoManager {
    */
   async recordBatchAction(
     operations: BulkOperation[],
-    result: BatchOperationResult
+    result: BatchOperationResult,
   ): Promise<void> {
     if (!result.success || result.totalCellsModified === 0) {
       return;
@@ -146,8 +144,10 @@ export class UndoRedoManager {
 
     try {
       // Create a single undo operation for all changes
-      const undoOperation = await this.createUndoOperationFromChanges(result.consolidatedChanges);
-      
+      const undoOperation = await this.createUndoOperationFromChanges(
+        result.consolidatedChanges,
+      );
+
       const action: UndoAction = {
         actionId: `batch_${this.nextActionId++}`,
         operationType: "batch",
@@ -159,18 +159,17 @@ export class UndoRedoManager {
           operationCount: operations.length,
           cellsModified: result.totalCellsModified,
           executionTime: result.totalExecutionTime,
-          isBatch: true
-        }
+          isBatch: true,
+        },
       };
 
       this.undoStack.push(action);
       this.redoStack.length = 0;
       this.maintainStackSize();
-      
+
       if (this.config.autoCleanup) {
         this.cleanupOldActions();
       }
-
     } catch (error) {
       console.warn(`Failed to record batch undo action: ${error}`);
     }
@@ -185,7 +184,7 @@ export class UndoRedoManager {
     }
 
     const action = this.undoStack.pop()!;
-    
+
     try {
       // Validate undo operation if configured
       if (this.config.validateUndo) {
@@ -212,16 +211,16 @@ export class UndoRedoManager {
                 averageBatchTime: 0,
                 validationTime: 0,
                 updateTime: 0,
-                recalculationTime: 0
-              }
-            }
+                recalculationTime: 0,
+              },
+            },
           };
         }
       }
 
       // Execute the undo operation
       const undoResult = await action.undoOperation.execute();
-      
+
       if (undoResult.success) {
         // Move action to redo stack
         this.redoStack.push(action);
@@ -230,9 +229,8 @@ export class UndoRedoManager {
         // Put action back on undo stack if undo failed
         this.undoStack.push(action);
       }
-      
-      return undoResult;
 
+      return undoResult;
     } catch (error) {
       // Put action back on undo stack
       this.undoStack.push(action);
@@ -249,26 +247,28 @@ export class UndoRedoManager {
     }
 
     const action = this.redoStack.pop()!;
-    
+
     try {
       // Execute the redo operation if available
       const redoOperation = action.redoOperation;
       if (!redoOperation) {
         // If no redo operation, create one from the changes
-        const redoOp = await this.createRedoOperationFromChanges(action.changes);
+        const redoOp = await this.createRedoOperationFromChanges(
+          action.changes,
+        );
         const redoResult = await redoOp.execute();
-        
+
         if (redoResult.success) {
           this.undoStack.push(action);
         } else {
           this.redoStack.push(action);
         }
-        
+
         return redoResult;
       }
 
       const redoResult = await redoOperation.execute();
-      
+
       if (redoResult.success) {
         // Move action back to undo stack
         this.undoStack.push(action);
@@ -276,9 +276,8 @@ export class UndoRedoManager {
         // Put action back on redo stack if redo failed
         this.redoStack.push(action);
       }
-      
-      return redoResult;
 
+      return redoResult;
     } catch (error) {
       // Put action back on redo stack
       this.redoStack.push(action);
@@ -331,39 +330,51 @@ export class UndoRedoManager {
   /**
    * Get undo history for UI display
    */
-  getUndoHistory(): Array<{ id: string; description: string; timestamp: number }> {
-    return this.undoStack.map(action => ({
+  getUndoHistory(): Array<{
+    id: string;
+    description: string;
+    timestamp: number;
+  }> {
+    return this.undoStack.map((action) => ({
       id: action.actionId,
       description: action.description,
-      timestamp: action.timestamp
+      timestamp: action.timestamp,
     }));
   }
 
   /**
    * Get redo history for UI display
    */
-  getRedoHistory(): Array<{ id: string; description: string; timestamp: number }> {
-    return this.redoStack.map(action => ({
+  getRedoHistory(): Array<{
+    id: string;
+    description: string;
+    timestamp: number;
+  }> {
+    return this.redoStack.map((action) => ({
       id: action.actionId,
       description: action.description,
-      timestamp: action.timestamp
+      timestamp: action.timestamp,
     }));
   }
 
   /**
    * Create an undo operation from the execution result
    */
-  private async createUndoOperation(result: OperationResult): Promise<BulkOperation> {
+  private async createUndoOperation(
+    result: OperationResult,
+  ): Promise<BulkOperation> {
     return this.createUndoOperationFromChanges(result.actualChanges);
   }
 
   /**
    * Create an undo operation from a set of changes
    */
-  private async createUndoOperationFromChanges(changes: Map<string, CellChange>): Promise<BulkOperation> {
+  private async createUndoOperationFromChanges(
+    changes: Map<string, CellChange>,
+  ): Promise<BulkOperation> {
     // Group changes by their original value to optimize undo operations
     const valueGroups = new Map<string, CellAddress[]>();
-    
+
     for (const [key, change] of changes) {
       const valueKey = String(change.before);
       if (!valueGroups.has(valueKey)) {
@@ -380,11 +391,11 @@ export class UndoRedoManager {
       }
       const [value, addresses] = firstEntry.value;
       const selection = CellSelection.fromCells(addresses);
-      
+
       return new BulkSetOperation(
         selection,
         { value: value === "null" ? null : value, overwriteExisting: true },
-        this.cellRepository
+        this.cellRepository,
       );
     }
 
@@ -395,10 +406,12 @@ export class UndoRedoManager {
   /**
    * Create a redo operation from changes
    */
-  private async createRedoOperationFromChanges(changes: Map<string, CellChange>): Promise<BulkOperation> {
+  private async createRedoOperationFromChanges(
+    changes: Map<string, CellChange>,
+  ): Promise<BulkOperation> {
     // Similar to undo, but using the 'after' values
     const valueGroups = new Map<string, CellAddress[]>();
-    
+
     for (const [key, change] of changes) {
       const valueKey = String(change.after);
       if (!valueGroups.has(valueKey)) {
@@ -414,11 +427,11 @@ export class UndoRedoManager {
       }
       const [value, addresses] = firstEntry.value;
       const selection = CellSelection.fromCells(addresses);
-      
+
       return new BulkSetOperation(
         selection,
         { value: value === "null" ? null : value, overwriteExisting: true },
-        this.cellRepository
+        this.cellRepository,
       );
     }
 
@@ -450,14 +463,20 @@ export class UndoRedoManager {
    */
   private cleanupOldActions(): void {
     const cutoffTime = Date.now() - this.config.maxActionAge;
-    
+
     // Clean undo stack
-    while (this.undoStack.length > 0 && this.undoStack[0].timestamp < cutoffTime) {
+    while (
+      this.undoStack.length > 0 &&
+      this.undoStack[0].timestamp < cutoffTime
+    ) {
       this.undoStack.shift();
     }
-    
+
     // Clean redo stack
-    while (this.redoStack.length > 0 && this.redoStack[0].timestamp < cutoffTime) {
+    while (
+      this.redoStack.length > 0 &&
+      this.redoStack[0].timestamp < cutoffTime
+    ) {
       this.redoStack.shift();
     }
   }
@@ -465,14 +484,24 @@ export class UndoRedoManager {
   /**
    * Get memory usage statistics
    */
-  getMemoryStats(): { undoActions: number; redoActions: number; estimatedMemory: number } {
-    const undoMemory = this.undoStack.reduce((sum, action) => sum + action.changes.size * 200, 0);
-    const redoMemory = this.redoStack.reduce((sum, action) => sum + action.changes.size * 200, 0);
-    
+  getMemoryStats(): {
+    undoActions: number;
+    redoActions: number;
+    estimatedMemory: number;
+  } {
+    const undoMemory = this.undoStack.reduce(
+      (sum, action) => sum + action.changes.size * 200,
+      0,
+    );
+    const redoMemory = this.redoStack.reduce(
+      (sum, action) => sum + action.changes.size * 200,
+      0,
+    );
+
     return {
       undoActions: this.undoStack.length,
       redoActions: this.redoStack.length,
-      estimatedMemory: undoMemory + redoMemory
+      estimatedMemory: undoMemory + redoMemory,
     };
   }
 }
@@ -483,16 +512,21 @@ export class UndoRedoManager {
 class CompositeUndoOperation extends BulkSetOperation {
   constructor(
     private changes: Map<string, CellChange>,
-    cellRepository: ICellRepository
+    cellRepository: ICellRepository,
   ) {
     // Create a selection from all affected cells
-    const addresses = Array.from(changes.values()).map(change => change.address);
+    const addresses = Array.from(changes.values()).map(
+      (change) => change.address,
+    );
     const selection = CellSelection.fromCells(addresses);
-    
+
     super(selection, { value: null, overwriteExisting: true }, cellRepository);
   }
 
-  protected async transformCell(address: CellAddress, currentValue: CellValue): Promise<CellValue | null> {
+  protected async transformCell(
+    address: CellAddress,
+    currentValue: CellValue,
+  ): Promise<CellValue | null> {
     const key = `${address.row},${address.col}`;
     const change = this.changes.get(key);
     return change ? change.before : null;
@@ -509,15 +543,20 @@ class CompositeUndoOperation extends BulkSetOperation {
 class CompositeRedoOperation extends BulkSetOperation {
   constructor(
     private changes: Map<string, CellChange>,
-    cellRepository: ICellRepository
+    cellRepository: ICellRepository,
   ) {
-    const addresses = Array.from(changes.values()).map(change => change.address);
+    const addresses = Array.from(changes.values()).map(
+      (change) => change.address,
+    );
     const selection = CellSelection.fromCells(addresses);
-    
+
     super(selection, { value: null, overwriteExisting: true }, cellRepository);
   }
 
-  protected async transformCell(address: CellAddress, currentValue: CellValue): Promise<CellValue | null> {
+  protected async transformCell(
+    address: CellAddress,
+    currentValue: CellValue,
+  ): Promise<CellValue | null> {
     const key = `${address.row},${address.col}`;
     const change = this.changes.get(key);
     return change ? change.after : null;

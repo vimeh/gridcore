@@ -1,5 +1,5 @@
 import { err, ok, type Result } from "../shared/types/Result";
-import { RefError, type CellReference, type RangeReference } from "./types";
+import { type CellReference, type RangeReference, RefError } from "./types";
 
 /**
  * Parser for cell and range references with support for absolute/relative notation.

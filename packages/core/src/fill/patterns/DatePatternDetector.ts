@@ -1,9 +1,9 @@
-import type { CellValue, CellAddress, CellRange } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import type {
-  PatternDetector,
-  Pattern,
-  PatternGenerator,
   FillDirection,
+  Pattern,
+  PatternDetector,
+  PatternGenerator,
   PatternType,
 } from "../types";
 
@@ -24,9 +24,9 @@ class DatePatternGenerator implements PatternGenerator {
   ): CellValue {
     const newDate = new Date(this.lastDate);
     newDate.setDate(newDate.getDate() + this.dayStep * (index + 1));
-    
+
     // Return as ISO date string for now
-    return newDate.toISOString().split('T')[0] as unknown as CellValue;
+    return newDate.toISOString().split("T")[0] as unknown as CellValue;
   }
 }
 
@@ -83,7 +83,7 @@ export class DatePatternDetector implements PatternDetector {
    */
   private extractDates(values: CellValue[]): Date[] {
     const dates: Date[] = [];
-    
+
     for (const value of values) {
       const date = this.parseDate(value);
       if (date && !isNaN(date.getTime())) {
@@ -108,7 +108,7 @@ export class DatePatternDetector implements PatternDetector {
     }
 
     // Check if it matches known date formats
-    const matchesFormat = this.dateFormats.some(format => format.test(str));
+    const matchesFormat = this.dateFormats.some((format) => format.test(str));
     if (!matchesFormat) {
       return null;
     }
@@ -133,7 +133,7 @@ export class DatePatternDetector implements PatternDetector {
     const steps: number[] = [];
     for (let i = 1; i < dates.length; i++) {
       const dayDiff = Math.round(
-        (dates[i].getTime() - dates[i - 1].getTime()) / (1000 * 60 * 60 * 24)
+        (dates[i].getTime() - dates[i - 1].getTime()) / (1000 * 60 * 60 * 24),
       );
       steps.push(dayDiff);
     }
@@ -180,8 +180,8 @@ export class DatePatternDetector implements PatternDetector {
    * Create a human-readable description of the pattern
    */
   private createDescription(dates: Date[], dayStep: number): string {
-    const formatDate = (date: Date) => date.toISOString().split('T')[0];
-    
+    const formatDate = (date: Date) => date.toISOString().split("T")[0];
+
     if (dayStep === 1) {
       return `Daily sequence (${formatDate(dates[0])}, ${formatDate(dates[dates.length - 1])}, ...)`;
     } else if (dayStep === 7) {

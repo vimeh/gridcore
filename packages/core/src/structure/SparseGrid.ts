@@ -27,7 +27,7 @@ export class SparseGrid {
   setCell(address: CellAddress, cell: Cell): void {
     const key = this.addressToKey(address);
     this.cells.set(key, cell);
-    
+
     // Update bounds
     this.maxRow = Math.max(this.maxRow, address.row);
     this.maxCol = Math.max(this.maxCol, address.col);
@@ -54,11 +54,14 @@ export class SparseGrid {
         const address = this.keyToAddress(key);
         if (address.row >= beforeRow) {
           // This cell needs to move down
-          const newAddressResult = CellAddress.create(address.row + count, address.col);
+          const newAddressResult = CellAddress.create(
+            address.row + count,
+            address.col,
+          );
           if (!newAddressResult.ok) continue;
           const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
-          
+
           // Create new cell with updated address
           const cellCopy = Cell.create(cell.rawValue, newAddress);
           if (cellCopy.ok) {
@@ -80,7 +83,7 @@ export class SparseGrid {
 
       // Update max bounds
       this.maxRow += count;
-      
+
       return ok(undefined);
     } catch (error) {
       return err(`Failed to insert rows: ${error}`);
@@ -98,17 +101,20 @@ export class SparseGrid {
       // Find all cells that are affected
       for (const [key, cell] of this.cells.entries()) {
         const address = this.keyToAddress(key);
-        
+
         if (address.row >= startRow && address.row < startRow + count) {
           // This cell is in the deleted range - remove it
           toDelete.push(key);
         } else if (address.row >= startRow + count) {
           // This cell needs to move up
-          const newAddressResult = CellAddress.create(address.row - count, address.col);
+          const newAddressResult = CellAddress.create(
+            address.row - count,
+            address.col,
+          );
           if (!newAddressResult.ok) continue;
           const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
-          
+
           // Create new cell with updated address
           const cellCopy = Cell.create(cell.rawValue, newAddress);
           if (cellCopy.ok) {
@@ -130,7 +136,7 @@ export class SparseGrid {
 
       // Update max bounds
       this.maxRow = Math.max(0, this.maxRow - count);
-      
+
       return ok(undefined);
     } catch (error) {
       return err(`Failed to delete rows: ${error}`);
@@ -150,11 +156,14 @@ export class SparseGrid {
         const address = this.keyToAddress(key);
         if (address.col >= beforeCol) {
           // This cell needs to move right
-          const newAddressResult = CellAddress.create(address.row, address.col + count);
+          const newAddressResult = CellAddress.create(
+            address.row,
+            address.col + count,
+          );
           if (!newAddressResult.ok) continue;
           const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
-          
+
           // Create new cell with updated address
           const cellCopy = Cell.create(cell.rawValue, newAddress);
           if (cellCopy.ok) {
@@ -176,7 +185,7 @@ export class SparseGrid {
 
       // Update max bounds
       this.maxCol += count;
-      
+
       return ok(undefined);
     } catch (error) {
       return err(`Failed to insert columns: ${error}`);
@@ -194,17 +203,20 @@ export class SparseGrid {
       // Find all cells that are affected
       for (const [key, cell] of this.cells.entries()) {
         const address = this.keyToAddress(key);
-        
+
         if (address.col >= startCol && address.col < startCol + count) {
           // This cell is in the deleted range - remove it
           toDelete.push(key);
         } else if (address.col >= startCol + count) {
           // This cell needs to move left
-          const newAddressResult = CellAddress.create(address.row, address.col - count);
+          const newAddressResult = CellAddress.create(
+            address.row,
+            address.col - count,
+          );
           if (!newAddressResult.ok) continue;
           const newAddress = newAddressResult.value;
           const newKey = this.addressToKey(newAddress);
-          
+
           // Create new cell with updated address
           const cellCopy = Cell.create(cell.rawValue, newAddress);
           if (cellCopy.ok) {
@@ -226,7 +238,7 @@ export class SparseGrid {
 
       // Update max bounds
       this.maxCol = Math.max(0, this.maxCol - count);
-      
+
       return ok(undefined);
     } catch (error) {
       return err(`Failed to delete columns: ${error}`);
@@ -238,12 +250,12 @@ export class SparseGrid {
    */
   getAllCells(): Map<CellAddress, Cell> {
     const result = new Map<CellAddress, Cell>();
-    
+
     for (const [key, cell] of this.cells.entries()) {
       const address = this.keyToAddress(key);
       result.set(address, cell);
     }
-    
+
     return result;
   }
 
@@ -252,14 +264,14 @@ export class SparseGrid {
    */
   getCellsInRow(row: number): Map<number, Cell> {
     const result = new Map<number, Cell>();
-    
+
     for (const [key, cell] of this.cells.entries()) {
       const address = this.keyToAddress(key);
       if (address.row === row) {
         result.set(address.col, cell);
       }
     }
-    
+
     return result;
   }
 
@@ -268,14 +280,14 @@ export class SparseGrid {
    */
   getCellsInColumn(col: number): Map<number, Cell> {
     const result = new Map<number, Cell>();
-    
+
     for (const [key, cell] of this.cells.entries()) {
       const address = this.keyToAddress(key);
       if (address.col === col) {
         result.set(address.row, cell);
       }
     }
-    
+
     return result;
   }
 
@@ -313,7 +325,7 @@ export class SparseGrid {
    * Convert string key to cell address
    */
   private keyToAddress(key: string): CellAddress {
-    const [row, col] = key.split(',').map(Number);
+    const [row, col] = key.split(",").map(Number);
     const result = CellAddress.create(row, col);
     if (!result.ok) {
       throw new Error(`Invalid cell address from key: ${key}`);

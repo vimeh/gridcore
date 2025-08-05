@@ -1,9 +1,9 @@
-import type { CellValue, CellAddress, CellRange } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import type {
-  PatternDetector,
-  Pattern,
-  PatternGenerator,
   FillDirection,
+  Pattern,
+  PatternDetector,
+  PatternGenerator,
   PatternType,
 } from "../types";
 
@@ -36,28 +36,133 @@ export class TextPatternDetector implements PatternDetector {
 
   private readonly knownPatterns = new Map<string, string[]>([
     // Weekdays
-    ["weekdays_full", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]],
+    [
+      "weekdays_full",
+      [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ],
+    ],
     ["weekdays_short", ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]],
     ["weekdays_min", ["M", "T", "W", "T", "F", "S", "S"]],
-    
+
     // Months
-    ["months_full", ["January", "February", "March", "April", "May", "June", 
-                     "July", "August", "September", "October", "November", "December"]],
-    ["months_short", ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]],
-    
+    [
+      "months_full",
+      [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ],
+    ],
+    [
+      "months_short",
+      [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ],
+    ],
+
     // Quarters
     ["quarters", ["Q1", "Q2", "Q3", "Q4"]],
-    
+
     // Simple sequences
-    ["letters_upper", ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-                       "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]],
-    ["letters_lower", ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
-                       "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]],
-    
+    [
+      "letters_upper",
+      [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J",
+        "K",
+        "L",
+        "M",
+        "N",
+        "O",
+        "P",
+        "Q",
+        "R",
+        "S",
+        "T",
+        "U",
+        "V",
+        "W",
+        "X",
+        "Y",
+        "Z",
+      ],
+    ],
+    [
+      "letters_lower",
+      [
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+        "f",
+        "g",
+        "h",
+        "i",
+        "j",
+        "k",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "q",
+        "r",
+        "s",
+        "t",
+        "u",
+        "v",
+        "w",
+        "x",
+        "y",
+        "z",
+      ],
+    ],
+
     // Roman numerals
-    ["roman_upper", ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]],
-    ["roman_lower", ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"]],
+    [
+      "roman_upper",
+      ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"],
+    ],
+    [
+      "roman_lower",
+      ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"],
+    ],
   ]);
 
   detect(values: CellValue[], _direction: FillDirection): Pattern | null {
@@ -77,7 +182,10 @@ export class TextPatternDetector implements PatternDetector {
       return null;
     }
 
-    const confidence = this.calculateConfidence(textValues, patternMatch.pattern);
+    const confidence = this.calculateConfidence(
+      textValues,
+      patternMatch.pattern,
+    );
     if (confidence < 0.7) {
       return null;
     }
@@ -88,7 +196,10 @@ export class TextPatternDetector implements PatternDetector {
       type: this.patternType,
       confidence,
       description,
-      generator: new TextPatternGenerator(patternMatch.pattern, patternMatch.lastIndex),
+      generator: new TextPatternGenerator(
+        patternMatch.pattern,
+        patternMatch.lastIndex,
+      ),
     };
   }
 
@@ -97,7 +208,7 @@ export class TextPatternDetector implements PatternDetector {
    */
   private extractTextValues(values: CellValue[]): string[] {
     const textValues: string[] = [];
-    
+
     for (const value of values) {
       const text = this.extractText(value);
       if (text !== null) {
@@ -154,7 +265,10 @@ export class TextPatternDetector implements PatternDetector {
   /**
    * Check if text values match a pattern
    */
-  private matchesPattern(textValues: string[], pattern: string[]): number | null {
+  private matchesPattern(
+    textValues: string[],
+    pattern: string[],
+  ): number | null {
     if (textValues.length === 0) {
       return null;
     }
@@ -169,7 +283,7 @@ export class TextPatternDetector implements PatternDetector {
     for (let i = 1; i < textValues.length; i++) {
       const expectedIndex = (firstIndex + i) % pattern.length;
       const expectedValue = pattern[expectedIndex];
-      
+
       if (!this.valuesMatch(textValues[i], expectedValue)) {
         return null;
       }
@@ -214,10 +328,12 @@ export class TextPatternDetector implements PatternDetector {
     confidence += sampleBonus;
 
     // Higher confidence for common patterns
-    if (pattern === this.knownPatterns.get("weekdays_full") ||
-        pattern === this.knownPatterns.get("weekdays_short") ||
-        pattern === this.knownPatterns.get("months_full") ||
-        pattern === this.knownPatterns.get("months_short")) {
+    if (
+      pattern === this.knownPatterns.get("weekdays_full") ||
+      pattern === this.knownPatterns.get("weekdays_short") ||
+      pattern === this.knownPatterns.get("months_full") ||
+      pattern === this.knownPatterns.get("months_short")
+    ) {
       confidence += 0.1;
     }
 
@@ -233,9 +349,10 @@ export class TextPatternDetector implements PatternDetector {
    * Create a human-readable description
    */
   private createDescription(patternName: string, textValues: string[]): string {
-    const example = textValues.length > 1 
-      ? `${textValues[0]}, ${textValues[textValues.length - 1]}, ...`
-      : `${textValues[0]}, ...`;
+    const example =
+      textValues.length > 1
+        ? `${textValues[0]}, ${textValues[textValues.length - 1]}, ...`
+        : `${textValues[0]}, ...`;
 
     switch (patternName) {
       case "weekdays_full":

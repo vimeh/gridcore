@@ -1,23 +1,28 @@
-import { Cell, CellAddress, type CellValue, type CellRange } from "../domain/models";
 import type { ICellRepository } from "../domain/interfaces";
-import type {
-  FillOperation,
-  FillResult,
-  FillPreview,
-  Pattern,
-  PatternDetector,
-  FormulaAdjuster,
-  FillDirection,
-  PatternType,
-  PatternDetectionResult,
-} from "./types";
-import { LinearPatternDetector } from "./patterns/LinearPatternDetector";
+import {
+  Cell,
+  CellAddress,
+  type CellRange,
+  type CellValue,
+} from "../domain/models";
 import { CopyPatternDetector } from "./patterns/CopyPatternDetector";
-import { DatePatternDetector } from "./patterns/DatePatternDetector";
-import { TextPatternDetector } from "./patterns/TextPatternDetector";
-import { FibonacciPatternDetector } from "./patterns/FibonacciPatternDetector";
-import { ExponentialPatternDetector } from "./patterns/ExponentialPatternDetector";
 import { CustomSequencePatternDetector } from "./patterns/CustomSequencePatternDetector";
+import { DatePatternDetector } from "./patterns/DatePatternDetector";
+import { ExponentialPatternDetector } from "./patterns/ExponentialPatternDetector";
+import { FibonacciPatternDetector } from "./patterns/FibonacciPatternDetector";
+import { LinearPatternDetector } from "./patterns/LinearPatternDetector";
+import { TextPatternDetector } from "./patterns/TextPatternDetector";
+import type {
+  FillDirection,
+  FillOperation,
+  FillPreview,
+  FillResult,
+  FormulaAdjuster,
+  Pattern,
+  PatternDetectionResult,
+  PatternDetector,
+  PatternType,
+} from "./types";
 
 /**
  * Core fill engine that orchestrates pattern detection and value generation
@@ -39,13 +44,13 @@ export class FillEngine {
    */
   private initializeDetectors(): void {
     this.detectors = [
-      new LinearPatternDetector(),           // Priority: 80
-      new FibonacciPatternDetector(),        // Priority: 75
-      new ExponentialPatternDetector(),      // Priority: 70
-      new DatePatternDetector(),             // Priority: varies
-      new CustomSequencePatternDetector(),   // Priority: 60
-      new TextPatternDetector(),             // Priority: varies
-      new CopyPatternDetector(),             // Copy is lowest priority (fallback)
+      new LinearPatternDetector(), // Priority: 80
+      new FibonacciPatternDetector(), // Priority: 75
+      new ExponentialPatternDetector(), // Priority: 70
+      new DatePatternDetector(), // Priority: varies
+      new CustomSequencePatternDetector(), // Priority: 60
+      new TextPatternDetector(), // Priority: varies
+      new CopyPatternDetector(), // Copy is lowest priority (fallback)
     ].sort((a, b) => b.priority - a.priority);
   }
 
@@ -117,7 +122,10 @@ export class FillEngine {
     }
 
     // Use enhanced detection for better preview with alternatives
-    const detectionResult = this.detectAllPatterns(sourceValues, operation.direction);
+    const detectionResult = this.detectAllPatterns(
+      sourceValues,
+      operation.direction,
+    );
     if (!detectionResult.bestPattern) {
       return { values: new Map() };
     }
@@ -130,28 +138,30 @@ export class FillEngine {
     );
 
     // Generate previews for alternative patterns
-    const alternativePatterns = detectionResult.alternativePatterns.slice(0, 3).map(pattern => {
-      try {
-        const previewCells = this.generateValues(
-          sourceValues,
-          pattern,
-          operation.source,
-          operation.target,
-        );
-        return {
-          type: pattern.type,
-          confidence: pattern.confidence,
-          description: pattern.description,
-          preview: previewCells,
-        };
-      } catch {
-        return {
-          type: pattern.type,
-          confidence: pattern.confidence,
-          description: pattern.description,
-        };
-      }
-    });
+    const alternativePatterns = detectionResult.alternativePatterns
+      .slice(0, 3)
+      .map((pattern) => {
+        try {
+          const previewCells = this.generateValues(
+            sourceValues,
+            pattern,
+            operation.source,
+            operation.target,
+          );
+          return {
+            type: pattern.type,
+            confidence: pattern.confidence,
+            description: pattern.description,
+            preview: previewCells,
+          };
+        } catch {
+          return {
+            type: pattern.type,
+            confidence: pattern.confidence,
+            description: pattern.description,
+          };
+        }
+      });
 
     return {
       values: filledCells,
@@ -178,7 +188,11 @@ export class FillEngine {
 
     // If options specify copy, use copy pattern
     if (operation.options.type === "copy") {
-      return this.detectPatternByType(sourceValues, operation.direction, "copy");
+      return this.detectPatternByType(
+        sourceValues,
+        operation.direction,
+        "copy",
+      );
     }
 
     // Auto-detect best pattern
@@ -192,8 +206,10 @@ export class FillEngine {
     sourceValues: CellValue[],
     direction: FillDirection,
   ): Pattern | null {
-    const seriesDetectors = this.detectors.filter(d => d.patternType !== "copy");
-    
+    const seriesDetectors = this.detectors.filter(
+      (d) => d.patternType !== "copy",
+    );
+
     for (const detector of seriesDetectors) {
       const pattern = detector.detect(sourceValues, direction);
       if (pattern && pattern.confidence > 0.5) {
@@ -212,7 +228,7 @@ export class FillEngine {
     direction: FillDirection,
     type: PatternType,
   ): Pattern | null {
-    const detector = this.detectors.find(d => d.patternType === type);
+    const detector = this.detectors.find((d) => d.patternType === type);
     return detector?.detect(sourceValues, direction) || null;
   }
 
@@ -289,14 +305,17 @@ export class FillEngine {
 
     // Find the highest confidence among competing patterns
     for (let i = 1; i < patterns.length; i++) {
-      maxCompetitorConfidence = Math.max(maxCompetitorConfidence, patterns[i].confidence);
+      maxCompetitorConfidence = Math.max(
+        maxCompetitorConfidence,
+        patterns[i].confidence,
+      );
     }
 
     // Ambiguity is higher when competitor confidence is close to best confidence
     const confidenceGap = bestConfidence - maxCompetitorConfidence;
-    
+
     // Normalize to 0-1 scale (0 = no ambiguity, 1 = very ambiguous)
-    const ambiguityScore = Math.max(0, 1 - (confidenceGap / 0.5));
+    const ambiguityScore = Math.max(0, 1 - confidenceGap / 0.5);
 
     return Math.min(1, ambiguityScore);
   }
@@ -304,7 +323,10 @@ export class FillEngine {
   /**
    * Adjust pattern confidence based on ambiguity
    */
-  private adjustConfidenceForAmbiguity(confidence: number, ambiguityScore: number): number {
+  private adjustConfidenceForAmbiguity(
+    confidence: number,
+    ambiguityScore: number,
+  ): number {
     // Reduce confidence when there's high ambiguity
     const reduction = ambiguityScore * 0.2; // Max 20% reduction
     return Math.max(0.1, confidence - reduction);
@@ -331,14 +353,21 @@ export class FillEngine {
           sourceRange,
           targetCell,
         );
-        
+
         // Adjust formula references if this is a formula value
-        const adjustedValue = this.adjustFormulaIfNeeded(value, sourceRange, targetCell);
-        
+        const adjustedValue = this.adjustFormulaIfNeeded(
+          value,
+          sourceRange,
+          targetCell,
+        );
+
         filledCells.set(targetCell.toString(), adjustedValue);
       } catch (error) {
         // Skip cells that fail to generate
-        console.warn(`Failed to generate value for cell ${targetCell.toString()}:`, error);
+        console.warn(
+          `Failed to generate value for cell ${targetCell.toString()}:`,
+          error,
+        );
       }
     }
 
@@ -402,7 +431,7 @@ export class FillEngine {
    */
   private getRangeCells(range: CellRange): CellAddress[] {
     const cells: CellAddress[] = [];
-    
+
     for (let row = range.start.row; row <= range.end.row; row++) {
       for (let col = range.start.col; col <= range.end.col; col++) {
         const result = CellAddress.create(row, col);

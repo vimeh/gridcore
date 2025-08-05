@@ -1,4 +1,4 @@
-import { CellAddress, CellRange } from "../../../domain/models";
+import { CellAddress, type CellRange } from "../../../domain/models";
 import type { Selection } from "../interfaces/BulkOperation";
 
 /**
@@ -8,9 +8,7 @@ export class CellSelection implements Selection {
   private cells: Set<string> = new Set();
   private _count: number = 0;
 
-  constructor(
-    cells?: Iterable<CellAddress> | CellRange | Set<string>
-  ) {
+  constructor(cells?: Iterable<CellAddress> | CellRange | Set<string>) {
     if (cells) {
       this.addCells(cells);
     }
@@ -26,7 +24,7 @@ export class CellSelection implements Selection {
         this.cells.add(cellKey);
       }
       this._count = this.cells.size;
-    } else if ('cells' in cells && typeof cells.cells === 'function') {
+    } else if ("cells" in cells && typeof cells.cells === "function") {
       // CellRange
       for (const cell of cells.cells()) {
         const key = `${cell.row},${cell.col}`;
@@ -70,7 +68,7 @@ export class CellSelection implements Selection {
    */
   *getCells(): Iterable<CellAddress> {
     for (const cellKey of this.cells) {
-      const [row, col] = cellKey.split(',').map(Number);
+      const [row, col] = cellKey.split(",").map(Number);
       // Note: We assume CellAddress.create always succeeds for valid row/col
       // In a real implementation, you'd want error handling here
       const result = CellAddress.create(row, col);
@@ -127,7 +125,9 @@ export class CellSelection implements Selection {
   /**
    * Create a selection from cell coordinates
    */
-  static fromCoordinates(coordinates: Array<{ row: number; col: number }>): CellSelection {
+  static fromCoordinates(
+    coordinates: Array<{ row: number; col: number }>,
+  ): CellSelection {
     const selection = new CellSelection();
     for (const coord of coordinates) {
       const result = CellAddress.create(coord.row, coord.col);
@@ -155,7 +155,12 @@ export class CellSelection implements Selection {
   /**
    * Get the bounding box of the selection (if applicable)
    */
-  getBounds(): { minRow: number; maxRow: number; minCol: number; maxCol: number } | null {
+  getBounds(): {
+    minRow: number;
+    maxRow: number;
+    minCol: number;
+    maxCol: number;
+  } | null {
     if (this.isEmpty()) {
       return null;
     }
@@ -166,7 +171,7 @@ export class CellSelection implements Selection {
     let maxCol = Number.MIN_SAFE_INTEGER;
 
     for (const cellKey of this.cells) {
-      const [row, col] = cellKey.split(',').map(Number);
+      const [row, col] = cellKey.split(",").map(Number);
       minRow = Math.min(minRow, row);
       maxRow = Math.max(maxRow, row);
       minCol = Math.min(minCol, col);

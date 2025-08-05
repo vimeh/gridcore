@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { FillEngine } from "./FillEngine";
-import { type ICellRepository } from "../domain/interfaces/ICellRepository";
+import { beforeEach, describe, expect, it } from "bun:test";
+import type { ICellRepository } from "../domain/interfaces/ICellRepository";
 import { CellAddress, CellRange, type CellValue } from "../domain/models";
 import { Cell } from "../domain/models/Cell";
-import type { FillOperation } from "./types";
 import { InMemoryCellRepository } from "../infrastructure/repositories/InMemoryCellRepository";
+import { FillEngine } from "./FillEngine";
+import type { FillOperation } from "./types";
 
 describe("FillEngine", () => {
   let fillEngine: FillEngine;
@@ -21,7 +21,7 @@ describe("FillEngine", () => {
       const addr1 = CellAddress.create(0, 0).value; // A1
       const addr2 = CellAddress.create(1, 0).value; // A2
       const addr3 = CellAddress.create(2, 0).value; // A3
-      
+
       await cellRepository.set(addr1, new Cell(addr1, 1));
       await cellRepository.set(addr2, new Cell(addr2, 2));
       await cellRepository.set(addr3, new Cell(addr3, 3));
@@ -30,7 +30,7 @@ describe("FillEngine", () => {
       const sourceRange = CellRange.create(addr1, addr3).value; // A1:A3
       const targetRange = CellRange.create(
         CellAddress.create(3, 0).value, // A4
-        CellAddress.create(5, 0).value  // A6
+        CellAddress.create(5, 0).value, // A6
       ).value;
 
       const operation: FillOperation = {
@@ -44,7 +44,7 @@ describe("FillEngine", () => {
 
       expect(result.success).toBe(true);
       expect(result.pattern?.type).toBe("linear");
-      
+
       // Check that A4=4, A5=5, A6=6
       const filledCells = Array.from(result.filledCells.entries());
       expect(filledCells).toHaveLength(3);
@@ -58,7 +58,7 @@ describe("FillEngine", () => {
       const sourceRange = CellRange.create(addr1, addr1).value; // A1:A1
       const targetRange = CellRange.create(
         CellAddress.create(1, 0).value, // A2
-        CellAddress.create(3, 0).value  // A4
+        CellAddress.create(3, 0).value, // A4
       ).value;
 
       const operation: FillOperation = {
@@ -72,7 +72,7 @@ describe("FillEngine", () => {
 
       expect(result.success).toBe(true);
       expect(result.pattern?.type).toBe("copy");
-      
+
       // Should fill with "Hello" repeated
       const filledCells = Array.from(result.filledCells.entries());
       expect(filledCells).toHaveLength(3);
@@ -84,14 +84,14 @@ describe("FillEngine", () => {
       // Set up source data
       const addr1 = CellAddress.create(0, 0).value; // A1
       const addr2 = CellAddress.create(1, 0).value; // A2
-      
+
       await cellRepository.set(addr1, new Cell(addr1, 10));
       await cellRepository.set(addr2, new Cell(addr2, 20));
 
       const sourceRange = CellRange.create(addr1, addr2).value;
       const targetRange = CellRange.create(
         CellAddress.create(2, 0).value,
-        CellAddress.create(4, 0).value
+        CellAddress.create(4, 0).value,
       ).value;
 
       const operation: FillOperation = {
@@ -119,7 +119,7 @@ describe("FillEngine", () => {
       const sourceRange = CellRange.create(addr1, addr1).value;
       const targetRange = CellRange.create(
         CellAddress.create(1, 0).value,
-        CellAddress.create(2, 0).value
+        CellAddress.create(2, 0).value,
       ).value;
 
       const operation: FillOperation = {

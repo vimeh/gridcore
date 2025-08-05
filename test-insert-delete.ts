@@ -2,13 +2,16 @@
 // This is a simple functional test to verify our new state modes work
 
 import { CellAddress } from "./packages/core/src/domain/models/CellAddress";
-import { ReferenceAdjuster, ReferenceParser } from "./packages/core/src/references";
-import { 
-  createInsertState, 
-  createDeleteState, 
-  isInsertMode, 
+import {
+  ReferenceAdjuster,
+  ReferenceParser,
+} from "./packages/core/src/references";
+import {
+  createDeleteState,
+  createInsertState,
   isDeleteMode,
-  type UIState 
+  isInsertMode,
+  type UIState,
 } from "./packages/ui-core/src/state/UIState";
 
 function testInsertDeleteStates() {
@@ -20,7 +23,7 @@ function testInsertDeleteStates() {
     throw new Error("Failed to create cursor");
   }
   const cursor = cursorResult.value;
-  
+
   const viewport = {
     startRow: 0,
     startCol: 0,
@@ -75,19 +78,23 @@ function testInsertDeleteStates() {
   console.log("\nTesting Reference System...");
   const parser = new ReferenceParser();
   const adjuster = new ReferenceAdjuster();
-  
+
   console.log("✓ ReferenceParser instantiated");
   console.log("✓ ReferenceAdjuster instantiated");
   console.log("✅ Reference system is available!");
 
   // Test Phase 2 structural system
   console.log("\nTesting Phase 2 Structural System...");
-  const { StructuralEngine, ReferenceUpdater, SparseGrid } = require("./packages/core/src/structure");
-  
+  const {
+    StructuralEngine,
+    ReferenceUpdater,
+    SparseGrid,
+  } = require("./packages/core/src/structure");
+
   const structuralEngine = new StructuralEngine();
   const referenceUpdater = new ReferenceUpdater();
   const sparseGrid = new SparseGrid();
-  
+
   console.log("✓ StructuralEngine instantiated");
   console.log("✓ ReferenceUpdater instantiated");
   console.log("✓ SparseGrid instantiated");

@@ -1,6 +1,10 @@
-import { beforeEach, describe, expect, test, mock } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { ConfirmationDialog } from "./ConfirmationDialog";
-import type { StructuralOperation, StructuralUIEvent, StructuralWarning } from "./types";
+import type {
+  StructuralOperation,
+  StructuralUIEvent,
+  StructuralWarning,
+} from "./types";
 
 // Helper to create mock elements
 const createMockElement = (tag: string) => ({
@@ -11,7 +15,7 @@ const createMockElement = (tag: string) => ({
   className: "",
   classList: {
     add: mock(() => {}),
-    remove: mock(() => {})
+    remove: mock(() => {}),
   },
   appendChild: mock(() => {}),
   remove: mock(() => {}),
@@ -21,9 +25,9 @@ const createMockElement = (tag: string) => ({
   addEventListener: mock(() => {}),
   removeEventListener: mock(() => {}),
   parentNode: {
-    removeChild: mock(() => {})
+    removeChild: mock(() => {}),
   },
-  focus: mock(() => {})
+  focus: mock(() => {}),
 });
 
 // Mock DOM environment
@@ -31,17 +35,17 @@ const mockDocument = {
   createElement: mock((tag: string) => createMockElement(tag)),
   getElementById: mock(() => null),
   head: {
-    appendChild: mock(() => {})
+    appendChild: mock(() => {}),
   },
   body: {
-    appendChild: mock(() => {})
+    appendChild: mock(() => {}),
   },
   addEventListener: mock(() => {}),
-  removeEventListener: mock(() => {})
+  removeEventListener: mock(() => {}),
 };
 
 const mockContainer = {
-  appendChild: mock(() => {})
+  appendChild: mock(() => {}),
 };
 
 // @ts-ignore
@@ -62,25 +66,30 @@ describe("ConfirmationDialog", () => {
     mockDocument.addEventListener.mockClear();
     mockDocument.removeEventListener.mockClear();
     mockContainer.appendChild.mockClear();
-    
+
     container = mockContainer;
     dialog = new ConfirmationDialog(container);
   });
 
-  const createOperation = (type: "deleteRow" | "insertRow", count = 1): StructuralOperation => ({
+  const createOperation = (
+    type: "deleteRow" | "insertRow",
+    count = 1,
+  ): StructuralOperation => ({
     type,
     index: 5,
     count,
     timestamp: Date.now(),
-    id: `test-${type}-${Date.now()}`
+    id: `test-${type}-${Date.now()}`,
   });
 
-  const createWarnings = (): StructuralWarning[] => [{
-    type: "dataLoss",
-    message: "Data will be lost",
-    affectedCells: [{ row: 5, col: 0 }],
-    severity: "error"
-  }];
+  const createWarnings = (): StructuralWarning[] => [
+    {
+      type: "dataLoss",
+      message: "Data will be lost",
+      affectedCells: [{ row: 5, col: 0 }],
+      severity: "error",
+    },
+  ];
 
   describe("initialization", () => {
     test("should create with default config", () => {
@@ -91,9 +100,9 @@ describe("ConfirmationDialog", () => {
     test("should create with custom config", () => {
       const customConfig = {
         showWarnings: false,
-        defaultButton: "confirm" as const
+        defaultButton: "confirm" as const,
       };
-      
+
       const customDialog = new ConfirmationDialog(container, customConfig);
       expect(mockDocument.createElement.mock.calls[0]).toEqual(["style"]);
     });
@@ -111,13 +120,15 @@ describe("ConfirmationDialog", () => {
         operation,
         warnings,
         onConfirm,
-        onCancel
+        onCancel,
       };
 
       dialog.handleEvent(event);
 
       // Check that two elements were created (overlay and dialog)
-      expect(mockDocument.createElement.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(
+        mockDocument.createElement.mock.calls.length,
+      ).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -130,7 +141,9 @@ describe("ConfirmationDialog", () => {
 
       dialog.show(operation, warnings, onConfirm, onCancel);
 
-      expect(mockDocument.createElement.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(
+        mockDocument.createElement.mock.calls.length,
+      ).toBeGreaterThanOrEqual(2);
       expect(container.appendChild.mock.calls.length).toBeGreaterThan(0);
       expect(dialog.isShowing()).toBe(true);
     });
@@ -143,12 +156,16 @@ describe("ConfirmationDialog", () => {
 
       dialog.show(operation, warnings, onConfirm, onCancel);
 
-      expect(mockDocument.createElement.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(
+        mockDocument.createElement.mock.calls.length,
+      ).toBeGreaterThanOrEqual(2);
       expect(dialog.isShowing()).toBe(true);
     });
 
     test("should display warnings when enabled", () => {
-      const customDialog = new ConfirmationDialog(container, { showWarnings: true });
+      const customDialog = new ConfirmationDialog(container, {
+        showWarnings: true,
+      });
       const operation = createOperation("deleteRow", 2);
       const warnings = createWarnings();
       const onConfirm = mock(() => {});
@@ -156,12 +173,17 @@ describe("ConfirmationDialog", () => {
 
       customDialog.show(operation, warnings, onConfirm, onCancel);
 
-      const dialogElement = mockDocument.createElement.mock.results[mockDocument.createElement.mock.results.length - 1]?.value;
+      const dialogElement =
+        mockDocument.createElement.mock.results[
+          mockDocument.createElement.mock.results.length - 1
+        ]?.value;
       expect(dialogElement).toBeDefined();
     });
 
     test("should hide warnings when disabled", () => {
-      const customDialog = new ConfirmationDialog(container, { showWarnings: false });
+      const customDialog = new ConfirmationDialog(container, {
+        showWarnings: false,
+      });
       const operation = createOperation("deleteRow", 2);
       const warnings = createWarnings();
       const onConfirm = mock(() => {});
@@ -173,7 +195,9 @@ describe("ConfirmationDialog", () => {
     });
 
     test("should show cell count when enabled", () => {
-      const customDialog = new ConfirmationDialog(container, { showCellCount: true });
+      const customDialog = new ConfirmationDialog(container, {
+        showCellCount: true,
+      });
       const operation = createOperation("deleteRow", 5);
       const warnings: StructuralWarning[] = [];
       const onConfirm = mock(() => {});
@@ -190,7 +214,9 @@ describe("ConfirmationDialog", () => {
       const operation = createOperation("deleteRow", 1);
       const warnings: StructuralWarning[] = [];
       let confirmCalled = false;
-      const onConfirm = mock(() => { confirmCalled = true; });
+      const onConfirm = mock(() => {
+        confirmCalled = true;
+      });
       const onCancel = mock(() => {});
 
       dialog.show(operation, warnings, onConfirm, onCancel);
@@ -199,9 +225,9 @@ describe("ConfirmationDialog", () => {
       dialog.confirm();
 
       expect(confirmCalled).toBe(true);
-      
+
       // Wait for hide animation
-      await new Promise(resolve => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, 350));
       expect(dialog.isShowing()).toBe(false);
     });
 
@@ -210,7 +236,9 @@ describe("ConfirmationDialog", () => {
       const warnings: StructuralWarning[] = [];
       const onConfirm = mock(() => {});
       let cancelCalled = false;
-      const onCancel = mock(() => { cancelCalled = true; });
+      const onCancel = mock(() => {
+        cancelCalled = true;
+      });
 
       dialog.show(operation, warnings, onConfirm, onCancel);
 
@@ -218,9 +246,9 @@ describe("ConfirmationDialog", () => {
       dialog.cancel();
 
       expect(cancelCalled).toBe(true);
-      
+
       // Wait for hide animation
-      await new Promise(resolve => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, 350));
       expect(dialog.isShowing()).toBe(false);
     });
 
@@ -244,12 +272,14 @@ describe("ConfirmationDialog", () => {
   describe("severity and styling", () => {
     test("should apply error severity for dangerous operations", () => {
       const operation = createOperation("deleteRow", 1);
-      const warnings: StructuralWarning[] = [{
-        type: "dataLoss",
-        message: "Critical data loss",
-        affectedCells: [{ row: 5, col: 0 }],
-        severity: "error"
-      }];
+      const warnings: StructuralWarning[] = [
+        {
+          type: "dataLoss",
+          message: "Critical data loss",
+          affectedCells: [{ row: 5, col: 0 }],
+          severity: "error",
+        },
+      ];
       const onConfirm = mock(() => {});
       const onCancel = mock(() => {});
 
@@ -260,12 +290,14 @@ describe("ConfirmationDialog", () => {
 
     test("should apply warning severity for formula-affecting operations", () => {
       const operation = createOperation("deleteRow", 1);
-      const warnings: StructuralWarning[] = [{
-        type: "formulaReference",
-        message: "Formulas affected",
-        affectedCells: [{ row: 10, col: 0 }],
-        severity: "warning"
-      }];
+      const warnings: StructuralWarning[] = [
+        {
+          type: "formulaReference",
+          message: "Formulas affected",
+          affectedCells: [{ row: 10, col: 0 }],
+          severity: "warning",
+        },
+      ];
       const onConfirm = mock(() => {});
       const onCancel = mock(() => {});
 
@@ -288,14 +320,21 @@ describe("ConfirmationDialog", () => {
 
   describe("formula impact display", () => {
     test("should show formula impact when configured", () => {
-      const customDialog = new ConfirmationDialog(container, { showFormulaImpact: true });
+      const customDialog = new ConfirmationDialog(container, {
+        showFormulaImpact: true,
+      });
       const operation = createOperation("deleteRow", 1);
-      const warnings: StructuralWarning[] = [{
-        type: "formulaReference",
-        message: "Formula will break",
-        affectedCells: [{ row: 10, col: 0 }, { row: 11, col: 1 }],
-        severity: "warning"
-      }];
+      const warnings: StructuralWarning[] = [
+        {
+          type: "formulaReference",
+          message: "Formula will break",
+          affectedCells: [
+            { row: 10, col: 0 },
+            { row: 11, col: 1 },
+          ],
+          severity: "warning",
+        },
+      ];
       const onConfirm = mock(() => {});
       const onCancel = mock(() => {});
 
@@ -305,14 +344,18 @@ describe("ConfirmationDialog", () => {
     });
 
     test("should not show formula impact for non-formula warnings", () => {
-      const customDialog = new ConfirmationDialog(container, { showFormulaImpact: true });
+      const customDialog = new ConfirmationDialog(container, {
+        showFormulaImpact: true,
+      });
       const operation = createOperation("deleteRow", 1);
-      const warnings: StructuralWarning[] = [{
-        type: "dataLoss",
-        message: "Data lost",
-        affectedCells: [{ row: 5, col: 0 }],
-        severity: "error"
-      }];
+      const warnings: StructuralWarning[] = [
+        {
+          type: "dataLoss",
+          message: "Data lost",
+          affectedCells: [{ row: 5, col: 0 }],
+          severity: "error",
+        },
+      ];
       const onConfirm = mock(() => {});
       const onCancel = mock(() => {});
 
@@ -341,7 +384,9 @@ describe("ConfirmationDialog", () => {
     });
 
     test("should focus confirm button when configured", (done) => {
-      const customDialog = new ConfirmationDialog(container, { defaultButton: "confirm" });
+      const customDialog = new ConfirmationDialog(container, {
+        defaultButton: "confirm",
+      });
       const operation = createOperation("insertRow", 1);
       const warnings: StructuralWarning[] = [];
       const onConfirm = mock(() => {});
@@ -394,9 +439,9 @@ describe("ConfirmationDialog", () => {
 
   describe("advanced features", () => {
     test("should support custom text", () => {
-      const customDialog = new ConfirmationDialog(container, { 
+      const customDialog = new ConfirmationDialog(container, {
         confirmButtonText: "Do it!",
-        cancelButtonText: "Never mind"
+        cancelButtonText: "Never mind",
       });
       const operation = createOperation("deleteRow", 1);
       const warnings: StructuralWarning[] = [];
@@ -415,14 +460,14 @@ describe("ConfirmationDialog", () => {
           type: "dataLoss",
           message: "Data will be lost",
           affectedCells: [{ row: 5, col: 0 }],
-          severity: "error"
+          severity: "error",
         },
         {
           type: "formulaReference",
           message: "Formulas will be affected",
           affectedCells: [{ row: 10, col: 0 }],
-          severity: "warning"
-        }
+          severity: "warning",
+        },
       ];
       const onConfirm = mock(() => {});
       const onCancel = mock(() => {});
@@ -442,7 +487,9 @@ describe("ConfirmationDialog", () => {
       dialog.hide();
 
       // After hiding, should clean up
-      expect(mockDocument.removeEventListener.mock.calls.length).toBeGreaterThanOrEqual(0);
+      expect(
+        mockDocument.removeEventListener.mock.calls.length,
+      ).toBeGreaterThanOrEqual(0);
     });
   });
 });

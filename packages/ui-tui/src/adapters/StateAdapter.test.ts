@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import type { CellAddress } from "@gridcore/core";
 import { createNavigationState, type UIState } from "@gridcore/ui-core";
-import { 
-  toDisplayState,
+import {
   getResizeModeDisplay,
+  getVimCommandDisplay,
   getVisualSelectionRange,
-  getVimCommandDisplay
+  toDisplayState,
 } from "./StateAdapter";
 
 describe("StateAdapter", () => {
@@ -128,9 +128,7 @@ describe("StateAdapter", () => {
       currentSize: 20,
       originalSize: 10,
     };
-    expect(getResizeModeDisplay(increaseInfo)).toBe(
-      "COLUMN 5: 20 (+10)",
-    );
+    expect(getResizeModeDisplay(increaseInfo)).toBe("COLUMN 5: 20 (+10)");
 
     const decreaseInfo = {
       target: "ROW",
@@ -138,9 +136,7 @@ describe("StateAdapter", () => {
       currentSize: 5,
       originalSize: 8,
     };
-    expect(getResizeModeDisplay(decreaseInfo)).toBe(
-      "ROW 3: 5 (-3)",
-    );
+    expect(getResizeModeDisplay(decreaseInfo)).toBe("ROW 3: 5 (-3)");
   });
 
   test("should get visual selection range", () => {

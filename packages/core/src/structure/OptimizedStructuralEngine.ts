@@ -1,10 +1,13 @@
 import { Cell } from "../domain/models/Cell";
 import type { CellAddress } from "../domain/models/CellAddress";
 import { err, ok, type Result } from "../shared/types/Result";
+import { OptimizedSparseGrid } from "./OptimizedSparseGrid";
+import {
+  globalPerformanceMonitor,
+  type PerformanceMonitor,
+} from "./PerformanceMonitor";
 import type { StructuralChange } from "./ReferenceUpdater";
 import { ReferenceUpdater } from "./ReferenceUpdater";
-import { OptimizedSparseGrid } from "./OptimizedSparseGrid";
-import { PerformanceMonitor, globalPerformanceMonitor } from "./PerformanceMonitor";
 
 /**
  * Batch structural operation for multiple changes
@@ -49,13 +52,16 @@ export class OptimizedStructuralEngine {
 
   // Performance and safety limits
   private readonly limits = {
-    maxRowsColumns: 1000000,    // 1M rows/cols limit
+    maxRowsColumns: 1000000, // 1M rows/cols limit
     maxCellsPerOperation: 100000, // 100k cells per operation
-    maxBatchSize: 100,          // 100 operations per batch
+    maxBatchSize: 100, // 100 operations per batch
     warningCellThreshold: 10000, // Warn if affecting >10k cells
   };
 
-  constructor(grid?: OptimizedSparseGrid, performanceMonitor?: PerformanceMonitor) {
+  constructor(
+    grid?: OptimizedSparseGrid,
+    performanceMonitor?: PerformanceMonitor,
+  ) {
     this.grid = grid || new OptimizedSparseGrid();
     this.referenceUpdater = new ReferenceUpdater();
     this.performanceMonitor = performanceMonitor || globalPerformanceMonitor;
@@ -79,13 +85,13 @@ export class OptimizedStructuralEngine {
 
     const timer = this.performanceMonitor.startOperation(
       `batch-${this.pendingBatch.length}-operations`,
-      this.pendingBatch.reduce((sum, op) => sum + op.count, 0)
+      this.pendingBatch.reduce((sum, op) => sum + op.count, 0),
     );
 
     try {
       // Optimize batch operations by grouping similar operations
       const optimizedBatch = this.optimizeBatch(this.pendingBatch);
-      
+
       const combinedAnalysis: StructuralAnalysis = {
         warnings: [],
         affectedCells: [],
@@ -115,7 +121,7 @@ export class OptimizedStructuralEngine {
         combinedAnalysis.estimatedDuration += analysis.estimatedDuration;
         combinedAnalysis.estimatedMemoryUsage = Math.max(
           combinedAnalysis.estimatedMemoryUsage,
-          analysis.estimatedMemoryUsage
+          analysis.estimatedMemoryUsage,
         );
       }
 
@@ -146,11 +152,13 @@ export class OptimizedStructuralEngine {
   /**
    * Analyze what would happen if we perform a structural change
    */
-  analyzeStructuralChange(change: StructuralChange): Result<StructuralAnalysis, string> {
+  analyzeStructuralChange(
+    change: StructuralChange,
+  ): Result<StructuralAnalysis, string> {
     try {
       const timer = this.performanceMonitor.startOperation(
         `analyze-${change.type}`,
-        change.count
+        change.count,
       );
 
       const warnings: StructuralWarning[] = [];
@@ -169,7 +177,10 @@ export class OptimizedStructuralEngine {
       const estimatedMemoryUsage = this.estimateMemoryUsage(change);
 
       // Add performance warnings if needed
-      if (estimatedDuration > this.performanceMonitor.getExpectedDuration(change.count)) {
+      if (
+        estimatedDuration >
+        this.performanceMonitor.getExpectedDuration(change.count)
+      ) {
         warnings.push({
           type: "performance",
           message: `Operation may take ${estimatedDuration}ms, which exceeds recommended duration`,
@@ -184,7 +195,7 @@ export class OptimizedStructuralEngine {
 
       for (const [address, cell] of allCells.entries()) {
         processedCells++;
-        
+
         // Check if cell position will be affected
         const positionAffected = this.isCellPositionAffected(address, change);
         if (positionAffected) {
@@ -192,15 +203,23 @@ export class OptimizedStructuralEngine {
         }
 
         // Check if cell has formulas that reference affected areas
-        if (cell && typeof cell.hasFormula === 'function' && cell.hasFormula()) {
+        if (
+          cell &&
+          typeof cell.hasFormula === "function" &&
+          cell.hasFormula()
+        ) {
           const formula = cell.rawValue as string;
-          const wouldBeAffected = this.referenceUpdater.wouldBeAffected(formula, change);
-          
+          const wouldBeAffected = this.referenceUpdater.wouldBeAffected(
+            formula,
+            change,
+          );
+
           if (wouldBeAffected) {
-            const updateResult = this.referenceUpdater.updateForStructuralChange(formula, change);
+            const updateResult =
+              this.referenceUpdater.updateForStructuralChange(formula, change);
             if (updateResult.ok) {
               formulaUpdates.set(address, updateResult.value);
-              
+
               // Check for #REF! errors
               if (updateResult.value.includes("#REF!")) {
                 warnings.push({
@@ -266,7 +285,9 @@ export class OptimizedStructuralEngine {
   /**
    * Execute a structural change with proper formula updates
    */
-  executeStructuralChange(change: StructuralChange): Result<StructuralAnalysis, string> {
+  executeStructuralChange(
+    change: StructuralChange,
+  ): Result<StructuralAnalysis, string> {
     if (this.batchMode) {
       // Add to batch instead of executing immediately
       this.pendingBatch.push(change);
@@ -286,10 +307,12 @@ export class OptimizedStructuralEngine {
     return this.executeStructuralChangeInternal(change);
   }
 
-  private executeStructuralChangeInternal(change: StructuralChange): Result<StructuralAnalysis, string> {
+  private executeStructuralChangeInternal(
+    change: StructuralChange,
+  ): Result<StructuralAnalysis, string> {
     const timer = this.performanceMonitor.startOperation(
       `execute-${change.type}`,
-      change.count
+      change.count,
     );
 
     try {
@@ -331,12 +354,15 @@ export class OptimizedStructuralEngine {
   /**
    * Insert rows with batch optimization
    */
-  insertRows(beforeRow: number, count: number): Result<StructuralAnalysis, string> {
+  insertRows(
+    beforeRow: number,
+    count: number,
+  ): Result<StructuralAnalysis, string> {
     const change: StructuralChange = {
       type: "insertRow",
       index: beforeRow,
       count,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return this.executeStructuralChange(change);
@@ -345,12 +371,15 @@ export class OptimizedStructuralEngine {
   /**
    * Delete rows with optimization
    */
-  deleteRows(startRow: number, count: number): Result<StructuralAnalysis, string> {
+  deleteRows(
+    startRow: number,
+    count: number,
+  ): Result<StructuralAnalysis, string> {
     const change: StructuralChange = {
       type: "deleteRow",
       index: startRow,
       count,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return this.executeStructuralChange(change);
@@ -359,12 +388,15 @@ export class OptimizedStructuralEngine {
   /**
    * Insert columns with optimization
    */
-  insertColumns(beforeCol: number, count: number): Result<StructuralAnalysis, string> {
+  insertColumns(
+    beforeCol: number,
+    count: number,
+  ): Result<StructuralAnalysis, string> {
     const change: StructuralChange = {
       type: "insertColumn",
       index: beforeCol,
       count,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return this.executeStructuralChange(change);
@@ -373,12 +405,15 @@ export class OptimizedStructuralEngine {
   /**
    * Delete columns with optimization
    */
-  deleteColumns(startCol: number, count: number): Result<StructuralAnalysis, string> {
+  deleteColumns(
+    startCol: number,
+    count: number,
+  ): Result<StructuralAnalysis, string> {
     const change: StructuralChange = {
       type: "deleteColumn",
       index: startCol,
       count,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return this.executeStructuralChange(change);
@@ -409,26 +444,33 @@ export class OptimizedStructuralEngine {
     if (change.index < 0) {
       return err(`Invalid ${change.type} index: ${change.index}`);
     }
-    
+
     if (change.count <= 0) {
       return err(`Invalid ${change.type} count: ${change.count}`);
     }
 
     // Check limits
     const bounds = this.grid.getBounds();
-    const isRowOperation = change.type === "insertRow" || change.type === "deleteRow";
-    const maxAllowed = isRowOperation ? this.limits.maxRowsColumns : this.limits.maxRowsColumns;
+    const isRowOperation =
+      change.type === "insertRow" || change.type === "deleteRow";
+    const maxAllowed = isRowOperation
+      ? this.limits.maxRowsColumns
+      : this.limits.maxRowsColumns;
     const currentMax = isRowOperation ? bounds.maxRow : bounds.maxCol;
 
     if (change.type === "insertRow" || change.type === "insertColumn") {
       if (currentMax + change.count > maxAllowed) {
-        return err(`Operation would exceed maximum ${isRowOperation ? 'rows' : 'columns'} limit of ${maxAllowed}`);
+        return err(
+          `Operation would exceed maximum ${isRowOperation ? "rows" : "columns"} limit of ${maxAllowed}`,
+        );
       }
     }
 
     // Check memory constraints
     if (this.grid.isAtMemoryLimit()) {
-      return err("Grid is at memory limit, cannot perform structural operations");
+      return err(
+        "Grid is at memory limit, cannot perform structural operations",
+      );
     }
 
     return ok(undefined);
@@ -448,16 +490,26 @@ export class OptimizedStructuralEngine {
     return currentMemory + operationOverhead;
   }
 
-  private calculateRiskLevel(analysis: StructuralAnalysis): "low" | "medium" | "high" | "critical" {
+  private calculateRiskLevel(
+    analysis: StructuralAnalysis,
+  ): "low" | "medium" | "high" | "critical" {
     let riskScore = 0;
 
     // Factor in warnings
     for (const warning of analysis.warnings) {
       switch (warning.severity) {
-        case "low": riskScore += 1; break;
-        case "medium": riskScore += 2; break;
-        case "high": riskScore += 4; break;
-        case "critical": riskScore += 8; break;
+        case "low":
+          riskScore += 1;
+          break;
+        case "medium":
+          riskScore += 2;
+          break;
+        case "high":
+          riskScore += 4;
+          break;
+        case "critical":
+          riskScore += 8;
+          break;
       }
     }
 
@@ -486,10 +538,18 @@ export class OptimizedStructuralEngine {
 
     for (const op of operations) {
       switch (op.type) {
-        case "insertRow": insertRows.push(op); break;
-        case "deleteRow": deleteRows.push(op); break;
-        case "insertColumn": insertCols.push(op); break;
-        case "deleteColumn": deleteCols.push(op); break;
+        case "insertRow":
+          insertRows.push(op);
+          break;
+        case "deleteRow":
+          deleteRows.push(op);
+          break;
+        case "insertColumn":
+          insertCols.push(op);
+          break;
+        case "deleteColumn":
+          deleteCols.push(op);
+          break;
       }
     }
 
@@ -503,7 +563,10 @@ export class OptimizedStructuralEngine {
     return [...deleteRows, ...deleteCols, ...insertRows, ...insertCols];
   }
 
-  private isCellPositionAffected(address: CellAddress, change: StructuralChange): boolean {
+  private isCellPositionAffected(
+    address: CellAddress,
+    change: StructuralChange,
+  ): boolean {
     switch (change.type) {
       case "insertRow":
         return address.row >= change.index;
@@ -520,10 +583,13 @@ export class OptimizedStructuralEngine {
 
   private getCellsInDeletedArea(change: StructuralChange): CellAddress[] {
     const lostCells: CellAddress[] = [];
-    
+
     // Use optimized range queries for better performance
     if (change.type === "deleteRow") {
-      const rangeMap = this.grid.getCellsInRowRange(change.index, change.index + change.count - 1);
+      const rangeMap = this.grid.getCellsInRowRange(
+        change.index,
+        change.index + change.count - 1,
+      );
       for (const address of rangeMap.keys()) {
         lostCells.push(address);
       }
@@ -531,7 +597,10 @@ export class OptimizedStructuralEngine {
       // For columns, we need to check each row - could be optimized further
       const allCells = this.grid.getAllCells();
       for (const [address] of allCells.entries()) {
-        if (address.col >= change.index && address.col < change.index + change.count) {
+        if (
+          address.col >= change.index &&
+          address.col < change.index + change.count
+        ) {
           lostCells.push(address);
         }
       }
@@ -540,7 +609,9 @@ export class OptimizedStructuralEngine {
     return lostCells;
   }
 
-  private applyStructuralChangeToGrid(change: StructuralChange): Result<void, string> {
+  private applyStructuralChangeToGrid(
+    change: StructuralChange,
+  ): Result<void, string> {
     switch (change.type) {
       case "insertRow":
         return this.grid.insertRows(change.index, change.count);

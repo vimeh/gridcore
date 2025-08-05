@@ -1,18 +1,18 @@
-import { Cell, CellAddress } from "../../../domain/models";
-import type { CellValue } from "../../../domain/models";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
-import type { 
-  BulkOperation, 
-  Selection, 
-  BulkOperationOptions 
+import type { CellValue } from "../../../domain/models";
+import { Cell, type CellAddress } from "../../../domain/models";
+import type {
+  BulkOperation,
+  BulkOperationOptions,
+  Selection,
 } from "../interfaces/BulkOperation";
-import type { 
-  OperationPreview, 
-  CellChange, 
-  PreviewOptions 
+import type {
+  CellChange,
+  OperationPreview,
+  PreviewOptions,
 } from "../interfaces/OperationPreview";
-import type { OperationResult } from "../interfaces/OperationResult";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
+import type { OperationResult } from "../interfaces/OperationResult";
 import { OperationResultBuilder } from "../interfaces/OperationResult";
 
 /**
@@ -22,12 +22,12 @@ import { OperationResultBuilder } from "../interfaces/OperationResult";
 export abstract class BaseBulkOperation implements BulkOperation {
   protected startTime: number = 0;
   protected cellRepository: ICellRepository;
-  
+
   constructor(
     public readonly type: string,
     public readonly selection: Selection,
     public readonly options: BulkOperationOptions = {},
-    cellRepository: ICellRepository
+    cellRepository: ICellRepository,
   ) {
     this.cellRepository = cellRepository;
   }
@@ -37,8 +37,8 @@ export abstract class BaseBulkOperation implements BulkOperation {
    * Defines how a cell value should be transformed
    */
   protected abstract transformCell(
-    address: CellAddress, 
-    currentValue: CellValue
+    address: CellAddress,
+    currentValue: CellValue,
   ): Promise<CellValue | null>;
 
   /**
@@ -47,15 +47,15 @@ export abstract class BaseBulkOperation implements BulkOperation {
   async preview(limit: number = 100): Promise<OperationPreview> {
     const builder = new OperationPreviewBuilder();
     const totalCells = this.selection.count();
-    
+
     builder.setAffectedCells(totalCells);
-    
+
     let previewCount = 0;
     let modifiedCount = 0;
     let skippedCount = 0;
     let formulaCount = 0;
     let valueCount = 0;
-    
+
     const changesByType: Record<string, number> = {};
 
     try {
@@ -67,8 +67,10 @@ export abstract class BaseBulkOperation implements BulkOperation {
 
         // Get current cell value
         const currentCell = await this.cellRepository.get(address);
-        const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
-        
+        const currentValue = currentCell
+          ? currentCell.computedValue || currentCell.rawValue
+          : null;
+
         // Check if this is a formula cell
         const isFormula = currentCell?.formula !== undefined;
         if (isFormula) {
@@ -78,14 +80,17 @@ export abstract class BaseBulkOperation implements BulkOperation {
         }
 
         // Skip empty cells if configured
-        if (this.options.skipEmpty && (currentValue === null || currentValue === "")) {
+        if (
+          this.options.skipEmpty &&
+          (currentValue === null || currentValue === "")
+        ) {
           skippedCount++;
           continue;
         }
 
         // Transform the cell value
         const newValue = await this.transformCell(address, currentValue);
-        
+
         if (newValue === null || newValue === currentValue) {
           skippedCount++;
           continue;
@@ -97,14 +102,15 @@ export abstract class BaseBulkOperation implements BulkOperation {
           before: currentValue,
           after: newValue,
           isFormula: false, // Base implementation handles values, not formulas
-          changeType: "value"
+          changeType: "value",
         };
 
         builder.addChange(change);
         modifiedCount++;
         previewCount++;
-        
-        changesByType[change.changeType] = (changesByType[change.changeType] || 0) + 1;
+
+        changesByType[change.changeType] =
+          (changesByType[change.changeType] || 0) + 1;
       }
 
       // Set summary information
@@ -115,13 +121,12 @@ export abstract class BaseBulkOperation implements BulkOperation {
         formulaCells: formulaCount,
         valueCells: valueCount,
         changesByType,
-        memoryEstimate: this.estimateMemoryUsage(modifiedCount)
+        memoryEstimate: this.estimateMemoryUsage(modifiedCount),
       });
 
       // Estimate execution time
       const estimatedTime = this.estimateTime();
       builder.setEstimatedTime(estimatedTime);
-
     } catch (error) {
       builder.addError(`Preview generation failed: ${error}`);
     }
@@ -135,9 +140,9 @@ export abstract class BaseBulkOperation implements BulkOperation {
   async execute(): Promise<OperationResult> {
     this.startTime = Date.now();
     const builder = new OperationResultBuilder();
-    
+
     builder.setOperationType(this.type);
-    
+
     let cellsProcessed = 0;
     let cellsModified = 0;
     const batchSize = this.options.batchSize || 1000;
@@ -147,20 +152,20 @@ export abstract class BaseBulkOperation implements BulkOperation {
     try {
       // Process cells in batches for better performance
       const cellBatches = this.chunkCells(this.selection.getCells(), batchSize);
-      
+
       for (const batch of cellBatches) {
         const batchStart = Date.now();
         batchCount++;
-        
+
         const batchResult = await this.processBatch(batch);
         cellsProcessed += batchResult.processed;
         cellsModified += batchResult.modified;
-        
+
         // Add changes to result
         for (const change of batchResult.changes) {
           builder.addChange(change);
         }
-        
+
         // Add any errors or warnings
         for (const error of batchResult.errors) {
           builder.addError(error);
@@ -171,7 +176,7 @@ export abstract class BaseBulkOperation implements BulkOperation {
 
         const batchTime = Date.now() - batchStart;
         batchTimes.push(batchTime);
-        
+
         // Report progress if callback provided
         if (this.options.onProgress) {
           this.options.onProgress(cellsProcessed, this.selection.count());
@@ -184,7 +189,7 @@ export abstract class BaseBulkOperation implements BulkOperation {
       }
 
       const executionTime = Date.now() - this.startTime;
-      
+
       builder
         .setCellsProcessed(cellsProcessed)
         .setCellsModified(cellsModified)
@@ -193,12 +198,12 @@ export abstract class BaseBulkOperation implements BulkOperation {
           cellsPerSecond: cellsProcessed / (executionTime / 1000),
           peakMemoryUsage: this.estimateMemoryUsage(cellsModified),
           batchCount,
-          averageBatchTime: batchTimes.reduce((a, b) => a + b, 0) / batchTimes.length,
+          averageBatchTime:
+            batchTimes.reduce((a, b) => a + b, 0) / batchTimes.length,
           validationTime: 0, // Would be calculated during validation
           updateTime: executionTime,
-          recalculationTime: 0 // Would be provided by formula service
+          recalculationTime: 0, // Would be provided by formula service
         });
-
     } catch (error) {
       builder.addError(`Operation failed: ${error}`);
     }
@@ -223,11 +228,11 @@ export abstract class BaseBulkOperation implements BulkOperation {
     if (this.selection.isEmpty()) {
       return "Selection is empty";
     }
-    
+
     if (this.selection.count() > 1000000) {
       return "Selection is too large (max 1,000,000 cells)";
     }
-    
+
     return null;
   }
 
@@ -249,19 +254,24 @@ export abstract class BaseBulkOperation implements BulkOperation {
     for (const address of cells) {
       try {
         processed++;
-        
+
         // Get current cell value
         const currentCell = await this.cellRepository.get(address);
-        const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
-        
+        const currentValue = currentCell
+          ? currentCell.computedValue || currentCell.rawValue
+          : null;
+
         // Skip empty cells if configured
-        if (this.options.skipEmpty && (currentValue === null || currentValue === "")) {
+        if (
+          this.options.skipEmpty &&
+          (currentValue === null || currentValue === "")
+        ) {
           continue;
         }
 
         // Transform the cell value
         const newValue = await this.transformCell(address, currentValue);
-        
+
         if (newValue === null || newValue === currentValue) {
           continue;
         }
@@ -269,7 +279,9 @@ export abstract class BaseBulkOperation implements BulkOperation {
         // Update the cell
         const cellResult = Cell.create(newValue, address);
         if (!cellResult.ok) {
-          errors.push(`Failed to create cell ${address.row},${address.col}: ${cellResult.error}`);
+          errors.push(
+            `Failed to create cell ${address.row},${address.col}: ${cellResult.error}`,
+          );
           continue;
         }
         await this.cellRepository.set(address, cellResult.value);
@@ -280,14 +292,15 @@ export abstract class BaseBulkOperation implements BulkOperation {
           before: currentValue,
           after: newValue,
           isFormula: false,
-          changeType: "value"
+          changeType: "value",
         };
-        
+
         changes.push(change);
         modified++;
-
       } catch (error) {
-        errors.push(`Error processing cell ${address.row},${address.col}: ${error}`);
+        errors.push(
+          `Error processing cell ${address.row},${address.col}: ${error}`,
+        );
         if (this.options.stopOnError) {
           break;
         }
@@ -300,9 +313,12 @@ export abstract class BaseBulkOperation implements BulkOperation {
   /**
    * Split cells into batches for processing
    */
-  protected *chunkCells(cells: Iterable<CellAddress>, size: number): Generator<CellAddress[]> {
+  protected *chunkCells(
+    cells: Iterable<CellAddress>,
+    size: number,
+  ): Generator<CellAddress[]> {
     let batch: CellAddress[] = [];
-    
+
     for (const cell of cells) {
       batch.push(cell);
       if (batch.length >= size) {
@@ -310,7 +326,7 @@ export abstract class BaseBulkOperation implements BulkOperation {
         batch = [];
       }
     }
-    
+
     if (batch.length > 0) {
       yield batch;
     }

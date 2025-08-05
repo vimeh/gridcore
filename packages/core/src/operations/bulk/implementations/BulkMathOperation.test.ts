@@ -1,10 +1,15 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { BulkMathOperation, BulkMathOptions, NumericUtils, MathOperationType } from "./BulkMathOperation";
-import { CellSelection } from "../base/CellSelection";
-import { CellAddress } from "../../../domain/models";
+import { beforeEach, describe, expect, it } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import type { Cell } from "../../../domain/models";
-import { Result } from "../../../shared/types/Result";
+import { CellAddress } from "../../../domain/models";
+import type { Result } from "../../../shared/types/Result";
+import { CellSelection } from "../base/CellSelection";
+import {
+  BulkMathOperation,
+  type BulkMathOptions,
+  MathOperationType,
+  NumericUtils,
+} from "./BulkMathOperation";
 
 // Mock cell repository for testing
 class MockCellRepository implements ICellRepository {
@@ -121,7 +126,9 @@ describe("NumericUtils", () => {
 
     it("should perform percentage operations", () => {
       expect(NumericUtils.performOperation("percent", 100, 20)).toBe(120);
-      expect(NumericUtils.performOperation("percentDecrease", 100, 20)).toBe(80);
+      expect(NumericUtils.performOperation("percentDecrease", 100, 20)).toBe(
+        80,
+      );
     });
 
     it("should perform rounding operations", () => {
@@ -132,7 +139,9 @@ describe("NumericUtils", () => {
     });
 
     it("should throw error for unsupported operations", () => {
-      expect(() => NumericUtils.performOperation("invalid" as any, 10, 5)).toThrow();
+      expect(() =>
+        NumericUtils.performOperation("invalid" as any, 10, 5),
+      ).toThrow();
     });
   });
 });
@@ -144,7 +153,7 @@ describe("BulkMathOperation", () => {
   beforeEach(() => {
     cellRepository = new MockCellRepository();
     selection = new CellSelection();
-    
+
     // Add some test cells with various types of values
     selection.addCell(new CellAddress(1, 1));
     selection.addCell(new CellAddress(1, 2));
@@ -163,10 +172,14 @@ describe("BulkMathOperation", () => {
     it("should perform addition correctly", async () => {
       const options: BulkMathOptions = {
         operation: "add",
-        value: 5
+        value: 5,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const result = await operation.execute();
 
       expect(result.success).toBe(true);
@@ -179,10 +192,14 @@ describe("BulkMathOperation", () => {
     it("should perform subtraction correctly", async () => {
       const options: BulkMathOptions = {
         operation: "subtract",
-        value: 3
+        value: 3,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(7);
@@ -193,10 +210,14 @@ describe("BulkMathOperation", () => {
     it("should perform multiplication correctly", async () => {
       const options: BulkMathOptions = {
         operation: "multiply",
-        value: 2
+        value: 2,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(20);
@@ -207,10 +228,14 @@ describe("BulkMathOperation", () => {
     it("should perform division correctly", async () => {
       const options: BulkMathOptions = {
         operation: "divide",
-        value: 2
+        value: 2,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(5);
@@ -222,10 +247,14 @@ describe("BulkMathOperation", () => {
       const options: BulkMathOptions = {
         operation: "divide",
         value: 0,
-        skipNonNumeric: true
+        skipNonNumeric: true,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       // Values should remain unchanged since division by zero results in NaN
@@ -239,10 +268,14 @@ describe("BulkMathOperation", () => {
 
       const options: BulkMathOptions = {
         operation: "modulo",
-        value: 5
+        value: 5,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(2);
@@ -250,14 +283,18 @@ describe("BulkMathOperation", () => {
     });
   });
 
-  describe("Percentage Operations", () => {  
+  describe("Percentage Operations", () => {
     it("should increase by percentage correctly", async () => {
       const options: BulkMathOptions = {
         operation: "percent",
-        value: 50 // 50% increase
+        value: 50, // 50% increase
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(15); // 10 + 50%
@@ -268,10 +305,14 @@ describe("BulkMathOperation", () => {
     it("should decrease by percentage correctly", async () => {
       const options: BulkMathOptions = {
         operation: "percentDecrease",
-        value: 25 // 25% decrease
+        value: 25, // 25% decrease
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(7.5); // 10 - 25%
@@ -291,10 +332,14 @@ describe("BulkMathOperation", () => {
       const options: BulkMathOptions = {
         operation: "round",
         value: 0,
-        decimalPlaces: 0
+        decimalPlaces: 0,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(3);
@@ -306,10 +351,14 @@ describe("BulkMathOperation", () => {
       const options: BulkMathOptions = {
         operation: "round",
         value: 0,
-        decimalPlaces: 2
+        decimalPlaces: 2,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(3.14);
@@ -320,10 +369,14 @@ describe("BulkMathOperation", () => {
     it("should apply floor correctly", async () => {
       const options: BulkMathOptions = {
         operation: "floor",
-        value: 0
+        value: 0,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(3);
@@ -334,10 +387,14 @@ describe("BulkMathOperation", () => {
     it("should apply ceiling correctly", async () => {
       const options: BulkMathOptions = {
         operation: "ceil",
-        value: 0
+        value: 0,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(4);
@@ -351,10 +408,14 @@ describe("BulkMathOperation", () => {
       const options: BulkMathOptions = {
         operation: "add",
         value: 5,
-        skipNonNumeric: true
+        skipNonNumeric: true,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const result = await operation.execute();
 
       expect(result.success).toBe(true);
@@ -366,10 +427,14 @@ describe("BulkMathOperation", () => {
         operation: "add",
         value: 5,
         convertStrings: false,
-        skipNonNumeric: true
+        skipNonNumeric: true,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 1))).toBe(15); // Number modified
@@ -380,10 +445,14 @@ describe("BulkMathOperation", () => {
       const options: BulkMathOptions = {
         operation: "add",
         value: 5,
-        preserveType: false
+        preserveType: false,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 2))).toBe(25); // Returns number, not string
@@ -393,10 +462,14 @@ describe("BulkMathOperation", () => {
       const options: BulkMathOptions = {
         operation: "add",
         value: 5,
-        skipEmpty: true
+        skipEmpty: true,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.execute();
 
       expect(cellRepository.getCellValue(new CellAddress(1, 5))).toBe(""); // Empty cell unchanged
@@ -407,10 +480,14 @@ describe("BulkMathOperation", () => {
     it("should generate correct preview", async () => {
       const options: BulkMathOptions = {
         operation: "add",
-        value: 10
+        value: 10,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.affectedCells).toBe(5);
@@ -422,10 +499,14 @@ describe("BulkMathOperation", () => {
     it("should include calculation examples in preview", async () => {
       const options: BulkMathOptions = {
         operation: "multiply",
-        value: 2
+        value: 2,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.summary.examples).toContain("10 × 2");
@@ -435,14 +516,22 @@ describe("BulkMathOperation", () => {
     it("should show operation summary in preview", async () => {
       const options: BulkMathOptions = {
         operation: "percent",
-        value: 25
+        value: 25,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
-      expect(preview.summary.operationSummary).toContain("Math Operation: PERCENT 25%");
-      expect(preview.summary.operationSummary).toContain("3 numeric cells will be modified");
+      expect(preview.summary.operationSummary).toContain(
+        "Math Operation: PERCENT 25%",
+      );
+      expect(preview.summary.operationSummary).toContain(
+        "3 numeric cells will be modified",
+      );
     });
   });
 
@@ -450,10 +539,14 @@ describe("BulkMathOperation", () => {
     it("should validate division by zero", () => {
       const options: BulkMathOptions = {
         operation: "divide",
-        value: 0
+        value: 0,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const validation = operation.validate();
 
       expect(validation).toBe("Cannot divide by zero");
@@ -461,11 +554,15 @@ describe("BulkMathOperation", () => {
 
     it("should validate modulo by zero", () => {
       const options: BulkMathOptions = {
-        operation: "modulo", 
-        value: 0
+        operation: "modulo",
+        value: 0,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const validation = operation.validate();
 
       expect(validation).toBe("Cannot modulo by zero");
@@ -474,10 +571,14 @@ describe("BulkMathOperation", () => {
     it("should validate percentage decrease limits", () => {
       const options: BulkMathOptions = {
         operation: "percentDecrease",
-        value: 150
+        value: 150,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const validation = operation.validate();
 
       expect(validation).toBe("Percentage decrease cannot be 100% or greater");
@@ -487,22 +588,32 @@ describe("BulkMathOperation", () => {
       const options: BulkMathOptions = {
         operation: "round",
         value: 0,
-        decimalPlaces: 15
+        decimalPlaces: 15,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const validation = operation.validate();
 
-      expect(validation).toBe("Decimal places must be an integer between 0 and 10");
+      expect(validation).toBe(
+        "Decimal places must be an integer between 0 and 10",
+      );
     });
 
     it("should validate finite operand values", () => {
       const options: BulkMathOptions = {
         operation: "add",
-        value: Infinity
+        value: Infinity,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const validation = operation.validate();
 
       expect(validation).toBe("Math operation requires a valid finite number");
@@ -512,10 +623,14 @@ describe("BulkMathOperation", () => {
       const emptySelection = new CellSelection();
       const options: BulkMathOptions = {
         operation: "add",
-        value: 5
+        value: 5,
       };
 
-      const operation = new BulkMathOperation(emptySelection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        emptySelection,
+        options,
+        cellRepository,
+      );
       const validation = operation.validate();
 
       expect(validation).toBe("Selection is empty");
@@ -524,23 +639,43 @@ describe("BulkMathOperation", () => {
 
   describe("Description and Time Estimation", () => {
     it("should generate correct descriptions", () => {
-      const addOp = new BulkMathOperation(selection, { operation: "add", value: 10 }, cellRepository);
+      const addOp = new BulkMathOperation(
+        selection,
+        { operation: "add", value: 10 },
+        cellRepository,
+      );
       expect(addOp.getDescription()).toBe("Add 10 to 5 numeric cells");
 
-      const percentOp = new BulkMathOperation(selection, { operation: "percent", value: 25 }, cellRepository);
-      expect(percentOp.getDescription()).toBe("Increase 5 numeric cells by 25%");
+      const percentOp = new BulkMathOperation(
+        selection,
+        { operation: "percent", value: 25 },
+        cellRepository,
+      );
+      expect(percentOp.getDescription()).toBe(
+        "Increase 5 numeric cells by 25%",
+      );
 
-      const roundOp = new BulkMathOperation(selection, { operation: "round", value: 0, decimalPlaces: 2 }, cellRepository);
-      expect(roundOp.getDescription()).toBe("Round 5 numeric cells to 2 decimal places");
+      const roundOp = new BulkMathOperation(
+        selection,
+        { operation: "round", value: 0, decimalPlaces: 2 },
+        cellRepository,
+      );
+      expect(roundOp.getDescription()).toBe(
+        "Round 5 numeric cells to 2 decimal places",
+      );
     });
 
     it("should estimate execution time", () => {
       const options: BulkMathOptions = {
         operation: "add",
-        value: 5
+        value: 5,
       };
 
-      const operation = new BulkMathOperation(selection, options, cellRepository);
+      const operation = new BulkMathOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const estimatedTime = operation.estimateTime();
 
       expect(estimatedTime).toBeGreaterThan(0);
@@ -553,12 +688,12 @@ describe("BulkMathOperation", () => {
       // Create a failing repository
       const failingRepo = {
         ...cellRepository,
-        getCell: () => Promise.resolve({ ok: false, error: "Cell not found" })
+        getCell: () => Promise.resolve({ ok: false, error: "Cell not found" }),
       } as ICellRepository;
 
       const options: BulkMathOptions = {
         operation: "add",
-        value: 5
+        value: 5,
       };
 
       const operation = new BulkMathOperation(selection, options, failingRepo);
@@ -573,12 +708,12 @@ describe("BulkMathOperation", () => {
       // Create a repository that fails on updates
       const failingRepo = {
         ...cellRepository,
-        setCell: () => Promise.resolve({ ok: false, error: "Update failed" })
+        setCell: () => Promise.resolve({ ok: false, error: "Update failed" }),
       } as ICellRepository;
 
       const options: BulkMathOptions = {
         operation: "add",
-        value: 5
+        value: 5,
       };
 
       const operation = new BulkMathOperation(selection, options, failingRepo);

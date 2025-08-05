@@ -79,7 +79,7 @@ describe("UIState", () => {
         type: { type: "column", columns: [1, 2] },
         anchor,
       };
-      
+
       const state = createSpreadsheetVisualState(
         defaultCursor,
         defaultViewport,
@@ -87,7 +87,7 @@ describe("UIState", () => {
         anchor,
         selection,
       );
-      
+
       expect(state.spreadsheetMode).toBe("visual");
       expect(state.visualMode).toBe("column");
       expect(state.anchor).toEqual(anchor);
@@ -214,13 +214,19 @@ describe("UIState", () => {
       const selection: Selection = {
         type: { type: "cell", address: defaultCursor },
       };
-      
+
       const states: UIState[] = [
         createNavigationState(defaultCursor, defaultViewport),
         createEditingState(defaultCursor, defaultViewport),
         createCommandState(defaultCursor, defaultViewport),
         createResizeState(defaultCursor, defaultViewport, "column", 0, 100),
-        createSpreadsheetVisualState(defaultCursor, defaultViewport, "char", anchor, selection),
+        createSpreadsheetVisualState(
+          defaultCursor,
+          defaultViewport,
+          "char",
+          anchor,
+          selection,
+        ),
       ];
 
       states.forEach((state) => {
@@ -303,9 +309,9 @@ describe("UIState", () => {
 
       // Test range selection
       const rangeSelection: Selection = {
-        type: { 
-          type: "range", 
-          start: anchor, 
+        type: {
+          type: "range",
+          start: anchor,
           end: cursor,
         },
         anchor,

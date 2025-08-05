@@ -68,7 +68,7 @@ export interface StructuralWarning {
   severity: "info" | "warning" | "error";
 }
 
-export type HighlightType = 
+export type HighlightType =
   | "affected" // Cells that will be moved/shifted
   | "deleted" // Cells that will be deleted
   | "inserted" // Area where new cells will be inserted
@@ -98,15 +98,15 @@ export interface StructuralUIConfig {
   // Confirmation thresholds
   confirmDeletionAbove: number; // Number of cells/rows/columns
   confirmFormulaAffected: boolean; // Confirm if formulas will be affected
-  
+
   // Progress indicators
   showProgressAbove: number; // Number of operations to show progress
   progressThrottleMs: number; // Throttle progress updates
-  
+
   // Visual feedback
   highlightDuration: number; // How long to show highlights (ms)
   animateOperations: boolean; // Whether to animate structural changes
-  
+
   // Warning display
   maxWarningsShown: number; // Maximum warnings to show at once
   autoHideWarnings: boolean; // Auto-hide warnings after operation

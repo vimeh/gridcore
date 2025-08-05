@@ -38,7 +38,9 @@ export class StructuralEngine {
   /**
    * Analyze what would happen if we perform a structural change
    */
-  analyzeStructuralChange(change: StructuralChange): Result<StructuralAnalysis, string> {
+  analyzeStructuralChange(
+    change: StructuralChange,
+  ): Result<StructuralAnalysis, string> {
     try {
       const warnings: StructuralWarning[] = [];
       const affectedCells: CellAddress[] = [];
@@ -57,19 +59,23 @@ export class StructuralEngine {
         // Check if cell has formulas that reference affected areas
         if (cell.hasFormula()) {
           const formula = cell.rawValue as string;
-          const wouldBeAffected = this.referenceUpdater.wouldBeAffected(formula, change);
-          
+          const wouldBeAffected = this.referenceUpdater.wouldBeAffected(
+            formula,
+            change,
+          );
+
           if (wouldBeAffected) {
-            const updateResult = this.referenceUpdater.updateForStructuralChange(formula, change);
+            const updateResult =
+              this.referenceUpdater.updateForStructuralChange(formula, change);
             if (updateResult.ok) {
               formulaUpdates.set(address, updateResult.value);
-              
+
               // Check for #REF! errors
               if (updateResult.value.includes("#REF!")) {
                 warnings.push({
                   type: "formulaReference",
                   message: `Formula in cell ${address.row},${address.col} will reference deleted cells`,
-                  affectedCells: [address]
+                  affectedCells: [address],
                 });
               }
             }
@@ -84,7 +90,7 @@ export class StructuralEngine {
           warnings.push({
             type: "dataLoss",
             message: `${lostCells.length} cells will be deleted`,
-            affectedCells: lostCells
+            affectedCells: lostCells,
           });
         }
       }
@@ -92,7 +98,7 @@ export class StructuralEngine {
       return ok({
         warnings,
         affectedCells,
-        formulaUpdates
+        formulaUpdates,
       });
     } catch (error) {
       return err(`Failed to analyze structural change: ${error}`);
@@ -102,7 +108,9 @@ export class StructuralEngine {
   /**
    * Execute a structural change with proper formula updates
    */
-  executeStructuralChange(change: StructuralChange): Result<StructuralAnalysis, string> {
+  executeStructuralChange(
+    change: StructuralChange,
+  ): Result<StructuralAnalysis, string> {
     try {
       // First analyze the change
       const analysisResult = this.analyzeStructuralChange(change);
@@ -140,12 +148,15 @@ export class StructuralEngine {
   /**
    * Insert rows in the grid
    */
-  insertRows(beforeRow: number, count: number): Result<StructuralAnalysis, string> {
+  insertRows(
+    beforeRow: number,
+    count: number,
+  ): Result<StructuralAnalysis, string> {
     const change: StructuralChange = {
       type: "insertRow",
       index: beforeRow,
       count,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return this.executeStructuralChange(change);
@@ -154,12 +165,15 @@ export class StructuralEngine {
   /**
    * Delete rows from the grid
    */
-  deleteRows(startRow: number, count: number): Result<StructuralAnalysis, string> {
+  deleteRows(
+    startRow: number,
+    count: number,
+  ): Result<StructuralAnalysis, string> {
     const change: StructuralChange = {
       type: "deleteRow",
       index: startRow,
       count,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return this.executeStructuralChange(change);
@@ -168,12 +182,15 @@ export class StructuralEngine {
   /**
    * Insert columns in the grid
    */
-  insertColumns(beforeCol: number, count: number): Result<StructuralAnalysis, string> {
+  insertColumns(
+    beforeCol: number,
+    count: number,
+  ): Result<StructuralAnalysis, string> {
     const change: StructuralChange = {
       type: "insertColumn",
       index: beforeCol,
       count,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return this.executeStructuralChange(change);
@@ -182,12 +199,15 @@ export class StructuralEngine {
   /**
    * Delete columns from the grid
    */
-  deleteColumns(startCol: number, count: number): Result<StructuralAnalysis, string> {
+  deleteColumns(
+    startCol: number,
+    count: number,
+  ): Result<StructuralAnalysis, string> {
     const change: StructuralChange = {
       type: "deleteColumn",
       index: startCol,
       count,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return this.executeStructuralChange(change);
@@ -203,7 +223,10 @@ export class StructuralEngine {
   /**
    * Check if a cell's position would be affected by a structural change
    */
-  private isCellPositionAffected(address: CellAddress, change: StructuralChange): boolean {
+  private isCellPositionAffected(
+    address: CellAddress,
+    change: StructuralChange,
+  ): boolean {
     switch (change.type) {
       case "insertRow":
         return address.row >= change.index;
@@ -228,12 +251,18 @@ export class StructuralEngine {
     for (const [address] of allCells.entries()) {
       switch (change.type) {
         case "deleteRow":
-          if (address.row >= change.index && address.row < change.index + change.count) {
+          if (
+            address.row >= change.index &&
+            address.row < change.index + change.count
+          ) {
             lostCells.push(address);
           }
           break;
         case "deleteColumn":
-          if (address.col >= change.index && address.col < change.index + change.count) {
+          if (
+            address.col >= change.index &&
+            address.col < change.index + change.count
+          ) {
             lostCells.push(address);
           }
           break;
@@ -246,7 +275,9 @@ export class StructuralEngine {
   /**
    * Apply the structural change to the underlying grid
    */
-  private applyStructuralChangeToGrid(change: StructuralChange): Result<void, string> {
+  private applyStructuralChangeToGrid(
+    change: StructuralChange,
+  ): Result<void, string> {
     switch (change.type) {
       case "insertRow":
         return this.grid.insertRows(change.index, change.count);

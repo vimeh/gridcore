@@ -13,14 +13,14 @@ export class PlaceholderFormulaAdjuster implements FormulaAdjuster {
   ): string {
     // Placeholder implementation
     // TODO: Integrate with Agent-1's ReferenceAdjuster when available
-    
+
     // For now, just return the formula as-is
     // This will be replaced with proper reference adjustment logic
     console.warn(
       `Formula adjustment not yet implemented. ` +
-      `Source: ${sourceCell.toString()}, Target: ${targetCell.toString()}, Formula: ${formula}`
+        `Source: ${sourceCell.toString()}, Target: ${targetCell.toString()}, Formula: ${formula}`,
     );
-    
+
     return formula;
   }
 }

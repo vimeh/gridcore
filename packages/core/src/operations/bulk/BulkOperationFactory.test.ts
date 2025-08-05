@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { CellAddress, CellValue, Cell } from "../../domain/models";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
-import { CellSelection } from "./base/CellSelection";
+import { Cell, CellAddress, CellValue } from "../../domain/models";
 import { BulkOperationFactory } from "./BulkOperationFactory";
-import { FindReplaceOperation } from "./implementations/FindReplaceOperation";
+import { CellSelection } from "./base/CellSelection";
 import { BulkSetOperation } from "./implementations/BulkSetOperation";
+import { FindReplaceOperation } from "./implementations/FindReplaceOperation";
 
 // Mock ICellRepository
 const createMockCellRepository = (): ICellRepository => {
   const cells = new Map<string, Cell>();
-  
+
   return {
     getCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
@@ -19,7 +19,7 @@ const createMockCellRepository = (): ICellRepository => {
       }
       return { ok: true, value: null };
     }),
-    
+
     setCell: mock(async (address: CellAddress, cell: Partial<Cell>) => {
       const key = `${address.row},${address.col}`;
       const existingCell = cells.get(key) || Cell.create(null).value!;
@@ -27,18 +27,18 @@ const createMockCellRepository = (): ICellRepository => {
       cells.set(key, updatedCell);
       return { ok: true, value: updatedCell };
     }),
-    
+
     hasCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
       return { ok: true, value: cells.has(key) };
     }),
-    
+
     deleteCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
       const existed = cells.has(key);
       cells.delete(key);
       return { ok: true, value: existed };
-    })
+    }),
   } as ICellRepository;
 };
 
@@ -51,7 +51,7 @@ describe("BulkOperationFactory", () => {
     cellRepository = createMockCellRepository();
     factory = new BulkOperationFactory(cellRepository);
     selection = new CellSelection();
-    
+
     // Add some cells to selection
     const cell1 = CellAddress.create(0, 0);
     const cell2 = CellAddress.create(1, 1);
@@ -64,7 +64,7 @@ describe("BulkOperationFactory", () => {
   describe("getSupportedTypes", () => {
     it("should return all supported operation types", () => {
       const types = factory.getSupportedTypes();
-      
+
       expect(types).toContain("findReplace");
       expect(types).toContain("bulkSet");
       expect(types).toContain("mathOperation");
@@ -96,12 +96,16 @@ describe("BulkOperationFactory", () => {
             useRegex: false,
             caseSensitive: true,
             global: true,
-            scope: "selection"
-          }
+            scope: "selection",
+          },
         };
 
-        const operation = factory.createOperation("findReplace", selection, options);
-        
+        const operation = factory.createOperation(
+          "findReplace",
+          selection,
+          options,
+        );
+
         expect(operation).toBeInstanceOf(FindReplaceOperation);
         expect(operation?.type).toBe("findReplace");
         expect(operation?.selection).toBe(selection);
@@ -110,11 +114,15 @@ describe("BulkOperationFactory", () => {
       it("should use default options for findReplace when not specified", () => {
         const options = {
           findPattern: "test",
-          replaceWith: "TEST"
+          replaceWith: "TEST",
         };
 
-        const operation = factory.createOperation("findReplace", selection, options);
-        
+        const operation = factory.createOperation(
+          "findReplace",
+          selection,
+          options,
+        );
+
         expect(operation).toBeInstanceOf(FindReplaceOperation);
         expect(operation?.type).toBe("findReplace");
       });
@@ -127,12 +135,16 @@ describe("BulkOperationFactory", () => {
             useRegex: true,
             caseSensitive: false,
             global: true,
-            scope: "sheet"
-          }
+            scope: "sheet",
+          },
         };
 
-        const operation = factory.createOperation("findReplace", selection, options);
-        
+        const operation = factory.createOperation(
+          "findReplace",
+          selection,
+          options,
+        );
+
         expect(operation).toBeInstanceOf(FindReplaceOperation);
       });
     });
@@ -142,11 +154,15 @@ describe("BulkOperationFactory", () => {
         const options = {
           value: "test value",
           overwriteExisting: true,
-          preserveFormulas: false
+          preserveFormulas: false,
         };
 
-        const operation = factory.createOperation("bulkSet", selection, options);
-        
+        const operation = factory.createOperation(
+          "bulkSet",
+          selection,
+          options,
+        );
+
         expect(operation).toBeInstanceOf(BulkSetOperation);
         expect(operation?.type).toBe("bulkSet");
         expect(operation?.selection).toBe(selection);
@@ -154,11 +170,15 @@ describe("BulkOperationFactory", () => {
 
       it("should use default options for bulkSet when not specified", () => {
         const options = {
-          value: "test value"
+          value: "test value",
         };
 
-        const operation = factory.createOperation("bulkSet", selection, options);
-        
+        const operation = factory.createOperation(
+          "bulkSet",
+          selection,
+          options,
+        );
+
         expect(operation).toBeInstanceOf(BulkSetOperation);
       });
     });
@@ -167,53 +187,64 @@ describe("BulkOperationFactory", () => {
       it("should create BulkMathOperation for supported math operations", () => {
         const options = {
           operation: "add",
-          value: 10
+          value: 10,
         };
 
-        const operation = factory.createOperation("mathOperation", selection, options);
-        
+        const operation = factory.createOperation(
+          "mathOperation",
+          selection,
+          options,
+        );
+
         expect(operation).not.toBeNull();
         expect(operation?.type).toBe("mathOperation");
       });
-
     });
 
     describe("unsupported operations", () => {
       it("should return null for fill operations (not yet implemented)", () => {
         const options = {
-          direction: "down"
+          direction: "down",
         };
 
         const operation = factory.createOperation("fill", selection, options);
-        
+
         expect(operation).toBeNull();
       });
 
       it("should return null for transform operations (not yet implemented)", () => {
         const options = {
-          transformation: "upper"
+          transformation: "upper",
         };
 
-        const operation = factory.createOperation("transform", selection, options);
-        
+        const operation = factory.createOperation(
+          "transform",
+          selection,
+          options,
+        );
+
         expect(operation).toBeNull();
       });
 
       it("should return null for format operations (not yet implemented)", () => {
         const options = {
-          formatType: "currency"
+          formatType: "currency",
         };
 
         const operation = factory.createOperation("format", selection, options);
-        
+
         expect(operation).toBeNull();
       });
 
       it("should return null for unknown operation types", () => {
         const options = {};
 
-        const operation = factory.createOperation("unknownType", selection, options);
-        
+        const operation = factory.createOperation(
+          "unknownType",
+          selection,
+          options,
+        );
+
         expect(operation).toBeNull();
       });
     });
@@ -230,33 +261,33 @@ describe("BulkOperationFactory", () => {
           global: true,
           caseSensitive: false,
           useRegex: false,
-          scope: "selection"
-        }
+          scope: "selection",
+        },
       };
 
       const operation = factory.createOperation(
         commandResult.type,
         selection,
-        commandResult
+        commandResult,
       );
-      
+
       expect(operation).toBeInstanceOf(FindReplaceOperation);
       expect(operation?.type).toBe("findReplace");
     });
 
     it("should handle VimBulkCommandParser bulkSet command", () => {
-      // Simulate output from VimBulkCommandParser  
+      // Simulate output from VimBulkCommandParser
       const commandResult = {
         type: "bulkSet",
-        value: "new value"
+        value: "new value",
       };
 
       const operation = factory.createOperation(
         commandResult.type,
         selection,
-        commandResult
+        commandResult,
       );
-      
+
       expect(operation).toBeInstanceOf(BulkSetOperation);
       expect(operation?.type).toBe("bulkSet");
     });
@@ -266,11 +297,15 @@ describe("BulkOperationFactory", () => {
     it("should create operations that can be validated", () => {
       const options = {
         findPattern: "test",
-        replaceWith: "TEST"
+        replaceWith: "TEST",
       };
 
-      const operation = factory.createOperation("findReplace", selection, options);
-      
+      const operation = factory.createOperation(
+        "findReplace",
+        selection,
+        options,
+      );
+
       expect(operation).not.toBeNull();
       expect(operation!.validate()).toBeNull(); // Should be valid
     });
@@ -278,11 +313,15 @@ describe("BulkOperationFactory", () => {
     it("should create operations that can handle invalid input", () => {
       const options = {
         findPattern: "", // Invalid empty pattern
-        replaceWith: "TEST"
+        replaceWith: "TEST",
       };
 
-      const operation = factory.createOperation("findReplace", selection, options);
-      
+      const operation = factory.createOperation(
+        "findReplace",
+        selection,
+        options,
+      );
+
       expect(operation).not.toBeNull();
       expect(operation!.validate()).not.toBeNull(); // Should be invalid
     });
@@ -292,11 +331,15 @@ describe("BulkOperationFactory", () => {
     it("should handle missing required options gracefully", () => {
       const options = {
         // Missing findPattern for findReplace
-        replaceWith: "TEST"
+        replaceWith: "TEST",
       };
 
-      const operation = factory.createOperation("findReplace", selection, options);
-      
+      const operation = factory.createOperation(
+        "findReplace",
+        selection,
+        options,
+      );
+
       expect(operation).toBeInstanceOf(FindReplaceOperation);
       // Validation should catch the missing pattern
       expect(operation!.validate()).not.toBeNull();
@@ -306,7 +349,7 @@ describe("BulkOperationFactory", () => {
       const options = {};
 
       const operation = factory.createOperation("bulkSet", selection, options);
-      
+
       expect(operation).toBeInstanceOf(BulkSetOperation);
       // Validation should catch missing value
       expect(operation!.validate()).not.toBeNull();

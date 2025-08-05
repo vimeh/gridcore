@@ -61,11 +61,11 @@ export class StructuralOperationFeedback {
 
   constructor(
     container?: HTMLElement,
-    customStyles?: Partial<Record<HighlightType, Partial<HighlightStyle>>>
+    customStyles?: Partial<Record<HighlightType, Partial<HighlightStyle>>>,
   ) {
     this.container = container;
     this.highlightStyles = { ...DEFAULT_HIGHLIGHT_STYLES };
-    
+
     if (customStyles) {
       for (const [type, style] of Object.entries(customStyles)) {
         if (this.highlightStyles[type as HighlightType]) {
@@ -108,7 +108,7 @@ export class StructuralOperationFeedback {
   highlightCells(
     cells: CellAddress[],
     type: HighlightType,
-    duration?: number
+    duration?: number,
   ): void {
     cells.forEach((cell) => {
       const key = this.getCellKey(cell);
@@ -134,7 +134,7 @@ export class StructuralOperationFeedback {
    */
   clearHighlightsByType(type: HighlightType): void {
     const toRemove: string[] = [];
-    
+
     for (const [key, highlight] of this.activeHighlights.entries()) {
       if (highlight.type === type) {
         this.removeCellHighlight(highlight.address);
@@ -165,10 +165,7 @@ export class StructuralOperationFeedback {
   /**
    * Update highlight styles
    */
-  updateStyles(
-    type: HighlightType,
-    style: Partial<HighlightStyle>
-  ): void {
+  updateStyles(type: HighlightType, style: Partial<HighlightStyle>): void {
     this.highlightStyles[type] = {
       ...this.highlightStyles[type],
       ...style,
@@ -182,7 +179,7 @@ export class StructuralOperationFeedback {
   private showCompletionFeedback(affectedCells: CellAddress[]): void {
     // Briefly highlight completed operation
     this.highlightCells(affectedCells, "affected", 1000);
-    
+
     // Add completion pulse animation
     affectedCells.forEach((cell) => {
       const element = this.getCellElement(cell);
@@ -219,13 +216,16 @@ export class StructuralOperationFeedback {
 
     const style = this.highlightStyles[type];
     element.classList.add(`structural-highlight-${type}`);
-    
+
     // Apply inline styles for dynamic highlighting
     element.style.setProperty("--highlight-bg", style.backgroundColor);
     element.style.setProperty("--highlight-border", style.borderColor);
-    element.style.setProperty("--highlight-border-width", `${style.borderWidth}px`);
+    element.style.setProperty(
+      "--highlight-border-width",
+      `${style.borderWidth}px`,
+    );
     element.style.setProperty("--highlight-opacity", style.opacity.toString());
-    
+
     if (style.animation) {
       element.style.animation = style.animation;
     }
@@ -241,8 +241,11 @@ export class StructuralOperationFeedback {
     }
 
     // Remove all highlight classes
-    element.className = element.className.replace(/structural-highlight-\w+/g, "");
-    
+    element.className = element.className.replace(
+      /structural-highlight-\w+/g,
+      "",
+    );
+
     // Clear inline styles
     element.style.removeProperty("--highlight-bg");
     element.style.removeProperty("--highlight-border");
@@ -261,7 +264,7 @@ export class StructuralOperationFeedback {
 
     // This is a generic implementation - real implementations would be platform-specific
     return this.container.querySelector(
-      `[data-row="${cell.row}"][data-col="${cell.col}"]`
+      `[data-row="${cell.row}"][data-col="${cell.col}"]`,
     ) as HTMLElement;
   }
 
@@ -278,15 +281,17 @@ export class StructuralOperationFeedback {
   private setupCSS(): void {
     const style = document.createElement("style");
     style.id = "structural-operation-feedback-styles";
-    
+
     style.textContent = this.generateCSS();
-    
+
     // Remove existing styles if any
-    const existing = document.getElementById("structural-operation-feedback-styles");
+    const existing = document.getElementById(
+      "structural-operation-feedback-styles",
+    );
     if (existing) {
       existing.remove();
     }
-    
+
     document.head.appendChild(style);
   }
 
@@ -294,7 +299,9 @@ export class StructuralOperationFeedback {
    * Update existing CSS styles
    */
   private updateCSS(): void {
-    const existing = document.getElementById("structural-operation-feedback-styles");
+    const existing = document.getElementById(
+      "structural-operation-feedback-styles",
+    );
     if (existing) {
       existing.textContent = this.generateCSS();
     } else {
@@ -320,7 +327,9 @@ export class StructuralOperationFeedback {
       })
       .join("\n");
 
-    return css + `
+    return (
+      css +
+      `
       /* Animation keyframes */
       @keyframes pulse {
         0%, 100% { opacity: 0.7; }
@@ -375,6 +384,7 @@ export class StructuralOperationFeedback {
         25% { transform: translateX(-5px); }
         75% { transform: translateX(5px); }
       }
-    `;
+    `
+    );
   }
 }

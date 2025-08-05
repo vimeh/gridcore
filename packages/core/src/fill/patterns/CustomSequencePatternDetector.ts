@@ -1,27 +1,27 @@
-import type { CellValue, CellAddress, CellRange } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import type {
-  PatternDetector,
-  Pattern,
-  PatternGenerator,
   FillDirection,
+  Pattern,
+  PatternDetector,
+  PatternGenerator,
   PatternType,
 } from "../types";
 
 /**
  * Known sequence types that can be detected
  */
-type SequenceType = 
-  | 'squares'      // 1, 4, 9, 16, 25, ...
-  | 'cubes'        // 1, 8, 27, 64, 125, ...
-  | 'triangular'   // 1, 3, 6, 10, 15, ... (n*(n+1)/2)
-  | 'primes'       // 2, 3, 5, 7, 11, 13, ...
-  | 'factorials'   // 1, 2, 6, 24, 120, ...
-  | 'powers_of_2'  // 1, 2, 4, 8, 16, 32, ...
-  | 'powers_of_3'  // 1, 3, 9, 27, 81, ...
-  | 'pentagonal'   // 1, 5, 12, 22, 35, ... (n*(3n-1)/2)
-  | 'hexagonal'    // 1, 6, 15, 28, 45, ... (n*(2n-1))
-  | 'catalan'      // 1, 1, 2, 5, 14, 42, ... (Catalan numbers)
-  | 'lucas';       // 2, 1, 3, 4, 7, 11, ... (Lucas numbers)
+type SequenceType =
+  | "squares" // 1, 4, 9, 16, 25, ...
+  | "cubes" // 1, 8, 27, 64, 125, ...
+  | "triangular" // 1, 3, 6, 10, 15, ... (n*(n+1)/2)
+  | "primes" // 2, 3, 5, 7, 11, 13, ...
+  | "factorials" // 1, 2, 6, 24, 120, ...
+  | "powers_of_2" // 1, 2, 4, 8, 16, 32, ...
+  | "powers_of_3" // 1, 3, 9, 27, 81, ...
+  | "pentagonal" // 1, 5, 12, 22, 35, ... (n*(3n-1)/2)
+  | "hexagonal" // 1, 6, 15, 28, 45, ... (n*(2n-1))
+  | "catalan" // 1, 1, 2, 5, 14, 42, ... (Catalan numbers)
+  | "lucas"; // 2, 1, 3, 4, 7, 11, ... (Lucas numbers)
 
 /**
  * Custom sequence pattern generator
@@ -49,39 +49,39 @@ class CustomSequencePatternGenerator implements PatternGenerator {
    */
   private calculateSequenceValue(type: SequenceType, index: number): number {
     switch (type) {
-      case 'squares':
-        return Math.pow(index, 2);
-      
-      case 'cubes':
-        return Math.pow(index, 3);
-      
-      case 'triangular':
+      case "squares":
+        return index ** 2;
+
+      case "cubes":
+        return index ** 3;
+
+      case "triangular":
         return (index * (index + 1)) / 2;
-      
-      case 'primes':
+
+      case "primes":
         return this.getNthPrime(index);
-      
-      case 'factorials':
+
+      case "factorials":
         return this.factorial(index);
-      
-      case 'powers_of_2':
-        return Math.pow(2, index);
-      
-      case 'powers_of_3':
-        return Math.pow(3, index);
-      
-      case 'pentagonal':
+
+      case "powers_of_2":
+        return 2 ** index;
+
+      case "powers_of_3":
+        return 3 ** index;
+
+      case "pentagonal":
         return (index * (3 * index - 1)) / 2;
-      
-      case 'hexagonal':
+
+      case "hexagonal":
         return index * (2 * index - 1);
-      
-      case 'catalan':
+
+      case "catalan":
         return this.catalanNumber(index);
-      
-      case 'lucas':
+
+      case "lucas":
         return this.lucasNumber(index);
-      
+
       default:
         throw new Error(`Unknown sequence type: ${type}`);
     }
@@ -92,17 +92,17 @@ class CustomSequencePatternGenerator implements PatternGenerator {
    */
   private getNthPrime(n: number): number {
     if (n <= 0) return 2;
-    
+
     const primes = [2];
     let candidate = 3;
-    
+
     while (primes.length < n) {
       if (this.isPrime(candidate)) {
         primes.push(candidate);
       }
       candidate += 2; // Only check odd numbers after 2
     }
-    
+
     return primes[n - 1];
   }
 
@@ -113,11 +113,11 @@ class CustomSequencePatternGenerator implements PatternGenerator {
     if (num < 2) return false;
     if (num === 2) return true;
     if (num % 2 === 0) return false;
-    
+
     for (let i = 3; i <= Math.sqrt(num); i += 2) {
       if (num % i === 0) return false;
     }
-    
+
     return true;
   }
 
@@ -127,12 +127,12 @@ class CustomSequencePatternGenerator implements PatternGenerator {
   private factorial(n: number): number {
     if (n <= 0) return 1;
     if (n > 20) throw new Error("Factorial too large"); // Prevent overflow
-    
+
     let result = 1;
     for (let i = 2; i <= n; i++) {
       result *= i;
     }
-    
+
     return result;
   }
 
@@ -142,17 +142,17 @@ class CustomSequencePatternGenerator implements PatternGenerator {
   private catalanNumber(n: number): number {
     if (n <= 0) return 1;
     if (n > 30) throw new Error("Catalan number too large"); // Prevent overflow
-    
+
     // Using dynamic programming to avoid overflow
     const catalan = [1]; // C(0) = 1
-    
+
     for (let i = 1; i <= n; i++) {
       catalan[i] = 0;
       for (let j = 0; j < i; j++) {
         catalan[i] += catalan[j] * catalan[i - 1 - j];
       }
     }
-    
+
     return catalan[n];
   }
 
@@ -162,14 +162,15 @@ class CustomSequencePatternGenerator implements PatternGenerator {
   private lucasNumber(n: number): number {
     if (n === 0) return 2;
     if (n === 1) return 1;
-    
-    let a = 2, b = 1;
+
+    let a = 2,
+      b = 1;
     for (let i = 2; i <= n; i++) {
       const temp = a + b;
       a = b;
       b = temp;
     }
-    
+
     return b;
   }
 }
@@ -229,7 +230,7 @@ export class CustomSequencePatternDetector implements PatternDetector {
    */
   private extractNumbers(values: CellValue[]): number[] {
     const numbers: number[] = [];
-    
+
     for (const value of values) {
       const num = this.parseNumber(value);
       if (num !== null && Number.isInteger(num) && num >= 0) {
@@ -270,8 +271,17 @@ export class CustomSequencePatternDetector implements PatternDetector {
     matchedLength: number;
   } | null {
     const sequences: SequenceType[] = [
-      'squares', 'cubes', 'triangular', 'primes', 'factorials',
-      'powers_of_2', 'powers_of_3', 'pentagonal', 'hexagonal', 'catalan', 'lucas'
+      "squares",
+      "cubes",
+      "triangular",
+      "primes",
+      "factorials",
+      "powers_of_2",
+      "powers_of_3",
+      "pentagonal",
+      "hexagonal",
+      "catalan",
+      "lucas",
     ];
 
     for (const seqType of sequences) {
@@ -287,17 +297,23 @@ export class CustomSequencePatternDetector implements PatternDetector {
   /**
    * Check if numbers match a specific sequence type
    */
-  private checkSequenceType(numbers: number[], type: SequenceType): {
+  private checkSequenceType(
+    numbers: number[],
+    type: SequenceType,
+  ): {
     startIndex: number;
     matchedLength: number;
   } | null {
     // Try different starting indices (including 0 for some sequences)
     for (let startIndex = 0; startIndex <= 20; startIndex++) {
       let matchCount = 0;
-      
+
       for (let i = 0; i < numbers.length; i++) {
         try {
-          const expectedValue = this.calculateSequenceValue(type, startIndex + i);
+          const expectedValue = this.calculateSequenceValue(
+            type,
+            startIndex + i,
+          );
           if (numbers[i] === expectedValue) {
             matchCount++;
           } else {
@@ -322,7 +338,7 @@ export class CustomSequencePatternDetector implements PatternDetector {
    */
   private calculateSequenceValue(type: SequenceType, index: number): number {
     const generator = new CustomSequencePatternGenerator(type, 0);
-    return generator['calculateSequenceValue'](type, index);
+    return generator["calculateSequenceValue"](type, index);
   }
 
   /**
@@ -330,7 +346,11 @@ export class CustomSequencePatternDetector implements PatternDetector {
    */
   private calculateConfidence(
     numbers: number[],
-    seqResult: { type: SequenceType; startIndex: number; matchedLength: number },
+    seqResult: {
+      type: SequenceType;
+      startIndex: number;
+      matchedLength: number;
+    },
   ): number {
     let confidence = 0.6; // Base confidence for detected sequence
 
@@ -339,7 +359,12 @@ export class CustomSequencePatternDetector implements PatternDetector {
     confidence += lengthBonus;
 
     // Boost confidence for well-known sequences
-    const wellKnownSequences: SequenceType[] = ['squares', 'cubes', 'primes', 'factorials'];
+    const wellKnownSequences: SequenceType[] = [
+      "squares",
+      "cubes",
+      "primes",
+      "factorials",
+    ];
     if (wellKnownSequences.includes(seqResult.type)) {
       confidence += 0.1;
     }
@@ -366,27 +391,31 @@ export class CustomSequencePatternDetector implements PatternDetector {
   /**
    * Create a human-readable description of the pattern
    */
-  private createDescription(seqResult: { type: SequenceType; startIndex: number }): string {
+  private createDescription(seqResult: {
+    type: SequenceType;
+    startIndex: number;
+  }): string {
     const descriptions: Record<SequenceType, string> = {
-      squares: 'Perfect squares (1², 2², 3², ...)',
-      cubes: 'Perfect cubes (1³, 2³, 3³, ...)',
-      triangular: 'Triangular numbers (1, 3, 6, 10, ...)',
-      primes: 'Prime numbers (2, 3, 5, 7, 11, ...)',
-      factorials: 'Factorials (1!, 2!, 3!, 4!, ...)',
-      powers_of_2: 'Powers of 2 (2⁰, 2¹, 2², ...)',
-      powers_of_3: 'Powers of 3 (3⁰, 3¹, 3², ...)',
-      pentagonal: 'Pentagonal numbers',
-      hexagonal: 'Hexagonal numbers',
-      catalan: 'Catalan numbers',
-      lucas: 'Lucas numbers',
+      squares: "Perfect squares (1², 2², 3², ...)",
+      cubes: "Perfect cubes (1³, 2³, 3³, ...)",
+      triangular: "Triangular numbers (1, 3, 6, 10, ...)",
+      primes: "Prime numbers (2, 3, 5, 7, 11, ...)",
+      factorials: "Factorials (1!, 2!, 3!, 4!, ...)",
+      powers_of_2: "Powers of 2 (2⁰, 2¹, 2², ...)",
+      powers_of_3: "Powers of 3 (3⁰, 3¹, 3², ...)",
+      pentagonal: "Pentagonal numbers",
+      hexagonal: "Hexagonal numbers",
+      catalan: "Catalan numbers",
+      lucas: "Lucas numbers",
     };
 
-    const baseDescription = descriptions[seqResult.type] || `${seqResult.type} sequence`;
-    
+    const baseDescription =
+      descriptions[seqResult.type] || `${seqResult.type} sequence`;
+
     if (seqResult.startIndex > 1) {
       return `${baseDescription} starting from index ${seqResult.startIndex}`;
     }
-    
+
     return baseDescription;
   }
 }

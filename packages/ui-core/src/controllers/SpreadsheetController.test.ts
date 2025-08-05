@@ -562,10 +562,12 @@ describe("SpreadsheetController", () => {
       });
 
       // Wait a bit for async operation to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Check that structural operation event was emitted
-      const structuralEvents = events.filter(e => e.type === "structuralOperationCompleted");
+      const structuralEvents = events.filter(
+        (e) => e.type === "structuralOperationCompleted",
+      );
       expect(structuralEvents.length).toBeGreaterThan(0);
     });
 
@@ -600,10 +602,12 @@ describe("SpreadsheetController", () => {
       });
 
       // Wait a bit for async operation to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Check that structural operation event was emitted
-      const structuralEvents = events.filter(e => e.type === "structuralOperationCompleted");
+      const structuralEvents = events.filter(
+        (e) => e.type === "structuralOperationCompleted",
+      );
       expect(structuralEvents.length).toBeGreaterThan(0);
     });
 
@@ -619,10 +623,12 @@ describe("SpreadsheetController", () => {
       });
 
       // Wait a bit for async operation to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Check that structural operation event was emitted
-      const structuralEvents = events.filter(e => e.type === "structuralOperationCompleted");
+      const structuralEvents = events.filter(
+        (e) => e.type === "structuralOperationCompleted",
+      );
       expect(structuralEvents.length).toBeGreaterThan(0);
     });
   });

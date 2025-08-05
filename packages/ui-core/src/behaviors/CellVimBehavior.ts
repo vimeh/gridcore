@@ -631,17 +631,18 @@ export class CellVimBehavior {
         }
         break;
 
-      case "r":
+      case "r": {
         // Reference text object
         const refBounds = this.referenceExtension.getReferenceTextObject(
           text,
           pos,
-          modifier === "a" // includeSpaces for 'around'
+          modifier === "a", // includeSpaces for 'around'
         );
         if (refBounds) {
           boundaries = [refBounds.start, refBounds.end];
         }
         break;
+      }
 
       default:
         return { type: "none" };

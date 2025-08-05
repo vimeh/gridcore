@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { CellAddress } from "../../../domain/models/CellAddress";
-import { CellSelection } from "../base/CellSelection";
-import { 
-  BulkFormatOperation, 
-  BulkFormatOptions, 
-  FormatUtils, 
-  FormatType,
-  CurrencyFormatOptions,
-  PercentFormatOptions,
-  DateFormatOptions,
-  NumberFormatOptions
-} from "./BulkFormatOperation";
+import { beforeEach, describe, expect, it } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
 import type { Cell } from "../../../domain/models";
-import { Result } from "../../../shared/types/Result";
+import { CellAddress } from "../../../domain/models/CellAddress";
+import type { Result } from "../../../shared/types/Result";
+import { CellSelection } from "../base/CellSelection";
+import {
+  BulkFormatOperation,
+  type BulkFormatOptions,
+  type CurrencyFormatOptions,
+  type DateFormatOptions,
+  type FormatType,
+  FormatUtils,
+  type NumberFormatOptions,
+  type PercentFormatOptions,
+} from "./BulkFormatOperation";
 
 // Mock cell repository for testing
 class MockCellRepository implements ICellRepository {
@@ -38,7 +38,10 @@ class MockCellRepository implements ICellRepository {
   }
 
   getCells(): Promise<Result<Cell[]>> {
-    return Promise.resolve({ ok: true, value: Array.from(this.cells.values()) });
+    return Promise.resolve({
+      ok: true,
+      value: Array.from(this.cells.values()),
+    });
   }
 
   clear(): Promise<Result<void>> {
@@ -50,38 +53,40 @@ class MockCellRepository implements ICellRepository {
 // Mock cell repository with test data
 function createTestRepository() {
   const repo = new MockCellRepository();
-  
+
   // Add test data with various numeric values
   repo.set(new CellAddress(0, 0), { value: 1234.56 });
   repo.set(new CellAddress(0, 1), { value: 0.1234 });
   repo.set(new CellAddress(0, 2), { value: 42 });
   repo.set(new CellAddress(0, 3), { value: -999.99 });
   repo.set(new CellAddress(0, 4), { value: 0 });
-  
+
   // String numbers
   repo.set(new CellAddress(1, 0), { value: "567.89" });
   repo.set(new CellAddress(1, 1), { value: "$123.45" });
   repo.set(new CellAddress(1, 2), { value: "50%" });
   repo.set(new CellAddress(1, 3), { value: "1,000.00" });
-  
+
   // Date values
   repo.set(new CellAddress(2, 0), { value: new Date("2024-01-15") });
   repo.set(new CellAddress(2, 1), { value: new Date("2024-12-25T15:30:00") });
   repo.set(new CellAddress(2, 2), { value: "2024-06-15" });
   repo.set(new CellAddress(2, 3), { value: 45579 }); // Excel date serial number
-  
+
   // Non-numeric values
   repo.set(new CellAddress(3, 0), { value: "hello world" });
   repo.set(new CellAddress(3, 1), { value: true });
   repo.set(new CellAddress(3, 2), { value: null });
   repo.set(new CellAddress(3, 3), { value: "" });
-  
+
   return repo;
 }
 
 // Helper to create a selection of specific cells
 function createSelection(addresses: [number, number][]): CellSelection {
-  const cellAddresses = addresses.map(([row, col]) => new CellAddress(row, col));
+  const cellAddresses = addresses.map(
+    ([row, col]) => new CellAddress(row, col),
+  );
   return CellSelection.fromCells(cellAddresses);
 }
 
@@ -209,7 +214,10 @@ describe("FormatUtils", () => {
     });
 
     it("should use 24-hour format", () => {
-      const options: DateFormatOptions = { includeTime: true, timeFormat: "24h" };
+      const options: DateFormatOptions = {
+        includeTime: true,
+        timeFormat: "24h",
+      };
       const result = FormatUtils.formatDate(testDate, options);
       expect(result).toContain("14:30");
     });
@@ -253,14 +261,20 @@ describe("BulkFormatOperation", () => {
 
   beforeEach(() => {
     repository = createTestRepository();
-    selection = createSelection([[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]]);
+    selection = createSelection([
+      [0, 0],
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [0, 4],
+    ]);
   });
 
   describe("constructor", () => {
     it("should create format operation with default options", () => {
       const options: BulkFormatOptions = { formatType: "currency" };
       const operation = new BulkFormatOperation(selection, options, repository);
-      
+
       expect(operation.type).toBe("format");
       expect(operation.selection).toBe(selection);
     });
@@ -269,10 +283,10 @@ describe("BulkFormatOperation", () => {
       const options: BulkFormatOptions = {
         formatType: "currency",
         locale: "de-DE",
-        skipNonNumeric: false
+        skipNonNumeric: false,
       };
       const operation = new BulkFormatOperation(selection, options, repository);
-      
+
       expect(operation.type).toBe("format");
     });
   });
@@ -281,23 +295,23 @@ describe("BulkFormatOperation", () => {
     let operation: BulkFormatOperation;
 
     beforeEach(() => {
-      const options: BulkFormatOptions = { 
+      const options: BulkFormatOptions = {
         formatType: "currency",
         currencyOptions: {
           currency: "USD",
           decimals: 2,
-          showSymbol: true
-        }
+          showSymbol: true,
+        },
       };
       operation = new BulkFormatOperation(selection, options, repository);
     });
 
     it("should execute currency formatting", async () => {
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBeGreaterThan(0);
-      
+
       // Check that 1234.56 became formatted currency
       const cell = await repository.get(new CellAddress(0, 0));
       expect(cell.value?.value).toMatch(/\$1,234\.56/);
@@ -305,13 +319,13 @@ describe("BulkFormatOperation", () => {
 
     it("should preview currency formatting", async () => {
       const preview = await operation.preview(10);
-      
+
       expect(preview.affectedCells).toBe(5);
       expect(preview.changes.length).toBeGreaterThan(0);
-      
+
       // Find the change for 1234.56
-      const change = preview.changes.find(c => 
-        c.address.row === 0 && c.address.col === 0
+      const change = preview.changes.find(
+        (c) => c.address.row === 0 && c.address.col === 0,
       );
       expect(change?.before).toBe(1234.56);
       expect(change?.after).toMatch(/\$1,234\.56/);
@@ -319,11 +333,15 @@ describe("BulkFormatOperation", () => {
 
     it("should handle negative currency values", async () => {
       const singleSelection = createSelection([[0, 3]]); // -999.99
-      const operation = new BulkFormatOperation(singleSelection, { formatType: "currency" }, repository);
-      
+      const operation = new BulkFormatOperation(
+        singleSelection,
+        { formatType: "currency" },
+        repository,
+      );
+
       const result = await operation.execute();
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(0, 3));
       expect(cell.value?.value).toMatch(/-?\$999\.99/);
     });
@@ -334,15 +352,19 @@ describe("BulkFormatOperation", () => {
         currencyOptions: {
           symbol: "€",
           decimals: 0,
-          useThousandsSeparator: false
-        }
+          useThousandsSeparator: false,
+        },
       };
       const singleSelection = createSelection([[0, 0]]);
-      const operation = new BulkFormatOperation(singleSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        singleSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(0, 0));
       expect(cell.value?.value).toContain("€");
       expect(cell.value?.value).toMatch(/€1235/); // Rounded, no thousands separator
@@ -353,22 +375,22 @@ describe("BulkFormatOperation", () => {
     let operation: BulkFormatOperation;
 
     beforeEach(() => {
-      const options: BulkFormatOptions = { 
+      const options: BulkFormatOptions = {
         formatType: "percent",
         percentOptions: {
           decimals: 2,
-          multiplyBy100: true
-        }
+          multiplyBy100: true,
+        },
       };
       operation = new BulkFormatOperation(selection, options, repository);
     });
 
     it("should execute percentage formatting", async () => {
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBeGreaterThan(0);
-      
+
       // Check that 0.1234 became 12.34%
       const cell = await repository.get(new CellAddress(0, 1));
       expect(cell.value?.value).toMatch(/12\.34%/);
@@ -379,15 +401,19 @@ describe("BulkFormatOperation", () => {
         formatType: "percent",
         percentOptions: {
           multiplyBy100: false,
-          decimals: 1
-        }
+          decimals: 1,
+        },
       };
       const singleSelection = createSelection([[0, 2]]); // 42
-      const operation = new BulkFormatOperation(singleSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        singleSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(0, 2));
       expect(cell.value?.value).toMatch(/42\.0%/);
     });
@@ -398,23 +424,28 @@ describe("BulkFormatOperation", () => {
     let dateSelection: CellSelection;
 
     beforeEach(() => {
-      dateSelection = createSelection([[2, 0], [2, 1], [2, 2], [2, 3]]);
-      const options: BulkFormatOptions = { 
+      dateSelection = createSelection([
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+      ]);
+      const options: BulkFormatOptions = {
         formatType: "date",
         dateOptions: {
           format: "MM/DD/YYYY",
-          includeTime: false
-        }
+          includeTime: false,
+        },
       };
       operation = new BulkFormatOperation(dateSelection, options, repository);
     });
 
     it("should execute date formatting", async () => {
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBeGreaterThan(0);
-      
+
       // Check that Date object was formatted
       const cell = await repository.get(new CellAddress(2, 0));
       expect(cell.value?.value).toMatch(/01\/15\/2024/);
@@ -426,15 +457,19 @@ describe("BulkFormatOperation", () => {
         dateOptions: {
           format: "MM/DD/YYYY",
           includeTime: true,
-          timeFormat: "12h"
-        }
+          timeFormat: "12h",
+        },
       };
       const singleSelection = createSelection([[2, 1]]); // Date with time
-      const operation = new BulkFormatOperation(singleSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        singleSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(2, 1));
       expect(cell.value?.value).toMatch(/12\/25\/2024 03:30 PM/);
     });
@@ -443,15 +478,19 @@ describe("BulkFormatOperation", () => {
       const options: BulkFormatOptions = {
         formatType: "date",
         dateOptions: {
-          format: "YYYY-MM-DD"
-        }
+          format: "YYYY-MM-DD",
+        },
       };
       const singleSelection = createSelection([[2, 0]]);
-      const operation = new BulkFormatOperation(singleSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        singleSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(2, 0));
       expect(cell.value?.value).toBe("2024-01-15");
     });
@@ -459,9 +498,9 @@ describe("BulkFormatOperation", () => {
     it("should handle Excel serial numbers", async () => {
       const singleSelection = createSelection([[2, 3]]); // Excel date serial
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(2, 3));
       expect(cell.value?.value).toMatch(/\d{2}\/\d{2}\/\d{4}/);
     });
@@ -471,22 +510,22 @@ describe("BulkFormatOperation", () => {
     let operation: BulkFormatOperation;
 
     beforeEach(() => {
-      const options: BulkFormatOptions = { 
+      const options: BulkFormatOptions = {
         formatType: "number",
         numberOptions: {
           decimals: 2,
-          useThousandsSeparator: true
-        }
+          useThousandsSeparator: true,
+        },
       };
       operation = new BulkFormatOperation(selection, options, repository);
     });
 
     it("should execute number formatting", async () => {
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBeGreaterThan(0);
-      
+
       // Check that 1234.56 became formatted number
       const cell = await repository.get(new CellAddress(0, 0));
       expect(cell.value?.value).toMatch(/1,234\.56/);
@@ -498,15 +537,19 @@ describe("BulkFormatOperation", () => {
         numberOptions: {
           decimals: 0,
           useThousandsSeparator: false,
-          showPositiveSign: true
-        }
+          showPositiveSign: true,
+        },
       };
       const singleSelection = createSelection([[0, 2]]); // 42
-      const operation = new BulkFormatOperation(singleSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        singleSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(0, 2));
       expect(cell.value?.value).toMatch(/\+42/);
     });
@@ -514,22 +557,30 @@ describe("BulkFormatOperation", () => {
 
   describe("text formatting", () => {
     it("should convert all values to text", async () => {
-      const mixedSelection = createSelection([[0, 0], [3, 0], [3, 1]]); // number, string, boolean
+      const mixedSelection = createSelection([
+        [0, 0],
+        [3, 0],
+        [3, 1],
+      ]); // number, string, boolean
       const options: BulkFormatOptions = { formatType: "text" };
-      const operation = new BulkFormatOperation(mixedSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        mixedSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBe(3);
-      
+
       // Check that all values became strings
       const numCell = await repository.get(new CellAddress(0, 0));
       expect(numCell.value?.value).toBe("1234.56");
-      
+
       const strCell = await repository.get(new CellAddress(3, 0));
       expect(strCell.value?.value).toBe("hello world");
-      
+
       const boolCell = await repository.get(new CellAddress(3, 1));
       expect(boolCell.value?.value).toBe("true");
     });
@@ -539,21 +590,30 @@ describe("BulkFormatOperation", () => {
     let stringSelection: CellSelection;
 
     beforeEach(() => {
-      stringSelection = createSelection([[1, 0], [1, 1], [1, 2], [1, 3]]);
+      stringSelection = createSelection([
+        [1, 0],
+        [1, 1],
+        [1, 2],
+        [1, 3],
+      ]);
     });
 
     it("should convert string numbers when enabled", async () => {
       const options: BulkFormatOptions = {
         formatType: "currency",
-        convertStrings: true
+        convertStrings: true,
       };
-      const operation = new BulkFormatOperation(stringSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        stringSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBeGreaterThan(0);
-      
+
       // Check that "567.89" became formatted currency
       const cell = await repository.get(new CellAddress(1, 0));
       expect(cell.value?.value).toMatch(/\$567\.89/);
@@ -563,12 +623,16 @@ describe("BulkFormatOperation", () => {
       const options: BulkFormatOptions = {
         formatType: "currency",
         convertStrings: false,
-        skipNonNumeric: true
+        skipNonNumeric: true,
       };
-      const operation = new BulkFormatOperation(stringSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        stringSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBe(0); // All should be skipped
     });
@@ -578,7 +642,7 @@ describe("BulkFormatOperation", () => {
     it("should handle invalid format type", async () => {
       const options = { formatType: "invalid" as FormatType };
       const operation = new BulkFormatOperation(selection, options, repository);
-      
+
       const validation = operation.validate();
       expect(validation).toContain("Invalid format type");
     });
@@ -586,10 +650,10 @@ describe("BulkFormatOperation", () => {
     it("should handle invalid locale", async () => {
       const options: BulkFormatOptions = {
         formatType: "currency",
-        locale: "invalid-locale"
+        locale: "invalid-locale",
       };
       const operation = new BulkFormatOperation(selection, options, repository);
-      
+
       const validation = operation.validate();
       expect(validation).toContain("Invalid locale");
     });
@@ -598,11 +662,11 @@ describe("BulkFormatOperation", () => {
       const options: BulkFormatOptions = {
         formatType: "currency",
         currencyOptions: {
-          currency: "INVALID"
-        }
+          currency: "INVALID",
+        },
       };
       const operation = new BulkFormatOperation(selection, options, repository);
-      
+
       const validation = operation.validate();
       expect(validation).toContain("Invalid currency code");
     });
@@ -612,12 +676,16 @@ describe("BulkFormatOperation", () => {
       const options: BulkFormatOptions = {
         formatType: "currency",
         preserveOnError: true,
-        skipNonNumeric: false
+        skipNonNumeric: false,
       };
-      const operation = new BulkFormatOperation(nonNumericSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        nonNumericSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
       // Should preserve original value
       const cell = await repository.get(new CellAddress(3, 0));
@@ -631,15 +699,19 @@ describe("BulkFormatOperation", () => {
         formatType: "currency",
         locale: "de-DE",
         currencyOptions: {
-          currency: "EUR"
-        }
+          currency: "EUR",
+        },
       };
       const singleSelection = createSelection([[0, 0]]);
-      const operation = new BulkFormatOperation(singleSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        singleSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(0, 0));
       // German locale uses comma for decimal separator
       expect(cell.value?.value).toMatch(/€|EUR/);
@@ -650,15 +722,19 @@ describe("BulkFormatOperation", () => {
         formatType: "date",
         locale: "en-GB",
         dateOptions: {
-          format: "locale"
-        }
+          format: "locale",
+        },
       };
       const singleSelection = createSelection([[2, 0]]);
-      const operation = new BulkFormatOperation(singleSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        singleSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(2, 0));
       expect(cell.value?.value).toMatch(/15\/01\/2024/); // UK format
     });
@@ -668,8 +744,12 @@ describe("BulkFormatOperation", () => {
     it("should handle empty selection", async () => {
       const emptySelection = CellSelection.fromCells([]);
       const options: BulkFormatOptions = { formatType: "currency" };
-      const operation = new BulkFormatOperation(emptySelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        emptySelection,
+        options,
+        repository,
+      );
+
       const validation = operation.validate();
       expect(validation).toBe("Selection is empty");
     });
@@ -680,24 +760,35 @@ describe("BulkFormatOperation", () => {
         addresses.push(new CellAddress(i, 0));
       }
       const largeSelection = CellSelection.fromCells(addresses);
-      
+
       const options: BulkFormatOptions = { formatType: "currency" };
-      const operation = new BulkFormatOperation(largeSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        largeSelection,
+        options,
+        repository,
+      );
+
       const validation = operation.validate();
       expect(validation).toBe("Selection is too large (max 1,000,000 cells)");
     });
 
     it("should skip empty cells when skipEmpty is true", async () => {
-      const emptySelection = createSelection([[3, 2], [3, 3]]); // null and empty string
+      const emptySelection = createSelection([
+        [3, 2],
+        [3, 3],
+      ]); // null and empty string
       const options: BulkFormatOptions = {
         formatType: "currency",
-        skipEmpty: true
+        skipEmpty: true,
       };
-      const operation = new BulkFormatOperation(emptySelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        emptySelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBe(0);
     });
@@ -705,11 +796,15 @@ describe("BulkFormatOperation", () => {
     it("should handle zero values", async () => {
       const singleSelection = createSelection([[0, 4]]); // 0
       const options: BulkFormatOptions = { formatType: "currency" };
-      const operation = new BulkFormatOperation(singleSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        singleSelection,
+        options,
+        repository,
+      );
+
       const result = await operation.execute();
       expect(result.success).toBe(true);
-      
+
       const cell = await repository.get(new CellAddress(0, 4));
       expect(cell.value?.value).toMatch(/\$0\.00/);
     });
@@ -719,7 +814,7 @@ describe("BulkFormatOperation", () => {
     it("should estimate reasonable execution time", () => {
       const options: BulkFormatOptions = { formatType: "currency" };
       const operation = new BulkFormatOperation(selection, options, repository);
-      
+
       const estimatedTime = operation.estimateTime();
       expect(estimatedTime).toBeGreaterThan(0);
       expect(estimatedTime).toBeLessThan(1000); // Should be fast for small selection
@@ -728,7 +823,7 @@ describe("BulkFormatOperation", () => {
     it("should provide meaningful description", () => {
       const options: BulkFormatOptions = { formatType: "currency" };
       const operation = new BulkFormatOperation(selection, options, repository);
-      
+
       const description = operation.getDescription();
       expect(description).toContain("currency");
       expect(description).toContain("5 cells");
@@ -738,24 +833,28 @@ describe("BulkFormatOperation", () => {
       // Create a larger test dataset
       const largeRepo = new MockCellRepository();
       const addresses = [];
-      
+
       for (let i = 0; i < 1000; i++) {
         const addr = new CellAddress(i, 0);
         addresses.push(addr);
         largeRepo.set(addr, { value: i * 10.5 });
       }
-      
+
       const largeSelection = CellSelection.fromCells(addresses);
       const options: BulkFormatOptions = {
         formatType: "currency",
-        batchSize: 100
+        batchSize: 100,
       };
-      const operation = new BulkFormatOperation(largeSelection, options, largeRepo);
-      
+      const operation = new BulkFormatOperation(
+        largeSelection,
+        options,
+        largeRepo,
+      );
+
       const startTime = Date.now();
       const result = await operation.execute();
       const endTime = Date.now();
-      
+
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBe(1000);
       expect(endTime - startTime).toBeLessThan(2000); // Should complete quickly
@@ -766,32 +865,42 @@ describe("BulkFormatOperation", () => {
     it("should generate enhanced preview with samples", async () => {
       const options: BulkFormatOptions = { formatType: "currency" };
       const operation = new BulkFormatOperation(selection, options, repository);
-      
+
       const preview = await operation.preview(100);
-      
+
       expect(preview.affectedCells).toBe(5);
       expect(preview.summary?.customData?.formatType).toBe("currency");
       expect(preview.summary?.customData?.sampleFormats).toBeInstanceOf(Array);
-      expect(preview.summary?.customData?.sampleFormats.length).toBeGreaterThan(0);
+      expect(preview.summary?.customData?.sampleFormats.length).toBeGreaterThan(
+        0,
+      );
     });
 
     it("should respect preview limit", async () => {
       const options: BulkFormatOptions = { formatType: "currency" };
       const operation = new BulkFormatOperation(selection, options, repository);
-      
+
       const preview = await operation.preview(2);
-      
+
       expect(preview.changes.length).toBeLessThanOrEqual(2);
       expect(preview.truncated).toBe(true);
     });
 
     it("should track non-numeric cells in preview", async () => {
-      const mixedSelection = createSelection([[0, 0], [3, 0], [3, 1]]); // number, text, boolean
+      const mixedSelection = createSelection([
+        [0, 0],
+        [3, 0],
+        [3, 1],
+      ]); // number, text, boolean
       const options: BulkFormatOptions = { formatType: "currency" };
-      const operation = new BulkFormatOperation(mixedSelection, options, repository);
-      
+      const operation = new BulkFormatOperation(
+        mixedSelection,
+        options,
+        repository,
+      );
+
       const preview = await operation.preview(100);
-      
+
       expect(preview.summary?.customData?.nonNumericCells).toBeGreaterThan(0);
     });
   });

@@ -1,4 +1,8 @@
-import type { StructuralOperation, StructuralUIEvent, StructuralWarning } from "./types";
+import type {
+  StructuralOperation,
+  StructuralUIEvent,
+  StructuralWarning,
+} from "./types";
 
 export interface WarningDialogConfig {
   maxWarnings: number;
@@ -31,7 +35,7 @@ export class WarningDialog {
 
   constructor(
     container?: HTMLElement,
-    config: Partial<WarningDialogConfig> = {}
+    config: Partial<WarningDialogConfig> = {},
   ) {
     this.container = container;
     this.config = { ...DEFAULT_WARNING_CONFIG, ...config };
@@ -59,9 +63,12 @@ export class WarningDialog {
   /**
    * Show warnings for an operation
    */
-  showWarnings(operation: StructuralOperation, warnings: StructuralWarning[]): void {
+  showWarnings(
+    operation: StructuralOperation,
+    warnings: StructuralWarning[],
+  ): void {
     this.currentWarnings = warnings.slice(0, this.config.maxWarnings);
-    
+
     if (this.currentWarnings.length === 0) {
       this.hide();
       return;
@@ -76,9 +83,12 @@ export class WarningDialog {
    * Add additional warnings
    */
   addWarnings(warnings: StructuralWarning[]): void {
-    const newWarnings = warnings.slice(0, this.config.maxWarnings - this.currentWarnings.length);
+    const newWarnings = warnings.slice(
+      0,
+      this.config.maxWarnings - this.currentWarnings.length,
+    );
     this.currentWarnings.push(...newWarnings);
-    
+
     if (this.isVisible && this.dialogElement) {
       this.updateWarningsList();
     }
@@ -94,7 +104,7 @@ export class WarningDialog {
 
     this.isVisible = true;
     this.attachToContainer();
-    
+
     // Trigger animation
     requestAnimationFrame(() => {
       this.dialogElement?.classList.add("showing");
@@ -110,7 +120,7 @@ export class WarningDialog {
     }
 
     this.dialogElement.classList.add("hiding");
-    
+
     setTimeout(() => {
       this.removeDialogElement();
       this.isVisible = false;
@@ -154,7 +164,7 @@ export class WarningDialog {
     this.dialogElement.className = `structural-warning-dialog structural-warning-${this.config.position} structural-warning-${this.config.theme}`;
 
     const operationText = this.getOperationText(operation);
-    
+
     this.dialogElement.innerHTML = `
       <div class="warning-content">
         <div class="warning-header">
@@ -162,7 +172,7 @@ export class WarningDialog {
             ${this.getSeverityIcon("warning")}
             <span>Operation Warning</span>
           </div>
-          ${this.config.allowDismiss ? '<button class="dismiss-button" type="button">&times;</button>' : ''}
+          ${this.config.allowDismiss ? '<button class="dismiss-button" type="button">&times;</button>' : ""}
         </div>
         <div class="warning-operation">
           ${operationText}
@@ -170,7 +180,7 @@ export class WarningDialog {
         <div class="warnings-list">
           ${this.renderWarningsList()}
         </div>
-        ${this.config.allowDismiss ? '<div class="warning-footer"><button class="dismiss-text-button" type="button">Dismiss</button></div>' : ''}
+        ${this.config.allowDismiss ? '<div class="warning-footer"><button class="dismiss-text-button" type="button">Dismiss</button></div>' : ""}
       </div>
     `;
 
@@ -198,10 +208,12 @@ export class WarningDialog {
   private renderWarningsList(): string {
     return this.currentWarnings
       .map((warning) => {
-        const icon = this.config.showSeverityIcons ? this.getSeverityIcon(warning.severity) : "";
+        const icon = this.config.showSeverityIcons
+          ? this.getSeverityIcon(warning.severity)
+          : "";
         const affectedCount = warning.affectedCells.length;
         const cellsText = affectedCount === 1 ? "cell" : "cells";
-        
+
         return `
           <div class="warning-item warning-${warning.severity}">
             <div class="warning-item-header">
@@ -222,7 +234,7 @@ export class WarningDialog {
    */
   private getOperationText(operation: StructuralOperation): string {
     const count = operation.count > 1 ? `${operation.count} ` : "";
-    
+
     switch (operation.type) {
       case "insertRow":
         return `Inserting ${count}row${operation.count > 1 ? "s" : ""} at position ${operation.index}`;
@@ -272,7 +284,9 @@ export class WarningDialog {
     }
 
     // Dismiss button in footer
-    const dismissTextButton = this.dialogElement.querySelector(".dismiss-text-button");
+    const dismissTextButton = this.dialogElement.querySelector(
+      ".dismiss-text-button",
+    );
     if (dismissTextButton) {
       dismissTextButton.addEventListener("click", () => this.dismiss());
     }
@@ -337,7 +351,7 @@ export class WarningDialog {
   private setupStyles(): void {
     const style = document.createElement("style");
     style.id = "structural-warning-dialog-styles";
-    
+
     style.textContent = `
       .structural-warning-dialog {
         position: fixed;
@@ -546,13 +560,15 @@ export class WarningDialog {
         background: var(--warning-item-bg);
       }
     `;
-    
+
     // Remove existing styles if any
-    const existing = document.getElementById("structural-warning-dialog-styles");
+    const existing = document.getElementById(
+      "structural-warning-dialog-styles",
+    );
     if (existing) {
       existing.remove();
     }
-    
+
     document.head.appendChild(style);
   }
 }

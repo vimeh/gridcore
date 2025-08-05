@@ -1,13 +1,16 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { CellAddress, CellValue, Cell } from "../../../domain/models";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
+import { Cell, CellAddress, type CellValue } from "../../../domain/models";
 import { CellSelection } from "../base/CellSelection";
-import { FindReplaceOperation, FindReplaceOptions } from "./FindReplaceOperation";
+import {
+  FindReplaceOperation,
+  type FindReplaceOptions,
+} from "./FindReplaceOperation";
 
 // Mock ICellRepository
 const createMockCellRepository = (): ICellRepository => {
   const cells = new Map<string, Cell>();
-  
+
   return {
     getCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
@@ -17,7 +20,7 @@ const createMockCellRepository = (): ICellRepository => {
       }
       return { ok: true, value: null };
     }),
-    
+
     setCell: mock(async (address: CellAddress, cell: Partial<Cell>) => {
       const key = `${address.row},${address.col}`;
       const existingCell = cells.get(key) || Cell.create(null).value!;
@@ -25,21 +28,25 @@ const createMockCellRepository = (): ICellRepository => {
       cells.set(key, updatedCell);
       return { ok: true, value: updatedCell };
     }),
-    
+
     hasCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
       return { ok: true, value: cells.has(key) };
     }),
-    
+
     deleteCell: mock(async (address: CellAddress) => {
       const key = `${address.row},${address.col}`;
       const existed = cells.has(key);
       cells.delete(key);
       return { ok: true, value: existed };
     }),
-    
+
     // Add helper method to set initial cell values
-    _setCellForTest: (address: CellAddress, value: CellValue, formula?: string) => {
+    _setCellForTest: (
+      address: CellAddress,
+      value: CellValue,
+      formula?: string,
+    ) => {
       const key = `${address.row},${address.col}`;
       let cellResult;
       if (formula) {
@@ -47,7 +54,11 @@ const createMockCellRepository = (): ICellRepository => {
         cellResult = Cell.create(formula, address);
         if (cellResult.ok) {
           // Set the computed value manually for testing
-          const cell = Cell.createWithComputedValue(formula, value, cellResult.value.formula);
+          const cell = Cell.createWithComputedValue(
+            formula,
+            value,
+            cellResult.value.formula,
+          );
           cells.set(key, cell);
         }
       } else {
@@ -56,12 +67,24 @@ const createMockCellRepository = (): ICellRepository => {
           cells.set(key, cellResult.value);
         }
       }
-    }
-  } as ICellRepository & { _setCellForTest: (address: CellAddress, value: CellValue, formula?: string) => void };
+    },
+  } as ICellRepository & {
+    _setCellForTest: (
+      address: CellAddress,
+      value: CellValue,
+      formula?: string,
+    ) => void;
+  };
 };
 
 describe("FindReplaceOperation", () => {
-  let cellRepository: ICellRepository & { _setCellForTest: (address: CellAddress, value: CellValue, formula?: string) => void };
+  let cellRepository: ICellRepository & {
+    _setCellForTest: (
+      address: CellAddress,
+      value: CellValue,
+      formula?: string,
+    ) => void;
+  };
   let selection: CellSelection;
 
   beforeEach(() => {
@@ -69,10 +92,15 @@ describe("FindReplaceOperation", () => {
     selection = new CellSelection();
   });
 
-  const createCell = (row: number, col: number, value: CellValue, formula?: string): CellAddress => {
+  const createCell = (
+    row: number,
+    col: number,
+    value: CellValue,
+    formula?: string,
+  ): CellAddress => {
     const addressResult = CellAddress.create(row, col);
     if (!addressResult.ok) throw new Error("Failed to create address");
-    
+
     const address = addressResult.value;
     cellRepository._setCellForTest(address, value, formula);
     selection.addCell(address);
@@ -84,10 +112,14 @@ describe("FindReplaceOperation", () => {
       const options: FindReplaceOptions = {
         findPattern: "test",
         replaceWith: "TEST",
-        useRegex: false
+        useRegex: false,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       expect(operation).toBeInstanceOf(FindReplaceOperation);
     });
 
@@ -95,10 +127,14 @@ describe("FindReplaceOperation", () => {
       const options: FindReplaceOptions = {
         findPattern: "\\d+",
         replaceWith: "NUMBER",
-        useRegex: true
+        useRegex: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       expect(operation).toBeInstanceOf(FindReplaceOperation);
     });
 
@@ -106,7 +142,7 @@ describe("FindReplaceOperation", () => {
       const options: FindReplaceOptions = {
         findPattern: "[invalid",
         replaceWith: "TEST",
-        useRegex: true
+        useRegex: true,
       };
 
       expect(() => {
@@ -118,10 +154,14 @@ describe("FindReplaceOperation", () => {
       const options: FindReplaceOptions = {
         findPattern: "Test",
         replaceWith: "FOUND",
-        caseSensitive: false
+        caseSensitive: false,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       expect(operation).toBeInstanceOf(FindReplaceOperation);
     });
   });
@@ -130,91 +170,135 @@ describe("FindReplaceOperation", () => {
     it("should find and replace literal text", async () => {
       createCell(1, 1, "Hello World");
       createCell(1, 2, "World Peace");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "World",
         replaceWith: "Universe",
-        useRegex: false
+        useRegex: false,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(2);
-      expect(Array.from(preview.changes.values())[0].before).toBe("Hello World");
-      expect(Array.from(preview.changes.values())[0].after).toBe("Hello Universe");
-      expect(Array.from(preview.changes.values())[1].before).toBe("World Peace");
-      expect(Array.from(preview.changes.values())[1].after).toBe("Universe Peace");
+      expect(Array.from(preview.changes.values())[0].before).toBe(
+        "Hello World",
+      );
+      expect(Array.from(preview.changes.values())[0].after).toBe(
+        "Hello Universe",
+      );
+      expect(Array.from(preview.changes.values())[1].before).toBe(
+        "World Peace",
+      );
+      expect(Array.from(preview.changes.values())[1].after).toBe(
+        "Universe Peace",
+      );
     });
 
     it("should handle case-insensitive matching", async () => {
       createCell(1, 1, "Hello WORLD");
       createCell(1, 2, "world peace");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "world",
         replaceWith: "universe",
-        caseSensitive: false
+        caseSensitive: false,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(2);
-      expect(Array.from(preview.changes.values())[0].after).toBe("Hello universe");
-      expect(Array.from(preview.changes.values())[1].after).toBe("universe peace");
+      expect(Array.from(preview.changes.values())[0].after).toBe(
+        "Hello universe",
+      );
+      expect(Array.from(preview.changes.values())[1].after).toBe(
+        "universe peace",
+      );
     });
 
     it("should handle case-sensitive matching", async () => {
       createCell(1, 1, "Hello WORLD");
       createCell(1, 2, "Hello world");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "world",
         replaceWith: "universe",
-        caseSensitive: true
+        caseSensitive: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
-      expect(Array.from(preview.changes.values())[0].before).toBe("Hello world");
-      expect(Array.from(preview.changes.values())[0].after).toBe("Hello universe");
+      expect(Array.from(preview.changes.values())[0].before).toBe(
+        "Hello world",
+      );
+      expect(Array.from(preview.changes.values())[0].after).toBe(
+        "Hello universe",
+      );
     });
 
     it("should handle global replacement", async () => {
       createCell(1, 1, "test test test");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
         replaceWith: "PASS",
-        global: true
+        global: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
-      expect(Array.from(preview.changes.values())[0].after).toBe("PASS PASS PASS");
-      expect(Array.from(preview.changes.values())[0].metadata?.matchCount).toBe(3);
+      expect(Array.from(preview.changes.values())[0].after).toBe(
+        "PASS PASS PASS",
+      );
+      expect(Array.from(preview.changes.values())[0].metadata?.matchCount).toBe(
+        3,
+      );
     });
 
     it("should handle non-global replacement", async () => {
       createCell(1, 1, "test test test");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
         replaceWith: "PASS",
-        global: false
+        global: false,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
-      expect(Array.from(preview.changes.values())[0].after).toBe("PASS test test");
-      expect(Array.from(preview.changes.values())[0].metadata?.matchCount).toBe(1);
+      expect(Array.from(preview.changes.values())[0].after).toBe(
+        "PASS test test",
+      );
+      expect(Array.from(preview.changes.values())[0].metadata?.matchCount).toBe(
+        1,
+      );
     });
   });
 
@@ -222,31 +306,41 @@ describe("FindReplaceOperation", () => {
     it("should find and replace using regex patterns", async () => {
       createCell(1, 1, "Phone: 123-456-7890");
       createCell(1, 2, "Call 555-1234");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "\\d{3}-\\d{3}-\\d{4}",
         replaceWith: "XXX-XXX-XXXX",
-        useRegex: true
+        useRegex: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
-      expect(Array.from(preview.changes.values())[0].after).toBe("Phone: XXX-XXX-XXXX");
+      expect(Array.from(preview.changes.values())[0].after).toBe(
+        "Phone: XXX-XXX-XXXX",
+      );
     });
 
     it("should handle regex with capture groups", async () => {
       createCell(1, 1, "John Doe");
       createCell(1, 2, "Jane Smith");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "(\\w+) (\\w+)",
         replaceWith: "$2, $1",
-        useRegex: true
+        useRegex: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(2);
@@ -258,14 +352,18 @@ describe("FindReplaceOperation", () => {
       createCell(1, 1, "email@example.com");
       createCell(1, 2, "test@domain.org");
       createCell(1, 3, "not an email");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b",
         replaceWith: "[EMAIL]",
-        useRegex: true
+        useRegex: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(2);
@@ -279,14 +377,18 @@ describe("FindReplaceOperation", () => {
       createCell(1, 1, "test");
       createCell(1, 2, "testing");
       createCell(1, 3, "test case");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
         replaceWith: "PASS",
-        wholeCellMatch: true
+        wholeCellMatch: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
@@ -299,41 +401,53 @@ describe("FindReplaceOperation", () => {
     it("should search in formula content when enabled", async () => {
       const addressResult = CellAddress.create(1, 1);
       if (!addressResult.ok) throw new Error("Failed to create address");
-      
+
       const address = addressResult.value;
       cellRepository._setCellForTest(address, 10, "=SUM(A1:A5)");
       selection.addCell(address);
-      
+
       const options: FindReplaceOptions = {
         findPattern: "A1:A5",
         replaceWith: "B1:B5",
-        searchInFormulas: true
+        searchInFormulas: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
-      expect(Array.from(preview.changes.values())[0].before).toBe("=SUM(A1:A5)");
-      expect(Array.from(preview.changes.values())[0].metadata?.searchType).toBe("formula");
+      expect(Array.from(preview.changes.values())[0].before).toBe(
+        "=SUM(A1:A5)",
+      );
+      expect(Array.from(preview.changes.values())[0].metadata?.searchType).toBe(
+        "formula",
+      );
     });
 
     it("should skip formulas when searchInFormulas is disabled", async () => {
       const addressResult = CellAddress.create(1, 1);
       if (!addressResult.ok) throw new Error("Failed to create address");
-      
+
       const address = addressResult.value;
       cellRepository._setCellForTest(address, 10, "=SUM(A1:A5)");
       selection.addCell(address);
-      
+
       const options: FindReplaceOptions = {
         findPattern: "SUM",
         replaceWith: "AVERAGE",
         searchInFormulas: false,
-        searchInValues: true
+        searchInValues: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(0);
@@ -343,29 +457,39 @@ describe("FindReplaceOperation", () => {
   describe("Preview Generation", () => {
     it("should generate preview with match highlighting", async () => {
       createCell(1, 1, "Hello World Hello");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "Hello",
         replaceWith: "Hi",
-        global: true
+        global: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
-      expect(Array.from(preview.changes.values())[0].metadata?.matches).toHaveLength(2);
-      expect(Array.from(preview.changes.values())[0].metadata?.matches[0]).toEqual({
+      expect(
+        Array.from(preview.changes.values())[0].metadata?.matches,
+      ).toHaveLength(2);
+      expect(
+        Array.from(preview.changes.values())[0].metadata?.matches[0],
+      ).toEqual({
         start: 0,
         end: 5,
         matchedText: "Hello",
-        replacementText: "Hi"
+        replacementText: "Hi",
       });
-      expect(Array.from(preview.changes.values())[0].metadata?.matches[1]).toEqual({
+      expect(
+        Array.from(preview.changes.values())[0].metadata?.matches[1],
+      ).toEqual({
         start: 12,
         end: 17,
         matchedText: "Hello",
-        replacementText: "Hi"
+        replacementText: "Hi",
       });
     });
 
@@ -373,14 +497,18 @@ describe("FindReplaceOperation", () => {
       createCell(1, 1, "test test");
       createCell(1, 2, "test");
       createCell(1, 3, "no match");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
         replaceWith: "PASS",
-        global: true
+        global: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.summary.totalMatches).toBe(3);
@@ -394,13 +522,17 @@ describe("FindReplaceOperation", () => {
       for (let i = 1; i <= 150; i++) {
         createCell(i, 1, `test ${i}`);
       }
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
-        replaceWith: "PASS"
+        replaceWith: "PASS",
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview(100);
 
       expect(preview.changes.size).toBe(100);
@@ -412,35 +544,43 @@ describe("FindReplaceOperation", () => {
     it("should execute find and replace operation", async () => {
       createCell(1, 1, "Hello World");
       createCell(1, 2, "World Peace");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "World",
-        replaceWith: "Universe"
+        replaceWith: "Universe",
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const result = await operation.execute();
 
       expect(result.success).toBe(true);
       expect(result.cellsModified).toBe(2);
-      
+
       // Verify cells were actually updated
       const cell1 = await cellRepository.get(new CellAddress(1, 1));
       const cell2 = await cellRepository.get(new CellAddress(1, 2));
-      
+
       expect(cell1.value?.value).toBe("Hello Universe");
       expect(cell2.value?.value).toBe("Universe Peace");
     });
 
     it("should handle empty selection gracefully", async () => {
       const emptySelection = new CellSelection();
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
-        replaceWith: "PASS"
+        replaceWith: "PASS",
       };
 
-      const operation = new FindReplaceOperation(emptySelection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        emptySelection,
+        options,
+        cellRepository,
+      );
       const validation = operation.validate();
 
       expect(validation).toBe("Selection is empty");
@@ -451,10 +591,14 @@ describe("FindReplaceOperation", () => {
     it("should validate empty find pattern", () => {
       const options: FindReplaceOptions = {
         findPattern: "",
-        replaceWith: "replacement"
+        replaceWith: "replacement",
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const validation = operation.validate();
 
       expect(validation).toBe("Find pattern cannot be empty");
@@ -464,7 +608,7 @@ describe("FindReplaceOperation", () => {
       const options: FindReplaceOptions = {
         findPattern: "[invalid",
         replaceWith: "replacement",
-        useRegex: true
+        useRegex: true,
       };
 
       expect(() => {
@@ -478,13 +622,17 @@ describe("FindReplaceOperation", () => {
       for (let i = 0; i < 1000001; i++) {
         largeSelection.addCell(new CellAddress(i, 1));
       }
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
-        replaceWith: "PASS"
+        replaceWith: "PASS",
       };
 
-      const operation = new FindReplaceOperation(largeSelection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        largeSelection,
+        options,
+        cellRepository,
+      );
       const validation = operation.validate();
 
       expect(validation).toBe("Selection is too large (max 1,000,000 cells)");
@@ -494,49 +642,61 @@ describe("FindReplaceOperation", () => {
   describe("Undo/Redo Support", () => {
     it("should create undo operation for simple replacements", async () => {
       createCell(1, 1, "Hello World");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "World",
         replaceWith: "Universe",
         useRegex: false,
-        searchInFormulas: false
+        searchInFormulas: false,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       expect(operation.canUndo()).toBe(true);
-      
+
       const undoOperation = await operation.createUndoOperation();
       expect(undoOperation).toBeInstanceOf(FindReplaceOperation);
     });
 
     it("should not allow undo for regex operations", async () => {
       createCell(1, 1, "123-456");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "\\d+",
         replaceWith: "NUM",
-        useRegex: true
+        useRegex: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       expect(operation.canUndo()).toBe(false);
     });
 
     it("should not allow undo for formula operations", async () => {
       const addressResult = CellAddress.create(1, 1);
       if (!addressResult.ok) throw new Error("Failed to create address");
-      
+
       const address = addressResult.value;
       cellRepository._setCellForTest(address, 10, "=SUM(A1:A5)");
       selection.addCell(address);
-      
+
       const options: FindReplaceOptions = {
         findPattern: "SUM",
         replaceWith: "AVERAGE",
-        searchInFormulas: true
+        searchInFormulas: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       expect(operation.canUndo()).toBe(false);
     });
   });
@@ -547,28 +707,40 @@ describe("FindReplaceOperation", () => {
       for (let i = 1; i <= 5000; i++) {
         createCell(i, 1, "test");
       }
-      
+
       const simpleOptions: FindReplaceOptions = {
         findPattern: "test",
         replaceWith: "PASS",
-        useRegex: false
+        useRegex: false,
       };
 
       const regexOptions: FindReplaceOptions = {
         findPattern: "\\w+",
         replaceWith: "WORD",
-        useRegex: true
+        useRegex: true,
       };
 
       const formulaOptions: FindReplaceOptions = {
         findPattern: "SUM",
         replaceWith: "AVERAGE",
-        searchInFormulas: true
+        searchInFormulas: true,
       };
 
-      const simpleOp = new FindReplaceOperation(selection, simpleOptions, cellRepository);
-      const regexOp = new FindReplaceOperation(selection, regexOptions, cellRepository);
-      const formulaOp = new FindReplaceOperation(selection, formulaOptions, cellRepository);
+      const simpleOp = new FindReplaceOperation(
+        selection,
+        simpleOptions,
+        cellRepository,
+      );
+      const regexOp = new FindReplaceOperation(
+        selection,
+        regexOptions,
+        cellRepository,
+      );
+      const formulaOp = new FindReplaceOperation(
+        selection,
+        formulaOptions,
+        cellRepository,
+      );
 
       const simpleTime = simpleOp.estimateTime();
       const regexTime = regexOp.estimateTime();
@@ -582,14 +754,18 @@ describe("FindReplaceOperation", () => {
     it("should track match results for analysis", async () => {
       createCell(1, 1, "test test");
       createCell(1, 2, "test");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
         replaceWith: "PASS",
-        global: true
+        global: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       await operation.preview();
 
       const matchResults = operation.getMatchResults();
@@ -603,13 +779,17 @@ describe("FindReplaceOperation", () => {
       createCell(1, 1, "");
       createCell(1, 2, null);
       createCell(1, 3, "test");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
-        replaceWith: "PASS"
+        replaceWith: "PASS",
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
@@ -619,13 +799,17 @@ describe("FindReplaceOperation", () => {
     it("should handle numeric cell values", async () => {
       createCell(1, 1, 123);
       createCell(1, 2, 456.789);
-      
+
       const options: FindReplaceOptions = {
         findPattern: "123",
-        replaceWith: "999"
+        replaceWith: "999",
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
@@ -635,13 +819,17 @@ describe("FindReplaceOperation", () => {
 
     it("should handle special characters in replacement text", async () => {
       createCell(1, 1, "test");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "test",
-        replaceWith: "!@#$%^&*()"
+        replaceWith: "!@#$%^&*()",
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       expect(preview.changes.size).toBe(1);
@@ -650,15 +838,19 @@ describe("FindReplaceOperation", () => {
 
     it("should handle zero-length regex matches", async () => {
       createCell(1, 1, "abc");
-      
+
       const options: FindReplaceOptions = {
         findPattern: "(?=a)", // Lookahead that matches zero-length
         replaceWith: "X",
         useRegex: true,
-        global: true
+        global: true,
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const preview = await operation.preview();
 
       // Should handle zero-length matches without infinite loop
@@ -673,14 +865,18 @@ describe("FindReplaceOperation", () => {
         replaceWith: "PASS",
         caseSensitive: true,
         useRegex: false,
-        scope: "selection"
+        scope: "selection",
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const description = operation.getDescription();
 
-      expect(description).toContain("Find \"test\"");
-      expect(description).toContain("replace with \"PASS\"");
+      expect(description).toContain('Find "test"');
+      expect(description).toContain('replace with "PASS"');
       expect(description).toContain("literal");
       expect(description).toContain("case-sensitive");
       expect(description).toContain("selection");
@@ -692,10 +888,14 @@ describe("FindReplaceOperation", () => {
         replaceWith: "NUM",
         caseSensitive: false,
         useRegex: true,
-        scope: "sheet"
+        scope: "sheet",
       };
 
-      const operation = new FindReplaceOperation(selection, options, cellRepository);
+      const operation = new FindReplaceOperation(
+        selection,
+        options,
+        cellRepository,
+      );
       const description = operation.getDescription();
 
       expect(description).toContain("regex");

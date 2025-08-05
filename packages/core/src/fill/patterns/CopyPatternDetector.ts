@@ -1,9 +1,9 @@
-import type { CellValue, CellAddress, CellRange } from "../../domain/models";
+import type { CellAddress, CellRange, CellValue } from "../../domain/models";
 import type {
-  PatternDetector,
-  Pattern,
-  PatternGenerator,
   FillDirection,
+  Pattern,
+  PatternDetector,
+  PatternGenerator,
   PatternType,
 } from "../types";
 
@@ -47,7 +47,7 @@ export class CopyPatternDetector implements PatternDetector {
     if (values.length === 1) {
       description = `Copy "${this.valueToString(values[0])}"`;
     } else if (values.length > 1) {
-      const valueStrs = values.slice(0, 3).map(v => this.valueToString(v));
+      const valueStrs = values.slice(0, 3).map((v) => this.valueToString(v));
       if (values.length > 3) {
         valueStrs.push("...");
       }

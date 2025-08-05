@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { CellAddress } from "@gridcore/core";
-import { createSpreadsheetVisualState, createNavigationState } from "../state/UIState";
 import type { Selection } from "../state/UIState";
+import {
+  createNavigationState,
+  createSpreadsheetVisualState,
+} from "../state/UIState";
 import { DefaultSelectionManager } from "./SelectionManager";
 
 // Mock SpreadsheetFacade for testing
@@ -18,9 +21,9 @@ describe("SelectionManager", () => {
     test("creates char selection for single cell", () => {
       const anchor = cell(1, 1);
       const cursor = cell(1, 1);
-      
+
       const selection = manager.createSelection("char", anchor, cursor);
-      
+
       expect(selection.type.type).toBe("cell");
       expect(selection.type.address).toEqual(anchor);
       expect(selection.anchor).toEqual(anchor);
@@ -29,9 +32,9 @@ describe("SelectionManager", () => {
     test("creates range selection for char mode with different cells", () => {
       const anchor = cell(1, 1);
       const cursor = cell(3, 4);
-      
+
       const selection = manager.createSelection("char", anchor, cursor);
-      
+
       expect(selection.type.type).toBe("range");
       expect(selection.type.start).toEqual(cell(1, 1));
       expect(selection.type.end).toEqual(cell(3, 4));
@@ -40,9 +43,9 @@ describe("SelectionManager", () => {
     test("creates row selection", () => {
       const anchor = cell(1, 2);
       const cursor = cell(3, 5);
-      
+
       const selection = manager.createSelection("row", anchor, cursor);
-      
+
       expect(selection.type.type).toBe("row");
       expect(selection.type.rows).toEqual([1, 2, 3]);
       expect(selection.anchor).toEqual(anchor);
@@ -51,9 +54,9 @@ describe("SelectionManager", () => {
     test("creates column selection", () => {
       const anchor = cell(2, 1);
       const cursor = cell(5, 3);
-      
+
       const selection = manager.createSelection("column", anchor, cursor);
-      
+
       expect(selection.type.type).toBe("column");
       expect(selection.type.columns).toEqual([1, 2, 3]);
       expect(selection.anchor).toEqual(anchor);
@@ -62,9 +65,9 @@ describe("SelectionManager", () => {
     test("creates block selection", () => {
       const anchor = cell(1, 1);
       const cursor = cell(3, 4);
-      
+
       const selection = manager.createSelection("block", anchor, cursor);
-      
+
       expect(selection.type.type).toBe("range");
       expect(selection.type.start).toEqual(cell(1, 1));
       expect(selection.type.end).toEqual(cell(3, 4));
@@ -73,9 +76,9 @@ describe("SelectionManager", () => {
     test("handles reversed anchor and cursor", () => {
       const anchor = cell(3, 4);
       const cursor = cell(1, 1);
-      
+
       const selection = manager.createSelection("char", anchor, cursor);
-      
+
       expect(selection.type.type).toBe("range");
       expect(selection.type.start).toEqual(cell(1, 1));
       expect(selection.type.end).toEqual(cell(3, 4));
@@ -89,10 +92,14 @@ describe("SelectionManager", () => {
         type: { type: "row", rows: [1, 2] },
         anchor,
       };
-      
+
       const newCursor = cell(4, 5);
-      const extended = manager.extendSelection(originalSelection, newCursor, "row");
-      
+      const extended = manager.extendSelection(
+        originalSelection,
+        newCursor,
+        "row",
+      );
+
       expect(extended.type.type).toBe("row");
       expect(extended.type.rows).toEqual([1, 2, 3, 4]);
     });
@@ -103,10 +110,14 @@ describe("SelectionManager", () => {
         type: { type: "column", columns: [1, 2] },
         anchor,
       };
-      
+
       const newCursor = cell(5, 4);
-      const extended = manager.extendSelection(originalSelection, newCursor, "column");
-      
+      const extended = manager.extendSelection(
+        originalSelection,
+        newCursor,
+        "column",
+      );
+
       expect(extended.type.type).toBe("column");
       expect(extended.type.columns).toEqual([1, 2, 3, 4]);
     });
@@ -115,10 +126,14 @@ describe("SelectionManager", () => {
       const originalSelection: Selection = {
         type: { type: "cell", address: cell(1, 1) },
       };
-      
+
       const newCursor = cell(2, 2);
-      const extended = manager.extendSelection(originalSelection, newCursor, "char");
-      
+      const extended = manager.extendSelection(
+        originalSelection,
+        newCursor,
+        "char",
+      );
+
       expect(extended.type.type).toBe("cell"); // Single cell since newCursor becomes both anchor and cursor
     });
   });
@@ -128,9 +143,9 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "cell", address: cell(5, 3) },
       };
-      
+
       const bounds = manager.getSelectionBounds(selection);
-      
+
       expect(bounds).toEqual({
         minRow: 5,
         maxRow: 5,
@@ -143,9 +158,9 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "range", start: cell(1, 2), end: cell(4, 6) },
       };
-      
+
       const bounds = manager.getSelectionBounds(selection);
-      
+
       expect(bounds).toEqual({
         minRow: 1,
         maxRow: 4,
@@ -158,9 +173,9 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "column", columns: [2, 5, 3] },
       };
-      
+
       const bounds = manager.getSelectionBounds(selection);
-      
+
       expect(bounds.minRow).toBe(0);
       expect(bounds.maxRow).toBeGreaterThan(1000); // Should be max row
       expect(bounds.minCol).toBe(2);
@@ -171,9 +186,9 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "row", rows: [3, 1, 5] },
       };
-      
+
       const bounds = manager.getSelectionBounds(selection);
-      
+
       expect(bounds.minRow).toBe(1);
       expect(bounds.maxRow).toBe(5);
       expect(bounds.minCol).toBe(0);
@@ -187,13 +202,13 @@ describe("SelectionManager", () => {
       const subSelection2: Selection = {
         type: { type: "range", start: cell(3, 4), end: cell(5, 7) },
       };
-      
+
       const multiSelection: Selection = {
         type: { type: "multi", selections: [subSelection1, subSelection2] },
       };
-      
+
       const bounds = manager.getSelectionBounds(multiSelection);
-      
+
       expect(bounds).toEqual({
         minRow: 1,
         maxRow: 5,
@@ -209,7 +224,7 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "cell", address },
       };
-      
+
       expect(manager.isCellSelected(address, selection)).toBe(true);
       expect(manager.isCellSelected(cell(2, 4), selection)).toBe(false);
     });
@@ -218,7 +233,7 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "range", start: cell(1, 1), end: cell(3, 3) },
       };
-      
+
       expect(manager.isCellSelected(cell(2, 2), selection)).toBe(true);
       expect(manager.isCellSelected(cell(1, 1), selection)).toBe(true);
       expect(manager.isCellSelected(cell(3, 3), selection)).toBe(true);
@@ -230,7 +245,7 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "column", columns: [1, 3, 5] },
       };
-      
+
       expect(manager.isCellSelected(cell(0, 1), selection)).toBe(true);
       expect(manager.isCellSelected(cell(100, 3), selection)).toBe(true);
       expect(manager.isCellSelected(cell(50, 5), selection)).toBe(true);
@@ -242,7 +257,7 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "row", rows: [2, 4, 6] },
       };
-      
+
       expect(manager.isCellSelected(cell(2, 0), selection)).toBe(true);
       expect(manager.isCellSelected(cell(4, 100), selection)).toBe(true);
       expect(manager.isCellSelected(cell(6, 50), selection)).toBe(true);
@@ -257,9 +272,9 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "cell", address },
       };
-      
+
       const cells = Array.from(manager.getCellsInSelection(selection));
-      
+
       expect(cells).toHaveLength(1);
       expect(cells[0]).toEqual(address);
     });
@@ -268,9 +283,9 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "range", start: cell(1, 1), end: cell(2, 2) },
       };
-      
+
       const cells = Array.from(manager.getCellsInSelection(selection));
-      
+
       expect(cells).toHaveLength(4);
       expect(cells).toContainEqual(cell(1, 1));
       expect(cells).toContainEqual(cell(1, 2));
@@ -282,7 +297,7 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "column", columns: [1, 2] },
       };
-      
+
       // Get first few cells to test the iterator
       const iterator = manager.getCellsInSelection(selection);
       const firstFew = [];
@@ -292,7 +307,7 @@ describe("SelectionManager", () => {
         count++;
         if (count >= 10) break; // Don't iterate through millions of cells
       }
-      
+
       expect(firstFew).toContainEqual(cell(0, 1));
       expect(firstFew).toContainEqual(cell(0, 2));
       expect(firstFew).toContainEqual(cell(1, 1));
@@ -307,7 +322,7 @@ describe("SelectionManager", () => {
         type: { type: "row", rows: [1, 2] },
         anchor,
       };
-      
+
       const state = createSpreadsheetVisualState(
         cell(2, 3),
         defaultViewport,
@@ -315,7 +330,7 @@ describe("SelectionManager", () => {
         anchor,
         selection,
       );
-      
+
       const result = manager.getCurrentSelection(state);
       expect(result).toEqual(selection);
     });
@@ -324,16 +339,20 @@ describe("SelectionManager", () => {
       const selection: Selection = {
         type: { type: "cell", address: cell(1, 1) },
       };
-      
-      const state = createNavigationState(cell(1, 1), defaultViewport, selection);
-      
+
+      const state = createNavigationState(
+        cell(1, 1),
+        defaultViewport,
+        selection,
+      );
+
       const result = manager.getCurrentSelection(state);
       expect(result).toEqual(selection);
     });
 
     test("returns undefined for states without selection", () => {
       const state = createNavigationState(cell(1, 1), defaultViewport);
-      
+
       const result = manager.getCurrentSelection(state);
       expect(result).toBeUndefined();
     });

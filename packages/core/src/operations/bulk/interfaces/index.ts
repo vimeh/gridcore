@@ -1,29 +1,29 @@
 // Core interfaces
 export type {
   BulkOperation,
-  UndoableBulkOperation,
+  BulkOperationOptions,
+  IBulkOperationFactory,
   PreviewableBulkOperation,
   Selection,
-  BulkOperationOptions,
-  IBulkOperationFactory
+  UndoableBulkOperation,
 } from "./BulkOperation";
 
 // Preview interfaces
 export type {
-  OperationPreview,
   CellChange,
+  OperationPreview,
   OperationSummary,
-  PreviewOptions
+  PreviewOptions,
 } from "./OperationPreview";
 
 export { OperationPreviewBuilder } from "./OperationPreview";
 
 // Result interfaces
 export type {
-  OperationResult,
+  BatchOperationResult,
   OperationMetadata,
+  OperationResult,
   PerformanceMetrics,
-  BatchOperationResult
 } from "./OperationResult";
 
 export { OperationResultBuilder } from "./OperationResult";

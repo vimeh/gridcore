@@ -3,7 +3,7 @@ import { CellAddress } from "../domain/models/CellAddress";
 import { err, ok, type Result } from "../shared/types/Result";
 import type { StructuralChange } from "./ReferenceUpdater";
 import { ReferenceUpdater } from "./ReferenceUpdater";
-import { SparseGrid } from "./SparseGrid";
+import type { SparseGrid } from "./SparseGrid";
 
 /**
  * Complete snapshot of structural state for undo/redo operations
@@ -83,11 +83,11 @@ export class StructuralUndoManager {
   createSnapshot(
     grid: SparseGrid,
     cursorState?: StructuralSnapshot["cursorState"],
-    viewportState?: StructuralSnapshot["viewportState"]
+    viewportState?: StructuralSnapshot["viewportState"],
   ): StructuralSnapshot {
     const allCells = grid.getAllCells();
     const gridState = new Map<string, Cell>();
-    
+
     // Deep copy all cells with their current positions
     for (const [address, cell] of allCells.entries()) {
       const key = `${address.row},${address.col}`;
@@ -126,7 +126,10 @@ export class StructuralUndoManager {
    * End the current transaction
    */
   endTransaction(): void {
-    if (this.currentTransaction && this.currentTransaction.operations.length > 0) {
+    if (
+      this.currentTransaction &&
+      this.currentTransaction.operations.length > 0
+    ) {
       // Add the transaction to the undo stack
       this.addToUndoStack(this.currentTransaction);
     }
@@ -150,7 +153,7 @@ export class StructuralUndoManager {
     change: StructuralChange,
     description: string,
     beforeSnapshot: StructuralSnapshot,
-    afterSnapshot?: StructuralSnapshot
+    afterSnapshot?: StructuralSnapshot,
   ): void {
     const operation: StructuralOperation = {
       id,
@@ -195,22 +198,22 @@ export class StructuralUndoManager {
     }
 
     const item = this.undoStack.pop()!;
-    
+
     try {
       let resultSnapshot: StructuralSnapshot;
-      
-      if ('operations' in item) {
+
+      if ("operations" in item) {
         // Undo transaction (operations in reverse order)
         const transaction = item as StructuralTransaction;
         const operations = [...transaction.operations].reverse();
-        
+
         for (const operation of operations) {
           const result = await this.undoSingleOperation(operation, grid);
           if (!result.ok) {
             return err(`Failed to undo transaction: ${result.error}`);
           }
         }
-        
+
         // Use the first operation's before snapshot as the result
         resultSnapshot = transaction.operations[0].beforeSnapshot;
       } else {
@@ -242,23 +245,24 @@ export class StructuralUndoManager {
     }
 
     const item = this.redoStack.pop()!;
-    
+
     try {
       let resultSnapshot: StructuralSnapshot;
-      
-      if ('operations' in item) {
+
+      if ("operations" in item) {
         // Redo transaction (operations in forward order)
         const transaction = item as StructuralTransaction;
-        
+
         for (const operation of transaction.operations) {
           const result = await this.redoSingleOperation(operation, grid);
           if (!result.ok) {
             return err(`Failed to redo transaction: ${result.error}`);
           }
         }
-        
+
         // Use the last operation's after snapshot as the result
-        const lastOp = transaction.operations[transaction.operations.length - 1];
+        const lastOp =
+          transaction.operations[transaction.operations.length - 1];
         resultSnapshot = lastOp.afterSnapshot!;
       } else {
         // Redo single operation
@@ -283,18 +287,21 @@ export class StructuralUndoManager {
   /**
    * Restore grid state from a snapshot
    */
-  restoreGridFromSnapshot(grid: SparseGrid, snapshot: StructuralSnapshot): Result<void, string> {
+  restoreGridFromSnapshot(
+    grid: SparseGrid,
+    snapshot: StructuralSnapshot,
+  ): Result<void, string> {
     try {
       // Clear current grid
       grid.clear();
 
       // Restore all cells from snapshot
       for (const [positionKey, cell] of snapshot.gridState.entries()) {
-        const [row, col] = positionKey.split(',').map(Number);
+        const [row, col] = positionKey.split(",").map(Number);
         const addressResult = CellAddress.create(row, col);
         if (!addressResult.ok) continue;
         const address = addressResult.value;
-        
+
         // Deep copy the cell to avoid reference issues
         const cellCopy = Cell.create(cell.rawValue, address);
         if (cellCopy.ok) {
@@ -311,22 +318,30 @@ export class StructuralUndoManager {
   /**
    * Get undo history for debugging/display
    */
-  getUndoHistory(): Array<{ description: string; timestamp: number; type: string }> {
-    return this.undoStack.map(item => ({
-      description: 'operations' in item ? item.description : item.description,
+  getUndoHistory(): Array<{
+    description: string;
+    timestamp: number;
+    type: string;
+  }> {
+    return this.undoStack.map((item) => ({
+      description: "operations" in item ? item.description : item.description,
       timestamp: item.timestamp,
-      type: 'operations' in item ? 'transaction' : 'operation'
+      type: "operations" in item ? "transaction" : "operation",
     }));
   }
 
   /**
    * Get redo history for debugging/display
    */
-  getRedoHistory(): Array<{ description: string; timestamp: number; type: string }> {
-    return this.redoStack.map(item => ({
-      description: 'operations' in item ? item.description : item.description,
+  getRedoHistory(): Array<{
+    description: string;
+    timestamp: number;
+    type: string;
+  }> {
+    return this.redoStack.map((item) => ({
+      description: "operations" in item ? item.description : item.description,
       timestamp: item.timestamp,
-      type: 'operations' in item ? 'transaction' : 'operation'
+      type: "operations" in item ? "transaction" : "operation",
     }));
   }
 
@@ -361,10 +376,13 @@ export class StructuralUndoManager {
    */
   private async undoSingleOperation(
     operation: StructuralOperation,
-    grid: SparseGrid
+    grid: SparseGrid,
   ): Promise<Result<StructuralSnapshot, string>> {
     // Restore the grid state from before the operation
-    const restoreResult = this.restoreGridFromSnapshot(grid, operation.beforeSnapshot);
+    const restoreResult = this.restoreGridFromSnapshot(
+      grid,
+      operation.beforeSnapshot,
+    );
     if (!restoreResult.ok) {
       return err(restoreResult.error);
     }
@@ -377,14 +395,17 @@ export class StructuralUndoManager {
    */
   private async redoSingleOperation(
     operation: StructuralOperation,
-    grid: SparseGrid
+    grid: SparseGrid,
   ): Promise<Result<StructuralSnapshot, string>> {
     if (!operation.afterSnapshot) {
       return err("No after snapshot available for redo");
     }
 
     // Restore the grid state from after the operation
-    const restoreResult = this.restoreGridFromSnapshot(grid, operation.afterSnapshot);
+    const restoreResult = this.restoreGridFromSnapshot(
+      grid,
+      operation.afterSnapshot,
+    );
     if (!restoreResult.ok) {
       return err(restoreResult.error);
     }
@@ -395,10 +416,12 @@ export class StructuralUndoManager {
   /**
    * Add item to undo stack and clear redo stack
    */
-  private addToUndoStack(item: StructuralOperation | StructuralTransaction): void {
+  private addToUndoStack(
+    item: StructuralOperation | StructuralTransaction,
+  ): void {
     this.undoStack.push(item);
     this.trimStack(this.undoStack);
-    
+
     // Clear redo stack when new operation is added
     this.redoStack = [];
   }
@@ -406,7 +429,9 @@ export class StructuralUndoManager {
   /**
    * Trim stack to max size
    */
-  private trimStack(stack: (StructuralOperation | StructuralTransaction)[]): void {
+  private trimStack(
+    stack: (StructuralOperation | StructuralTransaction)[],
+  ): void {
     while (stack.length > this.maxStackSize) {
       stack.shift();
     }

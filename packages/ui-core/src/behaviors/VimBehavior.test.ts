@@ -359,7 +359,7 @@ describe("VimBehavior", () => {
       test("should handle gfr for fill right series", () => {
         // Reset to clear any previous state
         vimBehavior.reset();
-        
+
         // First press g
         expect(
           vimBehavior.handleKeyPress("g", createKeyMeta("g"), navigationState),
@@ -387,7 +387,7 @@ describe("VimBehavior", () => {
       test("should handle gF for smart fill", () => {
         // Reset to clear any previous state
         vimBehavior.reset();
-        
+
         // First press g
         expect(
           vimBehavior.handleKeyPress("g", createKeyMeta("g"), navigationState),
@@ -757,7 +757,11 @@ describe("VimBehavior", () => {
 
       test("should enter block visual mode with 'Ctrl+v'", () => {
         expect(
-          vimBehavior.handleKeyPress("v", createKeyMeta("v", true), navigationState),
+          vimBehavior.handleKeyPress(
+            "v",
+            createKeyMeta("v", true),
+            navigationState,
+          ),
         ).toEqual({
           type: "enterSpreadsheetVisual",
           visualMode: "block",
@@ -887,14 +891,22 @@ describe("VimBehavior", () => {
     describe("visual mode with ctrl keys", () => {
       test("should handle ctrl scrolling in visual mode", () => {
         expect(
-          vimBehavior.handleKeyPress("d", createKeyMeta("d", true), visualState),
+          vimBehavior.handleKeyPress(
+            "d",
+            createKeyMeta("d", true),
+            visualState,
+          ),
         ).toEqual({
           type: "scroll",
           direction: "halfDown",
         });
 
         expect(
-          vimBehavior.handleKeyPress("u", createKeyMeta("u", true), visualState),
+          vimBehavior.handleKeyPress(
+            "u",
+            createKeyMeta("u", true),
+            visualState,
+          ),
         ).toEqual({
           type: "scroll",
           direction: "halfUp",

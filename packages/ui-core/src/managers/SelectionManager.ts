@@ -114,7 +114,7 @@ export class DefaultSelectionManager implements SelectionManager {
           maxCol: Math.max(selection.type.start.col, selection.type.end.col),
         };
 
-      case "column":
+      case "column": {
         const minCol = Math.min(...selection.type.columns);
         const maxCol = Math.max(...selection.type.columns);
         return {
@@ -123,8 +123,9 @@ export class DefaultSelectionManager implements SelectionManager {
           minCol,
           maxCol,
         };
+      }
 
-      case "row":
+      case "row": {
         const minRow = Math.min(...selection.type.rows);
         const maxRow = Math.max(...selection.type.rows);
         return {
@@ -133,8 +134,9 @@ export class DefaultSelectionManager implements SelectionManager {
           minCol: 0,
           maxCol: this.getMaxCol(),
         };
+      }
 
-      case "multi":
+      case "multi": {
         // Calculate bounds across all selections
         let bounds: SelectionBounds | null = null;
         for (const subSelection of selection.type.selections) {
@@ -151,6 +153,7 @@ export class DefaultSelectionManager implements SelectionManager {
           }
         }
         return bounds || { minRow: 0, maxRow: 0, minCol: 0, maxCol: 0 };
+      }
 
       default:
         return { minRow: 0, maxRow: 0, minCol: 0, maxCol: 0 };
@@ -242,7 +245,7 @@ export class DefaultSelectionManager implements SelectionManager {
     if (isSpreadsheetVisualMode(state)) {
       return state.selection;
     }
-    
+
     // Navigation mode might have a selection
     if (state.spreadsheetMode === "navigation") {
       return state.selection;
@@ -252,7 +255,10 @@ export class DefaultSelectionManager implements SelectionManager {
   }
 
   // Private helper methods for creating different selection types
-  private createCharSelection(anchor: CellAddress, cursor: CellAddress): Selection {
+  private createCharSelection(
+    anchor: CellAddress,
+    cursor: CellAddress,
+  ): Selection {
     const startRow = Math.min(anchor.row, cursor.row);
     const endRow = Math.max(anchor.row, cursor.row);
     const startCol = Math.min(anchor.col, cursor.col);
@@ -269,7 +275,7 @@ export class DefaultSelectionManager implements SelectionManager {
     // Otherwise use range selection
     const start = CellAddress.create(startRow, startCol);
     const end = CellAddress.create(endRow, endCol);
-    
+
     if (!start.ok || !end.ok) {
       // Fallback to cell selection
       return {
@@ -284,11 +290,14 @@ export class DefaultSelectionManager implements SelectionManager {
     };
   }
 
-  private createRowSelection(anchor: CellAddress, cursor: CellAddress): Selection {
+  private createRowSelection(
+    anchor: CellAddress,
+    cursor: CellAddress,
+  ): Selection {
     const startRow = Math.min(anchor.row, cursor.row);
     const endRow = Math.max(anchor.row, cursor.row);
     const rows: number[] = [];
-    
+
     for (let row = startRow; row <= endRow; row++) {
       rows.push(row);
     }
@@ -299,11 +308,14 @@ export class DefaultSelectionManager implements SelectionManager {
     };
   }
 
-  private createColumnSelection(anchor: CellAddress, cursor: CellAddress): Selection {
+  private createColumnSelection(
+    anchor: CellAddress,
+    cursor: CellAddress,
+  ): Selection {
     const startCol = Math.min(anchor.col, cursor.col);
     const endCol = Math.max(anchor.col, cursor.col);
     const columns: number[] = [];
-    
+
     for (let col = startCol; col <= endCol; col++) {
       columns.push(col);
     }
@@ -314,7 +326,10 @@ export class DefaultSelectionManager implements SelectionManager {
     };
   }
 
-  private createBlockSelection(anchor: CellAddress, cursor: CellAddress): Selection {
+  private createBlockSelection(
+    anchor: CellAddress,
+    cursor: CellAddress,
+  ): Selection {
     const start = CellAddress.create(
       Math.min(anchor.row, cursor.row),
       Math.min(anchor.col, cursor.col),

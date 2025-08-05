@@ -1,20 +1,25 @@
-import { CellAddress } from "../../../domain/models";
-import type { CellValue } from "../../../domain/models";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
-import type { Selection, BulkOperationOptions } from "../interfaces/BulkOperation";
-import type { OperationPreview, CellChange } from "../interfaces/OperationPreview";
+import type { CellAddress, CellValue } from "../../../domain/models";
 import { BaseBulkOperation } from "../base/BaseBulkOperation";
+import type {
+  BulkOperationOptions,
+  Selection,
+} from "../interfaces/BulkOperation";
+import type {
+  CellChange,
+  OperationPreview,
+} from "../interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
 
 /**
  * Supported formatting operations
  */
-export type FormatType = 
-  | "currency"    // Format as currency ($1,234.56)
-  | "percent"     // Format as percentage (12.34%)
-  | "date"        // Format as date (MM/DD/YYYY or locale-specific)
-  | "number"      // Format as number with thousands separator (1,234.56)
-  | "text";       // Format as plain text (remove all formatting)
+export type FormatType =
+  | "currency" // Format as currency ($1,234.56)
+  | "percent" // Format as percentage (12.34%)
+  | "date" // Format as date (MM/DD/YYYY or locale-specific)
+  | "number" // Format as number with thousands separator (1,234.56)
+  | "text"; // Format as plain text (remove all formatting)
 
 /**
  * Currency formatting options
@@ -72,28 +77,28 @@ export interface NumberFormatOptions {
 export interface BulkFormatOptions extends BulkOperationOptions {
   /** The type of formatting to apply */
   formatType: FormatType;
-  
+
   /** Locale for formatting (en-US, en-GB, de-DE, etc.) */
   locale?: string;
-  
+
   /** Currency-specific options */
   currencyOptions?: CurrencyFormatOptions;
-  
+
   /** Percentage-specific options */
   percentOptions?: PercentFormatOptions;
-  
+
   /** Date-specific options */
   dateOptions?: DateFormatOptions;
-  
+
   /** Number-specific options */
   numberOptions?: NumberFormatOptions;
-  
+
   /** Whether to skip non-numeric cells for numeric formats */
   skipNonNumeric?: boolean;
-  
+
   /** Whether to attempt conversion of string numbers */
   convertStrings?: boolean;
-  
+
   /** Whether to preserve original value if formatting fails */
   preserveOnError?: boolean;
 }
@@ -106,7 +111,7 @@ export class FormatUtils {
    * Default locale
    */
   static DEFAULT_LOCALE = "en-US";
-  
+
   /**
    * Convert a cell value to number if possible
    */
@@ -114,21 +119,21 @@ export class FormatUtils {
     if (typeof value === "number") {
       return value;
     }
-    
+
     if (typeof value === "string") {
       // Remove common formatting characters
       const cleaned = value.replace(/[\s,$%€£¥]/g, "");
       const parsed = parseFloat(cleaned);
       return isNaN(parsed) ? null : parsed;
     }
-    
+
     if (typeof value === "boolean") {
       return value ? 1 : 0;
     }
-    
+
     return null;
   }
-  
+
   /**
    * Convert a cell value to date if possible
    */
@@ -138,50 +143,54 @@ export class FormatUtils {
       const date = new Date((value - 25569) * 86400 * 1000);
       return isNaN(date.getTime()) ? null : date;
     }
-    
+
     if (typeof value === "string") {
       const parsed = new Date(value);
       return isNaN(parsed.getTime()) ? null : parsed;
     }
-    
+
     return null;
   }
-  
+
   /**
    * Check if a value can be converted to a number
    */
   static isNumeric(value: CellValue): boolean {
     return FormatUtils.toNumber(value) !== null;
   }
-  
+
   /**
    * Check if a value can be converted to a date
    */
   static isDate(value: CellValue): boolean {
     return FormatUtils.toDate(value) !== null;
   }
-  
+
   /**
    * Format a number as currency
    */
-  static formatCurrency(value: number, options: CurrencyFormatOptions = {}, locale: string = FormatUtils.DEFAULT_LOCALE): string {
+  static formatCurrency(
+    value: number,
+    options: CurrencyFormatOptions = {},
+    locale: string = FormatUtils.DEFAULT_LOCALE,
+  ): string {
     const opts = {
       currency: "USD",
       decimals: 2,
       showSymbol: true,
       useThousandsSeparator: true,
-      ...options
+      ...options,
     };
-    
+
     try {
       if (opts.symbol) {
         // Use custom symbol
         const formatted = new Intl.NumberFormat(locale, {
           minimumFractionDigits: opts.decimals,
           maximumFractionDigits: opts.decimals,
-          useGrouping: opts.useThousandsSeparator
+          useGrouping: opts.useThousandsSeparator,
         }).format(value);
-        
+
         return opts.showSymbol ? `${opts.symbol}${formatted}` : formatted;
       } else {
         // Use standard currency formatting
@@ -190,93 +199,112 @@ export class FormatUtils {
           currency: opts.currency,
           minimumFractionDigits: opts.decimals,
           maximumFractionDigits: opts.decimals,
-          useGrouping: opts.useThousandsSeparator
+          useGrouping: opts.useThousandsSeparator,
         }).format(value);
       }
     } catch (error) {
       // Fallback formatting
-      const rounded = Math.round(value * Math.pow(10, opts.decimals!)) / Math.pow(10, opts.decimals!);
-      const formatted = opts.useThousandsSeparator 
-        ? rounded.toLocaleString(locale, { minimumFractionDigits: opts.decimals, maximumFractionDigits: opts.decimals })
+      const rounded =
+        Math.round(value * 10 ** opts.decimals!) / 10 ** opts.decimals!;
+      const formatted = opts.useThousandsSeparator
+        ? rounded.toLocaleString(locale, {
+            minimumFractionDigits: opts.decimals,
+            maximumFractionDigits: opts.decimals,
+          })
         : rounded.toFixed(opts.decimals);
-      
+
       return opts.showSymbol ? `$${formatted}` : formatted;
     }
   }
-  
+
   /**
    * Format a number as percentage
    */
-  static formatPercent(value: number, options: PercentFormatOptions = {}, locale: string = FormatUtils.DEFAULT_LOCALE): string {
+  static formatPercent(
+    value: number,
+    options: PercentFormatOptions = {},
+    locale: string = FormatUtils.DEFAULT_LOCALE,
+  ): string {
     const opts = {
       decimals: 2,
       multiplyBy100: true,
-      ...options
+      ...options,
     };
-    
+
     const numValue = opts.multiplyBy100 ? value * 100 : value;
-    
+
     try {
       return new Intl.NumberFormat(locale, {
         style: "percent",
         minimumFractionDigits: opts.decimals,
-        maximumFractionDigits: opts.decimals
+        maximumFractionDigits: opts.decimals,
       }).format(opts.multiplyBy100 ? value : value / 100);
     } catch (error) {
       // Fallback formatting
-      const rounded = Math.round(numValue * Math.pow(10, opts.decimals!)) / Math.pow(10, opts.decimals!);
+      const rounded =
+        Math.round(numValue * 10 ** opts.decimals!) / 10 ** opts.decimals!;
       return `${rounded.toFixed(opts.decimals)}%`;
     }
   }
-  
+
   /**
    * Format a date
    */
-  static formatDate(value: Date, options: DateFormatOptions = {}, locale: string = FormatUtils.DEFAULT_LOCALE): string {
+  static formatDate(
+    value: Date,
+    options: DateFormatOptions = {},
+    locale: string = FormatUtils.DEFAULT_LOCALE,
+  ): string {
     const opts = {
       format: "MM/DD/YYYY",
       includeTime: false,
       timeFormat: "12h" as const,
-      ...options
+      ...options,
     };
-    
+
     try {
       if (opts.format === "locale") {
         // Use locale-specific formatting
         const dateOptions: Intl.DateTimeFormatOptions = {
           year: "numeric",
           month: "2-digit",
-          day: "2-digit"
+          day: "2-digit",
         };
-        
+
         if (opts.includeTime) {
           dateOptions.hour = "2-digit";
           dateOptions.minute = "2-digit";
           dateOptions.hour12 = opts.timeFormat === "12h";
         }
-        
+
         return new Intl.DateTimeFormat(locale, dateOptions).format(value);
       } else {
         // Use custom format pattern
         const year = value.getFullYear();
         const month = (value.getMonth() + 1).toString().padStart(2, "0");
         const day = value.getDate().toString().padStart(2, "0");
-        
-        let formatted = opts.format!
-          .replace("YYYY", year.toString())
+
+        let formatted = opts
+          .format!.replace("YYYY", year.toString())
           .replace("MM", month)
           .replace("DD", day);
-        
+
         if (opts.includeTime) {
-          const hours = opts.timeFormat === "12h" 
-            ? ((value.getHours() % 12) || 12).toString().padStart(2, "0")
-            : value.getHours().toString().padStart(2, "0");
+          const hours =
+            opts.timeFormat === "12h"
+              ? (value.getHours() % 12 || 12).toString().padStart(2, "0")
+              : value.getHours().toString().padStart(2, "0");
           const minutes = value.getMinutes().toString().padStart(2, "0");
-          const ampm = opts.timeFormat === "12h" ? (value.getHours() >= 12 ? " PM" : " AM") : "";
-          
+          const ampm =
+            opts.timeFormat === "12h"
+              ? value.getHours() >= 12
+                ? " PM"
+                : " AM"
+              : "";
+
           formatted += ` ${hours}:${minutes}${ampm}`;
         }
-        
+
         return formatted;
       }
     } catch (error) {
@@ -284,34 +312,42 @@ export class FormatUtils {
       return value.toLocaleDateString(locale);
     }
   }
-  
+
   /**
    * Format a number
    */
-  static formatNumber(value: number, options: NumberFormatOptions = {}, locale: string = FormatUtils.DEFAULT_LOCALE): string {
+  static formatNumber(
+    value: number,
+    options: NumberFormatOptions = {},
+    locale: string = FormatUtils.DEFAULT_LOCALE,
+  ): string {
     const opts = {
       decimals: 2,
       useThousandsSeparator: true,
       showPositiveSign: false,
-      ...options
+      ...options,
     };
-    
+
     try {
       const formatted = new Intl.NumberFormat(locale, {
         minimumFractionDigits: opts.decimals,
         maximumFractionDigits: opts.decimals,
         useGrouping: opts.useThousandsSeparator,
-        signDisplay: opts.showPositiveSign ? "always" : "auto"
+        signDisplay: opts.showPositiveSign ? "always" : "auto",
       }).format(value);
-      
+
       return formatted;
     } catch (error) {
       // Fallback formatting
-      const rounded = Math.round(value * Math.pow(10, opts.decimals!)) / Math.pow(10, opts.decimals!);
-      const formatted = opts.useThousandsSeparator 
-        ? rounded.toLocaleString(locale, { minimumFractionDigits: opts.decimals, maximumFractionDigits: opts.decimals })
+      const rounded =
+        Math.round(value * 10 ** opts.decimals!) / 10 ** opts.decimals!;
+      const formatted = opts.useThousandsSeparator
+        ? rounded.toLocaleString(locale, {
+            minimumFractionDigits: opts.decimals,
+            maximumFractionDigits: opts.decimals,
+          })
         : rounded.toFixed(opts.decimals);
-      
+
       return opts.showPositiveSign && value > 0 ? `+${formatted}` : formatted;
     }
   }
@@ -323,11 +359,11 @@ export class FormatUtils {
  */
 export class BulkFormatOperation extends BaseBulkOperation {
   private readonly formatOptions: BulkFormatOptions;
-  
+
   constructor(
     selection: Selection,
     options: BulkFormatOptions,
-    cellRepository: ICellRepository
+    cellRepository: ICellRepository,
   ) {
     super("format", selection, options, cellRepository);
     this.formatOptions = {
@@ -339,52 +375,55 @@ export class BulkFormatOperation extends BaseBulkOperation {
         currency: "USD",
         decimals: 2,
         showSymbol: true,
-        useThousandsSeparator: true
+        useThousandsSeparator: true,
       },
       percentOptions: {
         decimals: 2,
-        multiplyBy100: true
+        multiplyBy100: true,
       },
       dateOptions: {
         format: "MM/DD/YYYY",
         includeTime: false,
-        timeFormat: "12h"
+        timeFormat: "12h",
       },
       numberOptions: {
         decimals: 2,
         useThousandsSeparator: true,
-        showPositiveSign: false
+        showPositiveSign: false,
       },
-      ...options
+      ...options,
     };
   }
 
   /**
    * Format a single cell value according to the format type
    */
-  protected async transformCell(address: CellAddress, currentValue: CellValue): Promise<CellValue | null> {
+  protected async transformCell(
+    address: CellAddress,
+    currentValue: CellValue,
+  ): Promise<CellValue | null> {
     // Skip null/undefined values
     if (currentValue === null || currentValue === undefined) {
       return null;
     }
-    
+
     try {
       switch (this.formatOptions.formatType) {
         case "currency":
           return this.formatAsCurrency(currentValue);
-          
+
         case "percent":
           return this.formatAsPercent(currentValue);
-          
+
         case "date":
           return this.formatAsDate(currentValue);
-          
+
         case "number":
           return this.formatAsNumber(currentValue);
-          
+
         case "text":
           return this.formatAsText(currentValue);
-          
+
         default:
           return null;
       }
@@ -393,7 +432,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
       return this.formatOptions.preserveOnError ? currentValue : null;
     }
   }
-  
+
   /**
    * Format value as currency
    */
@@ -407,15 +446,23 @@ export class BulkFormatOperation extends BaseBulkOperation {
       if (this.formatOptions.convertStrings && typeof value === "string") {
         const converted = FormatUtils.toNumber(value);
         if (converted !== null) {
-          return FormatUtils.formatCurrency(converted, this.formatOptions.currencyOptions, this.formatOptions.locale);
+          return FormatUtils.formatCurrency(
+            converted,
+            this.formatOptions.currencyOptions,
+            this.formatOptions.locale,
+          );
         }
       }
       return null;
     }
-    
-    return FormatUtils.formatCurrency(numValue, this.formatOptions.currencyOptions, this.formatOptions.locale);
+
+    return FormatUtils.formatCurrency(
+      numValue,
+      this.formatOptions.currencyOptions,
+      this.formatOptions.locale,
+    );
   }
-  
+
   /**
    * Format value as percentage
    */
@@ -429,15 +476,23 @@ export class BulkFormatOperation extends BaseBulkOperation {
       if (this.formatOptions.convertStrings && typeof value === "string") {
         const converted = FormatUtils.toNumber(value);
         if (converted !== null) {
-          return FormatUtils.formatPercent(converted, this.formatOptions.percentOptions, this.formatOptions.locale);
+          return FormatUtils.formatPercent(
+            converted,
+            this.formatOptions.percentOptions,
+            this.formatOptions.locale,
+          );
         }
       }
       return null;
     }
-    
-    return FormatUtils.formatPercent(numValue, this.formatOptions.percentOptions, this.formatOptions.locale);
+
+    return FormatUtils.formatPercent(
+      numValue,
+      this.formatOptions.percentOptions,
+      this.formatOptions.locale,
+    );
   }
-  
+
   /**
    * Format value as date
    */
@@ -446,10 +501,14 @@ export class BulkFormatOperation extends BaseBulkOperation {
     if (dateValue === null) {
       return null;
     }
-    
-    return FormatUtils.formatDate(dateValue, this.formatOptions.dateOptions, this.formatOptions.locale);
+
+    return FormatUtils.formatDate(
+      dateValue,
+      this.formatOptions.dateOptions,
+      this.formatOptions.locale,
+    );
   }
-  
+
   /**
    * Format value as number
    */
@@ -463,15 +522,23 @@ export class BulkFormatOperation extends BaseBulkOperation {
       if (this.formatOptions.convertStrings && typeof value === "string") {
         const converted = FormatUtils.toNumber(value);
         if (converted !== null) {
-          return FormatUtils.formatNumber(converted, this.formatOptions.numberOptions, this.formatOptions.locale);
+          return FormatUtils.formatNumber(
+            converted,
+            this.formatOptions.numberOptions,
+            this.formatOptions.locale,
+          );
         }
       }
       return null;
     }
-    
-    return FormatUtils.formatNumber(numValue, this.formatOptions.numberOptions, this.formatOptions.locale);
+
+    return FormatUtils.formatNumber(
+      numValue,
+      this.formatOptions.numberOptions,
+      this.formatOptions.locale,
+    );
   }
-  
+
   /**
    * Format value as plain text
    */
@@ -479,7 +546,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
     if (value === null || value === undefined) {
       return null;
     }
-    
+
     return String(value);
   }
 
@@ -489,17 +556,17 @@ export class BulkFormatOperation extends BaseBulkOperation {
   async preview(limit: number = 100): Promise<OperationPreview> {
     const builder = new OperationPreviewBuilder();
     const totalCells = this.selection.count();
-    
+
     builder.setAffectedCells(totalCells);
-    
+
     let previewCount = 0;
     let modifiedCount = 0;
     let skippedCount = 0;
     let nonNumericCount = 0;
     let errorCount = 0;
-    
+
     const sampleFormats: string[] = [];
-    
+
     try {
       for (const address of this.selection.getCells()) {
         if (previewCount >= limit) {
@@ -509,20 +576,28 @@ export class BulkFormatOperation extends BaseBulkOperation {
 
         // Get current cell value
         const currentCell = await this.cellRepository.get(address);
-        const currentValue = currentCell ? (currentCell.computedValue || currentCell.rawValue) : null;
-        
+        const currentValue = currentCell
+          ? currentCell.computedValue || currentCell.rawValue
+          : null;
+
         // Skip empty cells if configured
-        if (this.options.skipEmpty && (currentValue === null || currentValue === "")) {
+        if (
+          this.options.skipEmpty &&
+          (currentValue === null || currentValue === "")
+        ) {
           skippedCount++;
           continue;
         }
 
         // Format the cell value
         const newValue = await this.transformCell(address, currentValue);
-        
+
         if (newValue === null) {
           if (currentValue !== null) {
-            if (this.formatOptions.formatType !== "text" && !FormatUtils.isNumeric(currentValue)) {
+            if (
+              this.formatOptions.formatType !== "text" &&
+              !FormatUtils.isNumeric(currentValue)
+            ) {
               nonNumericCount++;
             } else {
               errorCount++;
@@ -538,11 +613,11 @@ export class BulkFormatOperation extends BaseBulkOperation {
           before: currentValue,
           after: newValue,
           isFormula: false,
-          changeType: "format"
+          changeType: "format",
         };
 
         builder.addChange(change);
-        
+
         // Add sample format for preview
         if (sampleFormats.length < 5) {
           const beforeStr = String(currentValue);
@@ -551,7 +626,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
             sampleFormats.push(`${beforeStr} → ${afterStr}`);
           }
         }
-        
+
         modifiedCount++;
         previewCount++;
       }
@@ -570,14 +645,13 @@ export class BulkFormatOperation extends BaseBulkOperation {
           locale: this.formatOptions.locale,
           nonNumericCells: nonNumericCount,
           errorCells: errorCount,
-          sampleFormats
-        }
+          sampleFormats,
+        },
       });
 
       // Estimate execution time
       const estimatedTime = this.estimateTime();
       builder.setEstimatedTime(estimatedTime);
-
     } catch (error) {
       builder.addError(`Preview generation failed: ${error}`);
     }
@@ -594,13 +668,13 @@ export class BulkFormatOperation extends BaseBulkOperation {
       percent: "percentage",
       date: "date",
       number: "number",
-      text: "text"
+      text: "text",
     };
-    
+
     const formatName = formatNames[this.formatOptions.formatType];
     const cellCount = this.selection.count();
-    
-    return `Format ${cellCount} cell${cellCount === 1 ? '' : 's'} as ${formatName}`;
+
+    return `Format ${cellCount} cell${cellCount === 1 ? "" : "s"} as ${formatName}`;
   }
 
   /**
@@ -608,7 +682,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
    */
   estimateTime(): number {
     const cellCount = this.selection.count();
-    
+
     // Different formats have different performance characteristics
     let cellsPerSecond: number;
     switch (this.formatOptions.formatType) {
@@ -628,7 +702,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
       default:
         cellsPerSecond = 20000;
     }
-    
+
     return Math.max(10, (cellCount / cellsPerSecond) * 1000); // Minimum 10ms
   }
 
@@ -640,12 +714,18 @@ export class BulkFormatOperation extends BaseBulkOperation {
     if (baseValidation) {
       return baseValidation;
     }
-    
-    const validFormats: FormatType[] = ["currency", "percent", "date", "number", "text"];
+
+    const validFormats: FormatType[] = [
+      "currency",
+      "percent",
+      "date",
+      "number",
+      "text",
+    ];
     if (!validFormats.includes(this.formatOptions.formatType)) {
       return `Invalid format type: ${this.formatOptions.formatType}`;
     }
-    
+
     // Validate locale if provided
     if (this.formatOptions.locale) {
       try {
@@ -654,19 +734,22 @@ export class BulkFormatOperation extends BaseBulkOperation {
         return `Invalid locale: ${this.formatOptions.locale}`;
       }
     }
-    
+
     // Validate currency options
-    if (this.formatOptions.formatType === "currency" && this.formatOptions.currencyOptions?.currency) {
+    if (
+      this.formatOptions.formatType === "currency" &&
+      this.formatOptions.currencyOptions?.currency
+    ) {
       try {
-        new Intl.NumberFormat("en-US", { 
-          style: "currency", 
-          currency: this.formatOptions.currencyOptions.currency 
+        new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: this.formatOptions.currencyOptions.currency,
         });
       } catch (error) {
         return `Invalid currency code: ${this.formatOptions.currencyOptions.currency}`;
       }
     }
-    
+
     return null;
   }
 }
