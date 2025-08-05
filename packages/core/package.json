@@ -13,7 +13,11 @@
     "build": "bun build ./src/index.ts --outdir ./dist --target node && bunx tsc --emitDeclarationOnly",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "clean": "rm -rf dist node_modules coverage"
+    "clean": "rm -rf dist node_modules coverage",
+    "bench": "bun run benchmarks/index.ts",
+    "bench:cell": "bun run benchmarks/index.ts --suite 'Cell Operations'",
+    "bench:formula": "bun run benchmarks/index.ts --suite 'Formula Calculations'",
+    "bench:batch": "bun run benchmarks/index.ts --suite 'Batch Operations'"
   },
   "devDependencies": {
     "@types/bun": "latest",
