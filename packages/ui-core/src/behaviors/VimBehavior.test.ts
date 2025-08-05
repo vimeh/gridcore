@@ -569,6 +569,74 @@ describe("VimBehavior", () => {
         count: 1, // Not 3
       });
     });
+
+    describe("structural operations", () => {
+      const navigationState = createNavigationState(
+        defaultCursor,
+        defaultViewport,
+      );
+
+      test("should handle Ctrl+Shift+Plus for row insert", () => {
+        expect(
+          vimBehavior.handleKeyPress(
+            "+",
+            createKeyMeta("+", true, true),
+            navigationState,
+          ),
+        ).toEqual({
+          type: "structuralInsert",
+          target: "row",
+          position: "before",
+          count: 1,
+        });
+      });
+
+      test("should handle Ctrl+Shift+= for row insert", () => {
+        expect(
+          vimBehavior.handleKeyPress(
+            "=",
+            createKeyMeta("=", true, true),
+            navigationState,
+          ),
+        ).toEqual({
+          type: "structuralInsert",
+          target: "row",
+          position: "before",
+          count: 1,
+        });
+      });
+
+      test("should handle Ctrl+- for row delete", () => {
+        expect(
+          vimBehavior.handleKeyPress(
+            "-",
+            createKeyMeta("-", true),
+            navigationState,
+          ),
+        ).toEqual({
+          type: "structuralDelete",
+          target: "row",
+          count: 1,
+        });
+      });
+
+      test("should handle D for structural delete when not in visual mode", () => {
+        expect(
+          vimBehavior.handleKeyPress("D", createKeyMeta("D"), navigationState),
+        ).toEqual({
+          type: "delete",
+        });
+      });
+
+      test("should handle I for editing when not in visual mode", () => {
+        expect(
+          vimBehavior.handleKeyPress("I", createKeyMeta("I"), navigationState),
+        ).toEqual({
+          type: "startEditing",
+          editVariant: "I",
+        });
+      });
+    });
   });
 
   describe("spreadsheet visual mode", () => {

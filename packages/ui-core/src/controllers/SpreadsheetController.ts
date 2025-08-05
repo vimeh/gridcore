@@ -7,6 +7,7 @@ import {
 } from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
 import { type ResizeAction, ResizeBehavior } from "../behaviors/ResizeBehavior";
+import { StructuralOperationManager, type StructuralUIEvent } from "../behaviors/structural";
 import type { CellVimAction } from "../behaviors/VimBehavior";
 import {
   type KeyMeta,
@@ -56,7 +57,13 @@ export type ControllerEvent =
   | { type: "selectionChanged"; start: CellAddress; end?: CellAddress }
   | { type: "viewportChanged"; viewport: UIState["viewport"] }
   | { type: "commandExecuted"; command: string }
-  | { type: "error"; error: string };
+  | { type: "error"; error: string }
+  | { type: "structuralOperationCompleted"; operation: string; count: number; position: number }
+  | { type: "structuralOperationFailed"; operation: string; error: string }
+  | { type: "structuralUIEvent"; event: StructuralUIEvent }
+  | { type: "undoCompleted"; description: string; snapshot: StructuralSnapshot }
+  | { type: "redoCompleted"; description: string; snapshot: StructuralSnapshot }
+  | { type: "undoRedoStateChanged"; canUndo: boolean; canRedo: boolean };
 
 export class SpreadsheetController {
   private stateMachine: UIStateMachine;
@@ -127,6 +134,10 @@ export class SpreadsheetController {
     } else if (isResizeMode(state)) {
       const action = this.resizeBehavior.handleKey(key, state);
       return this.processResizeAction(action, state);
+    } else if (isInsertMode(state)) {
+      return this.handleInsertMode(key, meta, state);
+    } else if (isDeleteMode(state)) {
+      return this.handleDeleteMode(key, meta, state);
     }
 
     return { ok: true, value: state };
@@ -176,6 +187,10 @@ export class SpreadsheetController {
       case "paste":
         // These would be implemented based on selection
         return this.handleCellOperation(action.type, action, state);
+      case "structuralInsert":
+        return this.handleStructuralInsert(action, state);
+      case "structuralDelete":
+        return this.handleStructuralDelete(action, state);
       default:
         return { ok: true, value: state };
     }
@@ -976,6 +991,10 @@ export class SpreadsheetController {
 
   getEngine(): SpreadsheetFacade {
     return this.facade;
+  }
+
+  getStructuralUIManager(): StructuralOperationManager {
+    return this.structuralUIManager;
   }
 
   // Save cell and exit editing

@@ -49,6 +49,21 @@ export type Action =
       size: number;
     }
   | { type: "EXIT_RESIZE_MODE" }
+  | {
+      type: "ENTER_STRUCTURAL_INSERT_MODE";
+      insertType: "row" | "column";
+      insertPosition: "before" | "after";
+    }
+  | { type: "EXIT_STRUCTURAL_INSERT_MODE" }
+  | { type: "UPDATE_INSERT_COUNT"; count: number }
+  | {
+      type: "ENTER_DELETE_MODE";
+      deleteType: "row" | "column";
+      selection: number[];
+    }
+  | { type: "EXIT_DELETE_MODE" }
+  | { type: "CONFIRM_DELETE" }
+  | { type: "CANCEL_DELETE" }
   | { type: "UPDATE_EDITING_VALUE"; value: string; cursorPosition: number }
   | { type: "UPDATE_COMMAND_VALUE"; value: string }
   | { type: "UPDATE_RESIZE_SIZE"; size: number }
@@ -100,6 +115,11 @@ export class UIStateMachine {
       ["command.UPDATE_COMMAND_VALUE", this.updateCommandValue.bind(this)],
       ["resize.EXIT_RESIZE_MODE", this.exitResizeMode.bind(this)],
       ["resize.UPDATE_RESIZE_SIZE", this.updateResizeSize.bind(this)],
+      ["insert.EXIT_STRUCTURAL_INSERT_MODE", this.exitStructuralInsertMode.bind(this)],
+      ["insert.UPDATE_INSERT_COUNT", this.updateInsertCount.bind(this)],
+      ["delete.EXIT_DELETE_MODE", this.exitDeleteMode.bind(this)],
+      ["delete.CONFIRM_DELETE", this.confirmDelete.bind(this)],
+      ["delete.CANCEL_DELETE", this.cancelDelete.bind(this)],
       ["*.UPDATE_CURSOR", this.updateCursor.bind(this)],
       ["*.UPDATE_VIEWPORT", this.updateViewport.bind(this)],
       ["*.ESCAPE", this.handleEscape.bind(this)],
@@ -468,6 +488,94 @@ export class UIStateMachine {
 
     // Already in navigation, nothing to do
     return ok(state);
+  }
+
+  // Structural insert mode handlers
+  private enterStructuralInsertMode(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "ENTER_STRUCTURAL_INSERT_MODE") {
+      return err("Invalid action type");
+    }
+    if (!isNavigationMode(state)) {
+      return err("Can only enter structural insert mode from navigation mode");
+    }
+
+    return ok(
+      createInsertState(
+        state.cursor,
+        state.viewport,
+        action.insertType,
+        action.insertPosition,
+      ),
+    );
+  }
+
+  private exitStructuralInsertMode(state: UIState): Result<UIState> {
+    if (!isInsertMode(state)) {
+      return err("Can only exit structural insert mode when in insert mode");
+    }
+
+    return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private updateInsertCount(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "UPDATE_INSERT_COUNT") {
+      return err("Invalid action type");
+    }
+    if (!isInsertMode(state)) {
+      return err("Can only update insert count in insert mode");
+    }
+
+    return ok({
+      ...state,
+      count: action.count,
+    });
+  }
+
+  // Delete mode handlers
+  private enterDeleteMode(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "ENTER_DELETE_MODE") {
+      return err("Invalid action type");
+    }
+    if (!isNavigationMode(state)) {
+      return err("Can only enter delete mode from navigation mode");
+    }
+
+    return ok(
+      createDeleteState(
+        state.cursor,
+        state.viewport,
+        action.deleteType,
+        action.selection,
+      ),
+    );
+  }
+
+  private exitDeleteMode(state: UIState): Result<UIState> {
+    if (!isDeleteMode(state)) {
+      return err("Can only exit delete mode when in delete mode");
+    }
+
+    return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private confirmDelete(state: UIState): Result<UIState> {
+    if (!isDeleteMode(state)) {
+      return err("Can only confirm delete when in delete mode");
+    }
+
+    // Mark confirmation as no longer pending - actual deletion will be handled by controller
+    return ok({
+      ...state,
+      confirmationPending: false,
+    });
+  }
+
+  private cancelDelete(state: UIState): Result<UIState> {
+    if (!isDeleteMode(state)) {
+      return err("Can only cancel delete when in delete mode");
+    }
+
+    return this.exitToNavigation(state);
   }
 
   private getTransitionKey(state: UIState, action: Action): string {

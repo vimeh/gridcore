@@ -51,6 +51,10 @@ export { FormulaParser } from "./infrastructure/parsers/FormulaParser";
 export { InMemoryCellRepository } from "./infrastructure/repositories/InMemoryCellRepository";
 export { InMemoryDependencyRepository } from "./infrastructure/repositories/InMemoryDependencyRepository";
 export { EventStore } from "./infrastructure/stores/EventStore";
+// References System
+export * from "./references";
+// Structural Operations System
+export * from "./structure";
 // High-level API
 export { Sheet } from "./Sheet";
 // Shared Types

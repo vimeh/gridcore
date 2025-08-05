@@ -195,7 +195,7 @@ export class VimBehavior {
   private handleNavigationMode(
     key: string,
     meta: KeyMeta,
-    _state: UIState,
+    state: UIState,
   ): VimAction {
     // Handle number accumulation (only for pure digits)
     if (/^\d$/.test(key) && (this.internalState.numberBuffer || key !== "0")) {
@@ -273,6 +273,10 @@ export class VimBehavior {
         return { type: "startEditing", editVariant: "A" };
       case "I":
         this.clearBuffers();
+        // Check if we're in visual line mode for structural insert
+        if (this.isInVisualLineMode(state)) {
+          return { type: "structuralInsert", target: "row", position: "before", count };
+        }
         return { type: "startEditing", editVariant: "I" };
       case "o":
         this.clearBuffers();
@@ -322,6 +326,13 @@ export class VimBehavior {
       // Delete
       case "x":
         this.clearBuffers();
+        return { type: "delete" };
+      case "D":
+        this.clearBuffers();
+        // Check if we're in visual line mode for structural delete
+        if (this.isInVisualLineMode(state)) {
+          return { type: "structuralDelete", target: "row", count };
+        }
         return { type: "delete" };
 
       // Paste
@@ -490,6 +501,16 @@ export class VimBehavior {
 
     this.clearBuffers();
 
+    // Handle Ctrl+Shift+Plus for insert operations
+    if (meta.shift && (key === "+" || key === "=")) {
+      return { type: "structuralInsert", target: "row", position: "before", count: 1 };
+    }
+
+    // Handle Ctrl+Minus for delete operations
+    if (key === "-") {
+      return { type: "structuralDelete", target: "row", count: 1 };
+    }
+
     switch (key) {
       case "d":
         return { type: "scroll", direction: "halfDown" };
@@ -635,5 +656,13 @@ export class VimBehavior {
     this.clearBuffers();
     this.internalState.operatorPending = false;
     this.internalState.operator = undefined;
+  }
+
+  private isInVisualLineMode(state: UIState): boolean {
+    // Check if we're in navigation mode and have some form of visual selection
+    // This is a simplified check - in a full implementation, we'd track visual state
+    // For now, we'll consider visual line mode if certain conditions are met
+    // This should be expanded based on the actual visual mode implementation
+    return false; // Placeholder - needs proper visual mode state tracking
   }
 }
