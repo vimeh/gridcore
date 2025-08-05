@@ -36,8 +36,10 @@ export function toNumber(value: CellValue): number | null {
  * Convert a cell value to date if possible
  */
 export function toDate(value: CellValue): Date | null {
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
+  // Handle Date objects passed as unknown type
+  if (value && typeof value === "object" && "getTime" in value) {
+    const date = value as unknown as Date;
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   if (typeof value === "number") {

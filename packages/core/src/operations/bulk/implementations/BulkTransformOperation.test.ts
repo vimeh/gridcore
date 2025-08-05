@@ -224,7 +224,7 @@ describe("BulkTransformOperation", () => {
       const preview = await operation.preview(10);
 
       expect(preview.affectedCells).toBe(5);
-      expect(preview.changes.length).toBeGreaterThan(0);
+      expect(preview.changes.size).toBeGreaterThan(0);
 
       // Find the change for "hello world"
       const change = preview.changes.find(
@@ -293,9 +293,7 @@ describe("BulkTransformOperation", () => {
       expect(preview.affectedCells).toBe(5);
 
       // Find the change for "  spaced text  "
-      const change = preview.changes.find(
-        (c) => c.address.row === 0 && c.address.col === 2,
-      );
+      const change = preview.changes.get('0,2');
       expect(change?.before).toBe("  spaced text  ");
       expect(change?.after).toBe("spaced text");
     });
@@ -326,9 +324,7 @@ describe("BulkTransformOperation", () => {
       expect(preview.affectedCells).toBe(5);
 
       // Find the change for "line\nbreak\ttext"
-      const change = preview.changes.find(
-        (c) => c.address.row === 0 && c.address.col === 3,
-      );
+      const change = preview.changes.get('0,3');
       expect(change?.before).toBe("line\nbreak\ttext");
       expect(change?.after).toBe("line break text");
     });
@@ -595,7 +591,7 @@ describe("BulkTransformOperation", () => {
 
       const preview = await operation.preview(2);
 
-      expect(preview.changes.length).toBeLessThanOrEqual(2);
+      expect(preview.changes.size).toBeLessThanOrEqual(2);
       expect(preview.truncated).toBe(true);
     });
 
