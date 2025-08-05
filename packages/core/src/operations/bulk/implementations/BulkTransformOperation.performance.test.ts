@@ -95,7 +95,7 @@ function generateTestData(
       }
     }
 
-    repository.set(address, { value });
+    repository.setCell(address, { value });
   }
 
   return addresses;
