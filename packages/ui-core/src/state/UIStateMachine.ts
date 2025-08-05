@@ -1,4 +1,4 @@
-import { CellAddress } from "@gridcore/core";
+import { CellAddress, CellRange } from "@gridcore/core";
 import type { Result } from "../utils/Result";
 import { err, ok } from "../utils/Result";
 import {
@@ -6,6 +6,7 @@ import {
   createBulkOperationState,
   createCommandState,
   createEditingState,
+  createFillState,
   createNavigationState,
   createResizeState,
   createSpreadsheetVisualState,
@@ -13,6 +14,7 @@ import {
   isBulkOperationMode,
   isCommandMode,
   isEditingMode,
+  isFillMode,
   isNavigationMode,
   isResizeMode,
   isSpreadsheetVisualMode,
@@ -411,6 +413,91 @@ export class UIStateMachine {
     }
 
     return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private enterFillMode(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "ENTER_FILL_MODE") {
+      return err("Invalid action type");
+    }
+    if (!isNavigationMode(state)) {
+      return err("Can only enter fill mode from navigation mode");
+    }
+
+    // Create a single-cell range as the source (current cursor position)
+    const sourceRange = CellRange.create(state.cursor, state.cursor);
+    if (!sourceRange.ok) {
+      return err(`Failed to create source range: ${sourceRange.error}`);
+    }
+
+    // Initially, target is the same as source; it will be updated as user navigates
+    const targetRange = sourceRange.value;
+
+    const fillOptions: FillOptions = action.options || { type: "copy" };
+
+    return ok(
+      createFillState(
+        state.cursor,
+        state.viewport,
+        sourceRange.value,
+        targetRange,
+        action.direction,
+        fillOptions,
+      ),
+    );
+  }
+
+  private exitFillMode(state: UIState): Result<UIState> {
+    if (!isFillMode(state)) {
+      return err("Can only exit fill mode when in fill mode");
+    }
+
+    return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private confirmFill(state: UIState): Result<UIState> {
+    if (!isFillMode(state)) {
+      return err("Can only confirm fill when in fill mode");
+    }
+
+    // TODO: Actually execute the fill operation through SpreadsheetController
+    // For now, just exit to navigation mode
+    return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private cancelFill(state: UIState): Result<UIState> {
+    if (!isFillMode(state)) {
+      return err("Can only cancel fill when in fill mode");
+    }
+
+    return ok(createNavigationState(state.cursor, state.viewport));
+  }
+
+  private updateFillTarget(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "UPDATE_FILL_TARGET") {
+      return err("Invalid action type");
+    }
+    if (!isFillMode(state)) {
+      return err("Can only update fill target in fill mode");
+    }
+
+    return ok({
+      ...state,
+      fillTarget: action.target,
+    });
+  }
+
+  private updateFillOptions(state: UIState, action: Action): Result<UIState> {
+    if (action.type !== "UPDATE_FILL_OPTIONS") {
+      return err("Invalid action type");
+    }
+    if (!isFillMode(state)) {
+      return err("Can only update fill options in fill mode");
+    }
+
+    return ok({
+      ...state,
+      fillOptions: action.options,
+    });
   }
 
   private updateEditingValue(state: UIState, action: Action): Result<UIState> {

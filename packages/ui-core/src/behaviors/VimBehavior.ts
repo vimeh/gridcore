@@ -2,6 +2,7 @@ import type { CellAddress } from "@gridcore/core";
 import type { UIState } from "../state/UIState";
 import {
   isEditingMode,
+  isFillMode,
   isNavigationMode,
   isResizeMode,
   isSpreadsheetVisualMode,
@@ -172,6 +173,8 @@ export class VimBehavior {
       return { type: "exitEditing" };
     } else if (isResizeMode(state)) {
       return this.handleResizeMode(key, meta, state);
+    } else if (isFillMode(state)) {
+      return this.handleFillMode(key, meta, state);
     }
 
     return { type: "none" };
@@ -186,6 +189,8 @@ export class VimBehavior {
       return { type: "exitVisual" };
     } else if (isResizeMode(state)) {
       return { type: "exitMode" };
+    } else if (isFillMode(state)) {
+      return { type: "cancelFill" };
     }
 
     // Already in navigation
@@ -496,6 +501,40 @@ export class VimBehavior {
     }
   }
 
+  private handleFillMode(
+    key: string,
+    _meta: KeyMeta,
+    state: UIState,
+  ): VimAction {
+    if (!isFillMode(state)) return { type: "none" };
+
+    this.clearBuffers();
+
+    switch (key) {
+      case "Enter":
+      case "y":
+        return { type: "confirmFill" };
+      case "n":
+        return { type: "cancelFill" };
+      // Allow navigation to adjust target range
+      case "h":
+      case "j":
+      case "k":
+      case "l":
+      case "ArrowLeft":
+      case "ArrowDown":
+      case "ArrowUp":
+      case "ArrowRight":
+        const direction = 
+          key === "h" || key === "ArrowLeft" ? "left" :
+          key === "j" || key === "ArrowDown" ? "down" :
+          key === "k" || key === "ArrowUp" ? "up" : "right";
+        return { type: "move", direction };
+      default:
+        return { type: "none" };
+    }
+  }
+
   private handleControlKey(key: string, meta: KeyMeta): VimAction {
     if (!meta.ctrl) return { type: "none" };
 
@@ -513,7 +552,8 @@ export class VimBehavior {
 
     switch (key) {
       case "d":
-        return { type: "scroll", direction: "halfDown" };
+        // Ctrl+d is fill down in spreadsheet context, not scroll
+        return { type: "startFill", direction: "down" };
       case "u":
         return { type: "scroll", direction: "halfUp" };
       case "f":

@@ -60,6 +60,8 @@ export { Sheet } from "./Sheet";
 // Shared Types
 export type { Result } from "./shared/types/Result";
 export { err, ok } from "./shared/types/Result";
+// Fill Engine
+export * from "./fill";
 // Utility exports
 export * from "./utils/cellAddress";
 export { Workbook } from "./Workbook";

@@ -305,8 +305,8 @@ describe("VimBehavior", () => {
       });
     });
 
-    describe("scrolling", () => {
-      test("should handle Ctrl+d/u for half page scroll", () => {
+    describe("fill operations", () => {
+      test("should handle Ctrl+d for fill down", () => {
         expect(
           vimBehavior.handleKeyPress(
             "d",
@@ -314,8 +314,8 @@ describe("VimBehavior", () => {
             navigationState,
           ),
         ).toEqual({
-          type: "scroll",
-          direction: "halfDown",
+          type: "startFill",
+          direction: "down",
         });
 
         expect(
@@ -330,6 +330,82 @@ describe("VimBehavior", () => {
         });
       });
 
+      test("should handle gfd for fill down series", () => {
+        // First press g
+        expect(
+          vimBehavior.handleKeyPress("g", createKeyMeta("g"), navigationState),
+        ).toEqual({
+          type: "none",
+        });
+
+        // Then press f
+        expect(
+          vimBehavior.handleKeyPress("f", createKeyMeta("f"), navigationState),
+        ).toEqual({
+          type: "none",
+        });
+
+        // Then press d to complete gfd
+        expect(
+          vimBehavior.handleKeyPress("d", createKeyMeta("d"), navigationState),
+        ).toEqual({
+          type: "startFill",
+          direction: "down",
+          options: { series: true, count: 1 },
+        });
+      });
+
+      test("should handle gfr for fill right series", () => {
+        // Reset to clear any previous state
+        vimBehavior.reset();
+        
+        // First press g
+        expect(
+          vimBehavior.handleKeyPress("g", createKeyMeta("g"), navigationState),
+        ).toEqual({
+          type: "none",
+        });
+
+        // Then press f
+        expect(
+          vimBehavior.handleKeyPress("f", createKeyMeta("f"), navigationState),
+        ).toEqual({
+          type: "none",
+        });
+
+        // Then press r to complete gfr
+        expect(
+          vimBehavior.handleKeyPress("r", createKeyMeta("r"), navigationState),
+        ).toEqual({
+          type: "startFill",
+          direction: "right",
+          options: { series: true, count: 1 },
+        });
+      });
+
+      test("should handle gF for smart fill", () => {
+        // Reset to clear any previous state
+        vimBehavior.reset();
+        
+        // First press g
+        expect(
+          vimBehavior.handleKeyPress("g", createKeyMeta("g"), navigationState),
+        ).toEqual({
+          type: "none",
+        });
+
+        // Then press F to complete gF
+        expect(
+          vimBehavior.handleKeyPress("F", createKeyMeta("F"), navigationState),
+        ).toEqual({
+          type: "startFill",
+          direction: "smart",
+          options: { count: 1 },
+        });
+      });
+    });
+
+    describe("scrolling", () => {
       test("should handle Ctrl+f/b for full page scroll", () => {
         expect(
           vimBehavior.handleKeyPress(

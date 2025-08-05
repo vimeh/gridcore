@@ -26,6 +26,7 @@ import {
   isBulkOperationMode,
   isCommandMode,
   isEditingMode,
+  isFillMode,
   isNavigationMode,
   isResizeMode,
   isSpreadsheetVisualMode,
@@ -90,6 +91,10 @@ export class SpreadsheetController {
     this.cellVimBehavior = new CellVimBehavior();
     this.resizeBehavior = new ResizeBehavior();
     this.selectionManager = new DefaultSelectionManager(this.facade);
+
+    // Initialize fill engine
+    const formulaAdjuster = createFormulaAdjuster();
+    this.fillEngine = new FillEngine(this.facade.getCellRepository(), formulaAdjuster);
 
     // Initialize state machine
     let initialState = options.initialState;
