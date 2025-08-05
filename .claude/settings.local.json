@@ -13,7 +13,8 @@
       "mcp__playwright__browser_console_messages",
       "Bash(bun test:*)",
       "WebFetch(domain:github.com)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
