@@ -157,6 +157,15 @@ export class CellEditor {
       return;
     }
 
+    // For normal character input without selection, let browser handle it
+    if (isCharInput && this.controller) {
+      console.log("CellEditor: Letting browser handle character input:", event.key);
+      // Stop propagation but don't prevent default
+      event.stopPropagation();
+      // Let browser insert the character, then sync in handleInput
+      return;
+    }
+
     // If we have a controller, delegate complex key handling to it
     if (this.controller) {
       // Get the state before handling the key
@@ -220,21 +229,29 @@ export class CellEditor {
       // Let browser handle selection replacement
       return;
     }
-    // Prevent default input behavior when controller is handling the text
-    if (this.controller) {
-      console.log(
-        "CellEditor: Preventing default input, delegating to controller",
-      );
-      event.preventDefault();
-    }
+    // Don't prevent default for normal character input
+    // The browser will handle the input, then we'll sync with controller in handleInput
+    console.log(
+      "CellEditor: Allowing browser to handle input, will sync after",
+    );
   }
 
   private handleInput(_event: Event): void {
     // Sync the editor content back to the controller after browser handles input
-    if (this.controller && window.getSelection()) {
+    if (this.controller) {
       const newText = this.editorDiv.textContent || "";
       const selection = window.getSelection();
-      const cursorPosition = selection ? selection.focusOffset : 0;
+      
+      // Calculate cursor position more accurately
+      let cursorPosition = 0;
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        // Get cursor position relative to the contentEditable div
+        const preCaretRange = range.cloneRange();
+        preCaretRange.selectNodeContents(this.editorDiv);
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+        cursorPosition = preCaretRange.toString().length;
+      }
 
       console.log("CellEditor: handleInput called, syncing to controller", {
         newText,

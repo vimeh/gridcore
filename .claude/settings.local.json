@@ -15,7 +15,9 @@
       "WebFetch(domain:github.com)",
       "Bash(find:*)",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_type"
     ],
     "deny": []
   }
