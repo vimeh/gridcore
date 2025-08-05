@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
-import type { Cell } from "../../../domain/models";
-import { CellAddress } from "../../../domain/models";
+import { Cell, CellAddress } from "../../../domain/models";
 import type { Result } from "../../../shared/types/Result";
 import { CellSelection } from "../base/CellSelection";
 import { BulkMathOperation, type BulkMathOptions } from "./BulkMathOperation";
@@ -26,6 +25,38 @@ class PerformanceMockCellRepository implements ICellRepository {
     const key = `${address.row},${address.col}`;
     this.cells.delete(key);
     return Promise.resolve({ ok: true, value: undefined });
+  }
+
+  // Synchronous methods required by ICellRepository
+  get(address: CellAddress): Cell | undefined {
+    const key = `${address.row},${address.col}`;
+    return this.cells.get(key);
+  }
+
+  set(address: CellAddress, cell: Cell): void {
+    const key = `${address.row},${address.col}`;
+    this.cells.set(key, cell);
+  }
+
+  delete(address: CellAddress): void {
+    const key = `${address.row},${address.col}`;
+    this.cells.delete(key);
+  }
+
+  clear(): void {
+    this.cells.clear();
+  }
+
+  getAllInRange(): Map<string, Cell> {
+    return new Map();
+  }
+
+  getAll(): Map<string, Cell> {
+    return this.cells;
+  }
+
+  count(): number {
+    return this.cells.size;
   }
 
   // Batch initialize cells for performance testing
@@ -54,12 +85,8 @@ class PerformanceMockCellRepository implements ICellRepository {
           break; // Mostly numeric
       }
 
-      this.cells.set(key, { value });
+      this.cells.set(key, Cell.createWithComputedValue(value, value));
     }
-  }
-
-  getCellCount(): number {
-    return this.cells.size;
   }
 }
 

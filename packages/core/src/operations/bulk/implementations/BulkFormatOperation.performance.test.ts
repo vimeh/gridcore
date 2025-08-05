@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
-import type { Cell } from "../../../domain/models";
-import { CellAddress } from "../../../domain/models/CellAddress";
+import { Cell, CellAddress } from "../../../domain/models";
 import type { Result } from "../../../shared/types/Result";
 import { CellSelection } from "../base/CellSelection";
 import type { OperationResult } from "../interfaces/OperationResult";
@@ -15,34 +14,36 @@ import {
 class MockCellRepository implements ICellRepository {
   private cells: Map<string, Cell> = new Map();
 
-  setCell(address: CellAddress, cell: Cell): Promise<Result<void>> {
+  // Synchronous methods required by ICellRepository
+  get(address: CellAddress): Cell | undefined {
+    const key = `${address.row},${address.col}`;
+    return this.cells.get(key);
+  }
+
+  set(address: CellAddress, cell: Cell): void {
     const key = `${address.row},${address.col}`;
     this.cells.set(key, cell);
-    return Promise.resolve({ ok: true, value: undefined });
   }
 
-  getCell(address: CellAddress): Promise<Result<Cell | null>> {
-    const key = `${address.row},${address.col}`;
-    const cell = this.cells.get(key) || null;
-    return Promise.resolve({ ok: true, value: cell });
-  }
-
-  deleteCell(address: CellAddress): Promise<Result<void>> {
+  delete(address: CellAddress): void {
     const key = `${address.row},${address.col}`;
     this.cells.delete(key);
-    return Promise.resolve({ ok: true, value: undefined });
   }
 
-  getCells(): Promise<Result<Cell[]>> {
-    return Promise.resolve({
-      ok: true,
-      value: Array.from(this.cells.values()),
-    });
-  }
-
-  clear(): Promise<Result<void>> {
+  clear(): void {
     this.cells.clear();
-    return Promise.resolve({ ok: true, value: undefined });
+  }
+
+  getAllInRange(): Map<string, Cell> {
+    return new Map();
+  }
+
+  getAll(): Map<string, Cell> {
+    return this.cells;
+  }
+
+  count(): number {
+    return this.cells.size;
   }
 }
 
@@ -118,7 +119,7 @@ function generateTestData(
       }
     }
 
-    repository.setCell(address, { value });
+    repository.set(address, Cell.createWithComputedValue(value, value));
   }
 
   return addresses;
