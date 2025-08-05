@@ -8,16 +8,16 @@ test.describe("Common Features", () => {
 
   test("should display initial data correctly", async ({ page }) => {
     // Check initial values
-    await expect(page.locator(".formula-bar-input")).toHaveValue("Hello");
+    await expect(page.locator(".formula-bar-input")).toHaveText("Hello");
 
     await page.keyboard.press("l");
-    await expect(page.locator(".formula-bar-input")).toHaveValue("World");
+    await expect(page.locator(".formula-bar-input")).toHaveText("World");
 
     await page.keyboard.press("j");
-    await expect(page.locator(".formula-bar-input")).toHaveValue("123");
+    await expect(page.locator(".formula-bar-input")).toHaveText("123");
 
     await page.keyboard.press("l");
-    await expect(page.locator(".formula-bar-input")).toHaveValue("=A2+B2");
+    await expect(page.locator(".formula-bar-input")).toHaveText("=A2+B2");
   });
 
   test("should update formula bar when navigating", async ({ page }) => {
@@ -25,14 +25,14 @@ test.describe("Common Features", () => {
     const cellValue = page.locator(".formula-bar-input");
 
     // Check A1
-    await expect(cellRef).toHaveValue("A1");
-    await expect(cellValue).toHaveValue("Hello");
+    await expect(cellRef).toHaveText("A1");
+    await expect(cellValue).toHaveText("Hello");
 
     // Navigate to B2
     await page.keyboard.press("l");
     await page.keyboard.press("j");
-    await expect(cellRef).toHaveValue("B2");
-    await expect(cellValue).toHaveValue("123");
+    await expect(cellRef).toHaveText("B2");
+    await expect(cellValue).toHaveText("123");
   });
 
   test("should show mode indicator", async ({ page }) => {
@@ -83,7 +83,7 @@ test.describe("Common Features", () => {
 
     // Should still be able to navigate
     await page.keyboard.press("l");
-    await expect(page.locator(".formula-bar-address")).toHaveValue("B1");
+    await expect(page.locator(".formula-bar-address")).toHaveText("B1");
   });
 
   test("should handle import/export buttons", async ({ page }) => {
@@ -120,11 +120,11 @@ test.describe("Common Features", () => {
     }
 
     // Verify we're at A1
-    await expect(page.locator(".formula-bar-address")).toHaveValue("A1");
+    await expect(page.locator(".formula-bar-address")).toHaveText("A1");
 
     // Should be able to navigate immediately
     await page.keyboard.press("j");
-    await expect(page.locator(".formula-bar-address")).toHaveValue("A2");
+    await expect(page.locator(".formula-bar-address")).toHaveText("A2");
   });
 
   test("should show cursor in navigation mode", async ({ page }) => {
@@ -149,7 +149,7 @@ test.describe("Common Features", () => {
     }
 
     // Should be at F1
-    await expect(page.locator(".formula-bar-address")).toHaveValue("F1");
+    await expect(page.locator(".formula-bar-address")).toHaveText("F1");
 
     // Navigate back
     for (let i = 0; i < 5; i++) {
@@ -157,6 +157,6 @@ test.describe("Common Features", () => {
     }
 
     // Should be back at A1
-    await expect(page.locator(".formula-bar-address")).toHaveValue("A1");
+    await expect(page.locator(".formula-bar-address")).toHaveText("A1");
   });
 });

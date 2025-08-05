@@ -26,9 +26,9 @@ test.describe("Smoke Tests", () => {
     await page.goto("http://localhost:3000");
 
     // Check formula bar shows A1
-    await expect(page.locator(".formula-bar-address")).toHaveValue("A1");
+    await expect(page.locator(".formula-bar-address")).toHaveText("A1");
 
     // Check initial cell value
-    await expect(page.locator(".formula-bar-input")).toHaveValue("Hello");
+    await expect(page.locator(".formula-bar-input")).toHaveText("Hello");
   });
 });

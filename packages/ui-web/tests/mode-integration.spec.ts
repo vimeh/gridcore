@@ -83,7 +83,7 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("Escape"); // To navigation
 
       // Verify text was appended
-      await expect(page.locator(".formula-bar-input")).toHaveValue("World!");
+      await expect(page.locator(".formula-bar-input")).toHaveText("World!");
     });
 
     test("should transition from navigation to editing with Enter key", async ({
@@ -109,7 +109,7 @@ test.describe("Mode Integration", () => {
       // Exit and verify content
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await expect(page.locator(".formula-bar-input")).toHaveValue(
+      await expect(page.locator(".formula-bar-input")).toHaveText(
         "Direct entry",
       );
     });
@@ -204,7 +204,7 @@ test.describe("Mode Integration", () => {
       // Exit and check result
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await expect(page.locator(".formula-bar-input")).toHaveValue("NewWorld");
+      await expect(page.locator(".formula-bar-input")).toHaveText("NewWorld");
     });
 
     test("should handle append mode correctly", async ({ page }) => {
@@ -221,7 +221,7 @@ test.describe("Mode Integration", () => {
       // Exit and check result
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await expect(page.locator(".formula-bar-input")).toHaveValue("World!");
+      await expect(page.locator(".formula-bar-input")).toHaveText("World!");
     });
 
     test("should switch between edit modes within insert mode", async ({
@@ -424,7 +424,7 @@ test.describe("Mode Integration", () => {
       await expect(getModeText(page)).toContainText("NAVIGATION");
 
       // Verify content was saved
-      await expect(page.locator(".formula-bar-input")).toHaveValue("modified");
+      await expect(page.locator(".formula-bar-input")).toHaveText("modified");
     });
   });
 
@@ -465,7 +465,7 @@ test.describe("Mode Integration", () => {
     }) => {
       // Move to cell with content
       await page.keyboard.press("l"); // B1 has "World"
-      await expect(page.locator(".formula-bar-input")).toHaveValue("World");
+      await expect(page.locator(".formula-bar-input")).toHaveText("World");
 
       // Enter editing
       await page.keyboard.press("i");
@@ -479,7 +479,7 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("Escape");
 
       // Formula bar should reflect final state
-      await expect(page.locator(".formula-bar-input")).toHaveValue(
+      await expect(page.locator(".formula-bar-input")).toHaveText(
         " editWorld",
       );
     });
@@ -540,7 +540,7 @@ test.describe("Mode Integration", () => {
       // Check initial value
       const initialValue = await page
         .locator(".formula-bar-input")
-        .inputValue();
+        .textContent();
       // console.log("Initial value:", initialValue);
 
       // Enter insert mode with 'i'
@@ -562,7 +562,7 @@ test.describe("Mode Integration", () => {
       // console.log("Switched to navigation mode");
 
       // Check final value
-      const finalValue = await page.locator(".formula-bar-input").inputValue();
+      const finalValue = await page.locator(".formula-bar-input").textContent();
       // console.log("Final value:", finalValue);
 
       // For now, just pass the test - we're debugging
