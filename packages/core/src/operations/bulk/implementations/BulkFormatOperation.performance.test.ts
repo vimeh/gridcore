@@ -58,7 +58,7 @@ function generateTestData(
     const address = new CellAddress(Math.floor(i / 1000), i % 1000);
     addresses.push(address);
 
-    let value: string | number | boolean | Date;
+    let value: string | number | boolean | Date = 0;
     if (dataType === "mixed") {
       // Mix of numbers, strings, dates, and other types
       switch (i % 6) {
@@ -542,7 +542,7 @@ describe("BulkFormatOperation Performance Tests", () => {
       const previewTime = endTime - startTime;
 
       expect(preview.affectedCells).toBe(cellCount);
-      expect(preview.changes.length).toBeLessThanOrEqual(1000);
+      expect(preview.changes.size).toBeLessThanOrEqual(1000);
       expect(previewTime).toBeLessThan(800); // Should generate preview in under 800ms
 
       console.log(`Preview 60k cells (1k limit): ${previewTime}ms`);
@@ -562,7 +562,7 @@ describe("BulkFormatOperation Performance Tests", () => {
       const previewTime = endTime - startTime;
 
       expect(preview.affectedCells).toBe(cellCount);
-      expect(preview.changes.length).toBeLessThanOrEqual(5000);
+      expect(preview.changes.size).toBeLessThanOrEqual(5000);
       expect(previewTime).toBeLessThan(1500); // Should generate preview in under 1.5 seconds
 
       console.log(`Large preview 25k cells (5k limit): ${previewTime}ms`);

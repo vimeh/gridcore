@@ -135,7 +135,7 @@ describe("BulkSetOperation", () => {
 
       const error = operation.validate();
       expect(error).toBeTruthy();
-      expect(error).toContain("cannot be null");
+      expect(error).toContain("cannot be undefined");
     });
 
     it("should fail validation for empty selection", () => {

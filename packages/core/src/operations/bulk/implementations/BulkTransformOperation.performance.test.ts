@@ -57,7 +57,7 @@ function generateTestData(
     const address = new CellAddress(Math.floor(i / 1000), i % 1000);
     addresses.push(address);
 
-    let value: string | number | boolean;
+    let value: string | number | boolean = "";
     if (dataType === "mixed") {
       // Mix of text, numbers, and booleans
       switch (i % 4) {
@@ -396,6 +396,12 @@ describe("BulkTransformOperation Performance Tests", () => {
         operation.execute(),
       );
 
+      if (!result.success) {
+        console.error("Operation failed with errors:", result.errors);
+        console.error("Cells processed:", result.cellsProcessed);
+        console.error("Cells modified:", result.cellsModified);
+      }
+      
       expect(result.success).toBe(true);
       expect(timeMs).toBeLessThan(4000);
       expect(cellsPerSecond).toBeGreaterThan(10000); // Target: > 10k cells/second
@@ -425,7 +431,7 @@ describe("BulkTransformOperation Performance Tests", () => {
       const previewTime = endTime - startTime;
 
       expect(preview.affectedCells).toBe(cellCount);
-      expect(preview.changes.length).toBeLessThanOrEqual(1000);
+      expect(preview.changes.size).toBeLessThanOrEqual(1000);
       expect(previewTime).toBeLessThan(500); // Should generate preview in under 500ms
 
       console.log(`Preview 50k cells (1k limit): ${previewTime}ms`);
@@ -449,7 +455,7 @@ describe("BulkTransformOperation Performance Tests", () => {
       const previewTime = endTime - startTime;
 
       expect(preview.affectedCells).toBe(cellCount);
-      expect(preview.changes.length).toBeLessThanOrEqual(5000);
+      expect(preview.changes.size).toBeLessThanOrEqual(5000);
       expect(previewTime).toBeLessThan(1000); // Should generate preview in under 1 second
 
       console.log(`Large preview 20k cells (5k limit): ${previewTime}ms`);

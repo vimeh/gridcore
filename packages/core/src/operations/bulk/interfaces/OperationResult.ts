@@ -215,9 +215,9 @@ export class OperationResultBuilder {
   }
 
   build(): OperationResult {
-    // Auto-calculate success if no errors and cells were modified
-    const cellsModified = this.result.cellsModified ?? 0;
-    if (this.result.errors?.length === 0 && cellsModified > 0) {
+    // Auto-calculate success if no errors occurred
+    // Success means the operation completed without errors, even if no cells were modified
+    if (this.result.errors?.length === 0) {
       this.result.success = true;
     }
 
