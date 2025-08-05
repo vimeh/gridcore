@@ -149,7 +149,6 @@ export class ModeIndicator {
         // Handle spreadsheet visual mode
         switch (state.visualMode) {
           case "char":
-          case "character":
             primaryMode = "VISUAL";
             colorKey = "visual";
             break;

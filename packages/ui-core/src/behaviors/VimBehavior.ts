@@ -267,7 +267,9 @@ export class VimBehavior {
       // Allow these vim navigation/command keys to work as commands
       const vimKeys = ["h", "j", "k", "l", "i", "a", "o", "v", "V", "g", "G", 
                        ":", "x", "r", "R", "u", "p", "P", "y", "d", "c", 
-                       "w", "b", "e", "W", "B", "E", "$", "^"];
+                       "w", "b", "e", "W", "B", "E", "$", "^", "0", "A", 
+                       "I", "O", "D", "z", "f", "F", "t", "T", "n", "N", 
+                       "s", "S", "m", "q", "Q", ".", ",", ";", "%", "~"];
       
       if (!vimKeys.includes(key)) {
         this.clearBuffers();
@@ -373,11 +375,17 @@ export class VimBehavior {
       case "x":
         this.clearBuffers();
         return { type: "delete" };
+      case "D":
+        this.clearBuffers();
+        return { type: "delete" };
 
       // Paste
       case "p":
         this.clearBuffers();
         return { type: "paste", before: false };
+      case "P":
+        this.clearBuffers();
+        return { type: "paste", before: true };
 
       // Command mode
       case ":":
