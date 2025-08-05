@@ -1,6 +1,7 @@
 import { CellAddress, type SpreadsheetFacade, StructuralEngine } from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
 import { type ResizeAction, ResizeBehavior } from "../behaviors/ResizeBehavior";
+import { StructuralOperationManager, type StructuralUIEvent } from "../behaviors/structural";
 import type { CellVimAction } from "../behaviors/VimBehavior";
 import {
   type KeyMeta,
@@ -46,7 +47,8 @@ export type ControllerEvent =
   | { type: "commandExecuted"; command: string }
   | { type: "error"; error: string }
   | { type: "structuralOperationCompleted"; operation: string; count: number; position: number }
-  | { type: "structuralOperationFailed"; operation: string; error: string };
+  | { type: "structuralOperationFailed"; operation: string; error: string }
+  | { type: "structuralUIEvent"; event: StructuralUIEvent };
 
 export class SpreadsheetController {
   private stateMachine: UIStateMachine;
@@ -56,6 +58,7 @@ export class SpreadsheetController {
   private facade: SpreadsheetFacade;
   private viewportManager: ViewportManager;
   private structuralEngine: StructuralEngine;
+  private structuralUIManager: StructuralOperationManager;
   private listeners: Array<(event: ControllerEvent) => void> = [];
 
   constructor(options: SpreadsheetControllerOptions) {
@@ -67,8 +70,14 @@ export class SpreadsheetController {
     this.cellVimBehavior = new CellVimBehavior();
     this.resizeBehavior = new ResizeBehavior();
     
-    // Initialize structural engine
+    // Initialize structural engine and UI manager
     this.structuralEngine = new StructuralEngine();
+    this.structuralUIManager = new StructuralOperationManager();
+    
+    // Forward structural UI events to controller listeners
+    this.structuralUIManager.subscribe((event: StructuralUIEvent) => {
+      this.emit({ type: "structuralUIEvent", event });
+    });
 
     // Initialize state machine
     let initialState = options.initialState;
@@ -899,6 +908,10 @@ export class SpreadsheetController {
     return this.facade;
   }
 
+  getStructuralUIManager(): StructuralOperationManager {
+    return this.structuralUIManager;
+  }
+
   // Save cell and exit editing
   saveAndExitEditing(): Result<UIState> {
     const state = this.stateMachine.getState();
@@ -1023,28 +1036,37 @@ export class SpreadsheetController {
   }
 
   // Structural operation methods
-  insertRows(beforeRow: number, count: number = 1): Result<UIState> {
+  async insertRows(beforeRow: number, count: number = 1): Promise<Result<UIState>> {
+    // Create operation object
+    const operation = {
+      type: "insertRow" as const,
+      index: beforeRow,
+      count,
+      timestamp: Date.now(),
+      id: `insert-row-${Date.now()}-${Math.random()}`
+    };
+
+    // Analyze the operation first
+    const analysisResult = this.structuralEngine.analyzeStructuralChange(operation);
+    if (!analysisResult.ok) {
+      this.structuralUIManager.failOperation(analysisResult.error);
+      return { ok: false, error: analysisResult.error };
+    }
+
+    const analysis = analysisResult.value;
+
+    // Start UI operation (may show confirmation dialog)
+    const confirmed = await this.structuralUIManager.startOperation(operation, analysis);
+    if (!confirmed) {
+      return { ok: true, value: this.getState() }; // User cancelled
+    }
+
+    // Execute the actual operation
     const result = this.structuralEngine.insertRows(beforeRow, count);
     
     if (result.ok) {
-      const analysis = result.value;
+      const finalAnalysis = result.value;
       
-      // Emit events about the operation
-      this.emit({
-        type: "commandExecuted",
-        command: `insertRows ${beforeRow} ${count}`,
-      });
-
-      // If there were warnings, emit them
-      if (analysis.warnings.length > 0) {
-        for (const warning of analysis.warnings) {
-          this.emit({
-            type: "error",
-            error: `Warning: ${warning.message}`,
-          });
-        }
-      }
-
       // Update viewport if needed (rows were inserted before current view)
       const state = this.getState();
       if (beforeRow <= state.viewport.startRow) {
@@ -1056,7 +1078,20 @@ export class SpreadsheetController {
           }
         });
       }
+
+      // Complete the UI operation
+      this.structuralUIManager.completeOperation(
+        finalAnalysis.affectedCells,
+        finalAnalysis.formulaUpdates
+      );
+
+      // Emit legacy events for backward compatibility
+      this.emit({
+        type: "commandExecuted",
+        command: `insertRows ${beforeRow} ${count}`,
+      });
     } else {
+      this.structuralUIManager.failOperation(result.error);
       this.emit({
         type: "error",
         error: `Failed to insert rows: ${result.error}`,
@@ -1066,28 +1101,37 @@ export class SpreadsheetController {
     return { ok: true, value: this.getState() };
   }
 
-  insertColumns(beforeCol: number, count: number = 1): Result<UIState> {
+  async insertColumns(beforeCol: number, count: number = 1): Promise<Result<UIState>> {
+    // Create operation object
+    const operation = {
+      type: "insertColumn" as const,
+      index: beforeCol,
+      count,
+      timestamp: Date.now(),
+      id: `insert-column-${Date.now()}-${Math.random()}`
+    };
+
+    // Analyze the operation first
+    const analysisResult = this.structuralEngine.analyzeStructuralChange(operation);
+    if (!analysisResult.ok) {
+      this.structuralUIManager.failOperation(analysisResult.error);
+      return { ok: false, error: analysisResult.error };
+    }
+
+    const analysis = analysisResult.value;
+
+    // Start UI operation (may show confirmation dialog)
+    const confirmed = await this.structuralUIManager.startOperation(operation, analysis);
+    if (!confirmed) {
+      return { ok: true, value: this.getState() }; // User cancelled
+    }
+
+    // Execute the actual operation
     const result = this.structuralEngine.insertColumns(beforeCol, count);
     
     if (result.ok) {
-      const analysis = result.value;
+      const finalAnalysis = result.value;
       
-      // Emit events about the operation
-      this.emit({
-        type: "commandExecuted", 
-        command: `insertColumns ${beforeCol} ${count}`,
-      });
-
-      // If there were warnings, emit them
-      if (analysis.warnings.length > 0) {
-        for (const warning of analysis.warnings) {
-          this.emit({
-            type: "error",
-            error: `Warning: ${warning.message}`,
-          });
-        }
-      }
-
       // Update viewport if needed (columns were inserted before current view)
       const state = this.getState();
       if (beforeCol <= state.viewport.startCol) {
@@ -1099,7 +1143,20 @@ export class SpreadsheetController {
           }
         });
       }
+
+      // Complete the UI operation
+      this.structuralUIManager.completeOperation(
+        finalAnalysis.affectedCells,
+        finalAnalysis.formulaUpdates
+      );
+
+      // Emit legacy events for backward compatibility
+      this.emit({
+        type: "commandExecuted", 
+        command: `insertColumns ${beforeCol} ${count}`,
+      });
     } else {
+      this.structuralUIManager.failOperation(result.error);
       this.emit({
         type: "error",
         error: `Failed to insert columns: ${result.error}`,
@@ -1109,28 +1166,37 @@ export class SpreadsheetController {
     return { ok: true, value: this.getState() };
   }
 
-  deleteRows(startRow: number, count: number = 1): Result<UIState> {
+  async deleteRows(startRow: number, count: number = 1): Promise<Result<UIState>> {
+    // Create operation object
+    const operation = {
+      type: "deleteRow" as const,
+      index: startRow,
+      count,
+      timestamp: Date.now(),
+      id: `delete-row-${Date.now()}-${Math.random()}`
+    };
+
+    // Analyze the operation first
+    const analysisResult = this.structuralEngine.analyzeStructuralChange(operation);
+    if (!analysisResult.ok) {
+      this.structuralUIManager.failOperation(analysisResult.error);
+      return { ok: false, error: analysisResult.error };
+    }
+
+    const analysis = analysisResult.value;
+
+    // Start UI operation (may show confirmation dialog)
+    const confirmed = await this.structuralUIManager.startOperation(operation, analysis);
+    if (!confirmed) {
+      return { ok: true, value: this.getState() }; // User cancelled
+    }
+
+    // Execute the actual operation
     const result = this.structuralEngine.deleteRows(startRow, count);
     
     if (result.ok) {
-      const analysis = result.value;
+      const finalAnalysis = result.value;
       
-      // Emit events about the operation
-      this.emit({
-        type: "commandExecuted",
-        command: `deleteRows ${startRow} ${count}`,
-      });
-
-      // If there were warnings, emit them
-      if (analysis.warnings.length > 0) {
-        for (const warning of analysis.warnings) {
-          this.emit({
-            type: "error",
-            error: `Warning: ${warning.message}`,
-          });
-        }
-      }
-
       // Update viewport if needed (rows were deleted before/within current view)
       const state = this.getState();
       if (startRow < state.viewport.startRow + state.viewport.rows) {
@@ -1145,7 +1211,20 @@ export class SpreadsheetController {
           }
         });
       }
+
+      // Complete the UI operation
+      this.structuralUIManager.completeOperation(
+        finalAnalysis.affectedCells,
+        finalAnalysis.formulaUpdates
+      );
+
+      // Emit legacy events for backward compatibility
+      this.emit({
+        type: "commandExecuted",
+        command: `deleteRows ${startRow} ${count}`,
+      });
     } else {
+      this.structuralUIManager.failOperation(result.error);
       this.emit({
         type: "error",
         error: `Failed to delete rows: ${result.error}`,
@@ -1155,28 +1234,37 @@ export class SpreadsheetController {
     return { ok: true, value: this.getState() };
   }
 
-  deleteColumns(startCol: number, count: number = 1): Result<UIState> {
+  async deleteColumns(startCol: number, count: number = 1): Promise<Result<UIState>> {
+    // Create operation object
+    const operation = {
+      type: "deleteColumn" as const,
+      index: startCol,
+      count,
+      timestamp: Date.now(),
+      id: `delete-column-${Date.now()}-${Math.random()}`
+    };
+
+    // Analyze the operation first
+    const analysisResult = this.structuralEngine.analyzeStructuralChange(operation);
+    if (!analysisResult.ok) {
+      this.structuralUIManager.failOperation(analysisResult.error);
+      return { ok: false, error: analysisResult.error };
+    }
+
+    const analysis = analysisResult.value;
+
+    // Start UI operation (may show confirmation dialog)
+    const confirmed = await this.structuralUIManager.startOperation(operation, analysis);
+    if (!confirmed) {
+      return { ok: true, value: this.getState() }; // User cancelled
+    }
+
+    // Execute the actual operation
     const result = this.structuralEngine.deleteColumns(startCol, count);
     
     if (result.ok) {
-      const analysis = result.value;
+      const finalAnalysis = result.value;
       
-      // Emit events about the operation
-      this.emit({
-        type: "commandExecuted",
-        command: `deleteColumns ${startCol} ${count}`,
-      });
-
-      // If there were warnings, emit them
-      if (analysis.warnings.length > 0) {
-        for (const warning of analysis.warnings) {
-          this.emit({
-            type: "error",
-            error: `Warning: ${warning.message}`,
-          });
-        }
-      }
-
       // Update viewport if needed (columns were deleted before/within current view)
       const state = this.getState();
       if (startCol < state.viewport.startCol + state.viewport.cols) {
@@ -1191,7 +1279,20 @@ export class SpreadsheetController {
           }
         });
       }
+
+      // Complete the UI operation
+      this.structuralUIManager.completeOperation(
+        finalAnalysis.affectedCells,
+        finalAnalysis.formulaUpdates
+      );
+
+      // Emit legacy events for backward compatibility
+      this.emit({
+        type: "commandExecuted",
+        command: `deleteColumns ${startCol} ${count}`,
+      });
     } else {
+      this.structuralUIManager.failOperation(result.error);
       this.emit({
         type: "error",
         error: `Failed to delete columns: ${result.error}`,
