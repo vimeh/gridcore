@@ -1,4 +1,9 @@
 import type { Cell, CellAddress } from "@gridcore/core";
+import {
+  DEFAULT_HIGHLIGHT_COLORS,
+  FormulaHighlighter,
+  type HighlightSegment,
+} from "@gridcore/ui-core";
 
 export interface FormulaBarCallbacks {
   onValueChange: (address: CellAddress, value: string) => void;
@@ -10,16 +15,20 @@ export interface FormulaBarCallbacks {
 export class FormulaBar {
   private container: HTMLElement;
   private addressInput!: HTMLInputElement;
-  private formulaInput!: HTMLInputElement;
+  private formulaInput!: HTMLDivElement; // Changed from HTMLInputElement to support highlighting
+  private formulaPlainInput!: HTMLInputElement; // Hidden input for actual value
   private currentCell: CellAddress | null = null;
   // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used in setEditingState method
   private isEditingExternally = false;
+  private highlighter: FormulaHighlighter;
+  private isHighlightingEnabled = true;
 
   constructor(
     container: HTMLElement,
     private callbacks: FormulaBarCallbacks,
   ) {
     this.container = container;
+    this.highlighter = new FormulaHighlighter();
     this.setupDOM();
   }
 
@@ -54,10 +63,13 @@ export class FormulaBar {
       this.handleAddressKeyDown.bind(this),
     );
 
-    // Formula input
-    this.formulaInput = document.createElement("input");
-    this.formulaInput.type = "text";
-    this.formulaInput.className = "formula-bar-input";
+    // Create highlighting CSS styles
+    this.createHighlightingStyles();
+
+    // Formula input - contenteditable div for highlighting
+    this.formulaInput = document.createElement("div");
+    this.formulaInput.contentEditable = "true";
+    this.formulaInput.className = "formula-bar-input highlighted-formula";
     this.formulaInput.style.cssText = `
       flex: 1;
       padding: 4px 8px;
@@ -65,7 +77,19 @@ export class FormulaBar {
       border-radius: 3px;
       font-family: monospace;
       font-size: 13px;
+      background: white;
+      outline: none;
+      min-height: 20px;
+      white-space: nowrap;
+      overflow-x: auto;
+      line-height: 1.4;
     `;
+
+    // Hidden plain input to maintain form value
+    this.formulaPlainInput = document.createElement("input");
+    this.formulaPlainInput.type = "hidden";
+    this.formulaPlainInput.className = "formula-bar-plain-input";
+
     this.formulaInput.addEventListener(
       "keydown",
       this.handleFormulaKeyDown.bind(this),
@@ -73,6 +97,14 @@ export class FormulaBar {
     this.formulaInput.addEventListener(
       "blur",
       this.handleFormulaBlur.bind(this),
+    );
+    this.formulaInput.addEventListener(
+      "input",
+      this.handleFormulaInput.bind(this),
+    );
+    this.formulaInput.addEventListener(
+      "paste",
+      this.handleFormulaPaste.bind(this),
     );
 
     // Function icon
@@ -87,6 +119,7 @@ export class FormulaBar {
     this.container.appendChild(this.addressInput);
     this.container.appendChild(functionIcon);
     this.container.appendChild(this.formulaInput);
+    this.container.appendChild(this.formulaPlainInput);
 
     // Spacer
     const spacer = document.createElement("div");
@@ -155,18 +188,18 @@ export class FormulaBar {
 
     if (address) {
       this.addressInput.value = address.toString();
-      this.formulaInput.value =
-        cell?.formula?.toString() || String(cell?.rawValue || "");
+      const value = cell?.formula?.toString() || String(cell?.rawValue || "");
+      this.setFormulaValue(value);
     } else {
       this.addressInput.value = "";
-      this.formulaInput.value = "";
+      this.setFormulaValue("");
     }
   }
 
   setEditingState(isEditing: boolean): void {
     this.isEditingExternally = isEditing;
     // Make formula input read-only when cell editor is active
-    this.formulaInput.readOnly = isEditing;
+    this.formulaInput.contentEditable = isEditing ? "false" : "true";
     // Optionally disable the input styling
     if (isEditing) {
       this.formulaInput.style.opacity = "0.7";
@@ -179,7 +212,12 @@ export class FormulaBar {
 
   focusFormula(): void {
     this.formulaInput.focus();
-    this.formulaInput.select();
+    // Select all content for contenteditable
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(this.formulaInput);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
   }
 
   private handleAddressKeyDown(event: KeyboardEvent): void {
@@ -207,11 +245,253 @@ export class FormulaBar {
   private commitValue(): void {
     if (!this.currentCell) return;
 
-    const value = this.formulaInput.value;
+    const value = this.getFormulaValue();
     this.callbacks.onValueChange(this.currentCell, value);
   }
 
   destroy(): void {
     this.container.innerHTML = "";
   }
+
+  /**
+   * Create CSS styles for syntax highlighting
+   */
+  private createHighlightingStyles(): void {
+    const styleId = "formula-highlighting-styles";
+    if (document.getElementById(styleId)) {
+      return; // Styles already exist
+    }
+
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      .highlighted-formula {
+        position: relative;
+      }
+      
+      .ref-relative {
+        color: ${DEFAULT_HIGHLIGHT_COLORS.references.relative};
+        font-weight: 500;
+      }
+      
+      .ref-absolute {
+        color: ${DEFAULT_HIGHLIGHT_COLORS.references.absolute};
+        font-weight: bold;
+      }
+      
+      .ref-mixed-column {
+        color: ${DEFAULT_HIGHLIGHT_COLORS.references["mixed-column"]};
+        font-weight: 500;
+      }
+      
+      .ref-mixed-row {
+        color: ${DEFAULT_HIGHLIGHT_COLORS.references["mixed-row"]};
+        font-weight: 500;
+      }
+      
+      .ref-operator {
+        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.operator};
+      }
+      
+      .ref-function {
+        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.function};
+        font-weight: 500;
+      }
+      
+      .ref-number {
+        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.number};
+      }
+      
+      .ref-string {
+        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.string};
+      }
+      
+      .ref-parenthesis {
+        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.parenthesis};
+      }
+      
+      .formula-bar-input:focus {
+        border-color: #007acc;
+        box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.25);
+      }
+      
+      .reference-tooltip {
+        position: absolute;
+        background: #333;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 11px;
+        white-space: nowrap;
+        z-index: 1000;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  /**
+   * Get the plain text value from the contenteditable div
+   */
+  private getFormulaValue(): string {
+    return this.formulaInput.textContent || "";
+  }
+
+  /**
+   * Set the formula value with syntax highlighting
+   */
+  private setFormulaValue(value: string): void {
+    // Update hidden input for form compatibility
+    this.formulaPlainInput.value = value;
+
+    if (!this.isHighlightingEnabled || !value.startsWith("=")) {
+      // No highlighting for non-formulas
+      this.formulaInput.textContent = value;
+      return;
+    }
+
+    // Apply syntax highlighting
+    const segments = this.highlighter.highlightFormula(value);
+    this.renderHighlightedSegments(segments, value);
+  }
+
+  /**
+   * Render highlighted segments in the contenteditable div
+   */
+  private renderHighlightedSegments(
+    segments: HighlightSegment[],
+    originalText: string,
+  ): void {
+    const fragment = document.createDocumentFragment();
+
+    for (const segment of segments) {
+      const span = document.createElement("span");
+      span.textContent = segment.text;
+
+      // Apply appropriate CSS class
+      if (segment.type === "reference" && segment.referenceType) {
+        span.className = `ref-${segment.referenceType}`;
+        span.title = this.getReferenceTooltip(segment.referenceType);
+      } else if (segment.type !== "normal") {
+        span.className = `ref-${segment.type}`;
+      }
+
+      fragment.appendChild(span);
+    }
+
+    // Replace content while preserving cursor position
+    const selection = window.getSelection();
+    const cursorOffset = selection?.rangeCount ? this.getCursorOffset() : 0;
+
+    this.formulaInput.innerHTML = "";
+    this.formulaInput.appendChild(fragment);
+
+    // Restore cursor position
+    if (cursorOffset > 0) {
+      this.setCursorOffset(cursorOffset);
+    }
+  }
+
+  /**
+   * Get tooltip text for reference types
+   */
+  private getReferenceTooltip(referenceType: string): string {
+    switch (referenceType) {
+      case "relative":
+        return "Relative reference - adjusts when copied (A1)";
+      case "absolute":
+        return "Absolute reference - stays fixed when copied ($A$1)";
+      case "mixed-column":
+        return "Mixed reference - column fixed, row adjusts ($A1)";
+      case "mixed-row":
+        return "Mixed reference - row fixed, column adjusts (A$1)";
+      default:
+        return "";
+    }
+  }
+
+  /**
+   * Get current cursor offset in the contenteditable div
+   */
+  private getCursorOffset(): number {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return 0;
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(this.formulaInput);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+    return preCaretRange.toString().length;
+  }
+
+  /**
+   * Set cursor position in the contenteditable div
+   */
+  private setCursorOffset(offset: number): void {
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const range = document.createRange();
+    let currentOffset = 0;
+    let targetNode: Node | null = null;
+    let targetOffset = 0;
+
+    const walker = document.createTreeWalker(
+      this.formulaInput,
+      NodeFilter.SHOW_TEXT,
+      null,
+    );
+
+    let node: Node | null = walker.nextNode();
+    while (node) {
+      const nodeLength = node.textContent?.length || 0;
+      if (currentOffset + nodeLength >= offset) {
+        targetNode = node;
+        targetOffset = offset - currentOffset;
+        break;
+      }
+      currentOffset += nodeLength;
+      node = walker.nextNode();
+    }
+
+    if (targetNode) {
+      range.setStart(targetNode, targetOffset);
+      range.setEnd(targetNode, targetOffset);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+
+  /**
+   * Handle input events for live highlighting
+   */
+  private handleFormulaInput(): void {
+    const value = this.getFormulaValue();
+    this.formulaPlainInput.value = value;
+
+    // Re-apply highlighting if this is a formula
+    if (this.isHighlightingEnabled && value.startsWith("=")) {
+      // Debounce highlighting for performance
+      clearTimeout(this.highlightingTimeout);
+      this.highlightingTimeout = setTimeout(() => {
+        const segments = this.highlighter.highlightFormula(value);
+        this.renderHighlightedSegments(segments, value);
+      }, 100);
+    }
+  }
+
+  /**
+   * Handle paste events to maintain highlighting
+   */
+  private handleFormulaPaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const text = event.clipboardData?.getData("text/plain") || "";
+
+    // Insert plain text and then re-highlight
+    document.execCommand("insertText", false, text);
+    this.handleFormulaInput();
+  }
+
+  private highlightingTimeout: number | undefined;
 }
