@@ -3,6 +3,8 @@ import type { Selection, BulkOperationFactory as IBulkOperationFactory, BulkOper
 import { FindReplaceOperation, FindReplaceOptions } from "./implementations/FindReplaceOperation";
 import { BulkSetOperation, BulkSetOptions } from "./implementations/BulkSetOperation";
 import { BulkMathOperation, BulkMathOptions, MathOperationType } from "./implementations/BulkMathOperation";
+import { BulkTransformOperation, BulkTransformOptions, TransformationType } from "./implementations/BulkTransformOperation";
+import { BulkFormatOperation, BulkFormatOptions, FormatType } from "./implementations/BulkFormatOperation";
 
 /**
  * Factory for creating bulk operations from command parser results
@@ -153,23 +155,107 @@ export class BulkOperationFactory implements IBulkOperationFactory {
   }
 
   /**
-   * Create a transform operation (placeholder for future implementation)
+   * Create a transform operation from command options
    */
-  private createTransformOperation(selection: Selection, options: any): BulkOperation | null {
-    // TODO: Implement TransformOperation class
-    // This would handle upper, lower, trim, clean operations
-    console.warn("Transform operations not yet implemented");
-    return null;
+  private createTransformOperation(selection: Selection, options: any): BulkTransformOperation | null {
+    // Map command transformation names to TransformationType
+    const transformationMap: Record<string, TransformationType> = {
+      "upper": "upper",
+      "uppercase": "upper",
+      "lower": "lower",
+      "lowercase": "lower",
+      "trim": "trim",
+      "clean": "clean"
+    };
+
+    const transformation = transformationMap[options.transformation];
+    if (!transformation) {
+      console.warn(`Unsupported transformation: ${options.transformation}`);
+      return null;
+    }
+
+    const transformOptions: BulkTransformOptions = {
+      transformation,
+      skipNonText: options.skipNonText ?? true,
+      convertNumbers: options.convertNumbers ?? false,
+      preserveType: options.preserveType ?? true,
+      cleanOptions: options.cleanOptions ?? {
+        normalizeSpaces: true,
+        removeLineBreaks: true,
+        removeTabs: true,
+        removeOtherWhitespace: false
+      },
+      skipEmpty: options.skipEmpty ?? true,
+      batchSize: options.batchSize,
+      onProgress: options.onProgress,
+      stopOnError: options.stopOnError ?? false
+    };
+
+    return new BulkTransformOperation(selection, transformOptions, this.cellRepository);
   }
 
   /**
-   * Create a format operation (placeholder for future implementation)
+   * Create a format operation from command options
    */
-  private createFormatOperation(selection: Selection, options: any): BulkOperation | null {
-    // TODO: Implement FormatOperation class
-    // This would handle currency, percent, date, number formatting
-    console.warn("Format operations not yet implemented");
-    return null;
+  private createFormatOperation(selection: Selection, options: any): BulkFormatOperation | null {
+    // Map command format names to FormatType
+    const formatMap: Record<string, FormatType> = {
+      "currency": "currency",
+      "money": "currency",
+      "percent": "percent",
+      "percentage": "percent",
+      "date": "date",
+      "datetime": "date",
+      "number": "number",
+      "numeric": "number",
+      "text": "text",
+      "string": "text"
+    };
+
+    const formatType = formatMap[options.formatType];
+    if (!formatType) {
+      console.warn(`Unsupported format type: ${options.formatType}`);
+      return null;
+    }
+
+    const formatOptions: BulkFormatOptions = {
+      formatType,
+      locale: options.locale ?? "en-US",
+      skipNonNumeric: options.skipNonNumeric ?? true,
+      convertStrings: options.convertStrings ?? true,
+      preserveOnError: options.preserveOnError ?? true,
+      currencyOptions: {
+        currency: options.currency ?? "USD",
+        symbol: options.currencySymbol,
+        decimals: options.currencyDecimals ?? 2,
+        showSymbol: options.showCurrencySymbol ?? true,
+        useThousandsSeparator: options.useThousandsSeparator ?? true,
+        ...options.currencyOptions
+      },
+      percentOptions: {
+        decimals: options.percentDecimals ?? 2,
+        multiplyBy100: options.multiplyBy100 ?? true,
+        ...options.percentOptions
+      },
+      dateOptions: {
+        format: options.dateFormat ?? "MM/DD/YYYY",
+        includeTime: options.includeTime ?? false,
+        timeFormat: options.timeFormat ?? "12h",
+        ...options.dateOptions
+      },
+      numberOptions: {
+        decimals: options.numberDecimals ?? 2,
+        useThousandsSeparator: options.useThousandsSeparator ?? true,
+        showPositiveSign: options.showPositiveSign ?? false,
+        ...options.numberOptions
+      },
+      skipEmpty: options.skipEmpty ?? true,
+      batchSize: options.batchSize,
+      onProgress: options.onProgress,
+      stopOnError: options.stopOnError ?? false
+    };
+
+    return new BulkFormatOperation(selection, formatOptions, this.cellRepository);
   }
 }
 
