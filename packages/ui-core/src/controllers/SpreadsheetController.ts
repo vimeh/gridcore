@@ -77,8 +77,9 @@ export type ControllerEvent =
     }
   | { type: "structuralOperationFailed"; operation: string; error: string }
   | { type: "structuralUIEvent"; event: StructuralUIEvent }
-  // | { type: "undoCompleted"; description: string; snapshot: StructuralSnapshot }
-  // | { type: "redoCompleted"; description: string; snapshot: StructuralSnapshot }
+  | { type: "bulkOperationExecuted"; command: ParsedBulkCommand }
+  | { type: "undoCompleted"; description: string }
+  | { type: "redoCompleted"; description: string }
   | { type: "undoRedoStateChanged"; canUndo: boolean; canRedo: boolean };
 
 export class SpreadsheetController {
@@ -1035,7 +1036,7 @@ export class SpreadsheetController {
     this.emit({ type: "bulkOperationExecuted", command });
 
     // Return to navigation mode
-    this.stateMachine.transition({ type: "BULK_OPERATION_COMPLETE" });
+    this.stateMachine.transition({ type: "COMPLETE_BULK_OPERATION" });
   }
 
   // Get command completion for tab completion
@@ -1524,10 +1525,8 @@ export class SpreadsheetController {
     // Start operation with UI feedback
     await this.structuralManager.startOperation(operation, {
       affectedCells: [],
-      formulaUpdates: [],
+      formulaUpdates: new Map<CellAddress, string>(),
       warnings: [],
-      estimatedTime: 100,
-      requiresConfirmation: false,
     });
 
     try {
@@ -1542,10 +1541,16 @@ export class SpreadsheetController {
       // Update cursor if needed (move down if inserting above current position)
       const state = this.stateMachine.getState();
       if (state.cursor.row >= beforeRow) {
-        this.stateMachine.transition({
-          type: "UPDATE_CURSOR",
-          cursor: { ...state.cursor, row: state.cursor.row + count },
-        });
+        const newCursorResult = CellAddress.create(
+          state.cursor.row + count,
+          state.cursor.col,
+        );
+        if (newCursorResult.ok) {
+          this.stateMachine.transition({
+            type: "UPDATE_CURSOR",
+            cursor: newCursorResult.value,
+          });
+        }
       }
 
       // Capture state after operation for redo
@@ -1603,10 +1608,8 @@ export class SpreadsheetController {
 
     await this.structuralManager.startOperation(operation, {
       affectedCells: [],
-      formulaUpdates: [],
+      formulaUpdates: new Map<CellAddress, string>(),
       warnings: [],
-      estimatedTime: 100,
-      requiresConfirmation: false,
     });
 
     try {
@@ -1624,10 +1627,16 @@ export class SpreadsheetController {
       // Update cursor if needed (move right if inserting before current position)
       const state = this.stateMachine.getState();
       if (state.cursor.col >= beforeCol) {
-        this.stateMachine.transition({
-          type: "UPDATE_CURSOR",
-          cursor: { ...state.cursor, col: state.cursor.col + count },
-        });
+        const newCursorResult = CellAddress.create(
+          state.cursor.row,
+          state.cursor.col + count,
+        );
+        if (newCursorResult.ok) {
+          this.stateMachine.transition({
+            type: "UPDATE_CURSOR",
+            cursor: newCursorResult.value,
+          });
+        }
       }
 
       // Update viewport if inserting columns affects it
@@ -1696,10 +1705,8 @@ export class SpreadsheetController {
 
     await this.structuralManager.startOperation(operation, {
       affectedCells: [],
-      formulaUpdates: [],
+      formulaUpdates: new Map<CellAddress, string>(),
       warnings: [],
-      estimatedTime: 100,
-      requiresConfirmation: count > 5,
     });
 
     try {
@@ -1724,10 +1731,16 @@ export class SpreadsheetController {
       }
 
       if (newCursorRow !== state.cursor.row) {
-        this.stateMachine.transition({
-          type: "UPDATE_CURSOR",
-          cursor: { ...state.cursor, row: newCursorRow },
-        });
+        const newCursorResult = CellAddress.create(
+          newCursorRow,
+          state.cursor.col,
+        );
+        if (newCursorResult.ok) {
+          this.stateMachine.transition({
+            type: "UPDATE_CURSOR",
+            cursor: newCursorResult.value,
+          });
+        }
       }
 
       // Capture state after operation for redo
@@ -1785,10 +1798,8 @@ export class SpreadsheetController {
 
     await this.structuralManager.startOperation(operation, {
       affectedCells: [],
-      formulaUpdates: [],
+      formulaUpdates: new Map<CellAddress, string>(),
       warnings: [],
-      estimatedTime: 100,
-      requiresConfirmation: count > 5,
     });
 
     try {
@@ -1813,10 +1824,16 @@ export class SpreadsheetController {
       }
 
       if (newCursorCol !== state.cursor.col) {
-        this.stateMachine.transition({
-          type: "UPDATE_CURSOR",
-          cursor: { ...state.cursor, col: newCursorCol },
-        });
+        const newCursorResult = CellAddress.create(
+          state.cursor.row,
+          newCursorCol,
+        );
+        if (newCursorResult.ok) {
+          this.stateMachine.transition({
+            type: "UPDATE_CURSOR",
+            cursor: newCursorResult.value,
+          });
+        }
       }
 
       // Capture state after operation for redo
@@ -1911,7 +1928,6 @@ export class SpreadsheetController {
         this.emit({
           type: "undoCompleted",
           description: "Structural operation undone",
-          snapshot,
         });
 
         this.emitUndoRedoStateChanged();
@@ -1955,7 +1971,6 @@ export class SpreadsheetController {
         this.emit({
           type: "redoCompleted",
           description: "Structural operation redone",
-          snapshot,
         });
 
         this.emitUndoRedoStateChanged();
