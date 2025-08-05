@@ -432,7 +432,10 @@ export class ConfirmationDialog {
     document.addEventListener("keydown", handleKeyDown);
 
     // Store reference to remove listener later
-    (this.dialogElement as any)._keydownHandler = handleKeyDown;
+    const dialogWithHandler = this.dialogElement as HTMLElement & {
+      _keydownHandler?: (e: KeyboardEvent) => void;
+    };
+    dialogWithHandler._keydownHandler = handleKeyDown;
   }
 
   /**
@@ -473,11 +476,16 @@ export class ConfirmationDialog {
    */
   private removeDialogElements(): void {
     // Remove keydown listener
-    if (this.dialogElement && (this.dialogElement as any)._keydownHandler) {
-      document.removeEventListener(
-        "keydown",
-        (this.dialogElement as any)._keydownHandler,
-      );
+    if (this.dialogElement) {
+      const dialogWithHandler = this.dialogElement as HTMLElement & {
+        _keydownHandler?: (e: KeyboardEvent) => void;
+      };
+      if (dialogWithHandler._keydownHandler) {
+        document.removeEventListener(
+          "keydown",
+          dialogWithHandler._keydownHandler,
+        );
+      }
     }
 
     if (this.overlayElement) {

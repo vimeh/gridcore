@@ -196,7 +196,10 @@ export class StructuralUndoManager {
       return err("Nothing to undo");
     }
 
-    const item = this.undoStack.pop()!;
+    const item = this.undoStack.pop();
+    if (!item) {
+      return err("Undo stack is empty");
+    }
 
     try {
       let resultSnapshot: StructuralSnapshot;
@@ -243,7 +246,10 @@ export class StructuralUndoManager {
       return err("Nothing to redo");
     }
 
-    const item = this.redoStack.pop()!;
+    const item = this.redoStack.pop();
+    if (!item) {
+      return err("Redo stack is empty");
+    }
 
     try {
       let resultSnapshot: StructuralSnapshot;
@@ -262,7 +268,10 @@ export class StructuralUndoManager {
         // Use the last operation's after snapshot as the result
         const lastOp =
           transaction.operations[transaction.operations.length - 1];
-        resultSnapshot = lastOp.afterSnapshot!;
+        if (!lastOp.afterSnapshot) {
+          return err("Last operation has no after snapshot");
+        }
+        resultSnapshot = lastOp.afterSnapshot;
       } else {
         // Redo single operation
         const operation = item as StructuralOperation;

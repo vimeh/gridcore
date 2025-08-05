@@ -505,8 +505,9 @@ export class OptimizedSparseGrid {
           if (!addressResult.ok) continue;
           const address = addressResult.value;
           const key = this.addressToKey(address);
-          if (this.cells.has(key)) {
-            result.set(address, this.cells.get(key)!);
+          const cell = this.cells.get(key);
+          if (cell !== undefined) {
+            result.set(address, cell);
           }
         }
       }

@@ -158,12 +158,16 @@ export class OperationResultBuilder {
 
   setExecutionTime(time: number): this {
     this.result.executionTime = time;
-    this.result.metadata!.endTime = this.result.metadata?.startTime + time;
+    if (this.result.metadata) {
+      this.result.metadata.endTime =
+        (this.result.metadata.startTime || 0) + time;
+    }
 
     // Calculate cells per second
-    if (time > 0 && this.result.cellsProcessed! > 0) {
-      this.result.metadata?.performance.cellsPerSecond =
-        this.result.cellsProcessed! / (time / 1000);
+    const cellsProcessed = this.result.cellsProcessed ?? 0;
+    if (time > 0 && cellsProcessed > 0 && this.result.metadata?.performance) {
+      this.result.metadata.performance.cellsPerSecond =
+        cellsProcessed / (time / 1000);
     }
 
     return this;
@@ -187,26 +191,33 @@ export class OperationResultBuilder {
   }
 
   setOperationType(type: string): this {
-    this.result.metadata!.operationType = type;
+    if (this.result.metadata) {
+      this.result.metadata.operationType = type;
+    }
     return this;
   }
 
   setPerformanceMetrics(metrics: Partial<PerformanceMetrics>): this {
-    this.result.metadata!.performance = {
-      ...this.result.metadata?.performance,
-      ...metrics,
-    };
+    if (this.result.metadata) {
+      this.result.metadata.performance = {
+        ...this.result.metadata.performance,
+        ...metrics,
+      };
+    }
     return this;
   }
 
   setContext(context: Record<string, unknown>): this {
-    this.result.metadata!.context = context;
+    if (this.result.metadata) {
+      this.result.metadata.context = context;
+    }
     return this;
   }
 
   build(): OperationResult {
     // Auto-calculate success if no errors and cells were modified
-    if (this.result.errors?.length === 0 && this.result.cellsModified! > 0) {
+    const cellsModified = this.result.cellsModified ?? 0;
+    if (this.result.errors?.length === 0 && cellsModified > 0) {
       this.result.success = true;
     }
 

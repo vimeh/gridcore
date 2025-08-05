@@ -287,8 +287,12 @@ export class StructuralEngine {
         return this.grid.insertColumns(change.index, change.count);
       case "deleteColumn":
         return this.grid.deleteColumns(change.index, change.count);
-      default:
-        return err(`Unknown structural change type: ${(change as any).type}`);
+      default: {
+        const exhaustiveCheck: never = change;
+        return err(
+          `Unknown structural change type: ${(exhaustiveCheck as unknown as { type: string }).type}`,
+        );
+      }
     }
   }
 }

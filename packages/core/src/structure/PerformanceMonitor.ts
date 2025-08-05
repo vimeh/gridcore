@@ -296,7 +296,9 @@ export class PerformanceTimer {
     }
     // Browser fallback - rough estimation
     // Type assertion for browser-specific performance API
-    const perfWithMemory = performance as any;
+    const perfWithMemory = performance as unknown as {
+      memory?: { usedJSHeapSize: number };
+    };
     return perfWithMemory.memory ? perfWithMemory.memory.usedJSHeapSize : 0;
   }
 }

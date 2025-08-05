@@ -45,7 +45,7 @@ global.requestAnimationFrame = mock((cb) => setTimeout(cb, 16));
 
 describe("ProgressIndicator", () => {
   let indicator: ProgressIndicator;
-  let container: any;
+  let container: HTMLElement;
 
   beforeEach(() => {
     // Reset all mocks
@@ -55,7 +55,7 @@ describe("ProgressIndicator", () => {
     mockDocument.body.appendChild.mockClear();
     mockContainer.appendChild.mockClear();
 
-    container = mockContainer;
+    container = mockContainer as unknown as HTMLElement;
     indicator = new ProgressIndicator(container);
   });
 
