@@ -30,7 +30,7 @@ export class ProgressIndicator {
   private isVisible = false;
   private startTime = 0;
   private onCancel?: () => void;
-  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used in line 72 and 133
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Property is assigned in show() and cleared in hide()
   private currentOperation?: StructuralOperation;
 
   constructor(

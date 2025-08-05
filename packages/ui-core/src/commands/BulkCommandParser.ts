@@ -161,8 +161,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
           scope: scope === "%" ? "sheet" : "selection",
         },
         requiresPreview: true,
-        // biome-ignore lint/complexity/noUselessTernary: Explicit for clarity
-        requiresSelection: scope !== "%" ? true : false, // Only require selection for non-sheet-wide operations
+        requiresSelection: scope !== "%", // Only require selection for non-sheet-wide operations
       };
     }
 

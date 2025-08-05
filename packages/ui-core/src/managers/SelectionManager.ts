@@ -55,7 +55,7 @@ export interface SelectionManager {
 }
 
 export class DefaultSelectionManager implements SelectionManager {
-  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Will be used for facade operations
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Reserved for future selection operations that may need cell data
   private facade: SpreadsheetFacade;
 
   constructor(facade: SpreadsheetFacade) {

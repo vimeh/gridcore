@@ -16,7 +16,6 @@ import {
   isCommandMode,
   isDeleteMode,
   isEditingMode,
-  isInsertMode,
   // isFillMode,
   isNavigationMode,
   isResizeMode,
