@@ -85,7 +85,7 @@ export async function runFormulaCalculationBenchmarks() {
       }
     })
 
-    // Formula chain - long
+    // Formula chain - long (reduced samples for performance)
     await bench("Formula chain (100 cells)", () => {
       const sheet = new Sheet("bench")
       const facade = sheet.getFacade()
@@ -93,6 +93,11 @@ export async function runFormulaCalculationBenchmarks() {
       for (const { address, value } of chain) {
         facade.setCellValue(address, value)
       }
+    }, {
+      warmupIterations: 5,
+      minSamples: 20,
+      maxTime: 3000,
+      minTime: 500
     })
 
     // Complex formulas

@@ -179,7 +179,7 @@ export async function runBatchOperationsBenchmarks() {
       }
     })
 
-    // Memory impact of large batches
+    // Memory impact of large batches - use reduced iterations since this is expensive
     const metrics = new MetricsCollector()
     metrics.start()
     
@@ -195,7 +195,7 @@ export async function runBatchOperationsBenchmarks() {
       facade.commitBatch(batchId)
       
       metrics.sample()
-    })
+    }, BENCHMARK_CONFIG.memoryBenchmark)
     
     const memoryStats = metrics.stop()
     console.log("\nBatch Operations Memory Impact:")

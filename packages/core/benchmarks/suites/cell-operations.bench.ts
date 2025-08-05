@@ -158,7 +158,7 @@ export async function runCellOperationsBenchmarks() {
       }
     })
 
-    // Memory impact test
+    // Memory impact test - use reduced iterations since this is expensive
     metrics.start()
     await bench("Memory impact (10k cells)", async () => {
       const sheet = new Sheet("bench")
@@ -170,7 +170,7 @@ export async function runCellOperationsBenchmarks() {
       }
       
       metrics.sample()
-    })
+    }, BENCHMARK_CONFIG.memoryBenchmark)
     const memoryStats = metrics.stop()
 
     console.log("\nMemory Impact:")

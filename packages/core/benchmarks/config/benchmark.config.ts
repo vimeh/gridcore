@@ -7,6 +7,14 @@ export const BENCHMARK_CONFIG = {
     minTime: 1000, // 1 second min per benchmark
   },
 
+  // Memory benchmark options (expensive operations)
+  memoryBenchmark: {
+    warmupIterations: 2,
+    minSamples: 5,
+    maxTime: 2000,
+    minTime: 0,
+  },
+
   // Test data sizes
   sizes: {
     small: {
