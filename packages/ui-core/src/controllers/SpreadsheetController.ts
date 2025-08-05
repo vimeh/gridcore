@@ -78,8 +78,8 @@ export type ControllerEvent =
   | { type: "structuralOperationFailed"; operation: string; error: string }
   | { type: "structuralUIEvent"; event: StructuralUIEvent }
   | { type: "bulkOperationExecuted"; command: ParsedBulkCommand }
-  | { type: "undoCompleted"; description: string }
-  | { type: "redoCompleted"; description: string }
+  | { type: "undoCompleted"; description: string; snapshot: unknown }
+  | { type: "redoCompleted"; description: string; snapshot: unknown }
   | { type: "undoRedoStateChanged"; canUndo: boolean; canRedo: boolean };
 
 export class SpreadsheetController {
@@ -1928,6 +1928,7 @@ export class SpreadsheetController {
         this.emit({
           type: "undoCompleted",
           description: "Structural operation undone",
+          snapshot: snapshot,
         });
 
         this.emitUndoRedoStateChanged();
@@ -1971,6 +1972,7 @@ export class SpreadsheetController {
         this.emit({
           type: "redoCompleted",
           description: "Structural operation redone",
+          snapshot: snapshot,
         });
 
         this.emitUndoRedoStateChanged();
