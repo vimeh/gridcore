@@ -16,7 +16,7 @@ export interface FindReplaceCommand extends BulkCommand {
     scope: "selection" | "sheet"; // % prefix means entire sheet
   };
   requiresPreview: true;
-  requiresSelection: false;
+  requiresSelection: boolean;
 }
 
 export interface BulkSetCommand extends BulkCommand {
@@ -161,7 +161,8 @@ export class VimBulkCommandParser implements BulkCommandParser {
           scope: scope === "%" ? "sheet" : "selection",
         },
         requiresPreview: true,
-        requiresSelection: scope !== "%", // Only require selection for non-sheet-wide operations
+        // biome-ignore lint/complexity/noUselessTernary: Explicit for clarity
+        requiresSelection: scope !== "%" ? true : false, // Only require selection for non-sheet-wide operations
       };
     }
 
