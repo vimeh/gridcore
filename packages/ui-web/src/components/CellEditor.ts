@@ -160,12 +160,18 @@ export class CellEditor {
     }
 
     // For normal character input without selection, let browser handle it
+    // But only if we're in INSERT mode - in NORMAL mode, let controller handle vim commands
     if (isCharInput && this.controller) {
-      console.log("CellEditor: Letting browser handle character input:", event.key);
-      // Stop propagation but don't prevent default
-      event.stopPropagation();
-      // Let browser insert the character, then sync in handleInput
-      return;
+      const state = this.controller.getState();
+      const isInInsertMode = state.spreadsheetMode === "editing" && state.cellMode === "insert";
+      
+      if (isInInsertMode) {
+        console.log("CellEditor: Letting browser handle character input:", event.key);
+        // Stop propagation but don't prevent default
+        event.stopPropagation();
+        // Let browser insert the character, then sync in handleInput
+        return;
+      }
     }
 
     // If we have a controller, delegate complex key handling to it
