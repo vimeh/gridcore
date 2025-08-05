@@ -148,7 +148,7 @@ export class StructuralUIExample {
    */
   private onOperationStarted(event: StructuralUIEvent): void {
     if (event.type !== "structuralOperationStarted") return;
-    
+
     // Add loading class to grid
     this.gridContainer.classList.add("structural-operation-active");
 
@@ -165,7 +165,7 @@ export class StructuralUIExample {
    */
   private onOperationCompleted(event: StructuralUIEvent): void {
     if (event.type !== "structuralOperationCompleted") return;
-    
+
     // Remove loading state
     this.gridContainer.classList.remove("structural-operation-active");
 
@@ -188,7 +188,7 @@ export class StructuralUIExample {
    */
   private onOperationFailed(event: StructuralUIEvent): void {
     if (event.type !== "structuralOperationFailed") return;
-    
+
     // Remove loading state
     this.gridContainer.classList.remove("structural-operation-active");
 
@@ -206,7 +206,7 @@ export class StructuralUIExample {
    */
   private onCellsHighlighted(event: StructuralUIEvent): void {
     if (event.type !== "highlightCells") return;
-    
+
     // Ensure highlighted cells are in viewport
     if (event.cells.length > 0) {
       this.ensureCellsVisible(event.cells);
