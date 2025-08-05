@@ -89,6 +89,7 @@ export class CellEditor {
     this.editorDiv.style.display = "block";
 
     // Set initial text
+    console.log("CellEditor.startEditing: Setting initial value:", initialValue, "at position:", cursorPosition);
     this.editorDiv.textContent = initialValue;
 
     // Focus and set cursor position
@@ -109,6 +110,7 @@ export class CellEditor {
   updateContent(content: string, cursorPosition: number): void {
     if (!this.isEditing) return;
 
+    console.log("CellEditor.updateContent: Updating content to:", content, "at position:", cursorPosition);
     this.editorDiv.textContent = content;
     this.setCursorPosition(cursorPosition);
   }
