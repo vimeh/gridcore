@@ -1,4 +1,4 @@
-import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
+import { CellAddress, CellRange, type SpreadsheetFacade, FillEngine, createFormulaAdjuster, type FillOperation } from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
 import { type ResizeAction, ResizeBehavior } from "../behaviors/ResizeBehavior";
 import type { CellVimAction } from "../behaviors/VimBehavior";
@@ -10,9 +10,11 @@ import {
 import {
   createNavigationState,
   createResizeState,
+  type FillDirection,
   type InsertMode,
   isCommandMode,
   isEditingMode,
+  isFillMode,
   isNavigationMode,
   isResizeMode,
   type UIState,
@@ -51,6 +53,7 @@ export class SpreadsheetController {
   private resizeBehavior: ResizeBehavior;
   private facade: SpreadsheetFacade;
   private viewportManager: ViewportManager;
+  private fillEngine: FillEngine;
   private listeners: Array<(event: ControllerEvent) => void> = [];
 
   constructor(options: SpreadsheetControllerOptions) {
@@ -61,6 +64,10 @@ export class SpreadsheetController {
     this.vimBehavior = new VimBehavior();
     this.cellVimBehavior = new CellVimBehavior();
     this.resizeBehavior = new ResizeBehavior();
+
+    // Initialize fill engine
+    const formulaAdjuster = createFormulaAdjuster();
+    this.fillEngine = new FillEngine(this.facade.getCellRepository(), formulaAdjuster);
 
     // Initialize state machine
     let initialState = options.initialState;
@@ -148,6 +155,12 @@ export class SpreadsheetController {
       case "paste":
         // These would be implemented based on selection
         return this.handleCellOperation(action.type, action, state);
+      case "startFill":
+        return this.handleStartFill(action.direction, action.options, state);
+      case "confirmFill":
+        return this.handleConfirmFill(state);
+      case "cancelFill":
+        return this.handleCancelFill(state);
       default:
         return { ok: true, value: state };
     }
@@ -817,5 +830,155 @@ export class SpreadsheetController {
 
     const rawValue = cellResult.value.rawValue;
     return rawValue !== null && rawValue !== undefined ? String(rawValue) : "";
+  }
+
+  // Fill operation handlers
+  private handleStartFill(
+    direction: FillDirection,
+    options: { series?: boolean; count?: number } | undefined,
+    state: UIState,
+  ): Result<UIState> {
+    if (!isNavigationMode(state)) {
+      return { ok: false, error: "Can only start fill from navigation mode" };
+    }
+
+    // Determine fill options based on vim command
+    const fillOptions = this.createFillOptions(direction, options);
+
+    // Enter fill mode through state machine
+    return this.stateMachine.transition({
+      type: "ENTER_FILL_MODE",
+      direction,
+      options: fillOptions,
+    });
+  }
+
+  private handleConfirmFill(state: UIState): Result<UIState> {
+    if (!isFillMode(state)) {
+      return { ok: false, error: "Can only confirm fill when in fill mode" };
+    }
+
+    // Execute the fill operation
+    this.executeFillOperation(state);
+
+    // Exit fill mode
+    return this.stateMachine.transition({ type: "CONFIRM_FILL" });
+  }
+
+  private handleCancelFill(state: UIState): Result<UIState> {
+    if (!isFillMode(state)) {
+      return { ok: false, error: "Can only cancel fill when in fill mode" };
+    }
+
+    // Just exit fill mode without executing
+    return this.stateMachine.transition({ type: "CANCEL_FILL" });
+  }
+
+  private createFillOptions(
+    direction: FillDirection,
+    vimOptions: { series?: boolean; count?: number } | undefined,
+  ) {
+    const fillOptions = {
+      type: vimOptions?.series ? "series" : "copy",
+      seriesType: direction === "down" || direction === "up" ? "linear" : "auto",
+    } as const;
+
+    return fillOptions;
+  }
+
+  private async executeFillOperation(state: UIState): Promise<void> {
+    if (!isFillMode(state)) {
+      return;
+    }
+
+    try {
+      // Create fill operation from state
+      const operation: FillOperation = {
+        source: state.fillSource,
+        target: state.fillTarget,
+        direction: state.fillDirection,
+        options: state.fillOptions,
+      };
+
+      // Execute fill through engine
+      const result = await this.fillEngine.fill(operation);
+      
+      if (result.success) {
+        // Emit events for filled cells
+        for (const [addressStr, value] of result.filledCells) {
+          const address = this.parseAddressString(addressStr);
+          if (address) {
+            this.emit({
+              type: "cellValueChanged",
+              address,
+              value: value.toString(),
+            });
+          }
+        }
+
+        // Show pattern information if available
+        if (result.pattern) {
+          console.log(`Fill completed with pattern: ${result.pattern.description}`);
+        }
+      } else {
+        // Emit error event
+        this.emit({
+          type: "error",
+          error: result.error || "Fill operation failed",
+        });
+      }
+    } catch (error) {
+      this.emit({
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown fill error",
+      });
+    }
+  }
+
+  private parseAddressString(addressStr: string): CellAddress | null {
+    try {
+      // Parse address string back to CellAddress
+      // This assumes the addressStr is in format like "A1", "B2", etc.
+      const match = addressStr.match(/^([A-Z]+)(\d+)$/);
+      if (!match) return null;
+
+      const col = this.columnNameToNumber(match[1]);
+      const row = parseInt(match[2], 10) - 1; // Convert to 0-based
+
+      const result = CellAddress.create(row, col);
+      return result.ok ? result.value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private columnNameToNumber(name: string): number {
+    let result = 0;
+    for (let i = 0; i < name.length; i++) {
+      result = result * 26 + (name.charCodeAt(i) - 65 + 1);
+    }
+    return result - 1; // Convert to 0-based
+  }
+
+  // Get fill engine for testing
+  getFillEngine(): FillEngine {
+    return this.fillEngine;
+  }
+
+  // Preview fill operation
+  async previewFill(
+    source: CellRange,
+    target: CellRange,
+    direction: FillDirection,
+    options?: any,
+  ) {
+    const operation: FillOperation = {
+      source,
+      target,
+      direction,
+      options: options || { type: "copy" },
+    };
+
+    return await this.fillEngine.preview(operation);
   }
 }
