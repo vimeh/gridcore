@@ -7,7 +7,6 @@ import { CellSelection } from "../base/CellSelection";
 import {
   BulkTransformOperation,
   type BulkTransformOptions,
-  TransformationType,
 } from "./BulkTransformOperation";
 
 // Mock cell repository for testing

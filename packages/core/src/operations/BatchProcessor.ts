@@ -1,7 +1,7 @@
 import type { ICellRepository } from "../domain/interfaces/ICellRepository";
 import type { CellValue } from "../domain/models";
 import { Cell, CellAddress } from "../domain/models";
-import type { BulkOperation, Selection } from "./bulk/interfaces/BulkOperation";
+import type { BulkOperation } from "./bulk/interfaces/BulkOperation";
 import type {
   CellChange,
   OperationPreview,
@@ -69,7 +69,6 @@ export interface BatchProcessorConfig {
  */
 export class BatchProcessor {
   private contexts: Map<string, BatchContext> = new Map();
-  private nextBatchId: number = 1;
 
   constructor(
     private cellRepository: ICellRepository,

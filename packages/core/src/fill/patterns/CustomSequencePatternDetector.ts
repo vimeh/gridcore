@@ -338,7 +338,7 @@ export class CustomSequencePatternDetector implements PatternDetector {
    */
   private calculateSequenceValue(type: SequenceType, index: number): number {
     const generator = new CustomSequencePatternGenerator(type, 0);
-    return generator["calculateSequenceValue"](type, index);
+    return generator.calculateSequenceValue(type, index);
   }
 
   /**

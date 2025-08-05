@@ -1,10 +1,9 @@
-import type { CellAddress } from "../domain/models/CellAddress";
 import {
   ReferenceAdjuster,
   ReferenceDetector,
   ReferenceParser,
 } from "../references";
-import type { CellReference, Reference } from "../references/types";
+import type { CellReference } from "../references/types";
 import { err, ok, type Result } from "../shared/types/Result";
 
 /**
@@ -23,7 +22,6 @@ export interface StructuralChange {
  */
 export class ReferenceUpdater {
   private parser: ReferenceParser;
-  private adjuster: ReferenceAdjuster;
   private detector: ReferenceDetector;
 
   constructor() {
@@ -43,7 +41,7 @@ export class ReferenceUpdater {
     try {
       const analysis = this.detector.analyzeFormula(formula);
       let updatedFormula = formula;
-      const offset = 0;
+      const _offset = 0;
 
       // Process references from right to left to maintain positions
       const sortedRefs = [...analysis.references].sort(
@@ -60,7 +58,7 @@ export class ReferenceUpdater {
             row: ref.row + count,
           };
 
-          const originalText = refInfo.text;
+          const _originalText = refInfo.text;
           const newText = this.parser.stringifyCellReference(adjustedRef);
 
           updatedFormula =
@@ -101,7 +99,7 @@ export class ReferenceUpdater {
           continue;
         }
 
-        const originalText = refInfo.text;
+        const _originalText = refInfo.text;
         let newText: string;
 
         if (ref.row >= deleteRow && ref.row < deleteRow + count) {
@@ -158,7 +156,7 @@ export class ReferenceUpdater {
             column: ref.column + count,
           };
 
-          const originalText = refInfo.text;
+          const _originalText = refInfo.text;
           const newText = this.parser.stringifyCellReference(adjustedRef);
 
           updatedFormula =
@@ -199,7 +197,7 @@ export class ReferenceUpdater {
           continue;
         }
 
-        const originalText = refInfo.text;
+        const _originalText = refInfo.text;
         let newText: string;
 
         if (ref.column >= deleteCol && ref.column < deleteCol + count) {

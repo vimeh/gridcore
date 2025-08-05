@@ -1,4 +1,3 @@
-import { CellAddress } from "../../../domain/models";
 import type { CellChange } from "./OperationPreview";
 
 /**
@@ -159,11 +158,11 @@ export class OperationResultBuilder {
 
   setExecutionTime(time: number): this {
     this.result.executionTime = time;
-    this.result.metadata!.endTime = this.result.metadata!.startTime + time;
+    this.result.metadata!.endTime = this.result.metadata?.startTime + time;
 
     // Calculate cells per second
     if (time > 0 && this.result.cellsProcessed! > 0) {
-      this.result.metadata!.performance.cellsPerSecond =
+      this.result.metadata?.performance.cellsPerSecond =
         this.result.cellsProcessed! / (time / 1000);
     }
 
@@ -171,19 +170,19 @@ export class OperationResultBuilder {
   }
 
   addError(error: string): this {
-    this.result.errors!.push(error);
+    this.result.errors?.push(error);
     this.result.success = false;
     return this;
   }
 
   addWarning(warning: string): this {
-    this.result.warnings!.push(warning);
+    this.result.warnings?.push(warning);
     return this;
   }
 
   addChange(change: CellChange): this {
     const key = `${change.address.row},${change.address.col}`;
-    this.result.actualChanges!.set(key, change);
+    this.result.actualChanges?.set(key, change);
     return this;
   }
 
@@ -194,7 +193,7 @@ export class OperationResultBuilder {
 
   setPerformanceMetrics(metrics: Partial<PerformanceMetrics>): this {
     this.result.metadata!.performance = {
-      ...this.result.metadata!.performance,
+      ...this.result.metadata?.performance,
       ...metrics,
     };
     return this;
@@ -207,7 +206,7 @@ export class OperationResultBuilder {
 
   build(): OperationResult {
     // Auto-calculate success if no errors and cells were modified
-    if (this.result.errors!.length === 0 && this.result.cellsModified! > 0) {
+    if (this.result.errors?.length === 0 && this.result.cellsModified! > 0) {
       this.result.success = true;
     }
 

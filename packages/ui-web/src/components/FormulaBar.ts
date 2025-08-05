@@ -360,7 +360,7 @@ export class FormulaBar {
    */
   private renderHighlightedSegments(
     segments: HighlightSegment[],
-    originalText: string,
+    _originalText: string,
   ): void {
     const fragment = document.createDocumentFragment();
 

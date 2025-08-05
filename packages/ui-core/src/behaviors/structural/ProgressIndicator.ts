@@ -29,7 +29,6 @@ export class ProgressIndicator {
   private progressElement?: HTMLElement;
   private isVisible = false;
   private startTime = 0;
-  private currentOperation?: StructuralOperation;
   private onCancel?: () => void;
 
   constructor(
@@ -154,7 +153,7 @@ export class ProgressIndicator {
    */
   private createProgressElement(
     operation: StructuralOperation,
-    estimatedDuration: number,
+    _estimatedDuration: number,
   ): void {
     this.progressElement = document.createElement("div");
     this.progressElement.className = `structural-progress-indicator structural-progress-${this.config.position} structural-progress-${this.config.theme}`;

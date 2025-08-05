@@ -32,7 +32,7 @@ class MockViewportManager {
     return 100;
   }
 
-  scrollTo(row: number, col: number): void {
+  scrollTo(_row: number, _col: number): void {
     // Mock implementation
   }
 }
@@ -282,7 +282,7 @@ describe("SpreadsheetController Undo/Redo System", () => {
 
   describe("Transaction Grouping", () => {
     it("should group operations in transactions", async () => {
-      const txnId = controller.startTransaction("Bulk operations");
+      const _txnId = controller.startTransaction("Bulk operations");
 
       await controller.insertRows(0, 1);
       await controller.insertColumns(0, 1);

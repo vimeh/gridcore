@@ -7,7 +7,6 @@ import { CellSelection } from "../base/CellSelection";
 import {
   BulkMathOperation,
   type BulkMathOptions,
-  MathOperationType,
   NumericUtils,
 } from "./BulkMathOperation";
 
@@ -132,8 +131,8 @@ describe("NumericUtils", () => {
     });
 
     it("should perform rounding operations", () => {
-      expect(NumericUtils.performOperation("round", 3.14159, 0, 2)).toBe(3.14);
-      expect(NumericUtils.performOperation("round", 3.14159, 0, 0)).toBe(3);
+      expect(NumericUtils.performOperation("round", Math.PI, 0, 2)).toBe(3.14);
+      expect(NumericUtils.performOperation("round", Math.PI, 0, 0)).toBe(3);
       expect(NumericUtils.performOperation("floor", 3.7, 0)).toBe(3);
       expect(NumericUtils.performOperation("ceil", 3.1, 0)).toBe(4);
     });
@@ -323,7 +322,7 @@ describe("BulkMathOperation", () => {
 
   describe("Rounding Operations", () => {
     beforeEach(() => {
-      cellRepository.setCellValue(new CellAddress(1, 1), 3.14159);
+      cellRepository.setCellValue(new CellAddress(1, 1), Math.PI);
       cellRepository.setCellValue(new CellAddress(1, 2), 2.7);
       cellRepository.setCellValue(new CellAddress(1, 3), 4.2);
     });

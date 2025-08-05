@@ -11,10 +11,10 @@ describe("FibonacciPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
-      expect(pattern!.confidence).toBeGreaterThan(0.6);
-      expect(pattern!.metadata?.fibonacciType).toBe("classic");
-      expect(pattern!.description).toContain("Fibonacci sequence");
+      expect(pattern?.type).toBe("fibonacci");
+      expect(pattern?.confidence).toBeGreaterThan(0.6);
+      expect(pattern?.metadata?.fibonacciType).toBe("classic");
+      expect(pattern?.description).toContain("Fibonacci sequence");
     });
 
     it("should detect classic Fibonacci starting from F(3): 2,3,5,8", () => {
@@ -22,9 +22,9 @@ describe("FibonacciPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
-      expect(pattern!.confidence).toBeGreaterThan(0.6);
-      expect(pattern!.metadata?.fibonacciType).toBe("classic");
+      expect(pattern?.type).toBe("fibonacci");
+      expect(pattern?.confidence).toBeGreaterThan(0.6);
+      expect(pattern?.metadata?.fibonacciType).toBe("classic");
     });
 
     it("should detect longer Fibonacci sequence", () => {
@@ -34,8 +34,8 @@ describe("FibonacciPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
-      expect(pattern!.confidence).toBeGreaterThan(0.8); // Higher confidence for longer sequence
+      expect(pattern?.type).toBe("fibonacci");
+      expect(pattern?.confidence).toBeGreaterThan(0.8); // Higher confidence for longer sequence
     });
   });
 
@@ -45,9 +45,9 @@ describe("FibonacciPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
-      expect(pattern!.metadata?.fibonacciType).toBe("scaled");
-      expect(pattern!.metadata?.multiplier).toBe(2);
+      expect(pattern?.type).toBe("fibonacci");
+      expect(pattern?.metadata?.fibonacciType).toBe("scaled");
+      expect(pattern?.metadata?.multiplier).toBe(2);
     });
 
     it("should detect scaled Fibonacci: 5,5,10,15,25 (5*Fibonacci)", () => {
@@ -55,9 +55,9 @@ describe("FibonacciPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
-      expect(pattern!.metadata?.fibonacciType).toBe("scaled");
-      expect(pattern!.metadata?.multiplier).toBe(5);
+      expect(pattern?.type).toBe("fibonacci");
+      expect(pattern?.metadata?.fibonacciType).toBe("scaled");
+      expect(pattern?.metadata?.multiplier).toBe(5);
     });
 
     it("should detect fractional scaled Fibonacci: 0.5,0.5,1,1.5,2.5", () => {
@@ -67,8 +67,8 @@ describe("FibonacciPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
-      expect(pattern!.metadata?.multiplier).toBe(0.5);
+      expect(pattern?.type).toBe("fibonacci");
+      expect(pattern?.metadata?.multiplier).toBe(0.5);
     });
   });
 
@@ -124,7 +124,7 @@ describe("FibonacciPatternDetector", () => {
 
       // Should extract [1, 1, 2, 3, 5] and detect Fibonacci
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
+      expect(pattern?.type).toBe("fibonacci");
     });
 
     it("should require at least 3 numeric values", () => {
@@ -150,7 +150,7 @@ describe("FibonacciPatternDetector", () => {
 
       expect(shortPattern).toBeDefined();
       expect(longPattern).toBeDefined();
-      expect(longPattern!.confidence).toBeGreaterThan(shortPattern!.confidence);
+      expect(longPattern?.confidence).toBeGreaterThan(shortPattern?.confidence);
     });
 
     it("should give higher confidence for classic Fibonacci", () => {
@@ -162,8 +162,8 @@ describe("FibonacciPatternDetector", () => {
 
       expect(classicPattern).toBeDefined();
       expect(scaledPattern).toBeDefined();
-      expect(classicPattern!.confidence).toBeGreaterThan(
-        scaledPattern!.confidence,
+      expect(classicPattern?.confidence).toBeGreaterThan(
+        scaledPattern?.confidence,
       );
     });
 
@@ -178,8 +178,8 @@ describe("FibonacciPatternDetector", () => {
 
       expect(normalPattern).toBeDefined();
       expect(largePattern).toBeDefined();
-      expect(normalPattern!.confidence).toBeGreaterThan(
-        largePattern!.confidence,
+      expect(normalPattern?.confidence).toBeGreaterThan(
+        largePattern?.confidence,
       );
     });
   });
@@ -194,7 +194,7 @@ describe("FibonacciPatternDetector", () => {
       // Next values should be 8, 13, 21
       const nextValues = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,
@@ -215,7 +215,7 @@ describe("FibonacciPatternDetector", () => {
       // Next values should be 16, 26, 42 (2 * [8, 13, 21])
       const nextValues = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,
@@ -236,7 +236,7 @@ describe("FibonacciPatternDetector", () => {
       // Next values should be 21, 34, 55
       const nextValues = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,
@@ -255,7 +255,7 @@ describe("FibonacciPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
+      expect(pattern?.type).toBe("fibonacci");
     });
 
     it("should handle large Fibonacci numbers", () => {
@@ -265,7 +265,7 @@ describe("FibonacciPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
+      expect(pattern?.type).toBe("fibonacci");
     });
 
     it("should handle negative Fibonacci (Negafibonacci)", () => {
@@ -275,7 +275,7 @@ describe("FibonacciPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("fibonacci");
+      expect(pattern?.type).toBe("fibonacci");
     });
   });
 

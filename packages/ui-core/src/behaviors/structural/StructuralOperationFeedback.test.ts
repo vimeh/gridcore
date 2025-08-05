@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, jest, test } from "bun:test";
 import { StructuralOperationFeedback } from "./StructuralOperationFeedback";
-import type { CellHighlight, StructuralUIEvent } from "./types";
+import type { StructuralUIEvent } from "./types";
 
 // Mock DOM environment
 const mockDocument = {
-  createElement: jest.fn((tag: string) => ({
+  createElement: jest.fn((_tag: string) => ({
     id: "",
     textContent: "",
     appendChild: jest.fn(),
@@ -43,7 +43,7 @@ describe("StructuralOperationFeedback", () => {
 
   describe("initialization", () => {
     test("should create with default styles", () => {
-      const feedbackNoContainer = new StructuralOperationFeedback();
+      const _feedbackNoContainer = new StructuralOperationFeedback();
       expect(mockDocument.createElement).toHaveBeenCalledWith("style");
     });
 
@@ -52,7 +52,7 @@ describe("StructuralOperationFeedback", () => {
         affected: { backgroundColor: "red" },
       };
 
-      const customFeedback = new StructuralOperationFeedback(
+      const _customFeedback = new StructuralOperationFeedback(
         container,
         customStyles,
       );

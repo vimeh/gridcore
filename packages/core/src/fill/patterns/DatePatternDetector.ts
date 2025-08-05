@@ -86,7 +86,7 @@ export class DatePatternDetector implements PatternDetector {
 
     for (const value of values) {
       const date = this.parseDate(value);
-      if (date && !isNaN(date.getTime())) {
+      if (date && !Number.isNaN(date.getTime())) {
         dates.push(date);
       }
     }
@@ -115,7 +115,7 @@ export class DatePatternDetector implements PatternDetector {
 
     // Try to parse as date
     const date = new Date(str);
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
       return null;
     }
 

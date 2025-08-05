@@ -183,8 +183,8 @@ export class BulkOperationFactory implements IBulkOperationFactory {
    * Create a fill operation (placeholder for future implementation)
    */
   private createFillOperation(
-    selection: Selection,
-    options: any,
+    _selection: Selection,
+    _options: any,
   ): BulkOperation | null {
     // TODO: Implement FillOperation class
     // This would handle fill down, up, left, right, series operations

@@ -276,7 +276,7 @@ describe("BulkMathOperation Performance Tests", () => {
       );
 
       // All operations should meet performance targets
-      Object.entries(results).forEach(([operation, performance]) => {
+      Object.entries(results).forEach(([_operation, performance]) => {
         expect(performance).toBeGreaterThan(75000); // Should all be high performance
       });
 
@@ -327,7 +327,7 @@ describe("BulkMathOperation Performance Tests", () => {
       );
 
       // Complex operations should still be high performance
-      Object.entries(results).forEach(([operation, performance]) => {
+      Object.entries(results).forEach(([_operation, performance]) => {
         expect(performance).toBeGreaterThan(50000);
       });
 

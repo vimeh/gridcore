@@ -237,7 +237,7 @@ describe("UndoRedoManager", () => {
       const undoResult = await undoRedoManager.undo();
 
       expect(undoResult).toBeTruthy();
-      expect(undoResult!.success).toBe(true);
+      expect(undoResult?.success).toBe(true);
 
       // Verify cell was restored
       if (cell.ok) {
@@ -279,8 +279,8 @@ describe("UndoRedoManager", () => {
       const undoResult = await undoRedoManager.undo();
 
       expect(undoResult).toBeTruthy();
-      expect(undoResult!.success).toBe(false);
-      expect(undoResult!.errors.length).toBeGreaterThan(0);
+      expect(undoResult?.success).toBe(false);
+      expect(undoResult?.errors.length).toBeGreaterThan(0);
 
       // Action should still be available for retry
       expect(undoRedoManager.canUndo()).toBe(true);
@@ -313,7 +313,7 @@ describe("UndoRedoManager", () => {
       const undoResult = await validatingManager.undo();
 
       expect(undoResult).toBeTruthy();
-      expect(undoResult!.success).toBe(true);
+      expect(undoResult?.success).toBe(true);
 
       // Verify that validation configuration is working (manager has the setting)
       expect(validatingManager).toBeTruthy();
@@ -348,7 +348,7 @@ describe("UndoRedoManager", () => {
       const redoResult = await undoRedoManager.redo();
 
       expect(redoResult).toBeTruthy();
-      expect(redoResult!.success).toBe(true);
+      expect(redoResult?.success).toBe(true);
 
       if (cell.ok) {
         expect(cellRepository._getCellValue(cell.value)).toBe("new value");
@@ -391,7 +391,7 @@ describe("UndoRedoManager", () => {
       const redoResult = await undoRedoManager.redo();
 
       expect(redoResult).toBeTruthy();
-      expect(redoResult!.success).toBe(false);
+      expect(redoResult?.success).toBe(false);
 
       // Action should still be available for retry
       expect(undoRedoManager.canRedo()).toBe(true);

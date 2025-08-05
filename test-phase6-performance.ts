@@ -97,7 +97,7 @@ async function runPerformanceTests() {
   const passed4 = batchResult.ok && batchDuration < 500;
   console.log(`  ⏱️  Duration: ${batchDuration.toFixed(2)}ms`);
   console.log(
-    `  📊 Batch result: ${batchResult.ok ? "Success" : "Failed - " + (batchResult as any).error}`,
+    `  📊 Batch result: ${batchResult.ok ? "Success" : `Failed - ${(batchResult as any).error}`}`,
   );
   console.log(`  ${passed4 ? "✅ PASS" : "❌ FAIL"}: Batch operations`);
 

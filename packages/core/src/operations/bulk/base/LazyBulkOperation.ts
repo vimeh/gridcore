@@ -1,7 +1,4 @@
-import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
-import type { CellValue } from "../../../domain/models";
 import { Cell, type CellAddress } from "../../../domain/models";
-import type { Selection } from "../interfaces/BulkOperation";
 import type {
   CellChange,
   OperationPreview,
@@ -15,15 +12,6 @@ import { BaseBulkOperation } from "./BaseBulkOperation";
  */
 export abstract class LazyBulkOperation extends BaseBulkOperation {
   private changeGenerator: Generator<Promise<CellChange | null>> | null = null;
-
-  constructor(
-    type: string,
-    selection: Selection,
-    options: any,
-    cellRepository: ICellRepository,
-  ) {
-    super(type, selection, options, cellRepository);
-  }
 
   /**
    * Create a generator that yields cell changes lazily
@@ -244,7 +232,7 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
         isFormula: false,
         changeType: "value",
       };
-    } catch (error) {
+    } catch (_error) {
       // Return null for errors in individual cells (let batch handle error reporting)
       return null;
     }

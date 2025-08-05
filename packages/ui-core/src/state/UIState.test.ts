@@ -1,16 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { CellAddress, CellRange } from "@gridcore/core";
+import { CellAddress } from "@gridcore/core";
 import {
   createCommandState,
   createEditingState,
-  createFillState,
   createNavigationState,
   createResizeState,
   createSpreadsheetVisualState,
   isCellVisualMode,
   isCommandMode,
   isEditingMode,
-  isFillMode,
   isInsertMode,
   isNavigationMode,
   isResizeMode,

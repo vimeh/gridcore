@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { ICellRepository } from "../domain/interfaces/ICellRepository";
-import { CellAddress, CellRange, type CellValue } from "../domain/models";
+import { CellAddress, CellRange } from "../domain/models";
 import { Cell } from "../domain/models/Cell";
 import { InMemoryCellRepository } from "../infrastructure/repositories/InMemoryCellRepository";
 import { FillEngine } from "./FillEngine";

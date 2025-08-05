@@ -3,10 +3,8 @@ import { CellAddress } from "@gridcore/core";
 import { SpreadsheetController } from "@gridcore/ui-core";
 import {
   captureFormulaValues,
-  checkFormulaIntegrity,
   createTestSpreadsheet,
   measureOperationTime,
-  populateWithFormulas,
   validateReferences,
 } from "./integration-test-utils";
 
@@ -23,7 +21,7 @@ describe("Integration Test Set A: Absolute References + Insert/Delete Operations
     facade.setCellValue(4, 0, "=$A$1+A2"); // A5: mixed
 
     // Capture values before operation
-    const beforeValues = captureFormulaValues(facade);
+    const _beforeValues = captureFormulaValues(facade);
 
     // Insert row at position 1
     await controller.handleStructuralCommand("insert-row", {

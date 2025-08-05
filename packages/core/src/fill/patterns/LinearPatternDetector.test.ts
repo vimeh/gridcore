@@ -11,9 +11,9 @@ describe("LinearPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("linear");
-      expect(pattern!.step).toBe(1);
-      expect(pattern!.confidence).toBeGreaterThan(0.7);
+      expect(pattern?.type).toBe("linear");
+      expect(pattern?.step).toBe(1);
+      expect(pattern?.confidence).toBeGreaterThan(0.7);
     });
 
     it("should detect descending sequence", () => {
@@ -21,9 +21,9 @@ describe("LinearPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("linear");
-      expect(pattern!.step).toBe(-2);
-      expect(pattern!.confidence).toBeGreaterThan(0.7);
+      expect(pattern?.type).toBe("linear");
+      expect(pattern?.step).toBe(-2);
+      expect(pattern?.confidence).toBeGreaterThan(0.7);
     });
 
     it("should detect decimal sequences", () => {
@@ -31,8 +31,8 @@ describe("LinearPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("linear");
-      expect(pattern!.step).toBe(0.5);
+      expect(pattern?.type).toBe("linear");
+      expect(pattern?.step).toBe(0.5);
     });
 
     it("should reject inconsistent sequences", () => {
@@ -55,7 +55,7 @@ describe("LinearPatternDetector", () => {
 
       // Should extract just the numbers [1, 3] and detect pattern with step 2
       expect(pattern).toBeDefined();
-      expect(pattern!.step).toBe(2);
+      expect(pattern?.step).toBe(2);
     });
 
     it("should require at least 2 values", () => {
@@ -76,7 +76,7 @@ describe("LinearPatternDetector", () => {
 
       expect(pattern2).toBeDefined();
       expect(pattern4).toBeDefined();
-      expect(pattern4!.confidence).toBeGreaterThan(pattern2!.confidence);
+      expect(pattern4?.confidence).toBeGreaterThan(pattern2?.confidence);
     });
 
     it("should give higher confidence for integer steps", () => {
@@ -90,7 +90,7 @@ describe("LinearPatternDetector", () => {
 
       expect(intPattern).toBeDefined();
       expect(decPattern).toBeDefined();
-      expect(intPattern!.confidence).toBeGreaterThan(decPattern!.confidence);
+      expect(intPattern?.confidence).toBeGreaterThan(decPattern?.confidence);
     });
   });
 
@@ -102,7 +102,7 @@ describe("LinearPatternDetector", () => {
       expect(pattern).toBeDefined();
 
       // Generate next value (should be 20)
-      const nextValue = pattern!.generator.generateValue(
+      const nextValue = pattern?.generator.generateValue(
         values,
         0, // First generated value
         {} as any, // Mock source range
@@ -121,7 +121,7 @@ describe("LinearPatternDetector", () => {
       // Generate next 3 values
       const generated = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,

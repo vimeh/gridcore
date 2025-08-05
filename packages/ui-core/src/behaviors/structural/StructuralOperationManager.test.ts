@@ -207,7 +207,7 @@ describe("StructuralOperationManager", () => {
         (e) => e.type === "structuralOperationStarted",
       );
       expect(startedEvent).toBeDefined();
-      expect(startedEvent!.estimatedDuration).toBeGreaterThan(1000);
+      expect(startedEvent?.estimatedDuration).toBeGreaterThan(1000);
 
       // Simulate progress updates
       manager.updateProgress(50, [{ row: 5, col: 0 }]);
@@ -358,12 +358,12 @@ describe("StructuralOperationManager", () => {
 
       // Small deletion should not require confirmation
       expect(
-        manager["needsConfirmation"](smallDeleteOperation, createAnalysis()),
+        manager.needsConfirmation(smallDeleteOperation, createAnalysis()),
       ).toBe(false);
 
       // Large deletion should require confirmation
       expect(
-        manager["needsConfirmation"](largeDeleteOperation, createAnalysis()),
+        manager.needsConfirmation(largeDeleteOperation, createAnalysis()),
       ).toBe(true);
     });
 

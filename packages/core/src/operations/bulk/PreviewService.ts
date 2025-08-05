@@ -1,11 +1,7 @@
 import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
-import type { CellValue } from "../../domain/models";
-import { CellAddress } from "../../domain/models";
 import type { BulkOperation, Selection } from "./interfaces/BulkOperation";
 import type {
-  CellChange,
   OperationPreview,
-  OperationSummary,
   PreviewOptions,
 } from "./interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "./interfaces/OperationPreview";
@@ -120,7 +116,7 @@ export class PreviewService {
   private async generateTimedPreview(
     operation: BulkOperation,
     options: PreviewOptions,
-    startTime: number,
+    _startTime: number,
   ): Promise<OperationPreview> {
     return new Promise(async (resolve, reject) => {
       // Set up timeout

@@ -1,7 +1,6 @@
 import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
 import type {
   Selection,
-  SelectionType,
   SpreadsheetVisualMode,
   UIState,
 } from "../state/UIState";
@@ -56,8 +55,6 @@ export interface SelectionManager {
 }
 
 export class DefaultSelectionManager implements SelectionManager {
-  private facade: SpreadsheetFacade;
-
   constructor(facade: SpreadsheetFacade) {
     this.facade = facade;
   }

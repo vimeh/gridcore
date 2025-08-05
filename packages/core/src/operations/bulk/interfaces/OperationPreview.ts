@@ -134,24 +134,24 @@ export class OperationPreviewBuilder {
 
   addChange(change: CellChange): this {
     const key = `${change.address.row},${change.address.col}`;
-    this.preview.changes!.set(key, change);
-    this.preview.previewCount = this.preview.changes!.size;
+    this.preview.changes?.set(key, change);
+    this.preview.previewCount = this.preview.changes?.size;
 
     // Update summary
     this.preview.summary!.modifiedCells++;
-    this.preview.summary!.changesByType[change.changeType] =
-      (this.preview.summary!.changesByType[change.changeType] || 0) + 1;
+    this.preview.summary?.changesByType[change.changeType] =
+      (this.preview.summary?.changesByType[change.changeType] || 0) + 1;
 
     return this;
   }
 
   addWarning(warning: string): this {
-    this.preview.warnings!.push(warning);
+    this.preview.warnings?.push(warning);
     return this;
   }
 
   addError(error: string): this {
-    this.preview.errors!.push(error);
+    this.preview.errors?.push(error);
     return this;
   }
 

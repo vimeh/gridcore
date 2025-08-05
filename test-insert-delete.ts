@@ -11,7 +11,6 @@ import {
   createInsertState,
   isDeleteMode,
   isInsertMode,
-  type UIState,
 } from "./packages/ui-core/src/state/UIState";
 
 function testInsertDeleteStates() {
@@ -76,8 +75,8 @@ function testInsertDeleteStates() {
 
   // Test reference system availability
   console.log("\nTesting Reference System...");
-  const parser = new ReferenceParser();
-  const adjuster = new ReferenceAdjuster();
+  const _parser = new ReferenceParser();
+  const _adjuster = new ReferenceAdjuster();
 
   console.log("✓ ReferenceParser instantiated");
   console.log("✓ ReferenceAdjuster instantiated");
@@ -91,9 +90,9 @@ function testInsertDeleteStates() {
     SparseGrid,
   } = require("./packages/core/src/structure");
 
-  const structuralEngine = new StructuralEngine();
-  const referenceUpdater = new ReferenceUpdater();
-  const sparseGrid = new SparseGrid();
+  const _structuralEngine = new StructuralEngine();
+  const _referenceUpdater = new ReferenceUpdater();
+  const _sparseGrid = new SparseGrid();
 
   console.log("✓ StructuralEngine instantiated");
   console.log("✓ ReferenceUpdater instantiated");

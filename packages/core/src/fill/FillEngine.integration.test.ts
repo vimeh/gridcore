@@ -109,7 +109,7 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       // Should detect exponential pattern (higher priority) over linear
       expect(preview.pattern?.type).toBe("exponential");
       expect(preview.alternativePatterns).toBeDefined();
-      expect(preview.alternativePatterns!.length).toBeGreaterThan(0);
+      expect(preview.alternativePatterns?.length).toBeGreaterThan(0);
     });
 
     it("should detect Fibonacci over linear when pattern is clear", async () => {
@@ -164,7 +164,7 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
 
       // Confidence should be reduced due to ambiguity
       expect(detectionResult.confidence).toBeLessThan(
-        detectionResult.bestPattern!.confidence,
+        detectionResult.bestPattern?.confidence,
       );
     });
 
@@ -192,10 +192,10 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       const preview = await fillEngine.preview(operation);
 
       expect(preview.alternativePatterns).toBeDefined();
-      expect(preview.alternativePatterns!.length).toBeGreaterThan(1);
+      expect(preview.alternativePatterns?.length).toBeGreaterThan(1);
 
       // Should include both exponential and powers detection
-      const patternTypes = preview.alternativePatterns!.map((p) => p.type);
+      const patternTypes = preview.alternativePatterns?.map((p) => p.type);
       expect(patternTypes).toContain("custom"); // powers_of_2
     });
   });
@@ -461,12 +461,12 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       const preview = await fillEngine.preview(operation);
 
       expect(preview.pattern).toBeDefined();
-      expect(preview.pattern!.confidence).toBeGreaterThan(0);
+      expect(preview.pattern?.confidence).toBeGreaterThan(0);
       expect(preview.alternativePatterns).toBeDefined();
-      expect(preview.alternativePatterns!.length).toBeGreaterThan(0);
+      expect(preview.alternativePatterns?.length).toBeGreaterThan(0);
 
       // Check that alternative patterns have their own previews
-      const altWithPreview = preview.alternativePatterns!.find(
+      const altWithPreview = preview.alternativePatterns?.find(
         (alt) => alt.preview,
       );
       expect(altWithPreview).toBeDefined();
@@ -488,8 +488,8 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       const operation = createFillOperation("A1", "A6", "A7", "A9");
       const preview = await fillEngine.preview(operation);
 
-      expect(preview.pattern!.confidence).toBeGreaterThan(0.8); // High confidence for clear Fibonacci
-      expect(preview.pattern!.description).toContain("Fibonacci");
+      expect(preview.pattern?.confidence).toBeGreaterThan(0.8); // High confidence for clear Fibonacci
+      expect(preview.pattern?.description).toContain("Fibonacci");
     });
   });
 });

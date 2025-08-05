@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
-import { Cell, CellAddress, CellValue } from "../../domain/models";
+import { Cell, CellAddress } from "../../domain/models";
 import { BulkOperationFactory } from "./BulkOperationFactory";
 import { CellSelection } from "./base/CellSelection";
 import { BulkSetOperation } from "./implementations/BulkSetOperation";
@@ -307,7 +307,7 @@ describe("BulkOperationFactory", () => {
       );
 
       expect(operation).not.toBeNull();
-      expect(operation!.validate()).toBeNull(); // Should be valid
+      expect(operation?.validate()).toBeNull(); // Should be valid
     });
 
     it("should create operations that can handle invalid input", () => {
@@ -323,7 +323,7 @@ describe("BulkOperationFactory", () => {
       );
 
       expect(operation).not.toBeNull();
-      expect(operation!.validate()).not.toBeNull(); // Should be invalid
+      expect(operation?.validate()).not.toBeNull(); // Should be invalid
     });
   });
 
@@ -342,7 +342,7 @@ describe("BulkOperationFactory", () => {
 
       expect(operation).toBeInstanceOf(FindReplaceOperation);
       // Validation should catch the missing pattern
-      expect(operation!.validate()).not.toBeNull();
+      expect(operation?.validate()).not.toBeNull();
     });
 
     it("should handle empty options object", () => {
@@ -352,7 +352,7 @@ describe("BulkOperationFactory", () => {
 
       expect(operation).toBeInstanceOf(BulkSetOperation);
       // Validation should catch missing value
-      expect(operation!.validate()).not.toBeNull();
+      expect(operation?.validate()).not.toBeNull();
     });
   });
 });

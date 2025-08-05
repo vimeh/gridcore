@@ -65,7 +65,7 @@ export class NumericUtils {
       // Remove common formatting characters
       const cleaned = value.replace(/[\s,$%]/g, "");
       const parsed = parseFloat(cleaned);
-      return isNaN(parsed) ? null : parsed;
+      return Number.isNaN(parsed) ? null : parsed;
     }
 
     if (typeof value === "boolean") {
@@ -91,7 +91,7 @@ export class NumericUtils {
     preserveType: boolean = true,
   ): CellValue {
     // Handle special cases
-    if (!isFinite(result)) {
+    if (!Number.isFinite(result)) {
       return result; // NaN, Infinity, -Infinity
     }
 
@@ -211,7 +211,7 @@ export class BulkMathOperation extends BaseBulkOperation {
    * Transform each cell using the specified math operation
    */
   protected async transformCell(
-    address: CellAddress,
+    _address: CellAddress,
     currentValue: CellValue,
   ): Promise<CellValue | null> {
     const {
@@ -262,7 +262,7 @@ export class BulkMathOperation extends BaseBulkOperation {
     );
 
     // Handle invalid results
-    if (!isFinite(result)) {
+    if (!Number.isFinite(result)) {
       if (skipNonNumeric) {
         return null; // Skip invalid results
       } else {
@@ -286,7 +286,7 @@ export class BulkMathOperation extends BaseBulkOperation {
     const { operation, value: operand, decimalPlaces } = this.mathOptions;
 
     // Validate operand
-    if (typeof operand !== "number" || !isFinite(operand)) {
+    if (typeof operand !== "number" || !Number.isFinite(operand)) {
       return "Math operation requires a valid finite number";
     }
 
@@ -448,7 +448,7 @@ export class BulkMathOperation extends BaseBulkOperation {
         modifiedCount++;
         previewCount++;
 
-        changesByType["value"] = (changesByType["value"] || 0) + 1;
+        changesByType.value = (changesByType.value || 0) + 1;
       }
 
       // Prepare operation-specific information
@@ -500,7 +500,7 @@ export class BulkMathOperation extends BaseBulkOperation {
    */
   private getCalculationExplanation(
     before: CellValue,
-    after: CellValue,
+    _after: CellValue,
   ): string {
     const { operation, value: operand, decimalPlaces } = this.mathOptions;
     const beforeNum = NumericUtils.toNumber(before);
@@ -546,7 +546,7 @@ export class BulkMathOperation extends BaseBulkOperation {
     skippedCount: number,
   ): string {
     const { operation, value: operand } = this.mathOptions;
-    const total = numericCount + nonNumericCount;
+    const _total = numericCount + nonNumericCount;
 
     let summary = `Math Operation: ${operation.toUpperCase()}`;
 

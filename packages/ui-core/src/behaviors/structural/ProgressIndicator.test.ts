@@ -61,7 +61,7 @@ describe("ProgressIndicator", () => {
 
   describe("initialization", () => {
     test("should create with default config", () => {
-      const indicatorDefault = new ProgressIndicator();
+      const _indicatorDefault = new ProgressIndicator();
       expect(mockDocument.createElement.mock.calls[0]).toEqual(["style"]);
     });
 
@@ -71,7 +71,7 @@ describe("ProgressIndicator", () => {
         showCancelButton: false,
       };
 
-      const customIndicator = new ProgressIndicator(container, customConfig);
+      const _customIndicator = new ProgressIndicator(container, customConfig);
       expect(mockDocument.createElement.mock.calls[0]).toEqual(["style"]);
     });
   });

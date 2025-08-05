@@ -746,7 +746,7 @@ export class VimBehavior {
     this.internalState.operator = undefined;
   }
 
-  private isInVisualLineMode(state: UIState): boolean {
+  private isInVisualLineMode(_state: UIState): boolean {
     // Check if we're in navigation mode and have some form of visual selection
     // This is a simplified check - in a full implementation, we'd track visual state
     // For now, we'll consider visual line mode if certain conditions are met

@@ -178,7 +178,7 @@ export class BulkTransformOperation extends BaseBulkOperation {
    * Transform a single cell value according to the transformation type
    */
   protected async transformCell(
-    address: CellAddress,
+    _address: CellAddress,
     currentValue: CellValue,
   ): Promise<CellValue | null> {
     // Skip null/undefined values
@@ -247,7 +247,7 @@ export class BulkTransformOperation extends BaseBulkOperation {
       // If original was a number and the result can be parsed back to a number
       if (typeof currentValue === "number") {
         const numericResult = parseFloat(transformedValue);
-        if (!isNaN(numericResult) && isFinite(numericResult)) {
+        if (!Number.isNaN(numericResult) && Number.isFinite(numericResult)) {
           return numericResult;
         }
       }

@@ -4,8 +4,8 @@ import { type CellAddress, SpreadsheetFacade } from "@gridcore/core";
  * Creates a test spreadsheet with optional initial data
  */
 export function createTestSpreadsheet(
-  rows = 100,
-  cols = 26,
+  _rows = 100,
+  _cols = 26,
 ): SpreadsheetFacade {
   // Create a new spreadsheet facade directly
   const facade = new SpreadsheetFacade();

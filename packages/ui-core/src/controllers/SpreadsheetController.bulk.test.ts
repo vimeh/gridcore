@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
-import {
-  createCommandState,
-  isBulkOperationMode,
-  isCommandMode,
-} from "../state/UIState";
+import type { SpreadsheetFacade } from "@gridcore/core";
+import { isCommandMode } from "../state/UIState";
 import type { ViewportManager } from "./SpreadsheetController";
 import { SpreadsheetController } from "./SpreadsheetController";
 
@@ -212,7 +208,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
       expect(result.ok).toBe(true);
 
       // Type find/replace command (requires preview)
-      let state = result.value;
+      let _state = result.value;
       const command = "s/old/new/g";
       for (const char of command) {
         result = controller.handleKeyPress(char, {
@@ -222,7 +218,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
           alt: false,
         });
         expect(result.ok).toBe(true);
-        state = result.value;
+        _state = result.value;
       }
 
       // Execute command (press Enter)
@@ -253,7 +249,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
       });
       expect(result.ok).toBe(true);
 
-      let state = result.value;
+      let _state = result.value;
       const command = "invalid_command";
       for (const char of command) {
         result = controller.handleKeyPress(char, {
@@ -263,7 +259,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
           alt: false,
         });
         expect(result.ok).toBe(true);
-        state = result.value;
+        _state = result.value;
       }
 
       // Execute command
@@ -296,7 +292,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
       });
       expect(result.ok).toBe(true);
 
-      let state = result.value;
+      let _state = result.value;
       const command = "set test";
       for (const char of command) {
         result = controller.handleKeyPress(char, {
@@ -306,7 +302,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
           alt: false,
         });
         expect(result.ok).toBe(true);
-        state = result.value;
+        _state = result.value;
       }
 
       // Execute command
@@ -337,7 +333,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
       });
       expect(result.ok).toBe(true);
 
-      let state = result.value;
+      let _state = result.value;
       const command = "s/[unclosed/replacement/g";
       for (const char of command) {
         result = controller.handleKeyPress(char, {
@@ -347,7 +343,7 @@ describe("SpreadsheetController - Bulk Operations", () => {
           alt: false,
         });
         expect(result.ok).toBe(true);
-        state = result.value;
+        _state = result.value;
       }
 
       // Execute command

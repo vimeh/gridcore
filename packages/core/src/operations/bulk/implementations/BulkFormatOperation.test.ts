@@ -496,7 +496,7 @@ describe("BulkFormatOperation", () => {
     });
 
     it("should handle Excel serial numbers", async () => {
-      const singleSelection = createSelection([[2, 3]]); // Excel date serial
+      const _singleSelection = createSelection([[2, 3]]); // Excel date serial
       const result = await operation.execute();
 
       expect(result.success).toBe(true);

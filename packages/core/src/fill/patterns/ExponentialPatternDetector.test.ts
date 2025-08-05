@@ -11,10 +11,10 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(2);
-      expect(pattern!.confidence).toBeGreaterThan(0.6);
-      expect(pattern!.description).toContain("Double each time");
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(2);
+      expect(pattern?.confidence).toBeGreaterThan(0.6);
+      expect(pattern?.description).toContain("Double each time");
     });
 
     it("should detect powers of 3: 3,9,27,81", () => {
@@ -22,9 +22,9 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(3);
-      expect(pattern!.confidence).toBeGreaterThan(0.6);
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(3);
+      expect(pattern?.confidence).toBeGreaterThan(0.6);
     });
 
     it("should detect decreasing geometric: 16,8,4,2", () => {
@@ -32,9 +32,9 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(0.5);
-      expect(pattern!.description).toContain("Half each time");
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(0.5);
+      expect(pattern?.description).toContain("Half each time");
     });
 
     it("should detect powers of 10: 1,10,100,1000", () => {
@@ -42,9 +42,9 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(10);
-      expect(pattern!.description).toContain("Multiply by 10");
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(10);
+      expect(pattern?.description).toContain("Multiply by 10");
     });
   });
 
@@ -54,10 +54,10 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
+      expect(pattern?.type).toBe("exponential");
       // May be detected as standard geometric with ratio 2
-      expect(pattern!.ratio).toBe(2);
-      expect(pattern!.description).toContain("Double each time");
+      expect(pattern?.ratio).toBe(2);
+      expect(pattern?.description).toContain("Double each time");
     });
 
     it("should detect powers of 3 starting from 3¹: 3,9,27", () => {
@@ -65,9 +65,9 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(3);
-      expect(pattern!.description).toContain("Multiply by 3");
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(3);
+      expect(pattern?.description).toContain("Multiply by 3");
     });
 
     it("should detect powers of 4: 1,4,16,64", () => {
@@ -75,8 +75,8 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(4);
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(4);
     });
 
     it("should detect powers of 5: 5,25,125", () => {
@@ -84,9 +84,9 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(5);
-      expect(pattern!.description).toContain("Multiply by 5");
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(5);
+      expect(pattern?.description).toContain("Multiply by 5");
     });
   });
 
@@ -96,8 +96,8 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(0.25);
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(0.25);
     });
 
     it("should detect ratio 0.1: 100,10,1,0.1", () => {
@@ -105,8 +105,8 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(0.1);
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(0.1);
     });
 
     it("should detect ratio 1.5: 2,3,4.5", () => {
@@ -114,8 +114,8 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(1.5);
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(1.5);
     });
   });
 
@@ -177,8 +177,8 @@ describe("ExponentialPatternDetector", () => {
 
       // Should extract [1, 2, 4, 8] and detect exponential pattern
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(2);
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(2);
     });
 
     it("should filter out zeros from mixed values", () => {
@@ -187,8 +187,8 @@ describe("ExponentialPatternDetector", () => {
 
       // Should extract [2, 4, 8] and detect exponential pattern
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("exponential");
-      expect(pattern!.ratio).toBe(2);
+      expect(pattern?.type).toBe("exponential");
+      expect(pattern?.ratio).toBe(2);
     });
   });
 
@@ -202,7 +202,7 @@ describe("ExponentialPatternDetector", () => {
 
       expect(shortPattern).toBeDefined();
       expect(longPattern).toBeDefined();
-      expect(longPattern!.confidence).toBeGreaterThan(shortPattern!.confidence);
+      expect(longPattern?.confidence).toBeGreaterThan(shortPattern?.confidence);
     });
 
     it("should give higher confidence for nice ratios", () => {
@@ -216,7 +216,7 @@ describe("ExponentialPatternDetector", () => {
 
       expect(nicePattern).toBeDefined();
       expect(uglyPattern).toBeDefined();
-      expect(nicePattern!.confidence).toBeGreaterThan(uglyPattern!.confidence);
+      expect(nicePattern?.confidence).toBeGreaterThan(uglyPattern?.confidence);
     });
 
     it("should give higher confidence for power-of-base sequences", () => {
@@ -228,8 +228,8 @@ describe("ExponentialPatternDetector", () => {
 
       expect(standardPattern).toBeDefined();
       expect(powerPattern).toBeDefined();
-      expect(powerPattern!.confidence).toBeGreaterThan(
-        standardPattern!.confidence,
+      expect(powerPattern?.confidence).toBeGreaterThan(
+        standardPattern?.confidence,
       );
     });
 
@@ -242,8 +242,8 @@ describe("ExponentialPatternDetector", () => {
 
       expect(normalPattern).toBeDefined();
       expect(largePattern).toBeDefined();
-      expect(normalPattern!.confidence).toBeGreaterThan(
-        largePattern!.confidence,
+      expect(normalPattern?.confidence).toBeGreaterThan(
+        largePattern?.confidence,
       );
     });
 
@@ -256,8 +256,8 @@ describe("ExponentialPatternDetector", () => {
 
       expect(positivePattern).toBeDefined();
       expect(negativePattern).toBeDefined();
-      expect(positivePattern!.confidence).toBeGreaterThan(
-        negativePattern!.confidence,
+      expect(positivePattern?.confidence).toBeGreaterThan(
+        negativePattern?.confidence,
       );
     });
   });
@@ -272,7 +272,7 @@ describe("ExponentialPatternDetector", () => {
       // Next values should be 16, 32, 64
       const nextValues = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,
@@ -293,7 +293,7 @@ describe("ExponentialPatternDetector", () => {
       // Next values should be 1, 0.5, 0.25
       const nextValues = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,
@@ -314,7 +314,7 @@ describe("ExponentialPatternDetector", () => {
       // Next values should be 27, 81, 243
       const nextValues = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,
@@ -332,7 +332,7 @@ describe("ExponentialPatternDetector", () => {
 
       expect(pattern).toBeDefined();
 
-      const nextValue = pattern!.generator.generateValue(
+      const nextValue = pattern?.generator.generateValue(
         values,
         0,
         {} as any,
@@ -358,8 +358,8 @@ describe("ExponentialPatternDetector", () => {
       expect(largePattern).toBeDefined();
       expect(smallPattern).toBeDefined();
       // Large values should have reduced confidence due to potential overflow
-      expect(smallPattern!.confidence).toBeGreaterThanOrEqual(
-        largePattern!.confidence,
+      expect(smallPattern?.confidence).toBeGreaterThanOrEqual(
+        largePattern?.confidence,
       );
     });
 
@@ -371,7 +371,7 @@ describe("ExponentialPatternDetector", () => {
 
       // Try to generate a value that would overflow
       expect(() => {
-        pattern!.generator.generateValue(
+        pattern?.generator.generateValue(
           values,
           20, // This should create a huge number
           {} as any,
@@ -394,7 +394,7 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.ratio).toBe(3);
+      expect(pattern?.ratio).toBe(3);
     });
 
     it("should handle decimal sequences", () => {
@@ -402,7 +402,7 @@ describe("ExponentialPatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.ratio).toBe(2);
+      expect(pattern?.ratio).toBe(2);
     });
   });
 

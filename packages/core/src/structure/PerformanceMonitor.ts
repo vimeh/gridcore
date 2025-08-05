@@ -246,27 +246,6 @@ export class PerformanceMonitor {
       );
     }
   }
-
-  private calculatePerformanceGrade(): "A" | "B" | "C" | "D" | "F" {
-    if (this.metrics.length === 0) return "A";
-
-    const report = this.getPerformanceReport();
-    const violationRate =
-      report.operationsExceedingThreshold / report.totalOperations;
-    const avgDurationScore =
-      report.averageDuration / this.thresholds.warningDurationMs;
-    const memoryScore =
-      report.peakMemoryUsage / (this.thresholds.warningMemoryMB * 1024 * 1024);
-
-    const score =
-      violationRate * 0.4 + avgDurationScore * 0.4 + memoryScore * 0.2;
-
-    if (score <= 0.2) return "A";
-    if (score <= 0.4) return "B";
-    if (score <= 0.6) return "C";
-    if (score <= 0.8) return "D";
-    return "F";
-  }
 }
 
 /**

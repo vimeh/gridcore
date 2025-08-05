@@ -5,7 +5,6 @@ import {
   ReferenceDetector,
   type SpreadsheetFacade,
   StructuralEngine,
-  type StructuralSnapshot,
   StructuralUndoManager,
 } from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
@@ -32,7 +31,6 @@ import {
 import {
   createNavigationState,
   createResizeState,
-  createSpreadsheetVisualState,
   type InsertMode,
   // isBulkOperationMode,
   isCommandMode,
@@ -965,7 +963,7 @@ export class SpreadsheetController {
   }
 
   private handleBulkCommand(command: ParsedBulkCommand): void {
-    const state = this.stateMachine.getState();
+    const _state = this.stateMachine.getState();
 
     // Validate command
     const hasSelection = this.hasSelection();
@@ -1010,7 +1008,7 @@ export class SpreadsheetController {
   }
 
   private getAffectedCellCount(command: ParsedBulkCommand): number {
-    const state = this.stateMachine.getState();
+    const _state = this.stateMachine.getState();
 
     // For now, return a placeholder count
     // TODO: Calculate actual affected cells based on selection
@@ -1111,7 +1109,7 @@ export class SpreadsheetController {
 
     try {
       const detector = new ReferenceDetector();
-      const adjuster = new ReferenceAdjuster();
+      const _adjuster = new ReferenceAdjuster();
       const analysis = detector.analyzeFormula(state.editingValue);
 
       if (analysis.references.length === 0) {

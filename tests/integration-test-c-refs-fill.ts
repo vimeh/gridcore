@@ -2,8 +2,6 @@ import { describe, expect, test } from "bun:test";
 import { CellAddress } from "@gridcore/core";
 import { SpreadsheetController } from "@gridcore/ui-core";
 import {
-  captureFormulaValues,
-  checkFormulaIntegrity,
   createTestSpreadsheet,
   measureOperationTime,
 } from "./integration-test-utils";
@@ -223,7 +221,7 @@ describe("Integration Test Set C: Absolute References + Formula Fill", () => {
 
     // Enter fill mode
     controller.updateCursor(CellAddress.create(0, 0).value);
-    const state1 = controller.getUIState();
+    const _state1 = controller.getUIState();
 
     controller.handleControlKey("d"); // Start fill
 

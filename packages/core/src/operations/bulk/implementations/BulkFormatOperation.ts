@@ -124,7 +124,7 @@ export class FormatUtils {
       // Remove common formatting characters
       const cleaned = value.replace(/[\s,$%€£¥]/g, "");
       const parsed = parseFloat(cleaned);
-      return isNaN(parsed) ? null : parsed;
+      return Number.isNaN(parsed) ? null : parsed;
     }
 
     if (typeof value === "boolean") {
@@ -141,12 +141,12 @@ export class FormatUtils {
     if (typeof value === "number") {
       // Assume Excel-style date serial number
       const date = new Date((value - 25569) * 86400 * 1000);
-      return isNaN(date.getTime()) ? null : date;
+      return Number.isNaN(date.getTime()) ? null : date;
     }
 
     if (typeof value === "string") {
       const parsed = new Date(value);
-      return isNaN(parsed.getTime()) ? null : parsed;
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
     }
 
     return null;
@@ -202,7 +202,7 @@ export class FormatUtils {
           useGrouping: opts.useThousandsSeparator,
         }).format(value);
       }
-    } catch (error) {
+    } catch (_error) {
       // Fallback formatting
       const rounded =
         Math.round(value * 10 ** opts.decimals!) / 10 ** opts.decimals!;
@@ -239,7 +239,7 @@ export class FormatUtils {
         minimumFractionDigits: opts.decimals,
         maximumFractionDigits: opts.decimals,
       }).format(opts.multiplyBy100 ? value : value / 100);
-    } catch (error) {
+    } catch (_error) {
       // Fallback formatting
       const rounded =
         Math.round(numValue * 10 ** opts.decimals!) / 10 ** opts.decimals!;
@@ -284,8 +284,8 @@ export class FormatUtils {
         const month = (value.getMonth() + 1).toString().padStart(2, "0");
         const day = value.getDate().toString().padStart(2, "0");
 
-        let formatted = opts
-          .format!.replace("YYYY", year.toString())
+        let formatted = opts.format
+          ?.replace("YYYY", year.toString())
           .replace("MM", month)
           .replace("DD", day);
 
@@ -307,7 +307,7 @@ export class FormatUtils {
 
         return formatted;
       }
-    } catch (error) {
+    } catch (_error) {
       // Fallback formatting
       return value.toLocaleDateString(locale);
     }
@@ -337,7 +337,7 @@ export class FormatUtils {
       }).format(value);
 
       return formatted;
-    } catch (error) {
+    } catch (_error) {
       // Fallback formatting
       const rounded =
         Math.round(value * 10 ** opts.decimals!) / 10 ** opts.decimals!;
@@ -399,7 +399,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
    * Format a single cell value according to the format type
    */
   protected async transformCell(
-    address: CellAddress,
+    _address: CellAddress,
     currentValue: CellValue,
   ): Promise<CellValue | null> {
     // Skip null/undefined values
@@ -427,7 +427,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
         default:
           return null;
       }
-    } catch (error) {
+    } catch (_error) {
       // Return original value if preserveOnError is true
       return this.formatOptions.preserveOnError ? currentValue : null;
     }
@@ -730,7 +730,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
     if (this.formatOptions.locale) {
       try {
         new Intl.NumberFormat(this.formatOptions.locale);
-      } catch (error) {
+      } catch (_error) {
         return `Invalid locale: ${this.formatOptions.locale}`;
       }
     }
@@ -745,7 +745,7 @@ export class BulkFormatOperation extends BaseBulkOperation {
           style: "currency",
           currency: this.formatOptions.currencyOptions.currency,
         });
-      } catch (error) {
+      } catch (_error) {
         return `Invalid currency code: ${this.formatOptions.currencyOptions.currency}`;
       }
     }

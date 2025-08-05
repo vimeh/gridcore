@@ -93,7 +93,7 @@ describe("ConfirmationDialog", () => {
 
   describe("initialization", () => {
     test("should create with default config", () => {
-      const defaultDialog = new ConfirmationDialog();
+      const _defaultDialog = new ConfirmationDialog();
       expect(mockDocument.createElement.mock.calls[0]).toEqual(["style"]);
     });
 
@@ -103,7 +103,7 @@ describe("ConfirmationDialog", () => {
         defaultButton: "confirm" as const,
       };
 
-      const customDialog = new ConfirmationDialog(container, customConfig);
+      const _customDialog = new ConfirmationDialog(container, customConfig);
       expect(mockDocument.createElement.mock.calls[0]).toEqual(["style"]);
     });
   });

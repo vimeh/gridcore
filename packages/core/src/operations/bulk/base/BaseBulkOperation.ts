@@ -9,7 +9,6 @@ import type {
 import type {
   CellChange,
   OperationPreview,
-  PreviewOptions,
 } from "../interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
 import type { OperationResult } from "../interfaces/OperationResult";

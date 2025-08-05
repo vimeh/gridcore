@@ -233,7 +233,7 @@ export class TextPatternDetector implements PatternDetector {
     }
 
     // Only consider non-numeric text
-    if (!isNaN(Number(str))) {
+    if (!Number.isNaN(Number(str))) {
       return null;
     }
 

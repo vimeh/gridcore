@@ -68,7 +68,6 @@ export class StructuralUndoManager {
   private undoStack: (StructuralOperation | StructuralTransaction)[] = [];
   private redoStack: (StructuralOperation | StructuralTransaction)[] = [];
   private maxStackSize: number;
-  private referenceUpdater: ReferenceUpdater;
   private currentTransactionId?: string;
   private currentTransaction?: StructuralTransaction;
 

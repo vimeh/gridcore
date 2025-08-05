@@ -362,9 +362,9 @@ export class StructuralOperationManager {
 
     this.currentOperation.progressInterval = setInterval(() => {
       // Simulate progress - in real implementation this would be tied to actual operation progress
-      const elapsed = Date.now() - this.currentOperation!.startTime;
+      const elapsed = Date.now() - this.currentOperation?.startTime;
       const estimatedTotal = this.estimateOperationDuration(
-        this.currentOperation!.operation,
+        this.currentOperation?.operation,
       );
       const progress = Math.min(95, (elapsed / estimatedTotal) * 100);
 

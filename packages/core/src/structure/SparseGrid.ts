@@ -11,8 +11,6 @@ export class SparseGrid {
   private maxRow: number = 0;
   private maxCol: number = 0;
 
-  constructor() {}
-
   /**
    * Get a cell at the specified address
    */

@@ -20,7 +20,6 @@ interface IntervalNode {
 export class OptimizedSparseGrid {
   private cells: Map<string, Cell> = new Map();
   private rowTree: IntervalNode | null = null; // Tree indexed by row
-  private colTree: IntervalNode | null = null; // Tree indexed by column
   private maxRow: number = 0;
   private maxCol: number = 0;
   private cellCount: number = 0;
@@ -32,8 +31,6 @@ export class OptimizedSparseGrid {
     lastOperationTime: 0,
     peakMemoryUsage: 0,
   };
-
-  constructor() {}
 
   /**
    * Get performance metrics
@@ -202,7 +199,7 @@ export class OptimizedSparseGrid {
       const toDelete: string[] = [];
 
       // Use spatial index for efficient range queries if available
-      const affectedCells = this.getCellsInRowRange(
+      const _affectedCells = this.getCellsInRowRange(
         startRow,
         startRow + count - 1,
       );
@@ -498,7 +495,7 @@ export class OptimizedSparseGrid {
     // Simplified interval tree query - in a real implementation
     // this would be more sophisticated
     if (node.start <= endRow && node.end >= startRow) {
-      for (const [col, cell] of node.cells.entries()) {
+      for (const [col, _cell] of node.cells.entries()) {
         for (
           let row = Math.max(startRow, node.start);
           row <= Math.min(endRow, node.end);

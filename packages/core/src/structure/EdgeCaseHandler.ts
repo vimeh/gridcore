@@ -1,5 +1,4 @@
-import type { CellAddress } from "../domain/models/CellAddress";
-import { err, ok, type Result } from "../shared/types/Result";
+import { ok, type Result } from "../shared/types/Result";
 import type { OptimizedSparseGrid } from "./OptimizedSparseGrid";
 import type { StructuralChange } from "./ReferenceUpdater";
 
@@ -182,7 +181,7 @@ export class EdgeCaseHandler {
     grid: OptimizedSparseGrid,
     currentMemoryMB: number,
   ): EdgeCaseResult {
-    const memoryStats = grid.getMemoryStats();
+    const _memoryStats = grid.getMemoryStats();
     const estimatedGrowthMB =
       this.estimateMemoryGrowth(change, grid) / 1024 / 1024;
     const projectedMemoryMB = currentMemoryMB + estimatedGrowthMB;
@@ -326,7 +325,7 @@ export class EdgeCaseHandler {
    * Suggest recovery strategies for failed operations
    */
   suggestRecoveryStrategies(
-    failedChange: StructuralChange,
+    _failedChange: StructuralChange,
     error: string,
   ): string[] {
     const strategies: string[] = [];
@@ -475,7 +474,7 @@ export class EdgeCaseHandler {
 
   private suggestAlternativeApproach(
     scenarios: EdgeCaseType[],
-    change: StructuralChange,
+    _change: StructuralChange,
   ): string | undefined {
     if (scenarios.includes("memoryLimit")) {
       return "Consider using streaming operations or data pagination";
@@ -548,7 +547,7 @@ export class EdgeCaseHandler {
 
   private assessFormulaComplexity(
     grid: OptimizedSparseGrid,
-    change: StructuralChange,
+    _change: StructuralChange,
   ): "low" | "medium" | "high" | "critical" {
     const formulaCount = this.countFormulaCells(grid);
     const hasComplexFormulas = this.hasComplexFormulas(grid);

@@ -207,7 +207,7 @@ describe("BulkTransformOperation", () => {
     });
 
     it("should transform string values to uppercase", async () => {
-      const result = await operation["transformCell"](
+      const result = await operation.transformCell(
         new CellAddress(0, 0),
         "hello",
       );
@@ -215,7 +215,7 @@ describe("BulkTransformOperation", () => {
     });
 
     it("should return null for values that don't change", async () => {
-      const result = await operation["transformCell"](
+      const result = await operation.transformCell(
         new CellAddress(0, 0),
         "ALREADY UPPER",
       );
@@ -223,18 +223,12 @@ describe("BulkTransformOperation", () => {
     });
 
     it("should return null for null values", async () => {
-      const result = await operation["transformCell"](
-        new CellAddress(0, 0),
-        null,
-      );
+      const result = await operation.transformCell(new CellAddress(0, 0), null);
       expect(result).toBe(null);
     });
 
     it("should skip non-text values by default", async () => {
-      const result = await operation["transformCell"](
-        new CellAddress(0, 0),
-        42,
-      );
+      const result = await operation.transformCell(new CellAddress(0, 0), 42);
       expect(result).toBe(null);
     });
 
@@ -250,10 +244,7 @@ describe("BulkTransformOperation", () => {
         repository,
       );
 
-      const result = await operation["transformCell"](
-        new CellAddress(0, 0),
-        42,
-      );
+      const result = await operation.transformCell(new CellAddress(0, 0), 42);
       expect(result).toBe("42");
     });
 
@@ -270,10 +261,7 @@ describe("BulkTransformOperation", () => {
         repository,
       );
 
-      const result = await operation["transformCell"](
-        new CellAddress(0, 0),
-        42,
-      );
+      const result = await operation.transformCell(new CellAddress(0, 0), 42);
       expect(result).toBe(42);
     });
   });

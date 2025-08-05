@@ -1,5 +1,3 @@
-import type { CellAddress } from "@gridcore/core";
-
 // Bulk operation command types
 export interface BulkCommand {
   type: string;
@@ -325,7 +323,7 @@ export class VimBulkCommandParser implements BulkCommandParser {
           command.operation !== "floor" &&
           command.operation !== "ceil"
         ) {
-          if (isNaN(command.value)) {
+          if (Number.isNaN(command.value)) {
             return "Math operation requires a valid number";
           }
           if (

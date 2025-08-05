@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { ICellRepository } from "../../../domain/interfaces/ICellRepository";
-import { Cell, CellAddress, CellValue } from "../../../domain/models";
+import { Cell, CellAddress } from "../../../domain/models";
 import { CellSelection } from "../base/CellSelection";
 import {
   FindReplaceOperation,
@@ -297,7 +297,7 @@ describe("FindReplaceOperation Performance", () => {
 
       // Monitor memory usage during preview
       const previewStartMem = process.memoryUsage().heapUsed;
-      const preview = await operation.preview(1000); // Limit preview
+      const _preview = await operation.preview(1000); // Limit preview
       const previewEndMem = process.memoryUsage().heapUsed;
       const previewMemDelta = previewEndMem - previewStartMem;
 

@@ -67,6 +67,6 @@ export class CopyPatternDetector implements PatternDetector {
       return "";
     }
     const str = value.toString();
-    return str.length > 10 ? str.substring(0, 10) + "..." : str;
+    return str.length > 10 ? `${str.substring(0, 10)}...` : str;
   }
 }

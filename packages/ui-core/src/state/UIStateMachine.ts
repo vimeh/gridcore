@@ -1,4 +1,4 @@
-import { CellAddress, CellRange } from "@gridcore/core";
+import { CellAddress } from "@gridcore/core";
 import type { ParsedBulkCommand } from "../commands/BulkCommandParser";
 import type { Result } from "../utils/Result";
 import { err, ok } from "../utils/Result";
@@ -6,9 +6,7 @@ import {
   type CellMode,
   createBulkOperationState,
   createCommandState,
-  createDeleteState,
   createEditingState,
-  createInsertState,
   // createFillState,
   createNavigationState,
   createResizeState,
@@ -647,28 +645,6 @@ export class UIStateMachine {
     return ok(state);
   }
 
-  // Structural insert mode handlers
-  private enterStructuralInsertMode(
-    state: UIState,
-    action: Action,
-  ): Result<UIState> {
-    if (action.type !== "ENTER_STRUCTURAL_INSERT_MODE") {
-      return err("Invalid action type");
-    }
-    if (!isNavigationMode(state)) {
-      return err("Can only enter structural insert mode from navigation mode");
-    }
-
-    return ok(
-      createInsertState(
-        state.cursor,
-        state.viewport,
-        action.insertType,
-        action.insertPosition,
-      ),
-    );
-  }
-
   private exitStructuralInsertMode(state: UIState): Result<UIState> {
     if (!isInsertMode(state)) {
       return err("Can only exit structural insert mode when in insert mode");
@@ -689,25 +665,6 @@ export class UIStateMachine {
       ...state,
       count: action.count,
     });
-  }
-
-  // Delete mode handlers
-  private enterDeleteMode(state: UIState, action: Action): Result<UIState> {
-    if (action.type !== "ENTER_DELETE_MODE") {
-      return err("Invalid action type");
-    }
-    if (!isNavigationMode(state)) {
-      return err("Can only enter delete mode from navigation mode");
-    }
-
-    return ok(
-      createDeleteState(
-        state.cursor,
-        state.viewport,
-        action.deleteType,
-        action.selection,
-      ),
-    );
   }
 
   private exitDeleteMode(state: UIState): Result<UIState> {

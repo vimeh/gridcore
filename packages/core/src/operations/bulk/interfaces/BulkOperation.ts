@@ -1,4 +1,4 @@
-import type { CellAddress, CellValue } from "../../../domain/models";
+import type { CellAddress } from "../../../domain/models";
 import type { OperationPreview } from "./OperationPreview";
 import type { OperationResult } from "./OperationResult";
 

@@ -2,14 +2,8 @@ import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
 import type { CellAddress, CellValue } from "../../domain/models";
 import { CellSelection } from "./base/CellSelection";
 import { BulkSetOperation } from "./implementations/BulkSetOperation";
-import type {
-  BulkOperation,
-  UndoableBulkOperation,
-} from "./interfaces/BulkOperation";
-import type {
-  CellChange,
-  OperationPreview,
-} from "./interfaces/OperationPreview";
+import type { BulkOperation } from "./interfaces/BulkOperation";
+import type { CellChange } from "./interfaces/OperationPreview";
 import type {
   BatchOperationResult,
   OperationResult,
@@ -70,7 +64,6 @@ export interface UndoRedoConfig {
 export class UndoRedoManager {
   private undoStack: UndoAction[] = [];
   private redoStack: UndoAction[] = [];
-  private nextActionId = 1;
 
   constructor(
     private cellRepository: ICellRepository,
@@ -375,12 +368,12 @@ export class UndoRedoManager {
     // Group changes by their original value to optimize undo operations
     const valueGroups = new Map<string, CellAddress[]>();
 
-    for (const [key, change] of changes) {
+    for (const [_key, change] of changes) {
       const valueKey = String(change.before);
       if (!valueGroups.has(valueKey)) {
         valueGroups.set(valueKey, []);
       }
-      valueGroups.get(valueKey)!.push(change.address);
+      valueGroups.get(valueKey)?.push(change.address);
     }
 
     // If all cells are being restored to the same value, use a single bulk set operation
@@ -412,12 +405,12 @@ export class UndoRedoManager {
     // Similar to undo, but using the 'after' values
     const valueGroups = new Map<string, CellAddress[]>();
 
-    for (const [key, change] of changes) {
+    for (const [_key, change] of changes) {
       const valueKey = String(change.after);
       if (!valueGroups.has(valueKey)) {
         valueGroups.set(valueKey, []);
       }
-      valueGroups.get(valueKey)!.push(change.address);
+      valueGroups.get(valueKey)?.push(change.address);
     }
 
     if (valueGroups.size === 1) {
@@ -525,7 +518,7 @@ class CompositeUndoOperation extends BulkSetOperation {
 
   protected async transformCell(
     address: CellAddress,
-    currentValue: CellValue,
+    _currentValue: CellValue,
   ): Promise<CellValue | null> {
     const key = `${address.row},${address.col}`;
     const change = this.changes.get(key);
@@ -555,7 +548,7 @@ class CompositeRedoOperation extends BulkSetOperation {
 
   protected async transformCell(
     address: CellAddress,
-    currentValue: CellValue,
+    _currentValue: CellValue,
   ): Promise<CellValue | null> {
     const key = `${address.row},${address.col}`;
     const change = this.changes.get(key);

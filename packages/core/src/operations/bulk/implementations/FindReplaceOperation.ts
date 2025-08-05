@@ -9,7 +9,6 @@ import type {
 import type {
   CellChange,
   OperationPreview,
-  PreviewOptions,
 } from "../interfaces/OperationPreview";
 import { OperationPreviewBuilder } from "../interfaces/OperationPreview";
 
@@ -158,7 +157,7 @@ export class FindReplaceOperation
     let searchType: "value" | "formula";
 
     if (isFormula && this.findOptions.searchInFormulas) {
-      searchContent = cell!.rawValue as string; // Formula is stored in rawValue
+      searchContent = cell?.rawValue as string; // Formula is stored in rawValue
       searchType = "formula";
     } else if (!isFormula && this.findOptions.searchInValues !== false) {
       // Search in values by default if not a formula

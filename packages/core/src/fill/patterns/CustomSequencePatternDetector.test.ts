@@ -11,10 +11,10 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("squares");
-      expect(pattern!.description).toContain("Perfect squares");
-      expect(pattern!.confidence).toBeGreaterThan(0.6);
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("squares");
+      expect(pattern?.description).toContain("Perfect squares");
+      expect(pattern?.confidence).toBeGreaterThan(0.6);
     });
 
     it("should detect squares starting from 4: 4,9,16,25", () => {
@@ -22,8 +22,8 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.sequenceType).toBe("squares");
-      expect(pattern!.metadata?.startIndex).toBe(2); // Starting from 2²
+      expect(pattern?.metadata?.sequenceType).toBe("squares");
+      expect(pattern?.metadata?.startIndex).toBe(2); // Starting from 2²
     });
 
     it("should detect longer square sequence", () => {
@@ -33,8 +33,8 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.sequenceType).toBe("squares");
-      expect(pattern!.confidence).toBeGreaterThan(0.8);
+      expect(pattern?.metadata?.sequenceType).toBe("squares");
+      expect(pattern?.confidence).toBeGreaterThan(0.8);
     });
   });
 
@@ -44,9 +44,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("cubes");
-      expect(pattern!.description).toContain("Perfect cubes");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("cubes");
+      expect(pattern?.description).toContain("Perfect cubes");
     });
 
     it("should detect cubes starting from 8: 8,27,64,125", () => {
@@ -54,8 +54,8 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.sequenceType).toBe("cubes");
-      expect(pattern!.metadata?.startIndex).toBe(2); // Starting from 2³
+      expect(pattern?.metadata?.sequenceType).toBe("cubes");
+      expect(pattern?.metadata?.startIndex).toBe(2); // Starting from 2³
     });
   });
 
@@ -65,9 +65,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("primes");
-      expect(pattern!.description).toContain("Prime numbers");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("primes");
+      expect(pattern?.description).toContain("Prime numbers");
     });
 
     it("should detect primes starting from 5: 5,7,11,13", () => {
@@ -75,8 +75,8 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.sequenceType).toBe("primes");
-      expect(pattern!.metadata?.startIndex).toBe(3); // Starting from 3rd prime
+      expect(pattern?.metadata?.sequenceType).toBe("primes");
+      expect(pattern?.metadata?.startIndex).toBe(3); // Starting from 3rd prime
     });
 
     it("should detect longer prime sequence", () => {
@@ -86,7 +86,7 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.sequenceType).toBe("primes");
+      expect(pattern?.metadata?.sequenceType).toBe("primes");
     });
   });
 
@@ -96,9 +96,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("triangular");
-      expect(pattern!.description).toContain("Triangular numbers");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("triangular");
+      expect(pattern?.description).toContain("Triangular numbers");
     });
 
     it("should detect triangular starting from 3: 3,6,10,15", () => {
@@ -106,7 +106,7 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.sequenceType).toBe("triangular");
+      expect(pattern?.metadata?.sequenceType).toBe("triangular");
     });
   });
 
@@ -116,9 +116,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("factorials");
-      expect(pattern!.description).toContain("Factorials");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("factorials");
+      expect(pattern?.description).toContain("Factorials");
     });
 
     it("should detect factorials starting from 2!: 2,6,24,120", () => {
@@ -126,7 +126,7 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.sequenceType).toBe("factorials");
+      expect(pattern?.metadata?.sequenceType).toBe("factorials");
     });
   });
 
@@ -136,9 +136,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("powers_of_2");
-      expect(pattern!.description).toContain("Powers of 2");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("powers_of_2");
+      expect(pattern?.description).toContain("Powers of 2");
     });
 
     it("should detect powers of 2 starting from 2²: 4,8,16,32", () => {
@@ -146,7 +146,7 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.sequenceType).toBe("powers_of_2");
+      expect(pattern?.metadata?.sequenceType).toBe("powers_of_2");
     });
   });
 
@@ -156,9 +156,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("powers_of_3");
-      expect(pattern!.description).toContain("Powers of 3");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("powers_of_3");
+      expect(pattern?.description).toContain("Powers of 3");
     });
   });
 
@@ -168,9 +168,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("pentagonal");
-      expect(pattern!.description).toContain("Pentagonal numbers");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("pentagonal");
+      expect(pattern?.description).toContain("Pentagonal numbers");
     });
   });
 
@@ -180,9 +180,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("hexagonal");
-      expect(pattern!.description).toContain("Hexagonal numbers");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("hexagonal");
+      expect(pattern?.description).toContain("Hexagonal numbers");
     });
   });
 
@@ -192,9 +192,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("catalan");
-      expect(pattern!.description).toContain("Catalan numbers");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("catalan");
+      expect(pattern?.description).toContain("Catalan numbers");
     });
   });
 
@@ -204,9 +204,9 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.type).toBe("custom");
-      expect(pattern!.metadata?.sequenceType).toBe("lucas");
-      expect(pattern!.description).toContain("Lucas numbers");
+      expect(pattern?.type).toBe("custom");
+      expect(pattern?.metadata?.sequenceType).toBe("lucas");
+      expect(pattern?.description).toContain("Lucas numbers");
     });
   });
 
@@ -282,7 +282,7 @@ describe("CustomSequencePatternDetector", () => {
 
       // Should extract [1, 4, 9, 16] and detect squares
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.sequenceType).toBe("squares");
+      expect(pattern?.metadata?.sequenceType).toBe("squares");
     });
 
     it("should require at least 3 valid numeric values", () => {
@@ -310,7 +310,7 @@ describe("CustomSequencePatternDetector", () => {
 
       expect(shortPattern).toBeDefined();
       expect(longPattern).toBeDefined();
-      expect(longPattern!.confidence).toBeGreaterThan(shortPattern!.confidence);
+      expect(longPattern?.confidence).toBeGreaterThan(shortPattern?.confidence);
     });
 
     it("should give higher confidence for well-known sequences", () => {
@@ -322,8 +322,8 @@ describe("CustomSequencePatternDetector", () => {
 
       expect(squarePattern).toBeDefined();
       expect(pentagonalPattern).toBeDefined();
-      expect(squarePattern!.confidence).toBeGreaterThan(
-        pentagonalPattern!.confidence,
+      expect(squarePattern?.confidence).toBeGreaterThan(
+        pentagonalPattern?.confidence,
       );
     });
 
@@ -338,8 +338,8 @@ describe("CustomSequencePatternDetector", () => {
 
       expect(naturalPattern).toBeDefined();
       expect(offsetPattern).toBeDefined();
-      expect(naturalPattern!.confidence).toBeGreaterThan(
-        offsetPattern!.confidence,
+      expect(naturalPattern?.confidence).toBeGreaterThan(
+        offsetPattern?.confidence,
       );
     });
 
@@ -355,7 +355,7 @@ describe("CustomSequencePatternDetector", () => {
       expect(smallPattern).toBeDefined();
       // Large numbers may not be detected due to their size
       if (largePattern) {
-        expect(smallPattern!.confidence).toBeGreaterThan(
+        expect(smallPattern?.confidence).toBeGreaterThan(
           largePattern.confidence,
         );
       } else {
@@ -375,7 +375,7 @@ describe("CustomSequencePatternDetector", () => {
       // Next values should be 25, 36, 49 (5², 6², 7²)
       const nextValues = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,
@@ -396,7 +396,7 @@ describe("CustomSequencePatternDetector", () => {
       // Next values should be 11, 13, 17
       const nextValues = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,
@@ -417,7 +417,7 @@ describe("CustomSequencePatternDetector", () => {
       // Next values should be 24, 120, 720 (4!, 5!, 6!)
       const nextValues = [];
       for (let i = 0; i < 3; i++) {
-        const value = pattern!.generator.generateValue(
+        const value = pattern?.generator.generateValue(
           values,
           i,
           {} as any,
@@ -439,7 +439,7 @@ describe("CustomSequencePatternDetector", () => {
 
       // Try to generate a very large factorial
       expect(() => {
-        pattern!.generator.generateValue(
+        pattern?.generator.generateValue(
           values,
           25, // This should create 28! which is huge
           {} as any,
@@ -488,7 +488,7 @@ describe("CustomSequencePatternDetector", () => {
       const pattern = detector.detect(values, "down");
 
       expect(pattern).toBeDefined();
-      expect(pattern!.metadata?.matchedLength).toBe(5);
+      expect(pattern?.metadata?.matchedLength).toBe(5);
     });
   });
 

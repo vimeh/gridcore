@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { Cell } from "../domain/models/Cell";
 import { CellAddress } from "../domain/models/CellAddress";
-import type { CellValue } from "../domain/models/CellValue";
 import { OptimizedSparseGrid } from "./OptimizedSparseGrid";
 import { OptimizedStructuralEngine } from "./OptimizedStructuralEngine";
 import { PerformanceMonitor } from "./PerformanceMonitor";
