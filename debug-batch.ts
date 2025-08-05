@@ -12,7 +12,7 @@ const grid = new OptimizedSparseGrid();
 const engine = new OptimizedStructuralEngine(grid, monitor);
 
 // Create test cell
-function createTestCell(value: string): any {
+function createTestCell(value: string): Cell {
   const cellResult = Cell.create(value);
   if (!cellResult.ok) throw new Error("Failed to create cell");
   return cellResult.value;

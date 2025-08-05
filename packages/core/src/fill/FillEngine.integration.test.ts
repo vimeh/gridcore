@@ -4,12 +4,27 @@ import { FillEngine } from "./FillEngine";
 import type { FillOperation, FillOptions } from "./types";
 
 // Mock the domain models for testing
-const createCellAddress = (row: number, col: number) => ({
+interface MockCellAddress {
+  row: number;
+  col: number;
+  toString: () => string;
+}
+
+const createCellAddress = (row: number, col: number): MockCellAddress => ({
   row,
   col,
   toString: () => `R${row}C${col}`,
 });
-const createCellRange = (start: any, end: any) => ({ start, end });
+
+interface MockCellRange {
+  start: MockCellAddress;
+  end: MockCellAddress;
+}
+
+const createCellRange = (
+  start: MockCellAddress,
+  end: MockCellAddress,
+): MockCellRange => ({ start, end });
 
 const CellAddress = {
   fromA1Notation: (notation: string) => {
@@ -26,7 +41,7 @@ const CellAddress = {
 };
 
 const CellRange = {
-  create: (start: any, end: any) => ({
+  create: (start: MockCellAddress, end: MockCellAddress) => ({
     ok: true,
     value: createCellRange(start, end),
   }),
@@ -35,6 +50,24 @@ const CellRange = {
 describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
   let fillEngine: FillEngine;
   let cellRepository: InMemoryCellRepository;
+
+  // Helper function to get address from A1 notation
+  const getAddressFromA1 = (notation: string): MockCellAddress => {
+    const result = CellAddress.fromA1Notation(notation);
+    if (!result.ok) {
+      throw new Error(`Invalid A1 notation: ${notation}`);
+    }
+    return result.value;
+  };
+
+  // Helper function to create address from row/col
+  const createAddress = (row: number, col: number): MockCellAddress => {
+    const result = CellAddress.create(row, col);
+    if (!result.ok) {
+      throw new Error(`Invalid address: row=${row}, col=${col}`);
+    }
+    return result.value;
+  };
 
   beforeEach(() => {
     cellRepository = new InMemoryCellRepository();
@@ -216,15 +249,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("fibonacci");
 
       // Check generated values: should be 5, 8, 13
-      const a5 = await cellRepository.get(
-        CellAddress.fromA1Notation("A5").value!,
-      );
-      const a6 = await cellRepository.get(
-        CellAddress.fromA1Notation("A6").value!,
-      );
-      const a7 = await cellRepository.get(
-        CellAddress.fromA1Notation("A7").value!,
-      );
+      const a5 = await cellRepository.get(getAddressFromA1("A5"));
+      const a6 = await cellRepository.get(getAddressFromA1("A6"));
+      const a7 = await cellRepository.get(getAddressFromA1("A7"));
 
       expect(Number(a5?.getValue())).toBe(5);
       expect(Number(a6?.getValue())).toBe(8);
@@ -245,15 +272,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("exponential");
 
       // Check generated values: should be 16, 32, 64
-      const a4 = await cellRepository.get(
-        CellAddress.fromA1Notation("A4").value!,
-      );
-      const a5 = await cellRepository.get(
-        CellAddress.fromA1Notation("A5").value!,
-      );
-      const a6 = await cellRepository.get(
-        CellAddress.fromA1Notation("A6").value!,
-      );
+      const a4 = await cellRepository.get(getAddressFromA1("A4"));
+      const a5 = await cellRepository.get(getAddressFromA1("A5"));
+      const a6 = await cellRepository.get(getAddressFromA1("A6"));
 
       expect(Number(a4?.getValue())).toBe(16);
       expect(Number(a5?.getValue())).toBe(32);
@@ -274,15 +295,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("custom");
 
       // Check generated values: should be 16, 25, 36
-      const a4 = await cellRepository.get(
-        CellAddress.fromA1Notation("A4").value!,
-      );
-      const a5 = await cellRepository.get(
-        CellAddress.fromA1Notation("A5").value!,
-      );
-      const a6 = await cellRepository.get(
-        CellAddress.fromA1Notation("A6").value!,
-      );
+      const a4 = await cellRepository.get(getAddressFromA1("A4"));
+      const a5 = await cellRepository.get(getAddressFromA1("A5"));
+      const a6 = await cellRepository.get(getAddressFromA1("A6"));
 
       expect(Number(a4?.getValue())).toBe(16);
       expect(Number(a5?.getValue())).toBe(25);
@@ -304,15 +319,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("custom");
 
       // Check generated values: should be 11, 13, 17
-      const a5 = await cellRepository.get(
-        CellAddress.fromA1Notation("A5").value!,
-      );
-      const a6 = await cellRepository.get(
-        CellAddress.fromA1Notation("A6").value!,
-      );
-      const a7 = await cellRepository.get(
-        CellAddress.fromA1Notation("A7").value!,
-      );
+      const a5 = await cellRepository.get(getAddressFromA1("A5"));
+      const a6 = await cellRepository.get(getAddressFromA1("A6"));
+      const a7 = await cellRepository.get(getAddressFromA1("A7"));
 
       expect(Number(a5?.getValue())).toBe(11);
       expect(Number(a6?.getValue())).toBe(13);
@@ -337,15 +346,9 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       expect(result.pattern?.type).toBe("custom"); // Should detect squares from [1, 4, 9]
 
       // Check generated values: should be 16, 25, 36
-      const a6 = await cellRepository.get(
-        CellAddress.fromA1Notation("A6").value!,
-      );
-      const a7 = await cellRepository.get(
-        CellAddress.fromA1Notation("A7").value!,
-      );
-      const a8 = await cellRepository.get(
-        CellAddress.fromA1Notation("A8").value!,
-      );
+      const a6 = await cellRepository.get(getAddressFromA1("A6"));
+      const a7 = await cellRepository.get(getAddressFromA1("A7"));
+      const a8 = await cellRepository.get(getAddressFromA1("A8"));
 
       expect(Number(a6?.getValue())).toBe(16);
       expect(Number(a7?.getValue())).toBe(25);
@@ -381,12 +384,12 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
       }
 
       const sourceRange = CellRange.create(
-        CellAddress.create(0, 0).value!,
-        CellAddress.create(9, 0).value!,
+        createAddress(0, 0),
+        createAddress(9, 0),
       );
       const targetRange = CellRange.create(
-        CellAddress.create(10, 0).value!,
-        CellAddress.create(14, 0).value!,
+        createAddress(10, 0),
+        createAddress(14, 0),
       );
 
       if (!sourceRange.ok || !targetRange.ok) {

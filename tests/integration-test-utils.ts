@@ -91,7 +91,7 @@ export function validateReferences(
  */
 export async function checkFormulaIntegrity(
   spreadsheet: SpreadsheetFacade,
-  beforeValues: Map<string, any>,
+  beforeValues: Map<string, unknown>,
 ): Promise<{ intact: boolean; changes: string[] }> {
   const changes: string[] = [];
   const grid = spreadsheet.getGrid();
@@ -130,8 +130,8 @@ export async function checkFormulaIntegrity(
  */
 export function captureFormulaValues(
   spreadsheet: SpreadsheetFacade,
-): Map<string, any> {
-  const values = new Map<string, any>();
+): Map<string, unknown> {
+  const values = new Map<string, unknown>();
   const grid = spreadsheet.getGrid();
 
   for (let row = 0; row < grid.getRowCount(); row++) {
