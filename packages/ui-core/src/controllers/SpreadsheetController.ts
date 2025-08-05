@@ -243,8 +243,10 @@ export class SpreadsheetController {
         return this.startEditing(action.editVariant, action.initialChar);
       case "enterCommand":
         return this.stateMachine.transition({ type: "ENTER_COMMAND_MODE" });
-      case "enterResize":
-        return this.enterResize(action.target, action.index);
+      case "enterResize": {
+        const index = action.target === "column" ? state.cursor.col : state.cursor.row;
+        return this.enterResize(action.target, index);
+      }
       case "enterVisual": {
         // From navigation mode, we need to first enter editing mode, then visual mode
         const editResult = this.startEditing("normal");

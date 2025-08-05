@@ -105,12 +105,7 @@ export class StatusBarComponent extends Renderable {
 
     // Show resize info
     if (displayState.resizeInfo) {
-      const resizeText = getResizeModeDisplay(
-        displayState.resizeInfo.target === "Column" ? "column" : "row",
-        displayState.resizeInfo.index,
-        displayState.resizeInfo.currentSize,
-        displayState.resizeInfo.originalSize,
-      );
+      const resizeText = getResizeModeDisplay(displayState.resizeInfo);
       buffer.setText(
         currentX,
         pos.y,
