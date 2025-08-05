@@ -456,14 +456,29 @@ export class CanvasGrid {
   public onCellClick?: (cell: CellAddress) => void;
 
   private handleCellDoubleClick(cell: CellAddress): void {
-    const cellResult = this.facade.getCell(cell);
-    let initialValue = "";
-    if (cellResult.ok) {
-      const cellData = cellResult.value;
-      initialValue =
-        cellData.formula?.toString() || String(cellData.value || "");
+    // If we have a controller, use it to start editing
+    if (this.controller) {
+      // First, ensure we're on the clicked cell
+      this.selectionManager.setActiveCell(cell);
+      
+      // Start editing through the controller
+      this.controller.handleKeyPress("Enter", {
+        key: "Enter",
+        ctrl: false,
+        alt: false,
+        shift: false,
+      });
+    } else {
+      // Fallback to direct cell editor control
+      const cellResult = this.facade.getCell(cell);
+      let initialValue = "";
+      if (cellResult.ok) {
+        const cellData = cellResult.value;
+        initialValue =
+          cellData.formula?.toString() || String(cellData.value || "");
+      }
+      this.cellEditor.startEditing(cell, initialValue);
     }
-    this.cellEditor.startEditing(cell, initialValue);
   }
 
   private handleCellCommit(address: CellAddress, value: string): void {

@@ -265,6 +265,7 @@ export class VimBehavior {
       key.charCodeAt(0) !== 127
     ) {
       // Allow these vim navigation/command keys to work as commands
+      // Removed uppercase letters to allow natural typing
       const vimKeys = [
         "h",
         "j",
@@ -274,44 +275,28 @@ export class VimBehavior {
         "a",
         "o",
         "v",
-        "V",
         "g",
-        "G",
         ":",
         "x",
         "r",
-        "R",
         "u",
         "p",
-        "P",
         "y",
         "d",
         "c",
         "w",
         "b",
         "e",
-        "W",
-        "B",
-        "E",
         "$",
         "^",
         "0",
-        "A",
-        "I",
-        "O",
-        "D",
         "z",
         "f",
-        "F",
         "t",
-        "T",
         "n",
-        "N",
         "s",
-        "S",
         "m",
         "q",
-        "Q",
         ".",
         ",",
         ";",
@@ -359,35 +344,35 @@ export class VimBehavior {
       case "a":
         this.clearBuffers();
         return { type: "startEditing", editVariant: "a" };
-      case "A":
-        this.clearBuffers();
-        return { type: "startEditing", editVariant: "A" };
-      case "I":
-        this.clearBuffers();
-        // Check if we're in visual line mode for structural insert
-        if (this.isInVisualLineMode(state)) {
-          return {
-            type: "structuralInsert",
-            target: "row",
-            position: "before",
-            count,
-          };
-        }
-        return { type: "startEditing", editVariant: "I" };
+      // case "A": - Removed to allow natural typing
+      //   this.clearBuffers();
+      //   return { type: "startEditing", editVariant: "A" };
+      // case "I": - Removed to allow natural typing
+      //   this.clearBuffers();
+      //   // Check if we're in visual line mode for structural insert
+      //   if (this.isInVisualLineMode(state)) {
+      //     return {
+      //       type: "structuralInsert",
+      //       target: "row",
+      //       position: "before",
+      //       count,
+      //     };
+      //   }
+      //   return { type: "startEditing", editVariant: "I" };
       case "o":
         this.clearBuffers();
         return { type: "startEditing", editVariant: "o" };
-      case "O":
-        this.clearBuffers();
-        return { type: "startEditing", editVariant: "O" };
+      // case "O": - Removed to allow natural typing
+      //   this.clearBuffers();
+      //   return { type: "startEditing", editVariant: "O" };
 
       // Visual modes - spreadsheet-level visual selection
       case "v":
         this.clearBuffers();
         return { type: "enterSpreadsheetVisual", visualMode: "char" };
-      case "V":
-        this.clearBuffers();
-        return { type: "enterSpreadsheetVisual", visualMode: "row" };
+      // case "V": - Removed to allow natural typing
+      //   this.clearBuffers();
+      //   return { type: "enterSpreadsheetVisual", visualMode: "row" };
 
       // Commands that start multi-key sequences
       case "g":
@@ -404,9 +389,9 @@ export class VimBehavior {
         this.internalState.operatorPending = true;
         return { type: "none" };
 
-      case "G":
-        this.clearBuffers();
-        return { type: "moveTo", target: "lastRow", count };
+      // case "G": - Removed to allow natural typing
+      //   this.clearBuffers();
+      //   return { type: "moveTo", target: "lastRow", count };
 
       // Word movement
       case "w":
@@ -423,17 +408,17 @@ export class VimBehavior {
       case "x":
         this.clearBuffers();
         return { type: "delete" };
-      case "D":
-        this.clearBuffers();
-        return { type: "delete" };
+      // case "D": - Removed to allow natural typing
+      //   this.clearBuffers();
+      //   return { type: "delete" };
 
       // Paste
       case "p":
         this.clearBuffers();
         return { type: "paste", before: false };
-      case "P":
-        this.clearBuffers();
-        return { type: "paste", before: true };
+      // case "P": - Removed to allow natural typing
+      //   this.clearBuffers();
+      //   return { type: "paste", before: true };
 
       // Command mode
       case ":":
