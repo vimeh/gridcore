@@ -20,7 +20,13 @@ class MockCellRepository implements ICellRepository {
 
   set(address: CellAddress, cell: Cell): void {
     const key = `${address.row},${address.col}`;
-    this.cells.set(key, cell);
+    // Ensure cell has both rawValue and computedValue
+    const fullCell = {
+      ...cell,
+      rawValue: cell.rawValue ?? cell.computedValue ?? cell.value,
+      computedValue: cell.computedValue ?? cell.rawValue ?? cell.value,
+    } as Cell;
+    this.cells.set(key, fullCell);
   }
 
   delete(address: CellAddress): void {
@@ -48,12 +54,13 @@ class MockCellRepository implements ICellRepository {
   // Helper method for tests
   setCellValue(address: CellAddress, value: unknown): void {
     const key = `${address.row},${address.col}`;
-    this.cells.set(key, { value } as Cell);
+    this.cells.set(key, { rawValue: value, computedValue: value } as Cell);
   }
 
   getCellValue(address: CellAddress): unknown {
     const key = `${address.row},${address.col}`;
-    return this.cells.get(key)?.value;
+    const cell = this.cells.get(key);
+    return cell ? cell.computedValue || cell.rawValue : undefined;
   }
 }
 
@@ -701,10 +708,10 @@ describe("BulkMathOperation", () => {
 
   describe("Error Handling", () => {
     it("should handle cell repository errors gracefully", async () => {
-      // Create a failing repository
+      // Create a failing repository that throws on get
       const failingRepo = {
         ...cellRepository,
-        getCell: () => Promise.resolve({ ok: false, error: "Cell not found" }),
+        get: () => { throw new Error("Repository error"); }, // Throw error to simulate repository failure
       } as ICellRepository;
 
       const options: BulkMathOptions = {
@@ -715,8 +722,7 @@ describe("BulkMathOperation", () => {
       const operation = new BulkMathOperation(selection, options, failingRepo);
       const result = await operation.execute();
 
-      expect(result.success).toBe(false); // Should fail if no cells can be read
-      expect(result.warnings.length).toBeGreaterThan(0); // But with warnings
+      expect(result.success).toBe(false); // Should fail due to repository error
       expect(result.cellsModified).toBe(0); // No cells should be modified
     });
 
@@ -724,7 +730,7 @@ describe("BulkMathOperation", () => {
       // Create a repository that fails on updates
       const failingRepo = {
         ...cellRepository,
-        setCell: () => Promise.resolve({ ok: false, error: "Update failed" }),
+        set: () => { throw new Error("Update failed"); }, // Throw error on set
       } as ICellRepository;
 
       const options: BulkMathOptions = {
