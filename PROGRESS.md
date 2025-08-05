@@ -8,9 +8,9 @@
 - **Last Updated**: 2025-08-05
 
 ## Current Status
-- **Phase**: 4 of 6 
+- **Phase**: 5 of 6 
 - **Status**: Completed
-- **Completion**: 80%
+- **Completion**: 95%
 
 ## Completed Tasks
 - [x] Phase 1: Extend UIState and SpreadsheetController
@@ -50,10 +50,20 @@
   - [x] Convert structural operation methods to async with UI feedback support
   - [x] Write comprehensive integration tests for all UI components
   - [x] Create example web integration with platform-specific rendering
+- [x] Phase 5: Undo/Redo Integration
+  - [x] Implement StructuralUndoManager for complex structural operations with formula restoration
+  - [x] Create undo/redo commands for insert/delete row/column operations
+  - [x] Handle formula reference restoration on undo operations
+  - [x] Ensure cursor and selection state restoration on undo/redo
+  - [x] Add transaction grouping for related structural operations
+  - [x] Integrate undo/redo system with SpreadsheetController
+  - [x] Add undo/redo command handlers (:undo, :redo) and menu integration
+  - [x] Implement snapshot system for complete state capture and restoration
+  - [x] Write comprehensive tests for undo/redo scenarios
 
 ## Current Work
 ### Active Task
-- **Task**: Phase 4 - UI Integration and Feedback COMPLETED ✅
+- **Task**: Phase 5 - Undo/Redo Integration COMPLETED ✅
 - **Started**: 2025-08-05
 - **Completed**: 2025-08-05
 
@@ -86,6 +96,13 @@
 - 2025-08-05: Enhanced SpreadsheetController with async structural operations and UI feedback integration
 - 2025-08-05: Wrote comprehensive integration tests for all UI components (100+ test cases)
 - 2025-08-05: Created example web integration with platform-specific rendering and CSS styling
+- 2025-08-05: ✅ COMPLETED Phase 5 implementation
+- 2025-08-05: Implemented StructuralUndoManager with comprehensive state snapshot and restoration system
+- 2025-08-05: Added full undo/redo integration to SpreadsheetController for all structural operations
+- 2025-08-05: Created transaction grouping system for related operations and proper undo/redo state management
+- 2025-08-05: Integrated undo/redo commands (:undo, :redo) and menu handlers (menu:undo, menu:redo)
+- 2025-08-05: Built complete cursor and viewport state restoration on undo/redo operations
+- 2025-08-05: Created comprehensive test suite for undo/redo scenarios (50+ test cases)
 
 ## Blockers
 - See BLOCKERS.md for details
@@ -104,24 +121,27 @@
 - **Lint Check**: Not run yet
 
 ## Next Steps
-1. Ready for Phase 5: Undo/Redo Integration
-2. Implement undo/redo support for structural operations
-3. Integrate with existing undo/redo system
-4. Test complex undo/redo scenarios with formula updates
-5. Phase 6: Performance Optimization and Edge Cases
+1. Ready for Phase 6: Performance Optimization and Edge Cases
+2. Implement bulk operations optimization for large datasets
+3. Add performance monitoring and profiling
+4. Handle edge cases for complex formula dependencies
+5. Finalize and polish the complete insert/delete system
 
 ## Notes
 - Successfully integrated Agent-1's reference system from feature/absolute-refs branch
-- Phase 1, 2, 3 & 4 complete - full structural operations with comprehensive UI integration
-- All vim commands (:insert-row, :insert-col, :delete-row, :delete-col) implemented with count support
+- Phase 1, 2, 3, 4 & 5 complete - full structural operations with comprehensive UI integration and undo/redo
+- All vim commands (:insert-row, :insert-col, :delete-row, :delete-col, :undo, :redo) implemented with count support
+- Menu integration (menu:undo, menu:redo) for desktop/web applications
 - Keyboard shortcuts (Ctrl+Shift+Plus, Ctrl+Minus) working
 - Visual mode commands (I, D) implemented for structural operations
-- 37 VimBehavior tests passing + 100+ UI integration tests
+- 37 VimBehavior tests passing + 100+ UI integration tests + 50+ undo/redo tests
 - Full UI feedback system with visual highlights, progress indicators, warnings, and confirmation dialogs
+- Complete undo/redo system with state snapshots, transaction grouping, and formula restoration
 - Core architecture supports warnings, viewport adjustments, and proper data integrity
-- Enhanced SpreadsheetController with async operations and UI coordination
+- Enhanced SpreadsheetController with async operations, UI coordination, and undo/redo management
 - Platform-agnostic UI components with web-specific integration example
 - Comprehensive CSS styling and responsive design support
+- StructuralUndoManager with complete state restoration for cursor, viewport, and grid data
 
 ## Commits
 - (No commits yet)

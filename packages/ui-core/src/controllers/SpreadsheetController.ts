@@ -1,4 +1,4 @@
-import { CellAddress, type SpreadsheetFacade, StructuralEngine } from "@gridcore/core";
+import { CellAddress, type SpreadsheetFacade, StructuralEngine, StructuralUndoManager, type StructuralSnapshot } from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
 import { type ResizeAction, ResizeBehavior } from "../behaviors/ResizeBehavior";
 import { StructuralOperationManager, type StructuralUIEvent } from "../behaviors/structural";
@@ -48,7 +48,10 @@ export type ControllerEvent =
   | { type: "error"; error: string }
   | { type: "structuralOperationCompleted"; operation: string; count: number; position: number }
   | { type: "structuralOperationFailed"; operation: string; error: string }
-  | { type: "structuralUIEvent"; event: StructuralUIEvent };
+  | { type: "structuralUIEvent"; event: StructuralUIEvent }
+  | { type: "undoCompleted"; description: string; snapshot: StructuralSnapshot }
+  | { type: "redoCompleted"; description: string; snapshot: StructuralSnapshot }
+  | { type: "undoRedoStateChanged"; canUndo: boolean; canRedo: boolean };
 
 export class SpreadsheetController {
   private stateMachine: UIStateMachine;
@@ -59,6 +62,7 @@ export class SpreadsheetController {
   private viewportManager: ViewportManager;
   private structuralEngine: StructuralEngine;
   private structuralUIManager: StructuralOperationManager;
+  private structuralUndoManager: StructuralUndoManager;
   private listeners: Array<(event: ControllerEvent) => void> = [];
 
   constructor(options: SpreadsheetControllerOptions) {
@@ -70,9 +74,10 @@ export class SpreadsheetController {
     this.cellVimBehavior = new CellVimBehavior();
     this.resizeBehavior = new ResizeBehavior();
     
-    // Initialize structural engine and UI manager
+    // Initialize structural engine, UI manager, and undo manager
     this.structuralEngine = new StructuralEngine();
     this.structuralUIManager = new StructuralOperationManager();
+    this.structuralUndoManager = new StructuralUndoManager();
     
     // Forward structural UI events to controller listeners
     this.structuralUIManager.subscribe((event: StructuralUIEvent) => {
@@ -752,6 +757,11 @@ export class SpreadsheetController {
     // Parse vim commands for structural operations
     const trimmedCommand = command.trim();
     
+    // Handle undo/redo commands
+    if (this.handleUndoRedoCommands(trimmedCommand)) {
+      return; // Command was handled
+    }
+    
     // Handle insert/delete commands
     if (this.handleStructuralCommands(trimmedCommand, state)) {
       return; // Command was handled
@@ -759,6 +769,21 @@ export class SpreadsheetController {
     
     // Fallback for other commands
     this.emit({ type: "commandExecuted", command });
+  }
+
+  private handleUndoRedoCommands(command: string): boolean {
+    switch (command) {
+      case ":undo":
+      case ":u":
+        this.undo();
+        return true;
+      case ":redo":
+      case ":r":
+        this.redo();
+        return true;
+      default:
+        return false;
+    }
   }
   
   private handleStructuralCommands(command: string, state: UIState): boolean {
@@ -1046,6 +1071,17 @@ export class SpreadsheetController {
       id: `insert-row-${Date.now()}-${Math.random()}`
     };
 
+    // Capture state before operation for undo
+    const currentState = this.getState();
+    const beforeSnapshot = this.structuralUndoManager.createSnapshot(
+      this.structuralEngine.getGrid(),
+      {
+        cursor: currentState.cursor,
+        selection: undefined, // Could be extended for multi-cell selections
+      },
+      currentState.viewport
+    );
+
     // Analyze the operation first
     const analysisResult = this.structuralEngine.analyzeStructuralChange(operation);
     if (!analysisResult.ok) {
@@ -1079,6 +1115,26 @@ export class SpreadsheetController {
         });
       }
 
+      // Capture state after operation for redo
+      const afterState = this.getState();
+      const afterSnapshot = this.structuralUndoManager.createSnapshot(
+        this.structuralEngine.getGrid(),
+        {
+          cursor: afterState.cursor,
+          selection: undefined,
+        },
+        afterState.viewport
+      );
+
+      // Record the operation for undo/redo
+      this.structuralUndoManager.recordOperation(
+        operation.id,
+        operation,
+        `Insert ${count} row${count === 1 ? '' : 's'} at row ${beforeRow + 1}`,
+        beforeSnapshot,
+        afterSnapshot
+      );
+
       // Complete the UI operation
       this.structuralUIManager.completeOperation(
         finalAnalysis.affectedCells,
@@ -1090,6 +1146,9 @@ export class SpreadsheetController {
         type: "commandExecuted",
         command: `insertRows ${beforeRow} ${count}`,
       });
+
+      // Emit undo/redo state change
+      this.emitUndoRedoStateChanged();
     } else {
       this.structuralUIManager.failOperation(result.error);
       this.emit({
@@ -1110,6 +1169,17 @@ export class SpreadsheetController {
       timestamp: Date.now(),
       id: `insert-column-${Date.now()}-${Math.random()}`
     };
+
+    // Capture state before operation for undo
+    const currentState = this.getState();
+    const beforeSnapshot = this.structuralUndoManager.createSnapshot(
+      this.structuralEngine.getGrid(),
+      {
+        cursor: currentState.cursor,
+        selection: undefined,
+      },
+      currentState.viewport
+    );
 
     // Analyze the operation first
     const analysisResult = this.structuralEngine.analyzeStructuralChange(operation);
@@ -1144,6 +1214,26 @@ export class SpreadsheetController {
         });
       }
 
+      // Capture state after operation for redo
+      const afterState = this.getState();
+      const afterSnapshot = this.structuralUndoManager.createSnapshot(
+        this.structuralEngine.getGrid(),
+        {
+          cursor: afterState.cursor,
+          selection: undefined,
+        },
+        afterState.viewport
+      );
+
+      // Record the operation for undo/redo
+      this.structuralUndoManager.recordOperation(
+        operation.id,
+        operation,
+        `Insert ${count} column${count === 1 ? '' : 's'} at column ${beforeCol + 1}`,
+        beforeSnapshot,
+        afterSnapshot
+      );
+
       // Complete the UI operation
       this.structuralUIManager.completeOperation(
         finalAnalysis.affectedCells,
@@ -1155,6 +1245,9 @@ export class SpreadsheetController {
         type: "commandExecuted", 
         command: `insertColumns ${beforeCol} ${count}`,
       });
+
+      // Emit undo/redo state change
+      this.emitUndoRedoStateChanged();
     } else {
       this.structuralUIManager.failOperation(result.error);
       this.emit({
@@ -1175,6 +1268,17 @@ export class SpreadsheetController {
       timestamp: Date.now(),
       id: `delete-row-${Date.now()}-${Math.random()}`
     };
+
+    // Capture state before operation for undo
+    const currentState = this.getState();
+    const beforeSnapshot = this.structuralUndoManager.createSnapshot(
+      this.structuralEngine.getGrid(),
+      {
+        cursor: currentState.cursor,
+        selection: undefined,
+      },
+      currentState.viewport
+    );
 
     // Analyze the operation first
     const analysisResult = this.structuralEngine.analyzeStructuralChange(operation);
@@ -1212,6 +1316,26 @@ export class SpreadsheetController {
         });
       }
 
+      // Capture state after operation for redo
+      const afterState = this.getState();
+      const afterSnapshot = this.structuralUndoManager.createSnapshot(
+        this.structuralEngine.getGrid(),
+        {
+          cursor: afterState.cursor,
+          selection: undefined,
+        },
+        afterState.viewport
+      );
+
+      // Record the operation for undo/redo
+      this.structuralUndoManager.recordOperation(
+        operation.id,
+        operation,
+        `Delete ${count} row${count === 1 ? '' : 's'} starting at row ${startRow + 1}`,
+        beforeSnapshot,
+        afterSnapshot
+      );
+
       // Complete the UI operation
       this.structuralUIManager.completeOperation(
         finalAnalysis.affectedCells,
@@ -1223,6 +1347,9 @@ export class SpreadsheetController {
         type: "commandExecuted",
         command: `deleteRows ${startRow} ${count}`,
       });
+
+      // Emit undo/redo state change
+      this.emitUndoRedoStateChanged();
     } else {
       this.structuralUIManager.failOperation(result.error);
       this.emit({
@@ -1243,6 +1370,17 @@ export class SpreadsheetController {
       timestamp: Date.now(),
       id: `delete-column-${Date.now()}-${Math.random()}`
     };
+
+    // Capture state before operation for undo
+    const currentState = this.getState();
+    const beforeSnapshot = this.structuralUndoManager.createSnapshot(
+      this.structuralEngine.getGrid(),
+      {
+        cursor: currentState.cursor,
+        selection: undefined,
+      },
+      currentState.viewport
+    );
 
     // Analyze the operation first
     const analysisResult = this.structuralEngine.analyzeStructuralChange(operation);
@@ -1280,6 +1418,26 @@ export class SpreadsheetController {
         });
       }
 
+      // Capture state after operation for redo
+      const afterState = this.getState();
+      const afterSnapshot = this.structuralUndoManager.createSnapshot(
+        this.structuralEngine.getGrid(),
+        {
+          cursor: afterState.cursor,
+          selection: undefined,
+        },
+        afterState.viewport
+      );
+
+      // Record the operation for undo/redo
+      this.structuralUndoManager.recordOperation(
+        operation.id,
+        operation,
+        `Delete ${count} column${count === 1 ? '' : 's'} starting at column ${startCol + 1}`,
+        beforeSnapshot,
+        afterSnapshot
+      );
+
       // Complete the UI operation
       this.structuralUIManager.completeOperation(
         finalAnalysis.affectedCells,
@@ -1291,6 +1449,9 @@ export class SpreadsheetController {
         type: "commandExecuted",
         command: `deleteColumns ${startCol} ${count}`,
       });
+
+      // Emit undo/redo state change
+      this.emitUndoRedoStateChanged();
     } else {
       this.structuralUIManager.failOperation(result.error);
       this.emit({
@@ -1346,6 +1507,186 @@ export class SpreadsheetController {
       type: "ENTER_DELETE_MODE",
       deleteType: "column",
       selection,
+    });
+  }
+
+  // Undo/Redo Methods
+
+  /**
+   * Undo the last structural operation
+   */
+  async undo(): Promise<void> {
+    try {
+      const grid = this.structuralEngine.getGrid();
+      const result = await this.structuralUndoManager.undo(grid);
+      
+      if (result.ok) {
+        const snapshot = result.value;
+        
+        // Restore cursor and viewport state if available
+        if (snapshot.cursorState) {
+          this.stateMachine.transition({
+            type: "UPDATE_CURSOR",
+            cursor: snapshot.cursorState.cursor,
+          });
+        }
+        
+        if (snapshot.viewportState) {
+          this.stateMachine.transition({
+            type: "UPDATE_VIEWPORT",
+            viewport: snapshot.viewportState,
+          });
+        }
+        
+        this.emit({
+          type: "undoCompleted",
+          description: "Structural operation undone",
+          snapshot,
+        });
+        
+        this.emitUndoRedoStateChanged();
+      } else {
+        this.emit({
+          type: "error",
+          error: result.error,
+        });
+      }
+    } catch (error) {
+      this.emit({
+        type: "error",
+        error: `Undo failed: ${error}`,
+      });
+    }
+  }
+
+  /**
+   * Redo the last undone structural operation
+   */
+  async redo(): Promise<void> {
+    try {
+      const grid = this.structuralEngine.getGrid();
+      const result = await this.structuralUndoManager.redo(grid);
+      
+      if (result.ok) {
+        const snapshot = result.value;
+        
+        // Restore cursor and viewport state if available  
+        if (snapshot.cursorState) {
+          this.stateMachine.transition({
+            type: "UPDATE_CURSOR",
+            cursor: snapshot.cursorState.cursor,
+          });
+        }
+        
+        if (snapshot.viewportState) {
+          this.stateMachine.transition({
+            type: "UPDATE_VIEWPORT",
+            viewport: snapshot.viewportState,
+          });
+        }
+        
+        this.emit({
+          type: "redoCompleted",
+          description: "Structural operation redone",
+          snapshot,
+        });
+        
+        this.emitUndoRedoStateChanged();
+      } else {
+        this.emit({
+          type: "error",
+          error: result.error,
+        });
+      }
+    } catch (error) {
+      this.emit({
+        type: "error",
+        error: `Redo failed: ${error}`,
+      });
+    }
+  }
+
+  /**
+   * Check if undo is available
+   */
+  canUndo(): boolean {
+    return this.structuralUndoManager.canUndo();
+  }
+
+  /**
+   * Check if redo is available
+   */
+  canRedo(): boolean {
+    return this.structuralUndoManager.canRedo();
+  }
+
+  /**
+   * Get undo/redo statistics for debugging
+   */
+  getUndoRedoStats(): {
+    undoStackSize: number;
+    redoStackSize: number;
+    maxStackSize: number;
+    currentTransactionId?: string;
+  } {
+    return this.structuralUndoManager.getStats();
+  }
+
+  /**
+   * Start a transaction group for related operations
+   */
+  startTransaction(description: string): string {
+    return this.structuralUndoManager.startTransaction(description);
+  }
+
+  /**
+   * End the current transaction
+   */
+  endTransaction(): void {
+    this.structuralUndoManager.endTransaction();
+    this.emitUndoRedoStateChanged();
+  }
+
+  /**
+   * Cancel the current transaction
+   */
+  cancelTransaction(): void {
+    this.structuralUndoManager.cancelTransaction();
+  }
+
+  /**
+   * Clear all undo/redo history
+   */
+  clearUndoHistory(): void {
+    this.structuralUndoManager.clearHistory();
+    this.emitUndoRedoStateChanged();
+  }
+
+  /**
+   * Handle menu events (for integration with menu system)
+   */
+  handleMenuEvent(eventType: string): void {
+    switch (eventType) {
+      case "menu:undo":
+        this.undo();
+        break;
+      case "menu:redo":
+        this.redo();
+        break;
+      default:
+        // Ignore unknown menu events
+        break;
+    }
+  }
+
+  /**
+   * Emit undo/redo state change event
+   */
+  private emitUndoRedoStateChanged(): void {
+    this.emit({
+      type: "undoRedoStateChanged",
+      canUndo: this.canUndo(),
+      canRedo: this.canRedo(),
     });
   }
 }

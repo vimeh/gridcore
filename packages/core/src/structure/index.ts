@@ -12,3 +12,9 @@ export {
   type StructuralWarning, 
   type StructuralAnalysis 
 } from "./StructuralEngine";
+export {
+  StructuralUndoManager,
+  type StructuralSnapshot,
+  type StructuralOperation,
+  type StructuralTransaction
+} from "./StructuralUndoManager";
