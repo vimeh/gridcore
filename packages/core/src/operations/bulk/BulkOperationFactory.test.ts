@@ -5,6 +5,8 @@ import { BulkOperationFactory } from "./BulkOperationFactory";
 import { CellSelection } from "./base/CellSelection";
 import { BulkSetOperation } from "./implementations/BulkSetOperation";
 import { FindReplaceOperation } from "./implementations/FindReplaceOperation";
+import { BulkTransformOperation } from "./implementations/BulkTransformOperation";
+import { BulkFormatOperation } from "./implementations/BulkFormatOperation";
 
 // Mock ICellRepository
 const createMockCellRepository = (): ICellRepository => {
@@ -216,7 +218,7 @@ describe("BulkOperationFactory", () => {
         expect(operation).toBeNull();
       });
 
-      it("should return null for transform operations (not yet implemented)", () => {
+      it("should create BulkTransformOperation for transform operations", () => {
         const options = {
           transformation: "upper",
         };
@@ -227,17 +229,19 @@ describe("BulkOperationFactory", () => {
           options,
         );
 
-        expect(operation).toBeNull();
+        expect(operation).not.toBeNull();
+        expect(operation?.type).toBe("transform");
       });
 
-      it("should return null for format operations (not yet implemented)", () => {
+      it("should create BulkFormatOperation for format operations", () => {
         const options = {
           formatType: "currency",
         };
 
         const operation = factory.createOperation("format", selection, options);
 
-        expect(operation).toBeNull();
+        expect(operation).not.toBeNull();
+        expect(operation?.type).toBe("format");
       });
 
       it("should return null for unknown operation types", () => {
