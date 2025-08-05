@@ -9,37 +9,37 @@ const createMockCellRepository = (): ICellRepository => {
   const cells = new Map<string, Cell>();
 
   return {
-    getCell: mock(async (address: CellAddress) => {
+    get: mock((address: CellAddress) => {
       const key = `${address.row},${address.col}`;
-      const cell = cells.get(key);
-      if (cell) {
-        return { ok: true, value: cell };
-      }
-      return { ok: true, value: null };
+      return cells.get(key);
     }),
 
-    setCell: mock(async (address: CellAddress, cell: Partial<Cell>) => {
+    set: mock((address: CellAddress, cell: Cell) => {
       const key = `${address.row},${address.col}`;
-      const existingCellResult = Cell.create(null);
-      if (!existingCellResult.ok) {
-        throw new Error("Failed to create empty cell");
-      }
-      const existingCell = cells.get(key) || existingCellResult.value;
-      const updatedCell = { ...existingCell, ...cell };
-      cells.set(key, updatedCell);
-      return { ok: true, value: updatedCell };
+      cells.set(key, cell);
     }),
 
-    hasCell: mock(async (address: CellAddress) => {
+    delete: mock((address: CellAddress) => {
       const key = `${address.row},${address.col}`;
-      return { ok: true, value: cells.has(key) };
-    }),
-
-    deleteCell: mock(async (address: CellAddress) => {
-      const key = `${address.row},${address.col}`;
-      const existed = cells.has(key);
       cells.delete(key);
-      return { ok: true, value: existed };
+    }),
+
+    clear: mock(() => {
+      cells.clear();
+    }),
+
+    getAllInRange: mock((range: CellRange) => {
+      const result = new Map<string, Cell>();
+      // Simple implementation for testing
+      return result;
+    }),
+
+    getAll: mock(() => {
+      return cells;
+    }),
+
+    count: mock(() => {
+      return cells.size;
     }),
 
     // Add helper method to set initial cell values
@@ -332,10 +332,10 @@ describe("BulkSetOperation", () => {
       // Verify cells were updated
       const cell1 = CellAddress.create(0, 0);
       if (cell1.ok) {
-        const cellResult = await cellRepository.get(cell1.value);
-        expect(cellResult.ok).toBe(true);
-        if (cellResult.ok && cellResult.value) {
-          expect(cellResult.value.value).toBe("executed value");
+        const cell = cellRepository.get(cell1.value);
+        expect(cell).toBeDefined();
+        if (cell) {
+          expect(cell.value).toBe("executed value");
         }
       }
     });

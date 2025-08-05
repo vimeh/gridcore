@@ -14,28 +14,42 @@ import {
 class MockCellRepository implements ICellRepository {
   private cells: Map<string, Cell> = new Map();
 
-  setCell(address: CellAddress, cell: Cell): Promise<Result<void>> {
+  get(address: CellAddress): Cell | undefined {
+    const key = `${address.row},${address.col}`;
+    return this.cells.get(key);
+  }
+
+  set(address: CellAddress, cell: Cell): void {
     const key = `${address.row},${address.col}`;
     this.cells.set(key, cell);
-    return Promise.resolve({ ok: true, value: undefined });
   }
 
-  getCell(address: CellAddress): Promise<Result<Cell | null>> {
-    const key = `${address.row},${address.col}`;
-    const cell = this.cells.get(key) || null;
-    return Promise.resolve({ ok: true, value: cell });
-  }
-
-  deleteCell(address: CellAddress): Promise<Result<void>> {
+  delete(address: CellAddress): void {
     const key = `${address.row},${address.col}`;
     this.cells.delete(key);
-    return Promise.resolve({ ok: true, value: undefined });
+  }
+
+  clear(): void {
+    this.cells.clear();
+  }
+
+  getAllInRange(): Map<string, Cell> {
+    // Simple implementation for testing
+    return new Map();
+  }
+
+  getAll(): Map<string, Cell> {
+    return this.cells;
+  }
+
+  count(): number {
+    return this.cells.size;
   }
 
   // Helper method for tests
   setCellValue(address: CellAddress, value: unknown): void {
     const key = `${address.row},${address.col}`;
-    this.cells.set(key, { value });
+    this.cells.set(key, { value } as Cell);
   }
 
   getCellValue(address: CellAddress): unknown {

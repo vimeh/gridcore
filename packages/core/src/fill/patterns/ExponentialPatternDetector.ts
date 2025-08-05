@@ -88,7 +88,7 @@ export class ExponentialPatternDetector implements PatternDetector {
       nonZeroNumbers,
       geometricResult,
     );
-    if (confidence < 0.6) {
+    if (confidence < 0.5) {
       return null;
     }
 

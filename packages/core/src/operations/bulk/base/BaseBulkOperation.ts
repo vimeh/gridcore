@@ -65,7 +65,7 @@ export abstract class BaseBulkOperation implements BulkOperation {
         }
 
         // Get current cell value
-        const currentCell = await this.cellRepository.get(address);
+        const currentCell = this.cellRepository.get(address);
         const currentValue = currentCell
           ? currentCell.computedValue || currentCell.rawValue
           : null;
@@ -255,7 +255,7 @@ export abstract class BaseBulkOperation implements BulkOperation {
         processed++;
 
         // Get current cell value
-        const currentCell = await this.cellRepository.get(address);
+        const currentCell = this.cellRepository.get(address);
         const currentValue = currentCell
           ? currentCell.computedValue || currentCell.rawValue
           : null;
@@ -283,7 +283,7 @@ export abstract class BaseBulkOperation implements BulkOperation {
           );
           continue;
         }
-        await this.cellRepository.set(address, cellResult.value);
+        this.cellRepository.set(address, cellResult.value);
 
         // Record the change
         const change: CellChange = {

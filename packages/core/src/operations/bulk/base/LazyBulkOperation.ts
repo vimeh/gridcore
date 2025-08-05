@@ -173,7 +173,7 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
           }
           continue;
         }
-        await this.cellRepository.set(change.address, cellResult.value);
+        this.cellRepository.set(change.address, cellResult.value);
 
         changes.push(change);
         modified++;
@@ -204,7 +204,7 @@ export abstract class LazyBulkOperation extends BaseBulkOperation {
   ): Promise<CellChange | null> {
     try {
       // Get current cell value
-      const currentCell = await this.cellRepository.get(address);
+      const currentCell = this.cellRepository.get(address);
       const currentValue = currentCell
         ? currentCell.computedValue || currentCell.rawValue
         : null;

@@ -74,7 +74,7 @@ export class FibonacciPatternDetector implements PatternDetector {
 
     // Calculate confidence based on sequence length and accuracy
     const confidence = this.calculateConfidence(numbers, fibonacciResult);
-    if (confidence < 0.6) {
+    if (confidence < 0.5) {
       return null;
     }
 
@@ -84,10 +84,7 @@ export class FibonacciPatternDetector implements PatternDetector {
       type: this.patternType,
       confidence,
       description,
-      generator: new FibonacciPatternGenerator(
-        numbers,
-        fibonacciResult.startIndex,
-      ),
+      generator: new FibonacciPatternGenerator(numbers),
       sequence: numbers,
       metadata: {
         fibonacciType: fibonacciResult.type,

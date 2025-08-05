@@ -149,7 +149,7 @@ export class FindReplaceOperation
     }
 
     // Get the cell to check if it has a formula
-    const cell = await this.cellRepository.get(address);
+    const cell = this.cellRepository.get(address);
     const isFormula = cell?.formula !== undefined;
 
     // Determine what content to search

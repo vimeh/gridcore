@@ -201,7 +201,7 @@ export class CustomSequencePatternDetector implements PatternDetector {
 
     // Calculate confidence based on sequence properties
     const confidence = this.calculateConfidence(numbers, sequenceResult);
-    if (confidence < 0.6) {
+    if (confidence < 0.5) {
       return null;
     }
 

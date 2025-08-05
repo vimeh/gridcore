@@ -340,7 +340,7 @@ export class PreviewService {
     for (const cell of operation.selection.getCells()) {
       if (sampleCount >= maxSamples) break;
 
-      const currentCell = await this.cellRepository.get(cell);
+      const currentCell = this.cellRepository.get(cell);
       const currentValue = currentCell
         ? currentCell.computedValue || currentCell.rawValue
         : null;

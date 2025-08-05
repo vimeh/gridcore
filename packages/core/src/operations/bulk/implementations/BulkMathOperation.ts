@@ -265,7 +265,7 @@ export class BulkMathOperation extends BaseBulkOperation {
         }
 
         // Get current cell value
-        const currentCell = await this.cellRepository.get(address);
+        const currentCell = this.cellRepository.get(address);
         const currentValue = currentCell
           ? currentCell.computedValue || currentCell.rawValue
           : null;

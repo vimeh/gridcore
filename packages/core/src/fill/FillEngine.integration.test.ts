@@ -2,50 +2,9 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { InMemoryCellRepository } from "../infrastructure/repositories/InMemoryCellRepository";
 import { FillEngine } from "./FillEngine";
 import type { FillOperation, FillOptions } from "./types";
+import { Cell, CellAddress, CellRange, type CellValue } from "../domain/models";
 
-// Mock the domain models for testing
-interface MockCellAddress {
-  row: number;
-  col: number;
-  toString: () => string;
-}
-
-const createCellAddress = (row: number, col: number): MockCellAddress => ({
-  row,
-  col,
-  toString: () => `R${row}C${col}`,
-});
-
-interface MockCellRange {
-  start: MockCellAddress;
-  end: MockCellAddress;
-}
-
-const createCellRange = (
-  start: MockCellAddress,
-  end: MockCellAddress,
-): MockCellRange => ({ start, end });
-
-const CellAddress = {
-  fromA1Notation: (notation: string) => {
-    const match = notation.match(/^([A-Z]+)(\d+)$/);
-    if (!match) return { ok: false };
-    const col = match[1].charCodeAt(0) - 65;
-    const row = parseInt(match[2]) - 1;
-    return { ok: true, value: createCellAddress(row, col) };
-  },
-  create: (row: number, col: number) => ({
-    ok: true,
-    value: createCellAddress(row, col),
-  }),
-};
-
-const CellRange = {
-  create: (start: MockCellAddress, end: MockCellAddress) => ({
-    ok: true,
-    value: createCellRange(start, end),
-  }),
-};
+// Use actual domain models from imports
 
 describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
   let fillEngine: FillEngine;
@@ -81,10 +40,10 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
     targetEnd: string,
     options: FillOptions = { type: "series" },
   ): FillOperation => {
-    const sourceStartAddr = CellAddress.fromA1Notation(sourceStart);
-    const sourceEndAddr = CellAddress.fromA1Notation(sourceEnd);
-    const targetStartAddr = CellAddress.fromA1Notation(targetStart);
-    const targetEndAddr = CellAddress.fromA1Notation(targetEnd);
+    const sourceStartAddr = CellAddress.fromString(sourceStart);
+    const sourceEndAddr = CellAddress.fromString(sourceEnd);
+    const targetStartAddr = CellAddress.fromString(targetStart);
+    const targetEndAddr = CellAddress.fromString(targetEnd);
 
     if (
       !sourceStartAddr.ok ||
@@ -120,9 +79,12 @@ describe("FillEngine Integration Tests - Advanced Pattern Detection", () => {
     values: { address: string; value: CellValue }[],
   ) => {
     for (const { address, value } of values) {
-      const addr = CellAddress.fromA1Notation(address);
+      const addr = CellAddress.fromString(address);
       if (addr.ok) {
-        await cellRepository.set(addr.value, value);
+        const cellResult = Cell.create(value, addr.value);
+        if (cellResult.ok) {
+          cellRepository.set(addr.value, cellResult.value);
+        }
       }
     }
   };
