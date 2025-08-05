@@ -163,8 +163,8 @@ describe("BulkOperationFactory", () => {
       });
     });
 
-    describe("unsupported operations", () => {
-      it("should return null for math operations (not yet implemented)", () => {
+    describe("math operations", () => {
+      it("should create BulkMathOperation for supported math operations", () => {
         const options = {
           operation: "add",
           value: 10
@@ -172,9 +172,13 @@ describe("BulkOperationFactory", () => {
 
         const operation = factory.createOperation("mathOperation", selection, options);
         
-        expect(operation).toBeNull();
+        expect(operation).not.toBeNull();
+        expect(operation?.type).toBe("mathOperation");
       });
 
+    });
+
+    describe("unsupported operations", () => {
       it("should return null for fill operations (not yet implemented)", () => {
         const options = {
           direction: "down"
