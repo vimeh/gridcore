@@ -943,8 +943,9 @@ describe("CellVimBehavior", () => {
           formulaState,
         );
 
-        expect(action.type).toBe("deleteText");
-        expect(action).toHaveProperty("range");
+        expect(action.type).toBe("replaceFormula");
+        expect(action).toHaveProperty("newFormula");
+        expect(action).toHaveProperty("newCursorPosition");
       });
 
       test("F4 works in insert mode", () => {
@@ -959,7 +960,7 @@ describe("CellVimBehavior", () => {
           insertState,
         );
 
-        expect(action.type).toBe("deleteText");
+        expect(action.type).toBe("replaceFormula");
       });
 
       test("F4 returns none when no reference found", () => {
@@ -1154,7 +1155,7 @@ describe("CellVimBehavior", () => {
           sheetState,
         );
 
-        expect(action.type).toBe("deleteText");
+        expect(action.type).toBe("replaceFormula");
       });
 
       test("handles quoted sheet names", () => {
@@ -1170,7 +1171,7 @@ describe("CellVimBehavior", () => {
           quotedState,
         );
 
-        expect(action.type).toBe("deleteText");
+        expect(action.type).toBe("replaceFormula");
       });
     });
   });

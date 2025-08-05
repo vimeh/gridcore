@@ -1,4 +1,4 @@
-import { ReferenceAdjuster, ReferenceDetector } from "@gridcore/core";
+import { ReferenceAdjuster, ReferenceDetector, type CellReference } from "@gridcore/core";
 import type { UIState } from "../../state/UIState";
 import { isEditingMode } from "../../state/UIState";
 import type { CellVimAction, KeyMeta } from "../VimBehavior";
@@ -79,13 +79,14 @@ export class ReferenceToggleExtension {
       );
 
       if (replaceResult) {
-        // Return action to replace the entire formula and update cursor position
+        // Return a composite action that replaces the text and positions cursor
+        // First delete the old text, then insert the new text
+        // We return the delete action and expect the caller to handle insertion
         return {
-          type: "deleteText",
-          range: { start: 0, end: text.length },
-        };
-        // Note: The UI layer should handle inserting the new formula text
-        // and positioning the cursor appropriately
+          type: "replaceFormula",
+          newFormula: replaceResult.formula,
+          newCursorPosition: replaceResult.newPosition,
+        } as CellVimAction;
       }
 
       return { type: "none" };

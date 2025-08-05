@@ -1,5 +1,6 @@
+import { CellAddress } from "@gridcore/core";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { UIState } from "../../state/UIState";
+import type { UIState, ViewportInfo } from "../../state/UIState";
 import type { KeyMeta } from "../VimBehavior";
 import { ReferenceToggleExtension } from "./ReferenceToggleExtension";
 
@@ -9,8 +10,13 @@ describe("ReferenceToggleExtension", () => {
 
   beforeEach(() => {
     extension = new ReferenceToggleExtension();
+    const cursor = new CellAddress(0, 0); // A1
+    const viewport: ViewportInfo = { startRow: 0, startCol: 0, rows: 10, cols: 10 };
+    
     mockState = {
-      mode: "editing",
+      spreadsheetMode: "editing",
+      cursor,
+      viewport,
       cellMode: "normal",
       editingValue: "=SUM(A1:B2)",
       cursorPosition: 7, // Position on 'A1'
@@ -29,7 +35,7 @@ describe("ReferenceToggleExtension", () => {
 
       const result = extension.handleKeyPress("F4", keyMeta, mockState);
       expect(result).not.toBeNull();
-      expect(result?.type).toBe("deleteText");
+      expect(result?.type).toBe("replaceFormula");
     });
 
     it("should handle lowercase f4 key", () => {
@@ -42,7 +48,7 @@ describe("ReferenceToggleExtension", () => {
 
       const result = extension.handleKeyPress("f4", keyMeta, mockState);
       expect(result).not.toBeNull();
-      expect(result?.type).toBe("deleteText");
+      expect(result?.type).toBe("replaceFormula");
     });
 
     it("should return null for non-F4 keys", () => {
@@ -90,7 +96,7 @@ describe("ReferenceToggleExtension", () => {
 
       const result = extension.handleKeyPress("F4", keyMeta, mockState);
       expect(result).not.toBeNull();
-      expect(result?.type).toBe("deleteText");
+      expect(result?.type).toBe("replaceFormula");
     });
 
     it("should find no reference when cursor is not on a reference", () => {
@@ -192,7 +198,7 @@ describe("ReferenceToggleExtension", () => {
 
       const result = extension.handleKeyPress("F4", keyMeta, mockState);
       expect(result).not.toBeNull();
-      expect(result?.type).toBe("deleteText");
+      expect(result?.type).toBe("replaceFormula");
     });
 
     it("should handle sheet references", () => {
@@ -208,7 +214,7 @@ describe("ReferenceToggleExtension", () => {
 
       const result = extension.handleKeyPress("F4", keyMeta, mockState);
       expect(result).not.toBeNull();
-      expect(result?.type).toBe("deleteText");
+      expect(result?.type).toBe("replaceFormula");
     });
 
     it("should handle quoted sheet names", () => {
@@ -224,7 +230,7 @@ describe("ReferenceToggleExtension", () => {
 
       const result = extension.handleKeyPress("F4", keyMeta, mockState);
       expect(result).not.toBeNull();
-      expect(result?.type).toBe("deleteText");
+      expect(result?.type).toBe("replaceFormula");
     });
   });
 
@@ -275,7 +281,7 @@ describe("ReferenceToggleExtension", () => {
       const result = extension.handleKeyPress("F4", keyMeta, mockState);
       expect(result).not.toBeNull();
       // Should find the previous reference (A1)
-      expect(result?.type).toBe("deleteText");
+      expect(result?.type).toBe("replaceFormula");
     });
   });
 });

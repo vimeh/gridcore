@@ -109,6 +109,11 @@ export type CellVimAction =
   | {
       type: "exitEditing";
     }
+  | {
+      type: "replaceFormula";
+      newFormula: string;
+      newCursorPosition: number;
+    }
   | { type: "none" };
 
 interface VimInternalState {

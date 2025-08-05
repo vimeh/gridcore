@@ -1,4 +1,10 @@
-import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
+import { 
+  CellAddress, 
+  type SpreadsheetFacade, 
+  ReferenceDetector, 
+  ReferenceAdjuster,
+  type CellReference 
+} from "@gridcore/core";
 import { CellVimBehavior } from "../behaviors/CellVimBehavior";
 import { type ResizeAction, ResizeBehavior } from "../behaviors/ResizeBehavior";
 import type { CellVimAction } from "../behaviors/VimBehavior";
@@ -185,6 +191,8 @@ export class SpreadsheetController {
         return this.stateMachine.transition({ type: "EXIT_VISUAL_MODE" });
       case "deleteText":
         return this.handleCellTextDelete(action.range, state);
+      case "replaceFormula":
+        return this.handleReplaceFormula(action.newFormula, action.newCursorPosition, state);
       case "exitEditing":
         // Save the value when exiting editing mode
         return this.saveAndExitEditing();
@@ -235,6 +243,27 @@ export class SpreadsheetController {
       // Execute command
       this.executeCommand(state.commandValue);
       return this.stateMachine.transition({ type: "EXIT_COMMAND_MODE" });
+    }
+
+    if (meta.key === "tab" || key === "\t") {
+      // Handle tab completion
+      const completion = this.getCommandCompletion(state.commandValue);
+      if (completion) {
+        return this.stateMachine.transition({
+          type: "UPDATE_COMMAND_VALUE",
+          value: completion,
+        });
+      }
+      return { ok: true, value: state }; // No completion found, do nothing
+    }
+
+    // Handle backspace
+    if (meta.key === "backspace" || key === "\b") {
+      const newValue = state.commandValue.slice(0, -1);
+      return this.stateMachine.transition({
+        type: "UPDATE_COMMAND_VALUE",
+        value: newValue,
+      });
     }
 
     // Add character to command
@@ -585,6 +614,21 @@ export class SpreadsheetController {
     });
   }
 
+  private handleReplaceFormula(
+    newFormula: string,
+    newCursorPosition: number,
+    state: UIState,
+  ): Result<UIState> {
+    if (!isEditingMode(state)) {
+      return { ok: false, error: "Not in editing mode" };
+    }
+    return this.stateMachine.transition({
+      type: "UPDATE_EDITING_VALUE",
+      value: newFormula,
+      cursorPosition: newCursorPosition,
+    });
+  }
+
   private handleTextInput(
     key: string,
     meta: KeyMeta,
@@ -722,9 +766,162 @@ export class SpreadsheetController {
 
   // Command execution
   private executeCommand(command: string): void {
-    // This would handle vim commands like :w, :q, etc.
-    // For now, just emit the event
+    const trimmedCommand = command.trim();
+    
+    // Handle reference conversion commands
+    if (trimmedCommand === "refrel") {
+      this.convertAllReferencesToType("relative");
+      return;
+    }
+    
+    if (trimmedCommand === "refabs") {
+      this.convertAllReferencesToType("absolute");
+      return;
+    }
+    
+    if (trimmedCommand === "refmix") {
+      this.convertAllReferencesToType("mixed");
+      return;
+    }
+    
+    // Handle other vim commands like :w, :q, etc.
+    // For now, just emit the event for unhandled commands
     this.emit({ type: "commandExecuted", command });
+  }
+
+  // Get command completion for tab completion
+  private getCommandCompletion(currentInput: string): string | null {
+    const referenceCommands = ["refrel", "refabs", "refmix"];
+    const trimmedInput = currentInput.trim().toLowerCase();
+    
+    if (!trimmedInput) {
+      return null;
+    }
+    
+    // Find commands that start with the current input
+    const matches = referenceCommands.filter(cmd => 
+      cmd.startsWith(trimmedInput)
+    );
+    
+    if (matches.length === 1) {
+      // Exact match found, complete it
+      return matches[0];
+    }
+    
+    if (matches.length > 1) {
+      // Multiple matches, find the longest common prefix
+      let commonPrefix = matches[0];
+      for (let i = 1; i < matches.length; i++) {
+        let j = 0;
+        while (j < commonPrefix.length && j < matches[i].length && 
+               commonPrefix[j] === matches[i][j]) {
+          j++;
+        }
+        commonPrefix = commonPrefix.substring(0, j);
+      }
+      
+      // Only return if the common prefix is longer than current input
+      if (commonPrefix.length > trimmedInput.length) {
+        return commonPrefix;
+      }
+    }
+    
+    return null; // No completion found
+  }
+
+  // Convert all references in current cell to specified type
+  private convertAllReferencesToType(targetType: "relative" | "absolute" | "mixed"): void {
+    const state = this.stateMachine.getState();
+    
+    // Only work if we're in editing mode with a formula
+    if (!isEditingMode(state) || !state.editingValue.startsWith("=")) {
+      return;
+    }
+    
+    try {
+      const detector = new ReferenceDetector();
+      const adjuster = new ReferenceAdjuster();
+      const analysis = detector.analyzeFormula(state.editingValue);
+      
+      if (analysis.references.length === 0) {
+        return; // No references to convert
+      }
+      
+      let newFormula = state.editingValue;
+      let cursorOffset = 0;
+      
+      // Process references from right to left to avoid position shifts
+      const sortedRefs = analysis.references.sort((a, b) => b.position - a.position);
+      
+      for (const refInfo of sortedRefs) {
+        let newRef: CellReference;
+        
+        if (targetType === "relative") {
+          newRef = { ...refInfo.reference, columnAbsolute: false, rowAbsolute: false };
+        } else if (targetType === "absolute") {
+          newRef = { ...refInfo.reference, columnAbsolute: true, rowAbsolute: true };
+        } else { // mixed - alternate between mixed-column and mixed-row
+          const isMixedColumn = Math.random() > 0.5; // Could be improved with better logic
+          newRef = { 
+            ...refInfo.reference, 
+            columnAbsolute: isMixedColumn, 
+            rowAbsolute: !isMixedColumn 
+          };
+        }
+        
+        // Format the new reference
+        const newRefText = this.formatCellReference(newRef);
+        
+        // Replace in formula
+        const before = newFormula.substring(0, refInfo.position);
+        const after = newFormula.substring(refInfo.position + refInfo.length);
+        newFormula = before + newRefText + after;
+        
+        // Adjust cursor position if needed
+        if (state.cursorPosition >= refInfo.position) {
+          const lengthDiff = newRefText.length - refInfo.length;
+          cursorOffset += lengthDiff;
+        }
+      }
+      
+      // Update the editing state with the new formula
+      this.stateMachine.transition({
+        type: "UPDATE_EDITING_VALUE",
+        value: newFormula,
+        cursorPosition: Math.max(0, state.cursorPosition + cursorOffset),
+      });
+      
+    } catch (error) {
+      // If anything fails, just ignore the command
+      console.warn("Failed to convert references:", error);
+    }
+  }
+
+  // Format a cell reference back to string representation
+  private formatCellReference(ref: CellReference): string {
+    const colStr = this.numberToColumn(ref.column);
+    const rowStr = (ref.row + 1).toString(); // Convert 0-based to 1-based
+
+    const col = ref.columnAbsolute ? `$${colStr}` : colStr;
+    const row = ref.rowAbsolute ? `$${rowStr}` : rowStr;
+
+    const cellRef = `${col}${row}`;
+
+    return ref.sheet ? `${ref.sheet}!${cellRef}` : cellRef;
+  }
+
+  // Convert column number to letter representation (0 = A, 1 = B, etc.)
+  private numberToColumn(colNum: number): string {
+    let result = "";
+    let num = colNum;
+
+    while (num >= 0) {
+      result = String.fromCharCode(65 + (num % 26)) + result;
+      num = Math.floor(num / 26) - 1;
+      if (num < 0) break;
+    }
+
+    return result;
   }
 
   // Event handling
