@@ -1,48 +1,362 @@
-# Complete Migration Plan: UIStateMachine to Reducer Pattern
+# Complete Migration Plan: UIStateMachine to Type-Safe Reducer Pattern
 
 ## Architecture Overview
-Transform the current string-based state machine into a pure functional reducer pattern with type-safe transitions, eliminating all backward compatibility requirements.
+Transform the current string-based state machine into a **fully type-safe** reducer pattern with compile-time validation of all state transitions, eliminating runtime type checking and backward compatibility requirements.
 
-## Core Components
+## State Machine Diagram
 
-### 1. New State Store (replaces UIStateMachine)
+```mermaid
+stateDiagram-v2
+    [*] --> Navigation: Initial State
+    
+    Navigation --> Editing: START_EDITING
+    Navigation --> Command: ENTER_COMMAND_MODE
+    Navigation --> Visual: ENTER_SPREADSHEET_VISUAL_MODE
+    Navigation --> Resize: ENTER_RESIZE_MODE
+    Navigation --> Insert: ENTER_STRUCTURAL_INSERT_MODE
+    Navigation --> Delete: ENTER_DELETE_MODE
+    
+    Editing --> Navigation: EXIT_TO_NAVIGATION
+    Editing --> EditingNormal: cellMode=normal
+    Editing --> EditingInsert: cellMode=insert
+    Editing --> EditingVisual: cellMode=visual
+    
+    EditingNormal --> EditingInsert: ENTER_INSERT_MODE
+    EditingNormal --> EditingVisual: ENTER_VISUAL_MODE
+    EditingInsert --> EditingNormal: EXIT_INSERT_MODE
+    EditingVisual --> EditingNormal: EXIT_VISUAL_MODE
+    
+    Command --> Navigation: EXIT_COMMAND_MODE
+    Command --> BulkOperation: START_BULK_OPERATION
+    
+    Visual --> Navigation: EXIT_SPREADSHEET_VISUAL_MODE
+    
+    Resize --> Navigation: EXIT_RESIZE_MODE
+    
+    Insert --> Navigation: EXIT_STRUCTURAL_INSERT_MODE
+    
+    Delete --> Navigation: EXIT_DELETE_MODE / CANCEL_DELETE
+    Delete --> Navigation: CONFIRM_DELETE [execute]
+    
+    BulkOperation --> Navigation: COMPLETE_BULK_OPERATION
+    BulkOperation --> Navigation: CANCEL_BULK_OPERATION
+    
+    state Editing {
+        [*] --> EditingNormal
+        EditingNormal: Normal Mode
+        EditingInsert: Insert Mode (i/a/A/I/o/O)
+        EditingVisual: Visual Mode (char/line/block)
+    }
+    
+    state Visual {
+        [*] --> VisualChar
+        VisualChar: Character Selection
+        VisualLine: Line Selection  
+        VisualBlock: Block Selection
+        VisualColumn: Column Selection
+        VisualRow: Row Selection
+    }
+    
+    note right of Navigation
+        Universal Actions (any state):
+        - ESCAPE: Return to parent/navigation
+        - UPDATE_CURSOR: Move cursor
+        - UPDATE_VIEWPORT: Scroll view
+    end note
+    
+    note right of Command
+        Command Mode Actions:
+        - UPDATE_COMMAND_VALUE
+        - Execute commands on Enter
+        - Tab completion
+    end note
+    
+    note right of Resize
+        Resize Mode Actions:
+        - UPDATE_RESIZE_SIZE
+        - Auto-fit
+        - Move to prev/next target
+    end note
+```
+
+## State Transition Matrix
+
+| From State | Action | To State | Conditions |
+|------------|--------|----------|------------|
+| Navigation | START_EDITING | Editing | With optional editMode |
+| Navigation | ENTER_COMMAND_MODE | Command | - |
+| Navigation | ENTER_SPREADSHEET_VISUAL_MODE | Visual | With visualMode and selection |
+| Navigation | ENTER_RESIZE_MODE | Resize | With target, index, size |
+| Navigation | ENTER_STRUCTURAL_INSERT_MODE | Insert | With insertType, position |
+| Navigation | ENTER_DELETE_MODE | Delete | With deleteType, selection |
+| Editing | EXIT_TO_NAVIGATION | Navigation | - |
+| Editing.Normal | ENTER_INSERT_MODE | Editing.Insert | With mode variant |
+| Editing.Normal | ENTER_VISUAL_MODE | Editing.Visual | With visualType |
+| Editing.Insert | EXIT_INSERT_MODE | Editing.Normal | - |
+| Editing.Visual | EXIT_VISUAL_MODE | Editing.Normal | - |
+| Command | EXIT_COMMAND_MODE | Navigation | - |
+| Command | START_BULK_OPERATION | BulkOperation | With command |
+| Visual | EXIT_SPREADSHEET_VISUAL_MODE | Navigation | Preserves selection |
+| Visual | UPDATE_SELECTION | Visual | Updates selection |
+| Resize | EXIT_RESIZE_MODE | Navigation | - |
+| Insert | EXIT_STRUCTURAL_INSERT_MODE | Navigation | - |
+| Delete | EXIT_DELETE_MODE | Navigation | - |
+| Delete | CONFIRM_DELETE | Navigation | After execution |
+| Delete | CANCEL_DELETE | Navigation | - |
+| BulkOperation | COMPLETE_BULK_OPERATION | Navigation | - |
+| BulkOperation | CANCEL_BULK_OPERATION | Navigation | - |
+| Any | ESCAPE | Parent/Navigation | Context-dependent |
+| Any | UPDATE_CURSOR | Same | Updates cursor |
+| Any | UPDATE_VIEWPORT | Same | Updates viewport |
+
+## Type-Safe Architecture
+
+### 1. State-Specific Action Types
+```typescript
+// actions/types.ts
+// Each state has its own set of valid actions
+type NavigationActions = 
+  | { type: 'START_EDITING'; editMode?: InsertMode; initialValue?: string }
+  | { type: 'ENTER_COMMAND_MODE' }
+  | { type: 'ENTER_SPREADSHEET_VISUAL_MODE'; visualMode: SpreadsheetVisualMode; selection: Selection }
+  | { type: 'ENTER_RESIZE_MODE'; target: 'column' | 'row'; index: number; size: number };
+
+type EditingActions =
+  | { type: 'EXIT_TO_NAVIGATION' }
+  | { type: 'ENTER_INSERT_MODE'; mode: InsertMode }
+  | { type: 'EXIT_INSERT_MODE' }
+  | { type: 'ENTER_VISUAL_MODE'; visualType: VisualMode; anchor?: number }
+  | { type: 'EXIT_VISUAL_MODE' }
+  | { type: 'UPDATE_EDITING_VALUE'; value: string; cursorPosition: number };
+
+type CommandActions =
+  | { type: 'EXIT_COMMAND_MODE' }
+  | { type: 'UPDATE_COMMAND_VALUE'; value: string }
+  | { type: 'START_BULK_OPERATION'; command: ParsedBulkCommand };
+
+type VisualActions =
+  | { type: 'EXIT_SPREADSHEET_VISUAL_MODE' }
+  | { type: 'UPDATE_SELECTION'; selection: Selection };
+
+// Universal actions that work in any state
+type UniversalActions =
+  | { type: 'ESCAPE' }
+  | { type: 'UPDATE_CURSOR'; cursor: CellAddress }
+  | { type: 'UPDATE_VIEWPORT'; viewport: ViewportInfo };
+
+// Complete action union
+type Action = NavigationActions | EditingActions | CommandActions | VisualActions | UniversalActions;
+```
+
+### 2. Type-Safe State Store
 ```typescript
 // UIStateStore.ts
 export class UIStateStore {
   private state: UIState;
-  private reducer: StateReducer;
-  private listeners: Set<StateListener>;
+  private listeners: Set<StateListener> = new Set();
   
-  dispatch(action: Action): Result<UIState>
-  getState(): Readonly<UIState>
-  subscribe(listener: StateListener): () => void
+  constructor(initialState?: UIState) {
+    this.state = initialState || createDefaultState();
+  }
+  
+  dispatch(action: Action): Result<UIState> {
+    const prevState = this.state;
+    const newState = rootReducer(prevState, action);
+    
+    if (newState === prevState) {
+      return err(`Invalid transition: ${action.type} from ${prevState.spreadsheetMode}`);
+    }
+    
+    this.state = newState;
+    this.notifyListeners(action);
+    return ok(newState);
+  }
+  
+  getState(): Readonly<UIState> {
+    return this.state;
+  }
+  
+  subscribe(listener: StateListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
 }
 ```
 
-### 2. Root Reducer Architecture
+### 3. Type-Safe Reducer Implementation
 ```typescript
 // reducers/index.ts
-export const rootReducer: StateReducer = (state, action) => {
-  // Try mode-specific reducers first
-  const newState = modeReducers[state.spreadsheetMode]?.(state, action);
-  if (newState !== state) return newState;
+export const rootReducer = (state: UIState, action: Action): UIState => {
+  // Handle universal actions first (work in any state)
+  const universalResult = universalReducer(state, action);
+  if (universalResult !== state) return universalResult;
   
-  // Try universal actions
-  return universalReducer(state, action);
-};
-
-// reducers/navigation.ts
-export const navigationReducer: StateReducer = (state, action) => {
-  if (!isNavigationMode(state)) return state;
-  
-  switch (action.type) {
-    case 'START_EDITING':
-      return createEditingState(state.cursor, state.viewport, ...);
-    case 'ENTER_COMMAND_MODE':
-      return createCommandState(state.cursor, state.viewport);
+  // Dispatch to state-specific reducer based on discriminated union
+  switch (state.spreadsheetMode) {
+    case 'navigation':
+      return navigationReducer(
+        state as Extract<UIState, { spreadsheetMode: 'navigation' }>,
+        action
+      );
+    
+    case 'editing':
+      return editingReducer(
+        state as Extract<UIState, { spreadsheetMode: 'editing' }>,
+        action
+      );
+    
+    case 'command':
+      return commandReducer(
+        state as Extract<UIState, { spreadsheetMode: 'command' }>,
+        action
+      );
+    
+    case 'visual':
+      return visualReducer(
+        state as Extract<UIState, { spreadsheetMode: 'visual' }>,
+        action
+      );
+    
+    case 'resize':
+      return resizeReducer(
+        state as Extract<UIState, { spreadsheetMode: 'resize' }>,
+        action
+      );
+    
+    case 'bulkOperation':
+      return bulkReducer(
+        state as Extract<UIState, { spreadsheetMode: 'bulkOperation' }>,
+        action
+      );
+    
+    // TypeScript ensures exhaustiveness - won't compile if we miss a case
     default:
+      const _exhaustive: never = state;
       return state;
   }
+};
+```
+
+### 4. Type-Safe Individual Reducers
+```typescript
+// reducers/navigation.ts
+type NavigationState = Extract<UIState, { spreadsheetMode: 'navigation' }>;
+
+export const navigationReducer = (
+  state: NavigationState,
+  action: Action
+): UIState => {
+  // TypeScript knows state is NavigationState here
+  // Only handle actions valid for navigation mode
+  if (!isNavigationAction(action)) return state;
+  
+  switch (action.type) {
+    case 'START_EDITING': {
+      const cellMode: CellMode = action.editMode ? "insert" : "normal";
+      return {
+        spreadsheetMode: 'editing',
+        cursor: state.cursor,
+        viewport: state.viewport,
+        cellMode,
+        editingValue: action.initialValue ?? "",
+        cursorPosition: action.cursorPosition ?? 0,
+        editVariant: action.editMode,
+      };
+    }
+    
+    case 'ENTER_COMMAND_MODE':
+      return {
+        spreadsheetMode: 'command',
+        cursor: state.cursor,
+        viewport: state.viewport,
+        commandValue: ":",
+      };
+      
+    case 'ENTER_SPREADSHEET_VISUAL_MODE':
+      return {
+        spreadsheetMode: 'visual',
+        cursor: state.cursor,
+        viewport: state.viewport,
+        visualMode: action.visualMode,
+        anchor: state.cursor,
+        selection: action.selection,
+      };
+      
+    // TypeScript prevents handling invalid actions like EXIT_TO_NAVIGATION
+    default:
+      const _exhaustive: never = action;
+      return state;
+  }
+};
+
+// Type guard for navigation actions
+function isNavigationAction(action: Action): action is NavigationActions {
+  return ['START_EDITING', 'ENTER_COMMAND_MODE', 'ENTER_SPREADSHEET_VISUAL_MODE', 'ENTER_RESIZE_MODE'].includes(action.type);
+}
+```
+
+### 5. Type-Safe Nested State Handling
+```typescript
+// reducers/editing.ts
+type EditingState = Extract<UIState, { spreadsheetMode: 'editing' }>;
+
+export const editingReducer = (
+  state: EditingState,
+  action: Action
+): UIState => {
+  // Handle universal editing actions
+  switch (action.type) {
+    case 'EXIT_TO_NAVIGATION':
+      return {
+        spreadsheetMode: 'navigation',
+        cursor: state.cursor,
+        viewport: state.viewport,
+      };
+      
+    case 'UPDATE_EDITING_VALUE':
+      return {
+        ...state,
+        editingValue: action.value,
+        cursorPosition: action.cursorPosition,
+      };
+  }
+  
+  // Dispatch to cell mode specific handlers
+  switch (state.cellMode) {
+    case 'normal':
+      return normalModeReducer(state, action);
+    case 'insert':
+      return insertModeReducer(state, action);
+    case 'visual':
+      return visualModeReducer(state, action);
+    default:
+      const _exhaustive: never = state.cellMode;
+      return state;
+  }
+};
+
+const normalModeReducer = (
+  state: EditingState & { cellMode: 'normal' },
+  action: Action
+): UIState => {
+  if (action.type === 'ENTER_INSERT_MODE') {
+    return {
+      ...state,
+      cellMode: 'insert',
+      editVariant: action.mode,
+    };
+  }
+  
+  if (action.type === 'ENTER_VISUAL_MODE') {
+    return {
+      ...state,
+      cellMode: 'visual',
+      visualType: action.visualType,
+      visualStart: action.anchor ?? state.cursorPosition,
+    };
+  }
+  
+  return state;
 };
 ```
 
