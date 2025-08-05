@@ -45,7 +45,14 @@ export {
 } from "./state/UIState";
 // State machine
 export { type Action, UIStateMachine } from "./state/UIStateMachine";
-
+export {
+  DEFAULT_HIGHLIGHT_COLORS,
+  FormulaHighlighter,
+  type HighlightColors,
+  type HighlightSegment,
+  type HighlightType,
+  TUI_HIGHLIGHT_COLORS,
+} from "./utils/FormulaHighlighter";
 // Utilities
 export { err, ok, type Result, unwrap, unwrapOr } from "./utils/Result";
 export {
