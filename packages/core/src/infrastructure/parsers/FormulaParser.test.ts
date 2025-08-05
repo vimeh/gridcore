@@ -73,6 +73,42 @@ describe("FormulaParser", () => {
       }
     });
 
+    test("tokenizes absolute cell references", () => {
+      const result = parser.tokenize("$A$1 $B2 C$3 $A$1:$B$2");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toHaveLength(4);
+
+        // Absolute reference $A$1
+        expect(result.value[0]).toEqual({
+          type: "cellRef",
+          value: "$A$1",
+          position: 0,
+        });
+
+        // Mixed reference $B2 (absolute column, relative row)
+        expect(result.value[1]).toEqual({
+          type: "cellRef",
+          value: "$B2",
+          position: 5,
+        });
+
+        // Mixed reference C$3 (relative column, absolute row)
+        expect(result.value[2]).toEqual({
+          type: "cellRef",
+          value: "C$3",
+          position: 9,
+        });
+
+        // Absolute range $A$1:$B$2
+        expect(result.value[3]).toEqual({
+          type: "rangeRef",
+          value: "$A$1:$B$2",
+          position: 13,
+        });
+      }
+    });
+
     test("tokenizes ranges", () => {
       const result = parser.tokenize("A1:B2 C3:D4");
       expect(result.ok).toBe(true);
@@ -217,6 +253,44 @@ describe("FormulaParser", () => {
           expect(ast.value.type).toBe("cellRef");
           expect(ast.value.address?.row).toBe(0);
           expect(ast.value.address?.col).toBe(0);
+        }
+      }
+    });
+
+    test("builds AST for absolute cell reference", () => {
+      const tokens = parser.tokenize("$A$1");
+      expect(tokens.ok).toBe(true);
+      if (tokens.ok) {
+        const ast = parser.buildAST(tokens.value);
+        expect(ast.ok).toBe(true);
+        if (ast.ok) {
+          expect(ast.value.type).toBe("cellRef");
+          // The legacy CellAddress should still have the correct row/col
+          expect(ast.value.address?.row).toBe(0);
+          expect(ast.value.address?.col).toBe(0);
+        }
+      }
+    });
+
+    test("builds AST for mixed cell references", () => {
+      const tokens = parser.tokenize("$A1 + B$2");
+      expect(tokens.ok).toBe(true);
+      if (tokens.ok) {
+        const ast = parser.buildAST(tokens.value);
+        expect(ast.ok).toBe(true);
+        if (ast.ok) {
+          expect(ast.value.type).toBe("binaryOp");
+          expect(ast.value.operator).toBe("+");
+
+          // Check left operand ($A1)
+          expect(ast.value.left?.type).toBe("cellRef");
+          expect(ast.value.left?.address?.row).toBe(0);
+          expect(ast.value.left?.address?.col).toBe(0);
+
+          // Check right operand (B$2)
+          expect(ast.value.right?.type).toBe("cellRef");
+          expect(ast.value.right?.address?.row).toBe(1);
+          expect(ast.value.right?.address?.col).toBe(1);
         }
       }
     });

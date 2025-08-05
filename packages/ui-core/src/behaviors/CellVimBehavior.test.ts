@@ -919,4 +919,260 @@ describe("CellVimBehavior", () => {
       });
     });
   });
+
+  describe("Reference functionality", () => {
+    let formulaState: UIState;
+
+    beforeEach(() => {
+      const cursor = CellAddress.create(0, 0).value;
+      const viewport = { startRow: 0, startCol: 0, rows: 20, cols: 10 };
+      formulaState = createEditingState(
+        cursor,
+        viewport,
+        "normal",
+        "=SUM(A1:B2)",
+        7, // Position on 'A1'
+      );
+    });
+
+    describe("F4 key cycling", () => {
+      test("F4 triggers reference cycling", () => {
+        const action = behavior.handleKeyPress(
+          "F4",
+          { key: "F4", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        expect(action.type).toBe("replaceFormula");
+        expect(action).toHaveProperty("newFormula");
+        expect(action).toHaveProperty("newCursorPosition");
+      });
+
+      test("F4 works in insert mode", () => {
+        const insertState = {
+          ...formulaState,
+          cellMode: "insert" as const,
+        };
+
+        const action = behavior.handleKeyPress(
+          "F4",
+          { key: "F4", ctrl: false, shift: false, alt: false },
+          insertState,
+        );
+
+        expect(action.type).toBe("replaceFormula");
+      });
+
+      test("F4 returns none when no reference found", () => {
+        const noRefState = {
+          ...formulaState,
+          editingValue: "=1+2+3",
+          cursorPosition: 3,
+        };
+
+        const action = behavior.handleKeyPress(
+          "F4",
+          { key: "F4", ctrl: false, shift: false, alt: false },
+          noRefState,
+        );
+
+        expect(action.type).toBe("none");
+      });
+    });
+
+    describe("Reference navigation", () => {
+      test("[r moves to previous reference", () => {
+        const multiRefState = {
+          ...formulaState,
+          editingValue: "=SUM(A1, B2, C3)",
+          cursorPosition: 11, // After B2
+        };
+
+        // Start bracket command
+        behavior.handleKeyPress(
+          "[",
+          { key: "[", ctrl: false, shift: false, alt: false },
+          multiRefState,
+        );
+
+        // Complete with 'r'
+        const action = behavior.handleKeyPress(
+          "r",
+          { key: "r", ctrl: false, shift: false, alt: false },
+          multiRefState,
+        );
+
+        expect(action.type).toBe("moveCursor");
+      });
+
+      test("]r moves to next reference", () => {
+        const multiRefState = {
+          ...formulaState,
+          editingValue: "=SUM(A1, B2, C3)",
+          cursorPosition: 5, // After A1
+        };
+
+        // Start bracket command
+        behavior.handleKeyPress(
+          "]",
+          { key: "]", ctrl: false, shift: false, alt: false },
+          multiRefState,
+        );
+
+        // Complete with 'r'
+        const action = behavior.handleKeyPress(
+          "r",
+          { key: "r", ctrl: false, shift: false, alt: false },
+          multiRefState,
+        );
+
+        expect(action.type).toBe("moveCursor");
+      });
+    });
+
+    describe("Reference text objects", () => {
+      test("dir deletes inner reference", () => {
+        // Start delete operator
+        behavior.handleKeyPress(
+          "d",
+          { key: "d", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        // Start text object with 'i'
+        behavior.handleKeyPress(
+          "i",
+          { key: "i", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        // Complete with 'r' for reference
+        const action = behavior.handleKeyPress(
+          "r",
+          { key: "r", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        expect(action.type).toBe("deleteText");
+        expect(action).toHaveProperty("range");
+      });
+
+      test("dar deletes around reference", () => {
+        const spaceState = {
+          ...formulaState,
+          editingValue: "=SUM( A1:B2 )",
+          cursorPosition: 8, // On 'A1'
+        };
+
+        // Start delete operator
+        behavior.handleKeyPress(
+          "d",
+          { key: "d", ctrl: false, shift: false, alt: false },
+          spaceState,
+        );
+
+        // Start text object with 'a'
+        behavior.handleKeyPress(
+          "a",
+          { key: "a", ctrl: false, shift: false, alt: false },
+          spaceState,
+        );
+
+        // Complete with 'r' for reference
+        const action = behavior.handleKeyPress(
+          "r",
+          { key: "r", ctrl: false, shift: false, alt: false },
+          spaceState,
+        );
+
+        expect(action.type).toBe("deleteText");
+        expect(action).toHaveProperty("range");
+      });
+
+      test("cir changes inner reference", () => {
+        // Start change operator
+        behavior.handleKeyPress(
+          "c",
+          { key: "c", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        // Start text object with 'i'
+        behavior.handleKeyPress(
+          "i",
+          { key: "i", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        // Complete with 'r' for reference
+        const action = behavior.handleKeyPress(
+          "r",
+          { key: "r", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        expect(action.type).toBe("deleteText");
+        expect(action).toHaveProperty("range");
+      });
+
+      test("yir does nothing (yank not implemented)", () => {
+        // Start yank operator
+        behavior.handleKeyPress(
+          "y",
+          { key: "y", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        // Start text object with 'i'
+        behavior.handleKeyPress(
+          "i",
+          { key: "i", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        // Complete with 'r' for reference
+        const action = behavior.handleKeyPress(
+          "r",
+          { key: "r", ctrl: false, shift: false, alt: false },
+          formulaState,
+        );
+
+        expect(action.type).toBe("none");
+      });
+    });
+
+    describe("Complex reference scenarios", () => {
+      test("handles sheet references", () => {
+        const sheetState = {
+          ...formulaState,
+          editingValue: "=Sheet1!A1 + Sheet2!B2",
+          cursorPosition: 8, // On 'Sheet1!A1'
+        };
+
+        const action = behavior.handleKeyPress(
+          "F4",
+          { key: "F4", ctrl: false, shift: false, alt: false },
+          sheetState,
+        );
+
+        expect(action.type).toBe("replaceFormula");
+      });
+
+      test("handles quoted sheet names", () => {
+        const quotedState = {
+          ...formulaState,
+          editingValue: "='Sheet Name'!A1",
+          cursorPosition: 15, // On the reference
+        };
+
+        const action = behavior.handleKeyPress(
+          "F4",
+          { key: "F4", ctrl: false, shift: false, alt: false },
+          quotedState,
+        );
+
+        expect(action.type).toBe("replaceFormula");
+      });
+    });
+  });
 });

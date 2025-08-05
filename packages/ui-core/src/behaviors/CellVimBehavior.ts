@@ -1,5 +1,6 @@
 import type { UIState } from "../state/UIState";
 import { isEditingMode } from "../state/UIState";
+import { ReferenceToggleExtension } from "./extensions/ReferenceToggleExtension";
 import type { CellVimAction, KeyMeta } from "./VimBehavior";
 
 interface CellVimInternalState {
@@ -14,6 +15,7 @@ interface CellVimInternalState {
 
 export class CellVimBehavior {
   private internalState: CellVimInternalState;
+  private referenceExtension: ReferenceToggleExtension;
 
   constructor() {
     this.internalState = {
@@ -21,6 +23,7 @@ export class CellVimBehavior {
       commandBuffer: "",
       operatorPending: false,
     };
+    this.referenceExtension = new ReferenceToggleExtension();
   }
 
   handleKeyPress(key: string, meta: KeyMeta, state: UIState): CellVimAction {
@@ -31,6 +34,16 @@ export class CellVimBehavior {
     // Handle escape
     if (meta.key.toLowerCase() === "escape") {
       return this.handleEscape(state);
+    }
+
+    // Check reference extension first (works in all modes)
+    const referenceAction = this.referenceExtension.handleKeyPress(
+      key,
+      meta,
+      state,
+    );
+    if (referenceAction) {
+      return referenceAction;
     }
 
     // Route based on cell mode
@@ -184,6 +197,12 @@ export class CellVimBehavior {
       case "y":
         this.internalState.operator = key;
         this.internalState.operatorPending = true;
+        return { type: "none" };
+
+      // Reference navigation (bracket commands)
+      case "[":
+      case "]":
+        this.internalState.commandBuffer = key;
         return { type: "none" };
 
       default:
@@ -396,6 +415,14 @@ export class CellVimBehavior {
     state: UIState,
   ): CellVimAction {
     if (!isEditingMode(state)) return { type: "none" };
+
+    // Handle reference navigation commands
+    if (command === "[r") {
+      return this.handlePreviousReference(state);
+    }
+    if (command === "]r") {
+      return this.handleNextReference(state);
+    }
 
     const operator = this.internalState.operator;
 
@@ -786,6 +813,46 @@ export class CellVimBehavior {
       clearTimeout(this.internalState.commandTimeout);
       this.internalState.commandTimeout = undefined;
     }
+  }
+
+  /**
+   * Navigate to the previous reference in the formula
+   */
+  private handlePreviousReference(state: UIState): CellVimAction {
+    if (!isEditingMode(state)) return { type: "none" };
+
+    const refInfo = this.referenceExtension.findPreviousReference(
+      state.editingValue,
+      state.cursorPosition,
+    );
+
+    if (refInfo) {
+      return { type: "moveCursor", direction: "start" };
+      // Note: The actual cursor positioning would need to be handled by the UI layer
+      // This follows the existing pattern where movement actions are generic
+    }
+
+    return { type: "none" };
+  }
+
+  /**
+   * Navigate to the next reference in the formula
+   */
+  private handleNextReference(state: UIState): CellVimAction {
+    if (!isEditingMode(state)) return { type: "none" };
+
+    const refInfo = this.referenceExtension.findNextReference(
+      state.editingValue,
+      state.cursorPosition,
+    );
+
+    if (refInfo) {
+      return { type: "moveCursor", direction: "end" };
+      // Note: The actual cursor positioning would need to be handled by the UI layer
+      // This follows the existing pattern where movement actions are generic
+    }
+
+    return { type: "none" };
   }
 
   reset(): void {

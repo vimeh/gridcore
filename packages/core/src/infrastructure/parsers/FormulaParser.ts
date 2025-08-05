@@ -6,11 +6,14 @@ import type {
 } from "../../domain/interfaces/IFormulaParser";
 import { CellAddress } from "../../domain/models/CellAddress";
 import { CellRange } from "../../domain/models/CellRange";
+import { ReferenceParser } from "../../references/ReferenceParser";
+import type { CellReference, RangeReference } from "../../references/types";
 import { err, ok, type Result } from "../../shared/types/Result";
 
 export class FormulaParser implements IFormulaParser {
   private tokens: FormulaToken[] = [];
   private current = 0;
+  private referenceParser = new ReferenceParser();
 
   parse(expression: string): Result<ParsedFormula> {
     try {
@@ -87,40 +90,33 @@ export class FormulaParser implements IFormulaParser {
         continue;
       }
 
-      // Cell references and ranges
-      if (/[A-Za-z]/.test(char)) {
+      // Cell references and ranges (including absolute references with $)
+      if (/[A-Za-z$]/.test(char)) {
         const start = position;
 
-        // Match column letters
-        while (
-          position < expression.length &&
-          /[A-Za-z]/.test(expression[position])
-        ) {
-          position++;
-        }
+        // Helper function to parse a single cell reference with $ support
+        const parseCellRef = (): string => {
+          const refStart = position;
 
-        // Match row numbers
-        while (
-          position < expression.length &&
-          /\d/.test(expression[position])
-        ) {
-          position++;
-        }
+          // Match optional $ before column
+          if (expression[position] === "$") {
+            position++;
+          }
 
-        const cellRef = expression.slice(start, position);
-
-        // Check for range operator
-        if (expression[position] === ":") {
-          position++; // Skip ':'
-          const rangeStart = position;
-
-          // Match second cell reference
+          // Match column letters
           while (
             position < expression.length &&
             /[A-Za-z]/.test(expression[position])
           ) {
             position++;
           }
+
+          // Match optional $ before row
+          if (position < expression.length && expression[position] === "$") {
+            position++;
+          }
+
+          // Match row numbers
           while (
             position < expression.length &&
             /\d/.test(expression[position])
@@ -128,14 +124,28 @@ export class FormulaParser implements IFormulaParser {
             position++;
           }
 
+          return expression.slice(refStart, position);
+        };
+
+        const cellRef = parseCellRef();
+
+        // Check for range operator
+        if (position < expression.length && expression[position] === ":") {
+          position++; // Skip ':'
+          const secondRef = parseCellRef();
+
           tokens.push({
             type: "rangeRef",
-            value: `${cellRef}:${expression.slice(rangeStart, position)}`,
+            value: `${cellRef}:${secondRef}`,
             position: start,
           });
         } else {
-          // Check if it's a function name
-          if (position < expression.length && expression[position] === "(") {
+          // Check if it's a function name (functions don't start with $ and don't contain $)
+          if (
+            !cellRef.includes("$") &&
+            position < expression.length &&
+            expression[position] === "("
+          ) {
             tokens.push({
               type: "function",
               value: cellRef.toUpperCase(),
@@ -372,26 +382,48 @@ export class FormulaParser implements IFormulaParser {
     // Cell references
     if (this.check("cellRef")) {
       const token = this.advance();
-      const addressResult = CellAddress.fromString(token.value);
-      if (!addressResult.ok) {
+
+      // Use new ReferenceParser to parse absolute/relative references
+      const refResult = this.referenceParser.parseCellReference(token.value);
+      if (!refResult.ok) {
         throw new Error(`Invalid cell reference: ${token.value}`);
       }
+
+      // Convert to legacy CellAddress for backward compatibility
+      const legacyAddress = this.cellReferenceToLegacyAddress(refResult.value);
+      if (!legacyAddress.ok) {
+        throw new Error(`Could not convert cell reference: ${token.value}`);
+      }
+
       return {
         type: "cellRef",
-        address: addressResult.value,
+        address: legacyAddress.value,
       };
     }
 
     // Ranges
     if (this.check("rangeRef")) {
       const token = this.advance();
-      const rangeResult = CellRange.fromString(token.value);
-      if (!rangeResult.ok) {
+
+      // Use new ReferenceParser to parse absolute/relative range references
+      const rangeRefResult = this.referenceParser.parseRangeReference(
+        token.value,
+      );
+      if (!rangeRefResult.ok) {
         throw new Error(`Invalid range: ${token.value}`);
       }
+
+      // Convert to legacy CellRange for backward compatibility
+      const legacyRange = this.rangeReferenceToLegacyRange(
+        rangeRefResult.value,
+      );
+      if (!legacyRange.ok) {
+        throw new Error(`Could not convert range: ${token.value}`);
+      }
+
       return {
         type: "rangeRef",
-        range: rangeResult.value,
+        range: legacyRange.value,
       };
     }
 
@@ -507,5 +539,31 @@ export class FormulaParser implements IFormulaParser {
       }
     }
     throw new Error(message);
+  }
+
+  /**
+   * Convert new CellReference to legacy CellAddress for backward compatibility.
+   */
+  private cellReferenceToLegacyAddress(
+    ref: CellReference,
+  ): Result<CellAddress> {
+    return CellAddress.create(ref.row, ref.column);
+  }
+
+  /**
+   * Convert new RangeReference to legacy CellRange for backward compatibility.
+   */
+  private rangeReferenceToLegacyRange(ref: RangeReference): Result<CellRange> {
+    const startResult = this.cellReferenceToLegacyAddress(ref.start);
+    if (!startResult.ok) {
+      return err(startResult.error);
+    }
+
+    const endResult = this.cellReferenceToLegacyAddress(ref.end);
+    if (!endResult.ok) {
+      return err(endResult.error);
+    }
+
+    return CellRange.create(startResult.value, endResult.value);
   }
 }
