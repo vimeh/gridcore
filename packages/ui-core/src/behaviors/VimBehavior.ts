@@ -255,6 +255,26 @@ export class VimBehavior {
       return this.handleOperatorPending(key);
     }
 
+    // Check for printable characters that should start direct typing
+    // Prioritize this over vim commands for better spreadsheet UX
+    if (
+      key.length === 1 &&
+      !meta.ctrl &&
+      !meta.alt &&
+      key.charCodeAt(0) >= 32 &&
+      key.charCodeAt(0) !== 127
+    ) {
+      // Allow these vim navigation/command keys to work as commands
+      const vimKeys = ["h", "j", "k", "l", "i", "a", "o", "v", "V", "g", "G", 
+                       ":", "x", "r", "R", "u", "p", "P", "y", "d", "c", 
+                       "w", "b", "e", "W", "B", "E", "$", "^"];
+      
+      if (!vimKeys.includes(key)) {
+        this.clearBuffers();
+        return { type: "startEditing", editVariant: "i", initialChar: key };
+      }
+    }
+
     // Single key commands
     switch (key) {
       // Movement (vim keys and arrow keys)
@@ -353,21 +373,11 @@ export class VimBehavior {
       case "x":
         this.clearBuffers();
         return { type: "delete" };
-      case "D":
-        this.clearBuffers();
-        // Check if we're in visual line mode for structural delete
-        if (this.isInVisualLineMode(state)) {
-          return { type: "structuralDelete", target: "row", count };
-        }
-        return { type: "delete" };
 
       // Paste
       case "p":
         this.clearBuffers();
         return { type: "paste", before: false };
-      case "P":
-        this.clearBuffers();
-        return { type: "paste", before: true };
 
       // Command mode
       case ":":
