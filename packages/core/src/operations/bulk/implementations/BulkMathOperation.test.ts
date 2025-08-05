@@ -711,7 +711,9 @@ describe("BulkMathOperation", () => {
       // Create a failing repository that throws on get
       const failingRepo = {
         ...cellRepository,
-        get: () => { throw new Error("Repository error"); }, // Throw error to simulate repository failure
+        get: () => {
+          throw new Error("Repository error");
+        }, // Throw error to simulate repository failure
       } as ICellRepository;
 
       const options: BulkMathOptions = {
@@ -730,7 +732,9 @@ describe("BulkMathOperation", () => {
       // Create a repository that fails on updates
       const failingRepo = {
         ...cellRepository,
-        set: () => { throw new Error("Update failed"); }, // Throw error on set
+        set: () => {
+          throw new Error("Update failed");
+        }, // Throw error on set
       } as ICellRepository;
 
       const options: BulkMathOptions = {

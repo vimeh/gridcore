@@ -3,10 +3,10 @@ import type { ICellRepository } from "../../domain/interfaces/ICellRepository";
 import { Cell, CellAddress } from "../../domain/models";
 import { BulkOperationFactory } from "./BulkOperationFactory";
 import { CellSelection } from "./base/CellSelection";
-import { BulkSetOperation } from "./implementations/BulkSetOperation";
-import { FindReplaceOperation } from "./implementations/FindReplaceOperation";
-import { BulkTransformOperation } from "./implementations/BulkTransformOperation";
 import { BulkFormatOperation } from "./implementations/BulkFormatOperation";
+import { BulkSetOperation } from "./implementations/BulkSetOperation";
+import { BulkTransformOperation } from "./implementations/BulkTransformOperation";
+import { FindReplaceOperation } from "./implementations/FindReplaceOperation";
 
 // Mock ICellRepository
 const createMockCellRepository = (): ICellRepository => {
