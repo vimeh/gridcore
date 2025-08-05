@@ -21,6 +21,7 @@ import {
   isNavigationMode,
   isResizeMode,
   isSpreadsheetVisualMode,
+  isStructuralInsertMode,
   type Selection,
   type SpreadsheetVisualMode,
   type UIState,
@@ -646,8 +647,10 @@ export class UIStateMachine {
   }
 
   private exitStructuralInsertMode(state: UIState): Result<UIState> {
-    if (!isInsertMode(state)) {
-      return err("Can only exit structural insert mode when in insert mode");
+    if (!isStructuralInsertMode(state)) {
+      return err(
+        "Can only exit structural insert mode when in structural insert mode",
+      );
     }
 
     return ok(createNavigationState(state.cursor, state.viewport));
@@ -657,8 +660,8 @@ export class UIStateMachine {
     if (action.type !== "UPDATE_INSERT_COUNT") {
       return err("Invalid action type");
     }
-    if (!isInsertMode(state)) {
-      return err("Can only update insert count in insert mode");
+    if (!isStructuralInsertMode(state)) {
+      return err("Can only update insert count in structural insert mode");
     }
 
     return ok({

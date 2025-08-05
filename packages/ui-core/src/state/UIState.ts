@@ -232,7 +232,7 @@ export function createEditingState(
 export function createCommandState(
   cursor: CellAddress,
   viewport: ViewportInfo,
-  commandValue = ":",
+  commandValue = "",
 ): UIState {
   return {
     spreadsheetMode: "command",
