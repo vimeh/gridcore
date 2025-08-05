@@ -148,6 +148,11 @@ export class ModeIndicator {
       case "visual":
         // Handle spreadsheet visual mode
         switch (state.visualMode) {
+          case "char":
+          case "character":
+            primaryMode = "VISUAL";
+            colorKey = "visual";
+            break;
           case "row":
             primaryMode = "VISUAL ROW";
             colorKey = "visual-line";
@@ -159,6 +164,10 @@ export class ModeIndicator {
           case "block":
             primaryMode = "VISUAL BLOCK";
             colorKey = "visual-block";
+            break;
+          default:
+            primaryMode = "VISUAL";
+            colorKey = "visual";
             break;
         }
         break;

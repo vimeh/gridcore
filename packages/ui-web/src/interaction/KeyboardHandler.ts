@@ -76,15 +76,12 @@ export class KeyboardHandler {
 
     // If controller is available, delegate key handling to it
     if (this.controller) {
-      console.log("KeyboardHandler: Using controller for key:", event.key);
       const result = this.controller.handleKeyPress(event.key, {
         key: event.key,
         ctrl: event.ctrlKey,
         alt: event.altKey,
         shift: event.shiftKey,
       });
-
-      console.log("Controller result:", result);
 
       if (result.ok) {
         event.preventDefault();

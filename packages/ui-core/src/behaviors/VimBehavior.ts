@@ -172,8 +172,8 @@ export class VimBehavior {
   }
 
   handleKeyPress(key: string, meta: KeyMeta, state: UIState): VimAction {
-    // Escape is universal
-    if (meta.key === "escape") {
+    // Escape is universal - check both the key parameter and meta.key
+    if (key === "Escape" || meta.key === "Escape" || meta.key === "escape") {
       return this.handleEscape(state);
     }
 

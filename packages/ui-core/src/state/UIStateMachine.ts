@@ -376,9 +376,8 @@ export class UIStateMachine {
       return err("Can only exit spreadsheet visual mode when in visual mode");
     }
 
-    return ok(
-      createNavigationState(state.cursor, state.viewport, state.selection),
-    );
+    // Exit back to navigation mode
+    return ok(createNavigationState(state.cursor, state.viewport));
   }
 
   private updateSelection(state: UIState, action: Action): Result<UIState> {
