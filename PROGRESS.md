@@ -105,3 +105,4 @@
 
 ## Commits
 - `18c2127`: Phase 1: Implement BulkCommandParser and extend command mode infrastructure
+- `d6a20f6`: Phase 2: Implement Core Bulk Operation Framework

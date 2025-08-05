@@ -22,6 +22,9 @@ export interface CellChange {
   
   /** The type of change being made */
   changeType: "value" | "formula" | "format" | "clear";
+  
+  /** Optional metadata specific to the operation type */
+  metadata?: Record<string, any>;
 }
 
 /**
@@ -77,6 +80,9 @@ export interface OperationSummary {
   
   /** Memory usage estimate */
   memoryEstimate: number;
+  
+  /** Optional operation-specific metadata */
+  [key: string]: any;
 }
 
 /**

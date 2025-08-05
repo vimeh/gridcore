@@ -4,4 +4,8 @@ export * from "./interfaces";
 // Export base classes
 export * from "./base";
 
-// Note: Implementation classes will be exported here once created
+// Export concrete implementations
+export * from "./implementations";
+
+// Export factory for creating operations
+export * from "./BulkOperationFactory";
