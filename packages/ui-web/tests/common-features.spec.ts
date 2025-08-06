@@ -81,6 +81,9 @@ test.describe("Common Features", () => {
     await keyboardModeCheckbox.click();
     await expect(keyboardModeCheckbox).toBeChecked();
 
+    // Focus back on grid after clicking checkbox
+    await page.locator(".grid-container").focus();
+
     // Should still be able to navigate
     await page.keyboard.press("l");
     await expect(page.locator(".formula-bar-address")).toHaveValue("B1");
