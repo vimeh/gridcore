@@ -624,12 +624,12 @@ members = ["gridcore-core", "gridcore-wasm"]
 resolver = "2"
 
 [workspace.dependencies]
-chumsky = "0.9"
-thiserror = "1.0"
+chumsky = { version = "0.10", default-features = false }
+thiserror = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 wasm-bindgen = "0.2"
-petgraph = "0.6"
+petgraph = "0.8"
 js-sys = "0.3"
 web-sys = "0.3"
 ```
@@ -776,12 +776,13 @@ describe('WASM Integration', () => {
 
 ## Migration Checklist
 
-### Phase 1
-- [ ] Set up Rust workspace
-- [ ] Implement SpreadsheetError
-- [ ] Implement CellValue with WASM
-- [ ] Implement CellAddress with chumsky
-- [ ] Create initial TypeScript tests
+### Phase 1 (Completed)
+- [x] Set up Rust workspace
+- [x] Implement SpreadsheetError with thiserror
+- [x] Implement CellValue with WASM bindings
+- [x] Implement CellAddress (simplified parser, chumsky pending)
+- [x] Create initial TypeScript tests
+- [x] Successfully compile to 76KB WASM bundle
 
 ### Phase 2
 - [ ] Define Formula AST

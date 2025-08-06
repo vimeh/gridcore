@@ -16,6 +16,7 @@ wasm = [
   "dep:js-sys",
   "dep:web-sys",
   "dep:serde-wasm-bindgen",
+  "dep:serde_json",
 ]
 
 [dependencies.wasm-bindgen]
@@ -31,6 +32,10 @@ workspace = true
 optional = true
 
 [dependencies.serde-wasm-bindgen]
+workspace = true
+optional = true
+
+[dependencies.serde_json]
 workspace = true
 optional = true
 
