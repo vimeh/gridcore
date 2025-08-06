@@ -1,23 +1,27 @@
 # Incremental Rust Migration Plan for GridCore
 
 ## Overview
+
 This document outlines a phased approach to migrate GridCore from TypeScript to Rust, maintaining full functionality at each phase. The migration starts with the core engine, then controller logic, and finally UI layers.
 
 ## Current Architecture
+
 - **@gridcore/core**: Core spreadsheet engine (formulas, cells, workbook)
 - **@gridcore/ui-core**: Shared UI logic (controllers, state machines, vim mode)
 - **@gridcore/ui-web**: Canvas-based web UI
 - **@gridcore/ui-desktop**: Tauri wrapper for desktop
 - **@gridcore/ui-tui**: Terminal UI implementation
 
-## Phase 1: Core Engine with WASM Bindings (6-8 weeks)
+## Phase 1: Core Engine with WASM Bindings
 
 ### Goals
+
 - Replace `@gridcore/core` with Rust implementation
 - Maintain 100% API compatibility via WASM
 - Zero breaking changes for existing TypeScript UI
 
 ### Structure
+
 ```
 packages/gridcore-core-rust/
 ├── Cargo.toml
@@ -49,7 +53,8 @@ packages/gridcore-core-rust/
 
 ### Implementation Steps
 
-#### 1. Core data structures (Week 1-2)
+#### 1. Core data structures
+
 ```rust
 // Exact API match with TypeScript
 #[wasm_bindgen]
@@ -72,7 +77,8 @@ impl CellAddress {
 }
 ```
 
-#### 2. Formula engine (Week 3-4)
+#### 2. Formula engine
+
 ```rust
 pub struct FormulaEngine {
     parser: FormulaParser,
@@ -81,7 +87,8 @@ pub struct FormulaEngine {
 }
 ```
 
-#### 3. WASM bindings (Week 5-6)
+#### 3. WASM bindings
+
 ```rust
 #[wasm_bindgen]
 pub struct SpreadsheetFacade {
@@ -97,12 +104,14 @@ impl SpreadsheetFacade {
 }
 ```
 
-#### 4. Testing & Integration (Week 7-8)
+#### 4. Testing & Integration
+
 - Port existing TypeScript tests
 - Benchmark against current implementation
 - Drop-in replacement testing
 
 ### Integration Strategy
+
 ```typescript
 // packages/core/src/index.ts
 let coreImplementation;
@@ -121,19 +130,22 @@ export const { Workbook, Cell, CellAddress } = coreImplementation;
 ```
 
 ### Success Criteria
+
 - [ ] All core TypeScript tests pass with Rust implementation
 - [ ] No performance regression
 - [ ] Zero breaking changes in API
 - [ ] WASM bundle < 500KB
 
-## Phase 2: Controller/UI Logic (4-6 weeks)
+## Phase 2: Controller/UI Logic
 
 ### Goals
+
 - Port `@gridcore/ui-core` to Rust
 - Maintain state machine compatibility
 - Support both TypeScript and Rust UI consumers
 
 ### Structure
+
 ```
 packages/gridcore-controller-rust/
 ├── src/
@@ -158,7 +170,8 @@ packages/gridcore-controller-rust/
 
 ### Implementation Steps
 
-#### 1. State machine core (Week 1-2)
+#### 1. State machine core
+
 ```rust
 pub enum SpreadsheetMode {
     Normal,
@@ -173,7 +186,8 @@ pub struct UIStateMachine {
 }
 ```
 
-#### 2. Controller logic (Week 3-4)
+#### 2. Controller logic
+
 ```rust
 #[wasm_bindgen]
 pub struct SpreadsheetController {
@@ -183,11 +197,13 @@ pub struct SpreadsheetController {
 }
 ```
 
-#### 3. Vim mode (Week 5-6)
+#### 3. Vim mode
+
 - Port complex vim behavior state machine
 - Maintain exact command compatibility
 
 ### Integration Strategy
+
 ```typescript
 // Gradual migration - both implementations side by side
 import { SpreadsheetController as TSController } from './typescript';
@@ -197,18 +213,21 @@ const Controller = USE_RUST_CONTROLLER ? RustController : TSController;
 ```
 
 ### Success Criteria
+
 - [ ] State machine behavior identical
 - [ ] Vim mode fully functional
 - [ ] Event handling maintains 60fps
 
-## Phase 3: Web UI Migration (6-8 weeks)
+## Phase 3: Web UI Migration
 
 ### Goals
+
 - Replace canvas rendering with Rust
 - Start with web-sys (Canvas2D), optionally upgrade to wgpu later
 - Maintain Tauri desktop compatibility
 
 ### Structure
+
 ```
 packages/gridcore-web-rust/
 ├── src/
@@ -233,7 +252,8 @@ packages/gridcore-web-rust/
 
 ### Implementation Approach
 
-#### 1. Canvas rendering (Week 1-3)
+#### 1. Canvas rendering
+
 ```rust
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
@@ -250,7 +270,8 @@ impl CanvasRenderer {
 }
 ```
 
-#### 2. Event handling (Week 4-5)
+#### 2. Event handling
+
 ```rust
 pub struct MouseHandler {
     canvas: HtmlCanvasElement,
@@ -258,11 +279,13 @@ pub struct MouseHandler {
 }
 ```
 
-#### 3. Component integration (Week 6-8)
+#### 3. Component integration
+
 - Keep FormulaBar and StatusBar in TypeScript initially
 - Rust grid communicates via events/callbacks
 
 ### Progressive Enhancement Path
+
 ```
 Stage 1: web-sys with Canvas2D (matches current performance)
      ↓
@@ -272,18 +295,21 @@ Stage 3: Evaluate wgpu upgrade (if needed for performance)
 ```
 
 ### Success Criteria
+
 - [ ] Canvas rendering matches TypeScript pixel-perfect
 - [ ] Scrolling performance maintained or improved
 - [ ] Tauri desktop app continues working
 
-## Phase 4: TUI Implementation (3-4 weeks)
+## Phase 4: TUI Implementation
 
 ### Goals
+
 - Pure Rust terminal UI
 - Share controller logic with web UI
 - Better performance than current TypeScript TUI
 
 ### Structure
+
 ```
 packages/gridcore-tui-rust/
 ├── src/
@@ -298,6 +324,7 @@ packages/gridcore-tui-rust/
 ```
 
 ### Implementation
+
 ```rust
 use ratatui::{Frame, Terminal};
 use gridcore_controller_rust::SpreadsheetController;
@@ -317,36 +344,28 @@ impl SpreadsheetTUI {
 ```
 
 ### Success Criteria
+
 - [ ] TUI renders at 60fps in terminal
 - [ ] Memory usage < 50MB for large spreadsheets
 - [ ] Keyboard responsiveness < 16ms
 
-## Migration Timeline
-
-```
-Months:  1   2   3   4   5   6
-        ├───┼───┼───┼───┼───┼───┤
-Core:   ████████
-Controller:     ██████
-Web UI:             ████████
-TUI:                      ████
-Testing: ███ ███ ███ ███ ███ ███
-```
-
 ## Technology Stack
 
 ### Core Technologies
+
 - **Formula Parsing**: nom or pest
 - **WASM Bindings**: wasm-bindgen
 - **Serialization**: serde with bincode
 - **Testing**: wasm-bindgen-test
 
 ### Rendering Options
+
 - **Phase 3 Initial**: web-sys (Canvas2D API)
 - **Phase 3 Future**: wgpu (if performance requires)
 - **Phase 4**: ratatui (terminal UI)
 
 ### Development Tools
+
 - **Build**: wasm-pack for WASM modules
 - **Dev Server**: trunk for web development
 - **Testing**: cargo test + wasm-bindgen-test
@@ -355,6 +374,7 @@ Testing: ███ ███ ███ ███ ███ ███
 ## Risk Mitigation
 
 ### 1. Feature Flags for Gradual Rollout
+
 ```typescript
 const FEATURE_FLAGS = {
   USE_RUST_CORE: process.env.RUST_CORE === 'true',
@@ -364,11 +384,13 @@ const FEATURE_FLAGS = {
 ```
 
 ### 2. Parallel Development Tracks
+
 - Maintain TypeScript version during migration
 - A/B test Rust components with subset of users
 - Feature flag controlled rollout
 
 ### 3. Comprehensive Testing Strategy
+
 - Port all existing tests to Rust
 - Add integration tests between TS and Rust components
 - Performance benchmarks at each phase
@@ -377,18 +399,21 @@ const FEATURE_FLAGS = {
 ## Expected Benefits
 
 ### Performance Improvements
+
 - **Core Engine**: 10-100x faster formula evaluation
 - **Memory Usage**: 50% reduction in memory footprint
 - **Rendering**: Native 60fps with millions of cells
 - **Startup Time**: < 100ms application startup
 
 ### Development Benefits
+
 - **Type Safety**: Eliminate runtime type errors
 - **Memory Safety**: No memory leaks or segfaults
 - **Single Codebase**: Share logic between web/desktop/terminal
 - **Predictable Performance**: No GC pauses
 
 ### User Benefits
+
 - **Responsiveness**: Instant feedback on all operations
 - **Large Files**: Handle million-cell spreadsheets smoothly
 - **Battery Life**: Reduced CPU usage on laptops
@@ -397,6 +422,7 @@ const FEATURE_FLAGS = {
 ## Success Metrics
 
 ### Overall Project Success
+
 - [ ] 60fps scrolling with 1M cells
 - [ ] < 100ms formula recalculation for 10k dependencies
 - [ ] < 50MB memory for 100k cell spreadsheet
@@ -404,6 +430,7 @@ const FEATURE_FLAGS = {
 - [ ] Single codebase maintenance
 
 ### Migration Success
+
 - [ ] Zero breaking changes for users
 - [ ] Gradual rollout without disruption
 - [ ] Performance improvements at each phase
@@ -412,15 +439,16 @@ const FEATURE_FLAGS = {
 ## Next Steps
 
 1. **Set up Rust workspace** with cargo workspaces
-2. **Create gridcore-core-rust** package
-3. **Implement CellAddress** as proof of concept
-4. **Set up WASM build pipeline**
-5. **Create integration tests** with TypeScript
-6. **Begin incremental migration** with feature flags
+1. **Create gridcore-core-rust** package
+1. **Implement CellAddress** as proof of concept
+1. **Set up WASM build pipeline**
+1. **Create integration tests** with TypeScript
+1. **Begin incremental migration** with feature flags
 
 ## Conclusion
 
 This incremental approach allows us to:
+
 - **Validate performance gains early** with the core engine
 - **Maintain a working product** throughout migration
 - **Learn and adjust** strategy based on each phase
@@ -428,3 +456,4 @@ This incremental approach allows us to:
 - **Measure success** with clear metrics at each stage
 
 The key insight is that the current architecture already separates concerns well (core, controller, rendering), making this incremental approach very feasible and low-risk.
+
