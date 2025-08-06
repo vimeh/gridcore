@@ -2,19 +2,18 @@ name: Benchmark
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   benchmark:
+    name: Performance regression check
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      deployments: write
-      
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -37,17 +36,22 @@ jobs:
           cd packages/core
           bun run bench:json
       
+      - name: Download previous benchmark data
+        uses: actions/cache@v4
+        with:
+          path: ./cache
+          key: ${{ runner.os }}-benchmark
+      
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: 'customBiggerIsBetter'
           output-file-path: packages/core/benchmark-results.json
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: true
+          external-data-json-path: ./cache/benchmark-data.json
+          fail-on-alert: true
           alert-threshold: '110%'
           comment-on-alert: true
           alert-comment-cc-users: '@vinay'
-          benchmark-data-dir-path: 'dev/bench'
           
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4

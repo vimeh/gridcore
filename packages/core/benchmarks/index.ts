@@ -150,7 +150,7 @@ Examples:
     const output = await runAllBenchmarks()
     
     if (jsonOutput) {
-      // Convert results to GitHub Action Benchmark format
+      // Convert results to GitHub Action Benchmark format - must be an array
       const benchmarks = []
       for (const [suiteName, suiteResults] of Object.entries(output.results)) {
         if (suiteResults && typeof suiteResults === 'object' && !suiteResults.error) {
@@ -166,14 +166,8 @@ Examples:
         }
       }
       
-      const githubOutput = {
-        name: "GridCore Benchmarks",
-        tool: "customBiggerIsBetter",
-        timestamp: output.systemInfo.timestamp,
-        benchmarks
-      }
-      
-      writeFileSync("benchmark-results.json", JSON.stringify(githubOutput, null, 2))
+      // Output must be an array for customBiggerIsBetter tool
+      writeFileSync("benchmark-results.json", JSON.stringify(benchmarks, null, 2))
     }
   }
 }
