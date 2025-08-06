@@ -15,6 +15,7 @@
     "test": "bun test",
     "clean": "rm -rf dist node_modules coverage",
     "bench": "bun run benchmarks/index.ts",
+    "bench:json": "bun run benchmarks/index.ts --json",
     "bench:cell": "bun run benchmarks/index.ts --suite 'Cell Operations'",
     "bench:formula": "bun run benchmarks/index.ts --suite 'Formula Calculations'",
     "bench:batch": "bun run benchmarks/index.ts --suite 'Batch Operations'"

@@ -96,11 +96,13 @@ Usage:
 Options:
   --suite <name>    Run only a specific benchmark suite
   --list           List available benchmark suites
+  --json           Output results in JSON format for CI
   --help, -h       Show this help message
 
 Examples:
   bun run benchmarks
   bun run benchmarks --suite "Cell Operations"
+  bun run benchmarks --json
   bun run benchmarks --list
 `)
     process.exit(0)
@@ -114,6 +116,8 @@ Examples:
     process.exit(0)
   }
   
+  const jsonOutput = args.includes("--json")
+  
   const suiteIndex = args.indexOf("--suite")
   if (suiteIndex !== -1 && args[suiteIndex + 1]) {
     const suiteName = args[suiteIndex + 1]
@@ -125,13 +129,52 @@ Examples:
       process.exit(1)
     }
     
-    console.log(`Running ${suite.name} benchmarks...`)
+    if (!jsonOutput) {
+      console.log(`Running ${suite.name} benchmarks...`)
+    }
     const results = await suite.run()
-    const runner = new BenchmarkRunner()
-    runner.setResults(results)
-    runner.printResults()
+    
+    if (jsonOutput) {
+      const output = {
+        timestamp: new Date().toISOString(),
+        suite: suite.name,
+        results
+      }
+      writeFileSync("benchmark-results.json", JSON.stringify(output, null, 2))
+    } else {
+      const runner = new BenchmarkRunner()
+      runner.setResults(results)
+      runner.printResults()
+    }
   } else {
-    await runAllBenchmarks()
+    const output = await runAllBenchmarks()
+    
+    if (jsonOutput) {
+      // Convert results to GitHub Action Benchmark format
+      const benchmarks = []
+      for (const [suiteName, suiteResults] of Object.entries(output.results)) {
+        if (suiteResults && typeof suiteResults === 'object' && !suiteResults.error) {
+          for (const [benchName, benchData] of Object.entries(suiteResults)) {
+            if (benchData && typeof benchData === 'object' && 'opsPerSec' in benchData) {
+              benchmarks.push({
+                name: `${suiteName} - ${benchName}`,
+                unit: "ops/sec",
+                value: benchData.opsPerSec
+              })
+            }
+          }
+        }
+      }
+      
+      const githubOutput = {
+        name: "GridCore Benchmarks",
+        tool: "customBiggerIsBetter",
+        timestamp: output.systemInfo.timestamp,
+        benchmarks
+      }
+      
+      writeFileSync("benchmark-results.json", JSON.stringify(githubOutput, null, 2))
+    }
   }
 }
 
