@@ -10,8 +10,8 @@ export {
   type CellHighlight,
   ConfirmationDialog,
   DEFAULT_STRUCTURAL_UI_CONFIG,
-  type HighlightType,
   ProgressIndicator,
+  type StructuralHighlightType as HighlightType,
   type StructuralOperation,
   StructuralOperationFeedback,
   StructuralOperationManager,
@@ -21,6 +21,7 @@ export {
   type StructuralWarning,
   WarningDialog,
 } from "@gridcore/ui-core";
+export { StatusBar } from "../components/StatusBar";
 export {
   createStructuralUI,
   STRUCTURAL_UI_CSS,

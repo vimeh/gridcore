@@ -2,7 +2,7 @@ import { type Cell, CellAddress, Workbook } from "@gridcore/core";
 import { SpreadsheetController, type ViewportManager } from "@gridcore/ui-core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
-import { ModeIndicator } from "./components/ModeIndicator";
+import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
 import "./style.css";
 
@@ -20,6 +20,7 @@ app.innerHTML = `
     <!-- </div> -->
     <div class="formula-bar-container"></div>
     <div class="grid-container"></div>
+    <div class="status-bar-container"></div>
     <div class="tab-bar-container"></div>
   </div>
 `;
@@ -29,6 +30,9 @@ const formulaBarContainer = app.querySelector(
   ".formula-bar-container",
 ) as HTMLElement;
 const gridContainer = app.querySelector(".grid-container") as HTMLElement;
+const statusBarContainer = app.querySelector(
+  ".status-bar-container",
+) as HTMLElement;
 const tabBarContainer = app.querySelector(".tab-bar-container") as HTMLElement;
 
 // Grid dimensions configuration
@@ -461,8 +465,12 @@ window.addEventListener("resize", () => {
   canvasGrid.render();
 });
 
-// Create mode indicator
-const _modeIndicator = new ModeIndicator(app, controller);
+// Create status bar with mode indicator and keyboard toggle
+const statusBar = new StatusBar(statusBarContainer, controller, {
+  onInteractionModeChange: (mode) => {
+    canvasGrid.setInteractionMode(mode);
+  },
+});
 
 // Initial focus
 gridContainer.focus();

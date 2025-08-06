@@ -45,7 +45,6 @@ export class CanvasGrid {
 
   private animationFrameId: number | null = null;
   private debugRenderer!: DebugRenderer;
-  private interactionModeToggle!: HTMLInputElement;
   private controller?: SpreadsheetController;
   private adapter?: WebStateAdapter;
   private stateChangeUnsubscribe?: () => void;
@@ -166,63 +165,10 @@ export class CanvasGrid {
     this.container.style.position = "relative";
     this.container.style.overflow = "hidden";
 
-    // Create toolbar
-    const toolbar = document.createElement("div");
-    toolbar.className = "grid-toolbar";
-    toolbar.style.position = "absolute";
-    toolbar.style.top = "0";
-    toolbar.style.left = "0";
-    toolbar.style.right = "0";
-    toolbar.style.height = "40px";
-    toolbar.style.backgroundColor = "#f5f5f5";
-    toolbar.style.borderBottom = "1px solid #ddd";
-    toolbar.style.display = "flex";
-    toolbar.style.alignItems = "center";
-    toolbar.style.padding = "0 10px";
-    toolbar.style.zIndex = "4";
-
-    // Create interaction mode toggle
-    const toggleContainer = document.createElement("div");
-    toggleContainer.style.display = "flex";
-    toggleContainer.style.alignItems = "center";
-    toggleContainer.style.gap = "10px";
-    toggleContainer.style.marginLeft = "auto"; // Push to right side
-
-    const toggleLabel = document.createElement("label");
-    toggleLabel.style.display = "flex";
-    toggleLabel.style.alignItems = "center";
-    toggleLabel.style.cursor = "pointer";
-    toggleLabel.style.userSelect = "none";
-
-    const toggleInput = document.createElement("input");
-    toggleInput.type = "checkbox";
-    toggleInput.style.marginRight = "8px";
-    toggleInput.addEventListener("change", () => {
-      const newMode = toggleInput.checked ? "keyboard-only" : "normal";
-      this.setInteractionMode(newMode);
-    });
-
-    const toggleText = document.createElement("span");
-    toggleText.textContent = "Keyboard Only Mode";
-    toggleText.style.fontSize = "14px";
-    toggleText.style.color = "#333";
-
-    toggleLabel.appendChild(toggleInput);
-    toggleLabel.appendChild(toggleText);
-    toggleContainer.appendChild(toggleLabel);
-    toolbar.appendChild(toggleContainer);
-    this.container.appendChild(toolbar);
-
-    // Store reference to toggle for updates
-    this.interactionModeToggle = toggleInput;
-
-    // Adjust other elements to account for toolbar height
-    const toolbarHeight = 40;
-
     this.cornerCanvas = document.createElement("canvas");
     this.cornerCanvas.className = "grid-corner-canvas";
     this.cornerCanvas.style.position = "absolute";
-    this.cornerCanvas.style.top = `${toolbarHeight}px`;
+    this.cornerCanvas.style.top = "0";
     this.cornerCanvas.style.left = "0";
     this.cornerCanvas.style.width = `${this.theme.rowHeaderWidth}px`;
     this.cornerCanvas.style.height = `${this.theme.columnHeaderHeight}px`;
@@ -233,7 +179,7 @@ export class CanvasGrid {
     this.colHeaderCanvas = document.createElement("canvas");
     this.colHeaderCanvas.className = "grid-col-header-canvas";
     this.colHeaderCanvas.style.position = "absolute";
-    this.colHeaderCanvas.style.top = `${toolbarHeight}px`;
+    this.colHeaderCanvas.style.top = "0";
     this.colHeaderCanvas.style.left = `${this.theme.rowHeaderWidth}px`;
     this.colHeaderCanvas.style.right = "0";
     this.colHeaderCanvas.style.height = `${this.theme.columnHeaderHeight}px`;
@@ -245,7 +191,7 @@ export class CanvasGrid {
     this.rowHeaderCanvas = document.createElement("canvas");
     this.rowHeaderCanvas.className = "grid-row-header-canvas";
     this.rowHeaderCanvas.style.position = "absolute";
-    this.rowHeaderCanvas.style.top = `${toolbarHeight + this.theme.columnHeaderHeight}px`;
+    this.rowHeaderCanvas.style.top = `${this.theme.columnHeaderHeight}px`;
     this.rowHeaderCanvas.style.left = "0";
     this.rowHeaderCanvas.style.width = `${this.theme.rowHeaderWidth}px`;
     this.rowHeaderCanvas.style.bottom = "0";
@@ -257,7 +203,7 @@ export class CanvasGrid {
     this.scrollContainer = document.createElement("div");
     this.scrollContainer.className = "grid-scroll-container";
     this.scrollContainer.style.position = "absolute";
-    this.scrollContainer.style.top = `${toolbarHeight + this.theme.columnHeaderHeight}px`;
+    this.scrollContainer.style.top = `${this.theme.columnHeaderHeight}px`;
     this.scrollContainer.style.left = `${this.theme.rowHeaderWidth}px`;
     this.scrollContainer.style.right = "0";
     this.scrollContainer.style.bottom = "0";
@@ -417,11 +363,7 @@ export class CanvasGrid {
         // Update resize handler based on interaction mode
         this.resizeHandler.setEnabled(newState.interactionMode === "normal");
 
-        // Update toggle checkbox state
-        if (this.interactionModeToggle) {
-          this.interactionModeToggle.checked =
-            newState.interactionMode === "keyboard-only";
-        }
+        // Toggle is now handled by StatusBar
 
         // Re-render to update any visual indicators
         this.render();
@@ -786,10 +728,7 @@ export class CanvasGrid {
     // Update resize handler
     this.resizeHandler.setEnabled(mode === "normal");
 
-    // Update toggle checkbox state
-    if (this.interactionModeToggle) {
-      this.interactionModeToggle.checked = mode === "keyboard-only";
-    }
+    // Toggle is now handled by StatusBar
 
     // Re-render to update any visual indicators
     this.render();

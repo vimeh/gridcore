@@ -1,18 +1,35 @@
 import type { SpreadsheetController, UIState } from "@gridcore/ui-core";
 
-export class ModeIndicator {
-  private element: HTMLDivElement;
+export interface StatusBarCallbacks {
+  onInteractionModeChange: (mode: "normal" | "keyboard-only") => void;
+}
+
+export class StatusBar {
+  private container: HTMLElement;
+  private statusBarElement: HTMLDivElement;
+  private modeElement: HTMLDivElement;
   private modeText: HTMLSpanElement;
   private detailText: HTMLSpanElement;
+  private keyboardOnlyToggle: HTMLInputElement;
+  private controller: SpreadsheetController;
+  private callbacks: StatusBarCallbacks;
   private unsubscribe: (() => void) | null = null;
 
   constructor(
-    private container: HTMLElement,
-    private controller: SpreadsheetController,
+    container: HTMLElement,
+    controller: SpreadsheetController,
+    callbacks: StatusBarCallbacks,
   ) {
-    this.element = this.createElement();
-    const modeText = this.element.querySelector(".mode-text");
-    const detailText = this.element.querySelector(".mode-detail");
+    this.container = container;
+    this.controller = controller;
+    this.callbacks = callbacks;
+
+    this.statusBarElement = this.createStatusBar();
+    this.modeElement = this.createModeIndicator();
+    const toggleContainer = this.createKeyboardToggle();
+
+    const modeText = this.modeElement.querySelector(".mode-text");
+    const detailText = this.modeElement.querySelector(".mode-detail");
 
     if (!modeText || !detailText) {
       throw new Error("Failed to create mode indicator elements");
@@ -20,7 +37,10 @@ export class ModeIndicator {
 
     this.modeText = modeText as HTMLSpanElement;
     this.detailText = detailText as HTMLSpanElement;
-    this.container.appendChild(this.element);
+
+    this.statusBarElement.appendChild(this.modeElement);
+    this.statusBarElement.appendChild(toggleContainer);
+    this.container.appendChild(this.statusBarElement);
 
     // Subscribe to controller events
     this.unsubscribe = this.controller.subscribe((event) => {
@@ -33,7 +53,24 @@ export class ModeIndicator {
     this.updateDisplay(this.controller.getState());
   }
 
-  private createElement(): HTMLDivElement {
+  private createStatusBar(): HTMLDivElement {
+    const statusBar = document.createElement("div");
+    statusBar.className = "status-bar";
+    statusBar.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 32px;
+      background: #f5f5f5;
+      border-top: 1px solid #ddd;
+      padding: 0 12px;
+      font-size: 13px;
+      color: #333;
+    `;
+    return statusBar;
+  }
+
+  private createModeIndicator(): HTMLDivElement {
     const div = document.createElement("div");
     div.className = "mode-indicator";
     div.innerHTML = `
@@ -43,49 +80,85 @@ export class ModeIndicator {
 
     // Style the indicator
     Object.assign(div.style, {
-      position: "fixed",
-      bottom: "20px",
-      left: "20px",
-      padding: "10px 16px",
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      padding: "4px 8px",
       backgroundColor: "#333",
       color: "white",
-      borderRadius: "6px",
+      borderRadius: "4px",
       fontFamily: "monospace",
-      fontSize: "14px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "4px",
-      boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
-      zIndex: "2000",
-      transition: "all 0.2s ease",
+      fontSize: "12px",
       minWidth: "200px",
+      transition: "all 0.2s ease",
     });
 
     const modeText = div.querySelector(".mode-text") as HTMLSpanElement;
     Object.assign(modeText.style, {
       fontWeight: "bold",
       textTransform: "uppercase",
-      fontSize: "16px",
+      fontSize: "13px",
     });
 
     const detailText = div.querySelector(".mode-detail") as HTMLSpanElement;
     Object.assign(detailText.style, {
       opacity: "0.85",
-      fontSize: "12px",
-      lineHeight: "1.4",
+      fontSize: "11px",
+      whiteSpace: "nowrap",
     });
 
     return div;
+  }
+
+  private createKeyboardToggle(): HTMLElement {
+    const toggleContainer = document.createElement("div");
+    toggleContainer.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+
+    const toggleLabel = document.createElement("label");
+    toggleLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    `;
+
+    this.keyboardOnlyToggle = document.createElement("input");
+    this.keyboardOnlyToggle.type = "checkbox";
+    this.keyboardOnlyToggle.checked = false;
+    this.keyboardOnlyToggle.style.cursor = "pointer";
+
+    this.keyboardOnlyToggle.addEventListener("change", () => {
+      const newMode = this.keyboardOnlyToggle.checked
+        ? "keyboard-only"
+        : "normal";
+      this.callbacks.onInteractionModeChange(newMode);
+    });
+
+    const toggleText = document.createElement("span");
+    toggleText.textContent = "Keyboard Only Mode";
+    toggleText.style.fontSize = "13px";
+    toggleText.style.color = "#333";
+
+    toggleLabel.appendChild(this.keyboardOnlyToggle);
+    toggleLabel.appendChild(toggleText);
+    toggleContainer.appendChild(toggleLabel);
+
+    return toggleContainer;
   }
 
   private handleModeChange(state: UIState): void {
     this.updateDisplay(state);
 
     // Add animation effect on mode change
-    this.element.style.transform = "scale(1.1)";
+    this.modeElement.style.transform = "scale(1.05)";
     setTimeout(() => {
-      this.element.style.transform = "scale(1)";
-    }, 200);
+      this.modeElement.style.transform = "scale(1)";
+    }, 150);
   }
 
   private updateDisplay(state: UIState): void {
@@ -175,8 +248,6 @@ export class ModeIndicator {
     // Set primary mode text
     this.modeText.textContent = primaryMode;
 
-    // No interaction mode in UIState - that's Web UI specific
-
     // Add helpful hints based on current mode
     let hints: string[] = [];
     switch (state.spreadsheetMode) {
@@ -210,25 +281,12 @@ export class ModeIndicator {
 
     // Apply colors
     const color = colors[colorKey];
-    this.element.style.backgroundColor = color.bg;
-    this.element.style.color = color.text;
+    this.modeElement.style.backgroundColor = color.bg;
+    this.modeElement.style.color = color.text;
   }
 
-  setPosition(position: {
-    bottom?: string;
-    left?: string;
-    right?: string;
-    top?: string;
-  }): void {
-    Object.assign(this.element.style, position);
-  }
-
-  show(): void {
-    this.element.style.display = "flex";
-  }
-
-  hide(): void {
-    this.element.style.display = "none";
+  setInteractionMode(mode: "normal" | "keyboard-only"): void {
+    this.keyboardOnlyToggle.checked = mode === "keyboard-only";
   }
 
   destroy(): void {
@@ -239,6 +297,6 @@ export class ModeIndicator {
     }
 
     // Remove element from DOM
-    this.element.remove();
+    this.statusBarElement.remove();
   }
 }
