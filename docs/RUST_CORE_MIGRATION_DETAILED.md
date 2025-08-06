@@ -785,6 +785,7 @@ describe('WASM Integration', () => {
 ## Migration Checklist
 
 ### Phase 1 (Completed)
+
 - [x] Set up Rust workspace
 - [x] Implement SpreadsheetError with thiserror
 - [x] Implement CellValue with WASM bindings
@@ -793,32 +794,38 @@ describe('WASM Integration', () => {
 - [x] Successfully compile to 76KB WASM bundle
 
 ### Phase 2 (Completed)
+
 - [x] Define Formula AST
 - [x] Implement chumsky parser (using Chumsky 0.10 with pratt parsing)
 - [x] Create WASM parser bindings
 - [x] Test formula parsing from TypeScript
 
 ### Phase 3
-- [ ] Implement CellRepository
-- [ ] Create DependencyGraph with petgraph
-- [ ] Add topological sort for calculation order
+
+- [x] Implement CellRepository
+- [x] Create DependencyGraph with petgraph
+- [x] Add topological sort for calculation order
 
 ### Phase 4
-- [ ] Implement recursive AST evaluator
-- [ ] Add basic arithmetic operations
-- [ ] Add function support (SUM, AVERAGE, etc.)
+
+- [x] Implement recursive AST evaluator
+- [x] Add basic arithmetic operations
+- [x] Add function support (SUM, AVERAGE, etc.)
 
 ### Phase 5
+
 - [ ] Create SpreadsheetFacade
 - [ ] Add event callbacks to JS
 - [ ] Implement batch operations
 
 ### Phase 6
+
 - [ ] AST transformer for structural operations
 - [ ] Row/column insert/delete support
 - [ ] Reference adjustment logic
 
 ### Phase 7
+
 - [ ] Command pattern for undo/redo
 - [ ] Undo/redo stack management
 - [ ] Command inversion logic
@@ -826,10 +833,11 @@ describe('WASM Integration', () => {
 ## Key Advantages
 
 1. **Continuous Validation**: Each component immediately testable through WASM
-2. **AST-Based Operations**: All formula manipulation on AST ensures correctness
-3. **Rich Error Handling**: Chumsky provides detailed parse errors with positions
-4. **Type Safety**: Strong typing across Rust-JS boundary with serde
-5. **Performance**: Chumsky generates efficient parsers, petgraph provides optimal algorithms
-6. **Event-Driven**: JS callbacks enable reactive UI updates
+1. **AST-Based Operations**: All formula manipulation on AST ensures correctness
+1. **Rich Error Handling**: Chumsky provides detailed parse errors with positions
+1. **Type Safety**: Strong typing across Rust-JS boundary with serde
+1. **Performance**: Chumsky generates efficient parsers, petgraph provides optimal algorithms
+1. **Event-Driven**: JS callbacks enable reactive UI updates
 
 This iterative approach ensures validation of each component before proceeding, significantly reducing integration risk.
+
