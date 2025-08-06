@@ -33,7 +33,7 @@ impl Cell {
     pub fn with_formula(raw_value: CellValue, formula: Expr) -> Self {
         Cell {
             raw_value,
-            computed_value: CellValue::Null, // Will be computed later
+            computed_value: CellValue::Empty, // Will be computed later
             formula: Some(formula),
             error: None,
         }
@@ -52,8 +52,8 @@ impl Cell {
     /// Create an empty cell
     pub fn empty() -> Self {
         Cell {
-            raw_value: CellValue::Null,
-            computed_value: CellValue::Null,
+            raw_value: CellValue::Empty,
+            computed_value: CellValue::Empty,
             formula: None,
             error: None,
         }
@@ -71,12 +71,17 @@ impl Cell {
     
     /// Check if the cell is empty
     pub fn is_empty(&self) -> bool {
-        matches!(self.raw_value, CellValue::Null)
+        matches!(self.raw_value, CellValue::Empty)
     }
     
     /// Get the display value (computed value or error)
     pub fn get_display_value(&self) -> &CellValue {
         &self.computed_value
+    }
+    
+    /// Get the computed value
+    pub fn get_computed_value(&self) -> CellValue {
+        self.computed_value.clone()
     }
     
     /// Update the computed value
@@ -93,7 +98,7 @@ impl Cell {
 }
 
 #[cfg(feature = "wasm")]
-mod wasm_bindings {
+pub mod wasm_bindings {
     use super::*;
     use wasm_bindgen::prelude::*;
     

@@ -5,18 +5,18 @@ pub enum CellValue {
     Number(f64),
     String(String),
     Boolean(bool),
-    Null,
+    Empty,
     Error(String),
+    Array(Vec<CellValue>),
 }
 
 impl CellValue {
     /// Convert from JavaScript value
     #[cfg(feature = "wasm")]
     pub fn from_js(value: wasm_bindgen::JsValue) -> Result<Self, wasm_bindgen::JsValue> {
-        use wasm_bindgen::JsCast;
         
         if value.is_null() || value.is_undefined() {
-            Ok(CellValue::Null)
+            Ok(CellValue::Empty)
         } else if let Some(b) = value.as_bool() {
             Ok(CellValue::Boolean(b))
         } else if let Some(n) = value.as_f64() {
@@ -35,8 +35,15 @@ impl CellValue {
             CellValue::Number(n) => wasm_bindgen::JsValue::from_f64(*n),
             CellValue::String(s) => wasm_bindgen::JsValue::from_str(s),
             CellValue::Boolean(b) => wasm_bindgen::JsValue::from_bool(*b),
-            CellValue::Null => wasm_bindgen::JsValue::NULL,
+            CellValue::Empty => wasm_bindgen::JsValue::NULL,
             CellValue::Error(e) => wasm_bindgen::JsValue::from_str(e),
+            CellValue::Array(arr) => {
+                let js_array = js_sys::Array::new();
+                for val in arr {
+                    js_array.push(&val.to_js());
+                }
+                js_array.into()
+            }
         }
     }
     
@@ -56,8 +63,8 @@ impl CellValue {
     }
     
     /// Check if the value is null/empty
-    pub fn is_null(&self) -> bool {
-        matches!(self, CellValue::Null)
+    pub fn is_empty(&self) -> bool {
+        matches!(self, CellValue::Empty)
     }
     
     /// Check if the value is an error
@@ -89,21 +96,34 @@ impl CellValue {
         }
     }
     
+    /// Get a human-readable type name
+    pub fn type_name(&self) -> &str {
+        match self {
+            CellValue::Number(_) => "number",
+            CellValue::String(_) => "string",
+            CellValue::Boolean(_) => "boolean",
+            CellValue::Empty => "empty",
+            CellValue::Error(_) => "error",
+            CellValue::Array(_) => "array",
+        }
+    }
+    
     /// Convert to display string
     pub fn to_display_string(&self) -> String {
         match self {
             CellValue::Number(n) => n.to_string(),
             CellValue::String(s) => s.clone(),
             CellValue::Boolean(b) => b.to_string().to_uppercase(),
-            CellValue::Null => String::new(),
+            CellValue::Empty => String::new(),
             CellValue::Error(e) => e.clone(),
+            CellValue::Array(arr) => format!("{:?}", arr),
         }
     }
 }
 
 impl Default for CellValue {
     fn default() -> Self {
-        CellValue::Null
+        CellValue::Empty
     }
 }
 
@@ -122,7 +142,7 @@ pub mod wasm {
         #[wasm_bindgen(constructor)]
         pub fn new() -> Self {
             WasmCellValue {
-                inner: CellValue::Null,
+                inner: CellValue::Empty,
             }
         }
         
@@ -157,7 +177,7 @@ pub mod wasm {
         #[wasm_bindgen(js_name = "fromJS")]
         pub fn from_js(value: JsValue) -> Result<WasmCellValue, JsValue> {
             let inner = if value.is_null() || value.is_undefined() {
-                CellValue::Null
+                CellValue::Empty
             } else if let Some(n) = value.as_f64() {
                 CellValue::Number(n)
             } else if let Some(b) = value.as_bool() {
@@ -177,12 +197,19 @@ pub mod wasm {
                 CellValue::Number(n) => JsValue::from_f64(*n),
                 CellValue::String(s) => JsValue::from_str(s),
                 CellValue::Boolean(b) => JsValue::from_bool(*b),
-                CellValue::Null => JsValue::NULL,
+                CellValue::Empty => JsValue::NULL,
                 CellValue::Error(e) => {
                     let obj = js_sys::Object::new();
                     js_sys::Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::from_str(e))
                         .unwrap();
                     obj.into()
+                }
+                CellValue::Array(arr) => {
+                    let js_array = js_sys::Array::new();
+                    for val in arr {
+                        js_array.push(&val.to_js());
+                    }
+                    js_array.into()
                 }
             }
         }
@@ -202,9 +229,9 @@ pub mod wasm {
             self.inner.is_boolean()
         }
         
-        #[wasm_bindgen(js_name = "isNull")]
-        pub fn is_null(&self) -> bool {
-            self.inner.is_null()
+        #[wasm_bindgen(js_name = "isEmpty")]
+        pub fn is_empty(&self) -> bool {
+            self.inner.is_empty()
         }
         
         #[wasm_bindgen(js_name = "isError")]

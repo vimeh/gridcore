@@ -132,7 +132,7 @@ pub mod wasm {
     
     #[wasm_bindgen]
     pub struct WasmCellAddress {
-        inner: CellAddress,
+        pub(crate) inner: CellAddress,
     }
     
     #[wasm_bindgen]

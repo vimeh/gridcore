@@ -20,7 +20,8 @@
       "mcp__playwright__browser_type",
       "WebFetch(domain:docs.rs)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(cargo check:*)"
+      "Bash(cargo check:*)",
+      "Bash(cargo test:*)"
     ],
     "deny": []
   }

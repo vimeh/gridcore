@@ -35,6 +35,24 @@ pub enum SpreadsheetError {
     
     #[error("Type mismatch: expected {expected}, got {actual}")]
     TypeMismatch { expected: String, actual: String },
+    
+    #[error("Division by zero")]
+    DivisionByZero,
+    
+    #[error("Type error: {0}")]
+    TypeError(String),
+    
+    #[error("Unknown function: {0}")]
+    UnknownFunction(String),
+    
+    #[error("Invalid arguments: {0}")]
+    InvalidArguments(String),
+    
+    #[error("Formula error: {0}")]
+    FormulaError(String),
+    
+    #[error("Invalid formula: {0}")]
+    InvalidFormula(String),
 }
 
 pub type Result<T> = std::result::Result<T, SpreadsheetError>;
