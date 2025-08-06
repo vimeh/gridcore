@@ -460,7 +460,7 @@ export class CanvasGrid {
     if (this.controller) {
       // First, ensure we're on the clicked cell
       this.selectionManager.setActiveCell(cell);
-      
+
       // Start editing through the controller
       this.controller.handleKeyPress("Enter", {
         key: "Enter",
