@@ -48,6 +48,7 @@ jobs:
           tool: 'customBiggerIsBetter'
           output-file-path: packages/core/benchmark-results.json
           external-data-json-path: ./cache/benchmark-data.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           fail-on-alert: true
           alert-threshold: '110%'
           comment-on-alert: true
