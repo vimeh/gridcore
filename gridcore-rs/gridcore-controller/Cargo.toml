@@ -1,0 +1,58 @@
+[package]
+name = "gridcore-controller"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gridcore-core = { path = "../gridcore-core" }
+thiserror = { workspace = true }
+serde = { workspace = true }
+
+[features]
+default = []
+wasm = [
+  "dep:wasm-bindgen",
+  "dep:js-sys",
+  "dep:web-sys",
+  "dep:serde-wasm-bindgen",
+  "dep:serde_json",
+  "gridcore-core/wasm",
+]
+
+[dependencies.wasm-bindgen]
+workspace = true
+optional = true
+
+[dependencies.js-sys]
+workspace = true
+optional = true
+
+[dependencies.web-sys]
+workspace = true
+optional = true
+features = [
+  "console",
+  "Document",
+  "Element",
+  "HtmlElement",
+  "Window",
+  "Event",
+  "KeyboardEvent",
+  "MouseEvent",
+]
+
+[dependencies.serde-wasm-bindgen]
+workspace = true
+optional = true
+
+[dependencies.serde_json]
+workspace = true
+optional = true
+
+[dev-dependencies]
+criterion = "0.5"
+wasm-bindgen-test = "0.3"
+
+[[bench]]
+name = "controller_bench"
+harness = false
