@@ -1,18 +1,18 @@
-use std::collections::HashSet;
-use crate::types::{CellAddress, CellValue};
 use crate::Result;
+use crate::types::{CellAddress, CellValue};
+use std::collections::HashSet;
 
 /// Trait for providing cell values during formula evaluation
 pub trait EvaluationContext {
     /// Get the value of a cell
     fn get_cell_value(&self, address: &CellAddress) -> Result<CellValue>;
-    
+
     /// Check if we're in a circular dependency
     fn check_circular(&self, address: &CellAddress) -> bool;
-    
+
     /// Mark a cell as being evaluated (for circular dependency detection)
     fn push_evaluation(&mut self, address: &CellAddress);
-    
+
     /// Unmark a cell as being evaluated
     fn pop_evaluation(&mut self, address: &CellAddress);
 }
@@ -38,15 +38,15 @@ impl EvaluationContext for BasicContext {
         // For now, return empty
         Ok(CellValue::Empty)
     }
-    
+
     fn check_circular(&self, address: &CellAddress) -> bool {
         self.evaluation_stack.contains(address)
     }
-    
+
     fn push_evaluation(&mut self, address: &CellAddress) {
         self.evaluation_stack.insert(address.clone());
     }
-    
+
     fn pop_evaluation(&mut self, address: &CellAddress) {
         self.evaluation_stack.remove(address);
     }
@@ -75,15 +75,15 @@ impl<'a> EvaluationContext for RepositoryContext<'a> {
             Ok(CellValue::Empty)
         }
     }
-    
+
     fn check_circular(&self, address: &CellAddress) -> bool {
         self.evaluation_stack.contains(address)
     }
-    
+
     fn push_evaluation(&mut self, address: &CellAddress) {
         self.evaluation_stack.insert(address.clone());
     }
-    
+
     fn pop_evaluation(&mut self, address: &CellAddress) {
         self.evaluation_stack.remove(address);
     }

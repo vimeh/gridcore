@@ -7,15 +7,17 @@ pub fn apply_unary(op: &UnaryOperator, value: CellValue) -> Result<CellValue> {
     match op {
         UnaryOperator::Negate => match coerce_to_number(&value) {
             Ok(n) => Ok(CellValue::Number(-n)),
-            Err(_) => Err(SpreadsheetError::TypeError(
-                format!("Cannot negate {}", value.type_name())
-            )),
+            Err(_) => Err(SpreadsheetError::TypeError(format!(
+                "Cannot negate {}",
+                value.type_name()
+            ))),
         },
         UnaryOperator::Percent => match coerce_to_number(&value) {
             Ok(n) => Ok(CellValue::Number(n / 100.0)),
-            Err(_) => Err(SpreadsheetError::TypeError(
-                format!("Cannot apply percent to {}", value.type_name())
-            )),
+            Err(_) => Err(SpreadsheetError::TypeError(format!(
+                "Cannot apply percent to {}",
+                value.type_name()
+            ))),
         },
     }
 }
@@ -29,7 +31,7 @@ pub fn apply_binary(op: &BinaryOperator, left: CellValue, right: CellValue) -> R
         BinaryOperator::Multiply => multiply_values(left, right),
         BinaryOperator::Divide => divide_values(left, right),
         BinaryOperator::Power => power_values(left, right),
-        
+
         // Comparison operators
         BinaryOperator::Equal => Ok(CellValue::Boolean(values_equal(&left, &right))),
         BinaryOperator::NotEqual => Ok(CellValue::Boolean(!values_equal(&left, &right))),
@@ -37,7 +39,7 @@ pub fn apply_binary(op: &BinaryOperator, left: CellValue, right: CellValue) -> R
         BinaryOperator::LessThanOrEqual => compare_values(left, right, |cmp| cmp <= 0),
         BinaryOperator::GreaterThan => compare_values(left, right, |cmp| cmp > 0),
         BinaryOperator::GreaterThanOrEqual => compare_values(left, right, |cmp| cmp >= 0),
-        
+
         // String concatenation
         BinaryOperator::Concat => concatenate_values(left, right),
     }
@@ -49,15 +51,17 @@ fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     if let (Ok(l), Ok(r)) = (coerce_to_number(&left), coerce_to_number(&right)) {
         return Ok(CellValue::Number(l + r));
     }
-    
+
     // If either is a string, concatenate
     if matches!(left, CellValue::String(_)) || matches!(right, CellValue::String(_)) {
         return concatenate_values(left, right);
     }
-    
-    Err(SpreadsheetError::TypeError(
-        format!("Cannot add {} and {}", left.type_name(), right.type_name())
-    ))
+
+    Err(SpreadsheetError::TypeError(format!(
+        "Cannot add {} and {}",
+        left.type_name(),
+        right.type_name()
+    )))
 }
 
 /// Subtract two values
@@ -78,11 +82,11 @@ fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     let l = coerce_to_number(&left)?;
     let r = coerce_to_number(&right)?;
-    
+
     if r == 0.0 {
         return Err(SpreadsheetError::DivisionByZero);
     }
-    
+
     Ok(CellValue::Number(l / r))
 }
 
@@ -126,43 +130,63 @@ fn compare_cell_values(left: &CellValue, right: &CellValue) -> i32 {
     match (left, right) {
         // Numbers
         (CellValue::Number(l), CellValue::Number(r)) => {
-            if l < r { -1 }
-            else if l > r { 1 }
-            else { 0 }
+            if l < r {
+                -1
+            } else if l > r {
+                1
+            } else {
+                0
+            }
         }
-        
+
         // Strings
         (CellValue::String(l), CellValue::String(r)) => {
-            if l < r { -1 }
-            else if l > r { 1 }
-            else { 0 }
+            if l < r {
+                -1
+            } else if l > r {
+                1
+            } else {
+                0
+            }
         }
-        
+
         // Booleans (false < true)
         (CellValue::Boolean(l), CellValue::Boolean(r)) => {
-            if !l && *r { -1 }
-            else if *l && !r { 1 }
-            else { 0 }
+            if !l && *r {
+                -1
+            } else if *l && !r {
+                1
+            } else {
+                0
+            }
         }
-        
+
         // Empty is less than everything except empty
         (CellValue::Empty, CellValue::Empty) => 0,
         (CellValue::Empty, _) => -1,
         (_, CellValue::Empty) => 1,
-        
+
         // Try to coerce to numbers for comparison
         _ => {
             if let (Ok(l), Ok(r)) = (coerce_to_number(left), coerce_to_number(right)) {
-                if l < r { -1 }
-                else if l > r { 1 }
-                else { 0 }
+                if l < r {
+                    -1
+                } else if l > r {
+                    1
+                } else {
+                    0
+                }
             } else {
                 // Fall back to string comparison
                 let l = coerce_to_string(left);
                 let r = coerce_to_string(right);
-                if l < r { -1 }
-                else if l > r { 1 }
-                else { 0 }
+                if l < r {
+                    -1
+                } else if l > r {
+                    1
+                } else {
+                    0
+                }
             }
         }
     }
@@ -173,16 +197,13 @@ pub fn coerce_to_number(value: &CellValue) -> Result<f64> {
     match value {
         CellValue::Number(n) => Ok(*n),
         CellValue::Boolean(b) => Ok(if *b { 1.0 } else { 0.0 }),
-        CellValue::String(s) => {
-            s.parse::<f64>()
-                .map_err(|_| SpreadsheetError::TypeError(
-                    format!("Cannot convert '{}' to number", s)
-                ))
-        }
+        CellValue::String(s) => s
+            .parse::<f64>()
+            .map_err(|_| SpreadsheetError::TypeError(format!("Cannot convert '{}' to number", s))),
         CellValue::Empty => Ok(0.0),
         CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.clone())),
         CellValue::Array(_) => Err(SpreadsheetError::TypeError(
-            "Cannot convert array to number".to_string()
+            "Cannot convert array to number".to_string(),
         )),
     }
 }
@@ -199,7 +220,13 @@ pub fn coerce_to_string(value: &CellValue) -> String {
                 format!("{}", n)
             }
         }
-        CellValue::Boolean(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
+        CellValue::Boolean(b) => {
+            if *b {
+                "TRUE".to_string()
+            } else {
+                "FALSE".to_string()
+            }
+        }
         CellValue::Empty => String::new(),
         CellValue::Error(e) => format!("#{}!", e),
         CellValue::Array(arr) => format!("{:?}", arr), // For debugging
@@ -218,15 +245,16 @@ pub fn coerce_to_boolean(value: &CellValue) -> Result<bool> {
             } else if s == "FALSE" {
                 Ok(false)
             } else {
-                Err(SpreadsheetError::TypeError(
-                    format!("Cannot convert '{}' to boolean", s)
-                ))
+                Err(SpreadsheetError::TypeError(format!(
+                    "Cannot convert '{}' to boolean",
+                    s
+                )))
             }
         }
         CellValue::Empty => Ok(false),
         CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.clone())),
         CellValue::Array(_) => Err(SpreadsheetError::TypeError(
-            "Cannot convert array to boolean".to_string()
+            "Cannot convert array to boolean".to_string(),
         )),
     }
 }

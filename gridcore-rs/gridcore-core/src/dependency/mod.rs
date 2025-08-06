@@ -1,5 +1,5 @@
-pub mod graph;
 pub mod analyzer;
+pub mod graph;
 
-pub use graph::DependencyGraph;
 pub use analyzer::DependencyAnalyzer;
+pub use graph::DependencyGraph;

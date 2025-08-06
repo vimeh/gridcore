@@ -1,7 +1,7 @@
 pub mod context;
-pub mod operators;
-pub mod functions;
 pub mod evaluator;
+pub mod functions;
+pub mod operators;
 
 #[cfg(feature = "wasm")]
 pub mod wasm;

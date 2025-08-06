@@ -1,8 +1,8 @@
-use crate::{Result, SpreadsheetError};
+use super::ast::{BinaryOperator, CellRange, Expr, UnaryOperator};
 use crate::types::{CellAddress, CellValue};
-use super::ast::{Expr, BinaryOperator, UnaryOperator, CellRange};
-use chumsky::prelude::*;
+use crate::{Result, SpreadsheetError};
 use chumsky::pratt::*;
+use chumsky::prelude::*;
 
 pub struct FormulaParser;
 
@@ -11,7 +11,7 @@ impl FormulaParser {
     pub fn parse(formula: &str) -> Result<Expr> {
         // Remove leading '=' if present
         let formula = formula.trim_start_matches('=').trim();
-        
+
         // Parse and handle errors
         match Self::parser().parse(formula).into_result() {
             Ok(expr) => Ok(expr),
@@ -26,7 +26,7 @@ impl FormulaParser {
             }
         }
     }
-    
+
     /// Build the Chumsky 0.10 parser
     fn parser<'a>() -> impl Parser<'a, &'a str, Expr, extra::Err<Rich<'a, char>>> {
         recursive(|expr| {
@@ -36,69 +36,76 @@ impl FormulaParser {
                 .to_slice()
                 .map(|s: &str| {
                     let num = s.parse::<f64>().unwrap_or(0.0);
-                    Expr::Literal { value: CellValue::Number(num) }
+                    Expr::Literal {
+                        value: CellValue::Number(num),
+                    }
                 })
                 .padded();
-            
+
             // Booleans
             let boolean = choice((
-                text::keyword("TRUE").to(Expr::Literal { value: CellValue::Boolean(true) }),
-                text::keyword("FALSE").to(Expr::Literal { value: CellValue::Boolean(false) }),
+                text::keyword("TRUE").to(Expr::Literal {
+                    value: CellValue::Boolean(true),
+                }),
+                text::keyword("FALSE").to(Expr::Literal {
+                    value: CellValue::Boolean(false),
+                }),
             ))
             .padded();
-            
+
             // Strings
             let string = just('"')
-                .ignore_then(
-                    none_of('"')
-                        .repeated()
-                        .to_slice()
-                )
+                .ignore_then(none_of('"').repeated().to_slice())
                 .then_ignore(just('"'))
-                .map(|s: &str| Expr::Literal { value: CellValue::String(s.to_string()) })
+                .map(|s: &str| Expr::Literal {
+                    value: CellValue::String(s.to_string()),
+                })
                 .padded();
-            
+
             // Cell reference parser helper
             let cell_ref_parser = {
                 let dollar = just('$').or_not().map(|d| d.is_some());
                 // Parse column letters (A-Z repeated)
-                let col_letters = one_of('A'..='Z')
-                    .repeated()
-                    .at_least(1)
-                    .to_slice();
+                let col_letters = one_of('A'..='Z').repeated().at_least(1).to_slice();
                 let row_num = text::int(10);
-                
-                dollar
-                    .then(col_letters)
-                    .then(dollar)
-                    .then(row_num)
-                    .try_map(|(((abs_col, col_str), abs_row), row_str): (((bool, &str), bool), &str), span| {
+
+                dollar.then(col_letters).then(dollar).then(row_num).try_map(
+                    |(((abs_col, col_str), abs_row), row_str): (((bool, &str), bool), &str),
+                     span| {
                         let col = CellAddress::column_label_to_number(col_str)
                             .map_err(|e| Rich::custom(span, e.to_string()))?;
-                        let row: u32 = row_str.parse()
+                        let row: u32 = row_str
+                            .parse()
                             .map_err(|_| Rich::custom(span, "Invalid row number"))?;
                         if row == 0 {
                             return Err(Rich::custom(span, "Row must be greater than 0"));
                         }
                         Ok((CellAddress::new(col, row - 1), abs_col, abs_row))
-                    })
+                    },
+                )
             };
-            
+
             // Cell range (A1:B10)
-            let range = cell_ref_parser.clone()
+            let range = cell_ref_parser
+                .clone()
                 .then_ignore(just(':'))
                 .then(cell_ref_parser.clone())
-                .map(|((start_addr, abs_start_col, abs_start_row), (end_addr, abs_end_col, abs_end_row))| {
-                    Expr::Range {
-                        range: CellRange::new(start_addr, end_addr),
-                        absolute_start_col: abs_start_col,
-                        absolute_start_row: abs_start_row,
-                        absolute_end_col: abs_end_col,
-                        absolute_end_row: abs_end_row,
-                    }
-                })
+                .map(
+                    |(
+                        (start_addr, abs_start_col, abs_start_row),
+                        (end_addr, abs_end_col, abs_end_row),
+                    )| {
+                        Expr::Range {
+                            range: CellRange::new(start_addr, end_addr),
+                            absolute_start_col: abs_start_col,
+                            absolute_start_row: abs_start_row,
+                            absolute_end_col: abs_end_col,
+                            absolute_end_row: abs_end_row,
+                        }
+                    },
+                )
                 .padded();
-            
+
             // Single cell reference
             let cell_reference = cell_ref_parser
                 .map(|(addr, abs_col, abs_row)| Expr::Reference {
@@ -107,12 +114,12 @@ impl FormulaParser {
                     absolute_row: abs_row,
                 })
                 .padded();
-            
+
             // Function names (case insensitive)
             let func_name = text::ascii::ident()
                 .map(|s: &str| s.to_uppercase())
                 .padded();
-            
+
             // Function call
             let function_call = func_name
                 .then(
@@ -121,10 +128,10 @@ impl FormulaParser {
                         .allow_trailing()
                         .collect::<Vec<_>>()
                         .delimited_by(just('('), just(')'))
-                        .padded()
+                        .padded(),
                 )
                 .map(|(name, args)| Expr::FunctionCall { name, args });
-            
+
             // Atoms - the basic units that can appear in expressions
             let atom = choice((
                 // Order matters: try more specific patterns first
@@ -138,23 +145,19 @@ impl FormulaParser {
                 expr.clone()
                     .delimited_by(just('(').padded(), just(')').padded()),
             ));
-            
+
             // Build the expression parser with operator precedence using pratt
             // Note: Chumsky 0.10 pratt operators expect an extra span parameter
             atom.pratt((
                 // Percent postfix operator
-                postfix(6, just('%').padded(), |expr, _, _span| {
-                    Expr::UnaryOp {
-                        op: UnaryOperator::Percent,
-                        expr: Box::new(expr),
-                    }
+                postfix(6, just('%').padded(), |expr, _, _span| Expr::UnaryOp {
+                    op: UnaryOperator::Percent,
+                    expr: Box::new(expr),
                 }),
                 // Unary minus prefix operator
-                prefix(5, just('-').padded(), |_, expr, _span| {
-                    Expr::UnaryOp {
-                        op: UnaryOperator::Negate,
-                        expr: Box::new(expr),
-                    }
+                prefix(5, just('-').padded(), |_, expr, _span| Expr::UnaryOp {
+                    op: UnaryOperator::Negate,
+                    expr: Box::new(expr),
                 }),
                 // Power operator (right associative, highest precedence for binary ops)
                 infix(right(4), just('^').padded(), |left, _, right, _span| {
@@ -254,41 +257,57 @@ impl FormulaParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_parse_number() {
         let expr = FormulaParser::parse("42").unwrap();
         assert!(matches!(expr, Expr::Literal { value: CellValue::Number(n) } if n == 42.0));
-        
+
         let expr = FormulaParser::parse("3.14").unwrap();
         assert!(matches!(expr, Expr::Literal { value: CellValue::Number(n) } if n == 3.14));
     }
-    
+
     #[test]
     fn test_parse_boolean() {
         let expr = FormulaParser::parse("TRUE").unwrap();
-        assert!(matches!(expr, Expr::Literal { value: CellValue::Boolean(true) }));
-        
+        assert!(matches!(
+            expr,
+            Expr::Literal {
+                value: CellValue::Boolean(true)
+            }
+        ));
+
         let expr = FormulaParser::parse("FALSE").unwrap();
-        assert!(matches!(expr, Expr::Literal { value: CellValue::Boolean(false) }));
+        assert!(matches!(
+            expr,
+            Expr::Literal {
+                value: CellValue::Boolean(false)
+            }
+        ));
     }
-    
+
     #[test]
     fn test_parse_string() {
         let expr = FormulaParser::parse("\"hello world\"").unwrap();
         match expr {
-            Expr::Literal { value: CellValue::String(s) } => {
+            Expr::Literal {
+                value: CellValue::String(s),
+            } => {
                 assert_eq!(s, "hello world");
             }
             _ => panic!("Expected string literal"),
         }
     }
-    
+
     #[test]
     fn test_parse_cell_reference() {
         let expr = FormulaParser::parse("A1").unwrap();
         match expr {
-            Expr::Reference { address, absolute_col, absolute_row } => {
+            Expr::Reference {
+                address,
+                absolute_col,
+                absolute_row,
+            } => {
                 assert_eq!(address.col, 0);
                 assert_eq!(address.row, 0);
                 assert!(!absolute_col);
@@ -296,11 +315,15 @@ mod tests {
             }
             _ => panic!("Expected cell reference"),
         }
-        
+
         // Absolute references
         let expr = FormulaParser::parse("$A$1").unwrap();
         match expr {
-            Expr::Reference { address, absolute_col, absolute_row } => {
+            Expr::Reference {
+                address,
+                absolute_col,
+                absolute_row,
+            } => {
                 assert_eq!(address.col, 0);
                 assert_eq!(address.row, 0);
                 assert!(absolute_col);
@@ -309,7 +332,7 @@ mod tests {
             _ => panic!("Expected absolute cell reference"),
         }
     }
-    
+
     #[test]
     fn test_parse_range() {
         let expr = FormulaParser::parse("A1:B2").unwrap();
@@ -323,7 +346,7 @@ mod tests {
             _ => panic!("Expected range"),
         }
     }
-    
+
     #[test]
     fn test_parse_function() {
         let expr = FormulaParser::parse("SUM(A1, B2, 10)").unwrap();
@@ -335,7 +358,7 @@ mod tests {
             _ => panic!("Expected function call"),
         }
     }
-    
+
     #[test]
     fn test_parse_function_with_range() {
         // This was the bug we fixed before - make sure it still works
@@ -349,66 +372,105 @@ mod tests {
             _ => panic!("Expected function call with range"),
         }
     }
-    
+
     #[test]
     fn test_parse_unary() {
         let expr = FormulaParser::parse("-42").unwrap();
         match expr {
-            Expr::UnaryOp { op: UnaryOperator::Negate, .. } => {}
+            Expr::UnaryOp {
+                op: UnaryOperator::Negate,
+                ..
+            } => {}
             _ => panic!("Expected negation"),
         }
-        
+
         let expr = FormulaParser::parse("50%").unwrap();
         match expr {
-            Expr::UnaryOp { op: UnaryOperator::Percent, .. } => {}
+            Expr::UnaryOp {
+                op: UnaryOperator::Percent,
+                ..
+            } => {}
             _ => panic!("Expected percent"),
         }
     }
-    
+
     #[test]
     fn test_parse_binary() {
         let expr = FormulaParser::parse("A1 + B1").unwrap();
         match expr {
-            Expr::BinaryOp { op: BinaryOperator::Add, .. } => {}
+            Expr::BinaryOp {
+                op: BinaryOperator::Add,
+                ..
+            } => {}
             _ => panic!("Expected addition"),
         }
     }
-    
+
     #[test]
     fn test_operator_precedence() {
         // Test that multiplication happens before addition
         let expr = FormulaParser::parse("2 + 3 * 4").unwrap();
         match expr {
-            Expr::BinaryOp { op: BinaryOperator::Add, left, right } => {
+            Expr::BinaryOp {
+                op: BinaryOperator::Add,
+                left,
+                right,
+            } => {
                 // Left should be 2
-                assert!(matches!(left.as_ref(), Expr::Literal { value: CellValue::Number(n) } if n == &2.0));
+                assert!(
+                    matches!(left.as_ref(), Expr::Literal { value: CellValue::Number(n) } if n == &2.0)
+                );
                 // Right should be 3 * 4
-                assert!(matches!(right.as_ref(), Expr::BinaryOp { op: BinaryOperator::Multiply, .. }));
+                assert!(matches!(
+                    right.as_ref(),
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        ..
+                    }
+                ));
             }
             _ => panic!("Expected addition with multiplication on right"),
         }
-        
+
         // Test that power is right-associative
         let expr = FormulaParser::parse("2 ^ 3 ^ 2").unwrap();
         match expr {
-            Expr::BinaryOp { op: BinaryOperator::Power, left, right } => {
+            Expr::BinaryOp {
+                op: BinaryOperator::Power,
+                left,
+                right,
+            } => {
                 // Left should be 2
-                assert!(matches!(left.as_ref(), Expr::Literal { value: CellValue::Number(n) } if n == &2.0));
+                assert!(
+                    matches!(left.as_ref(), Expr::Literal { value: CellValue::Number(n) } if n == &2.0)
+                );
                 // Right should be 3 ^ 2
-                assert!(matches!(right.as_ref(), Expr::BinaryOp { op: BinaryOperator::Power, .. }));
+                assert!(matches!(
+                    right.as_ref(),
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Power,
+                        ..
+                    }
+                ));
             }
             _ => panic!("Expected power operation"),
         }
     }
-    
+
     #[test]
     fn test_complex_expression() {
         // Test a complex expression with multiple operators
         let expr = FormulaParser::parse("(A1 + B1) * 2 - C1 / 4").unwrap();
         // Just verify it parses without error
-        assert!(matches!(expr, Expr::BinaryOp { op: BinaryOperator::Subtract, .. }));
+        assert!(matches!(
+            expr,
+            Expr::BinaryOp {
+                op: BinaryOperator::Subtract,
+                ..
+            }
+        ));
     }
-    
+
     #[test]
     fn test_comparison_operators() {
         let tests = vec![
@@ -419,7 +481,7 @@ mod tests {
             ("A1 <= B1", BinaryOperator::LessThanOrEqual),
             ("A1 >= B1", BinaryOperator::GreaterThanOrEqual),
         ];
-        
+
         for (formula, expected_op) in tests {
             let expr = FormulaParser::parse(formula).unwrap();
             match expr {
@@ -430,15 +492,25 @@ mod tests {
             }
         }
     }
-    
+
     #[test]
     fn test_concat_operator() {
         let expr = FormulaParser::parse("A1 & \" \" & B1").unwrap();
         // Should parse as (A1 & " ") & B1 due to left associativity
         match expr {
-            Expr::BinaryOp { op: BinaryOperator::Concat, left, right } => {
+            Expr::BinaryOp {
+                op: BinaryOperator::Concat,
+                left,
+                right,
+            } => {
                 // Left should be A1 & " "
-                assert!(matches!(left.as_ref(), Expr::BinaryOp { op: BinaryOperator::Concat, .. }));
+                assert!(matches!(
+                    left.as_ref(),
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Concat,
+                        ..
+                    }
+                ));
             }
             _ => panic!("Expected concatenation"),
         }
