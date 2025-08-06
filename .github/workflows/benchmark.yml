@@ -35,6 +35,8 @@ jobs:
         run: |
           cd packages/core
           bun run bench:json
+          # Verify the file was created
+          ls -la benchmark-results.json
 
       - name: Download previous benchmark data
         uses: actions/cache@v4
