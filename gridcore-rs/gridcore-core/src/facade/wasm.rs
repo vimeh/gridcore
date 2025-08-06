@@ -1,0 +1,286 @@
+use crate::domain::cell::wasm_bindings::WasmCell;
+use crate::facade::spreadsheet_facade::SpreadsheetFacade;
+use crate::types::wasm::WasmCellAddress;
+use crate::types::{CellAddress, CellValue};
+use js_sys::Function;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str::FromStr;
+use wasm_bindgen::prelude::*;
+
+/// WASM wrapper for SpreadsheetFacade
+#[wasm_bindgen]
+pub struct WasmSpreadsheetFacade {
+    inner: Rc<SpreadsheetFacade>,
+    #[wasm_bindgen(skip)]
+    on_cell_update: RefCell<Option<Function>>,
+    #[wasm_bindgen(skip)]
+    on_batch_complete: RefCell<Option<Function>>,
+    #[wasm_bindgen(skip)]
+    on_calculation_complete: RefCell<Option<Function>>,
+}
+
+#[wasm_bindgen]
+impl WasmSpreadsheetFacade {
+    /// Create a new spreadsheet facade
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        let facade = Rc::new(SpreadsheetFacade::new());
+
+        // Create a wrapper for JS callbacks
+        let _facade_clone = Rc::clone(&facade);
+        let on_cell_update = RefCell::new(None);
+        let on_batch_complete = RefCell::new(None);
+        let on_calculation_complete = RefCell::new(None);
+
+        // Add event callback that bridges to JS
+        let js_callback = JsEventBridge {
+            on_cell_update: on_cell_update.clone(),
+            on_batch_complete: on_batch_complete.clone(),
+            on_calculation_complete: on_calculation_complete.clone(),
+        };
+
+        facade.add_event_callback(Box::new(js_callback));
+
+        WasmSpreadsheetFacade {
+            inner: facade,
+            on_cell_update,
+            on_batch_complete,
+            on_calculation_complete,
+        }
+    }
+
+    /// Set the callback for cell update events
+    #[wasm_bindgen(js_name = "onCellUpdate")]
+    pub fn set_on_cell_update(&self, callback: Function) {
+        *self.on_cell_update.borrow_mut() = Some(callback);
+    }
+
+    /// Set the callback for batch complete events
+    #[wasm_bindgen(js_name = "onBatchComplete")]
+    pub fn set_on_batch_complete(&self, callback: Function) {
+        *self.on_batch_complete.borrow_mut() = Some(callback);
+    }
+
+    /// Set the callback for calculation complete events
+    #[wasm_bindgen(js_name = "onCalculationComplete")]
+    pub fn set_on_calculation_complete(&self, callback: Function) {
+        *self.on_calculation_complete.borrow_mut() = Some(callback);
+    }
+
+    /// Set a cell value
+    #[wasm_bindgen(js_name = "setCellValue")]
+    pub fn set_cell_value(
+        &self,
+        address: &WasmCellAddress,
+        value: &str,
+    ) -> Result<WasmCell, JsValue> {
+        let cell = self
+            .inner
+            .set_cell_value(&address.inner, value)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        // Convert to WasmCell
+        let wasm_cell = WasmCell::new(cell.get_computed_value().to_js())
+            .map_err(|_| JsValue::from_str("Failed to create WasmCell"))?;
+
+        Ok(wasm_cell)
+    }
+
+    /// Get a cell value
+    #[wasm_bindgen(js_name = "getCellValue")]
+    pub fn get_cell_value(&self, address: &WasmCellAddress) -> Result<JsValue, JsValue> {
+        let value = self
+            .inner
+            .get_cell_value(&address.inner)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        Ok(value.to_js())
+    }
+
+    /// Get a cell
+    #[wasm_bindgen(js_name = "getCell")]
+    pub fn get_cell(&self, address: &WasmCellAddress) -> Option<WasmCell> {
+        self.inner
+            .get_cell(&address.inner)
+            .and_then(|cell| WasmCell::new(cell.get_computed_value().to_js()).ok())
+    }
+
+    /// Delete a cell
+    #[wasm_bindgen(js_name = "deleteCell")]
+    pub fn delete_cell(&self, address: &WasmCellAddress) -> Result<(), JsValue> {
+        self.inner
+            .delete_cell(&address.inner)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Recalculate all cells
+    #[wasm_bindgen(js_name = "recalculate")]
+    pub fn recalculate(&self) -> Result<(), JsValue> {
+        self.inner
+            .recalculate()
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Recalculate a specific cell
+    #[wasm_bindgen(js_name = "recalculateCell")]
+    pub fn recalculate_cell(&self, address: &WasmCellAddress) -> Result<WasmCell, JsValue> {
+        let cell = self
+            .inner
+            .recalculate_cell(&address.inner)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        WasmCell::new(cell.get_computed_value().to_js())
+            .map_err(|_| JsValue::from_str("Failed to create WasmCell"))
+    }
+
+    /// Begin a batch operation
+    #[wasm_bindgen(js_name = "beginBatch")]
+    pub fn begin_batch(&self, batch_id: Option<String>) -> String {
+        self.inner.begin_batch(batch_id)
+    }
+
+    /// Commit a batch operation
+    #[wasm_bindgen(js_name = "commitBatch")]
+    pub fn commit_batch(&self, batch_id: &str) -> Result<(), JsValue> {
+        self.inner
+            .commit_batch(batch_id)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Rollback a batch operation
+    #[wasm_bindgen(js_name = "rollbackBatch")]
+    pub fn rollback_batch(&self, batch_id: &str) -> Result<(), JsValue> {
+        self.inner
+            .rollback_batch(batch_id)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Clear all cells
+    #[wasm_bindgen]
+    pub fn clear(&self) {
+        self.inner.clear();
+    }
+
+    /// Get the number of cells
+    #[wasm_bindgen(js_name = "getCellCount")]
+    pub fn get_cell_count(&self) -> usize {
+        self.inner.get_cell_count()
+    }
+
+    /// Set multiple cell values in a batch
+    #[wasm_bindgen(js_name = "setCellValues")]
+    pub fn set_cell_values(&self, updates: JsValue) -> Result<(), JsValue> {
+        // Parse the JS object containing cell updates
+        let updates_obj = js_sys::Object::from(updates);
+        let entries = js_sys::Object::entries(&updates_obj);
+
+        // Begin a batch
+        let batch_id = self.inner.begin_batch(None);
+
+        // Process each update
+        for i in 0..entries.length() {
+            let entry = entries.get(i);
+            if let Some(entry_array) = entry.dyn_ref::<js_sys::Array>() {
+                if entry_array.length() >= 2 {
+                    let address_str = entry_array
+                        .get(0)
+                        .as_string()
+                        .ok_or_else(|| JsValue::from_str("Invalid address in updates"))?;
+                    let value = entry_array
+                        .get(1)
+                        .as_string()
+                        .unwrap_or_else(|| String::new());
+
+                    // Parse address
+                    let address = crate::types::CellAddress::from_str(&address_str)
+                        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+                    // Set the cell value (will be queued in batch)
+                    self.inner
+                        .set_cell_value(&address, &value)
+                        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+                }
+            }
+        }
+
+        // Commit the batch
+        self.inner
+            .commit_batch(&batch_id)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+}
+
+impl Default for WasmSpreadsheetFacade {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Bridge between Rust events and JavaScript callbacks
+struct JsEventBridge {
+    on_cell_update: RefCell<Option<Function>>,
+    on_batch_complete: RefCell<Option<Function>>,
+    on_calculation_complete: RefCell<Option<Function>>,
+}
+
+impl crate::facade::EventCallback for JsEventBridge {
+    fn on_event(&self, event: &crate::facade::SpreadsheetEvent) {
+        // Convert event to JS object
+        let js_event = serde_wasm_bindgen::to_value(event).unwrap_or(JsValue::NULL);
+
+        // Call appropriate callback based on event type
+        match event.event_type {
+            crate::facade::EventType::CellUpdated | crate::facade::EventType::CellsUpdated => {
+                if let Some(callback) = self.on_cell_update.borrow().as_ref() {
+                    let _ = callback.call1(&JsValue::NULL, &js_event);
+                }
+            }
+            crate::facade::EventType::BatchCompleted => {
+                if let Some(callback) = self.on_batch_complete.borrow().as_ref() {
+                    let _ = callback.call1(&JsValue::NULL, &js_event);
+                }
+            }
+            crate::facade::EventType::CalculationCompleted => {
+                if let Some(callback) = self.on_calculation_complete.borrow().as_ref() {
+                    let _ = callback.call1(&JsValue::NULL, &js_event);
+                }
+            }
+            _ => {
+                // Call cell update for other events as a fallback
+                if let Some(callback) = self.on_cell_update.borrow().as_ref() {
+                    let _ = callback.call1(&JsValue::NULL, &js_event);
+                }
+            }
+        }
+    }
+}
+
+// Helper trait for converting CellValue to JS
+trait ToJs {
+    fn to_js(&self) -> JsValue;
+}
+
+impl ToJs for CellValue {
+    fn to_js(&self) -> JsValue {
+        match self {
+            CellValue::Empty => JsValue::NULL,
+            CellValue::Number(n) => JsValue::from_f64(*n),
+            CellValue::String(s) => JsValue::from_str(s),
+            CellValue::Boolean(b) => JsValue::from_bool(*b),
+            CellValue::Error(e) => {
+                let obj = js_sys::Object::new();
+                let _ =
+                    js_sys::Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::from_str(e));
+                obj.into()
+            }
+            CellValue::Array(arr) => {
+                let js_array = js_sys::Array::new();
+                for val in arr {
+                    js_array.push(&val.to_js());
+                }
+                js_array.into()
+            }
+        }
+    }
+}

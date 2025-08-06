@@ -53,6 +53,12 @@ pub enum SpreadsheetError {
 
     #[error("Invalid formula: {0}")]
     InvalidFormula(String),
+
+    #[error("Batch not found: {0}")]
+    BatchNotFound(String),
+
+    #[error("Batch operation failed: {0}")]
+    BatchOperationFailed(String),
 }
 
 pub type Result<T> = std::result::Result<T, SpreadsheetError>;

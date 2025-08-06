@@ -97,7 +97,6 @@ pub mod wasm_bindings {
     use super::*;
     use crate::domain::cell::wasm_bindings::WasmCell;
     use crate::types::wasm::WasmCellAddress;
-    use std::str::FromStr;
     use wasm_bindgen::prelude::*;
 
     #[wasm_bindgen]
