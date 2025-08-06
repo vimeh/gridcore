@@ -3,12 +3,14 @@ pub mod types;
 pub mod formula;
 pub mod domain;
 pub mod repository;
+pub mod dependency;
 
 // Re-export commonly used types
 pub use error::{Result, SpreadsheetError};
 pub use formula::{Expr, BinaryOperator, UnaryOperator, FormulaParser, CellRange};
 pub use domain::Cell;
 pub use repository::CellRepository;
+pub use dependency::{DependencyGraph, DependencyAnalyzer};
 
 #[cfg(feature = "wasm")]
 pub mod wasm {
