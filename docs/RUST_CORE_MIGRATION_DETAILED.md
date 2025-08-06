@@ -820,11 +820,13 @@ describe('WASM Integration', () => {
 - [x] Create TypeScript adapter for seamless integration
 - [x] Add comprehensive integration tests
 
-### Phase 6
+### Phase 6 (Completed)
 
-- [ ] AST transformer for structural operations
-- [ ] Row/column insert/delete support
-- [ ] Reference adjustment logic
+- [x] AST transformer for structural operations
+- [x] Row/column insert/delete support
+- [x] Reference adjustment logic
+- [x] Criterion benchmarks for performance testing
+- [x] TypeScript integration tests
 
 ### Phase 7
 

@@ -39,3 +39,14 @@ optional = true
 workspace = true
 optional = true
 
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "transformer_bench"
+harness = false
+
+[[bench]]
+name = "structural_ops_bench"
+harness = false
+

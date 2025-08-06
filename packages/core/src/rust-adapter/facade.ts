@@ -31,6 +31,10 @@ interface WasmSpreadsheetFacade {
   clear(): void
   getCellCount(): number
   setCellValues(updates: Record<string, string>): void
+  insertRow(rowIndex: number): void
+  deleteRow(rowIndex: number): void
+  insertColumn(colIndex: number): void
+  deleteColumn(colIndex: number): void
   onCellUpdate(callback: (event: any) => void): void
   onBatchComplete(callback: (event: any) => void): void
   onCalculationComplete(callback: (event: any) => void): void
@@ -336,6 +340,58 @@ export class SpreadsheetFacade extends EventEmitter {
   getCellCount(): number {
     this.ensureInitialized()
     return this.wasmFacade!.getCellCount()
+  }
+
+  /**
+   * Insert a row at the specified index
+   */
+  insertRow(rowIndex: number): Result<void> {
+    try {
+      this.ensureInitialized()
+      this.wasmFacade!.insertRow(rowIndex)
+      return ok(undefined)
+    } catch (error) {
+      return err(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  /**
+   * Delete a row at the specified index
+   */
+  deleteRow(rowIndex: number): Result<void> {
+    try {
+      this.ensureInitialized()
+      this.wasmFacade!.deleteRow(rowIndex)
+      return ok(undefined)
+    } catch (error) {
+      return err(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  /**
+   * Insert a column at the specified index
+   */
+  insertColumn(colIndex: number): Result<void> {
+    try {
+      this.ensureInitialized()
+      this.wasmFacade!.insertColumn(colIndex)
+      return ok(undefined)
+    } catch (error) {
+      return err(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  /**
+   * Delete a column at the specified index
+   */
+  deleteColumn(colIndex: number): Result<void> {
+    try {
+      this.ensureInitialized()
+      this.wasmFacade!.deleteColumn(colIndex)
+      return ok(undefined)
+    } catch (error) {
+      return err(error instanceof Error ? error.message : String(error))
+    }
   }
 
   /**

@@ -78,6 +78,15 @@ impl CellRepository {
         self.cells.len()
     }
 
+    /// Iterate over all cells in the repository
+    pub fn iter(&self) -> impl Iterator<Item = (CellAddress, &Cell)> + '_ {
+        self.cells.iter().filter_map(|(addr_str, cell)| {
+            CellAddress::from_str(addr_str)
+                .ok()
+                .map(|addr| (addr, cell))
+        })
+    }
+
     /// Check if the repository is empty
     pub fn is_empty(&self) -> bool {
         self.cells.is_empty()

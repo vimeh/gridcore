@@ -490,6 +490,290 @@ impl SpreadsheetFacade {
         // Default to string
         CellValue::String(value.to_string())
     }
+
+    /// Insert a row at the specified index
+    pub fn insert_row(&self, row_index: u32) -> Result<()> {
+        let transformer = crate::formula::FormulaTransformer::new();
+        let mut cells_to_update = Vec::new();
+        let mut cells_to_move = Vec::new();
+
+        // Collect all cells that need to be updated
+        for (address, cell) in self.repository.borrow().iter() {
+            if address.row >= row_index {
+                // This cell needs to be moved down
+                let new_address = CellAddress::new(address.col, address.row + 1);
+                cells_to_move.push((address.clone(), new_address, cell.clone()));
+            } else if let Some(ast) = &cell.formula {
+                // This cell's formula might reference cells that are moving
+                let new_ast = transformer.adjust_for_row_insert(ast.clone(), row_index);
+                if *ast != new_ast {
+                    cells_to_update.push((address.clone(), new_ast));
+                }
+            }
+        }
+
+        // Store counts before consuming vectors
+        let move_count = cells_to_move.len();
+        let update_count = cells_to_update.len();
+
+        // Move cells that are shifting down
+        for (old_addr, new_addr, mut cell) in cells_to_move {
+            // Update the formula if it exists
+            if let Some(ast) = &cell.formula {
+                cell.formula = Some(transformer.adjust_for_row_insert(ast.clone(), row_index));
+            }
+
+            self.repository.borrow_mut().delete(&old_addr);
+            self.repository.borrow_mut().set(&new_addr, cell);
+
+            // Update dependency graph
+            self.dependency_graph.borrow_mut().remove_cell(&old_addr);
+        }
+
+        // Update formulas in cells that reference moved cells
+        for (address, new_ast) in cells_to_update {
+            if let Some(mut cell) = self.repository.borrow().get(&address).cloned() {
+                cell.formula = Some(new_ast.clone());
+                // Re-evaluate the formula
+                let mut context = RepositoryContext::new(&self.repository);
+                let mut evaluator = Evaluator::new(&mut context);
+                if let Ok(result) = evaluator.evaluate(&new_ast) {
+                    cell.set_computed_value(result);
+                }
+                self.repository.borrow_mut().set(&address, cell);
+            }
+        }
+
+        // Emit event
+        self.emit_event(SpreadsheetEvent::range_updated(
+            &CellAddress::new(0, row_index),
+            &CellAddress::new(u32::MAX, u32::MAX),
+            move_count + update_count,
+        ));
+
+        // Trigger recalculation
+        self.recalculate()?;
+
+        Ok(())
+    }
+
+    /// Delete a row at the specified index
+    pub fn delete_row(&self, row_index: u32) -> Result<()> {
+        let transformer = crate::formula::FormulaTransformer::new();
+        let mut cells_to_update = Vec::new();
+        let mut cells_to_move = Vec::new();
+        let mut cells_to_delete = Vec::new();
+
+        // Collect all cells that need to be updated
+        for (address, cell) in self.repository.borrow().iter() {
+            if address.row == row_index {
+                // This cell is being deleted
+                cells_to_delete.push(address.clone());
+            } else if address.row > row_index {
+                // This cell needs to be moved up
+                let new_address = CellAddress::new(address.col, address.row - 1);
+                cells_to_move.push((address.clone(), new_address, cell.clone()));
+            } else if let Some(ast) = &cell.formula {
+                // This cell's formula might reference cells that are moving or being deleted
+                let new_ast = transformer.adjust_for_row_delete(ast.clone(), row_index);
+                if *ast != new_ast {
+                    cells_to_update.push((address.clone(), new_ast));
+                }
+            }
+        }
+
+        // Store counts before consuming vectors
+        let move_count = cells_to_move.len();
+        let update_count = cells_to_update.len();
+
+        // Delete cells in the deleted row
+        for address in cells_to_delete {
+            self.repository.borrow_mut().delete(&address);
+            self.dependency_graph.borrow_mut().remove_cell(&address);
+        }
+
+        // Move cells that are shifting up
+        for (old_addr, new_addr, mut cell) in cells_to_move {
+            // Update the formula if it exists
+            if let Some(ast) = &cell.formula {
+                cell.formula = Some(transformer.adjust_for_row_delete(ast.clone(), row_index));
+            }
+
+            self.repository.borrow_mut().delete(&old_addr);
+            self.repository.borrow_mut().set(&new_addr, cell);
+
+            // Update dependency graph
+            self.dependency_graph.borrow_mut().remove_cell(&old_addr);
+        }
+
+        // Update formulas in cells that reference moved or deleted cells
+        for (address, new_ast) in cells_to_update {
+            if let Some(mut cell) = self.repository.borrow().get(&address).cloned() {
+                cell.formula = Some(new_ast.clone());
+                // Re-evaluate the formula
+                let mut context = RepositoryContext::new(&self.repository);
+                let mut evaluator = Evaluator::new(&mut context);
+                if let Ok(result) = evaluator.evaluate(&new_ast) {
+                    cell.set_computed_value(result);
+                }
+                self.repository.borrow_mut().set(&address, cell);
+            }
+        }
+
+        // Emit event
+        self.emit_event(SpreadsheetEvent::range_updated(
+            &CellAddress::new(0, row_index),
+            &CellAddress::new(u32::MAX, u32::MAX),
+            move_count + update_count,
+        ));
+
+        // Trigger recalculation
+        self.recalculate()?;
+
+        Ok(())
+    }
+
+    /// Insert a column at the specified index
+    pub fn insert_column(&self, col_index: u32) -> Result<()> {
+        let transformer = crate::formula::FormulaTransformer::new();
+        let mut cells_to_update = Vec::new();
+        let mut cells_to_move = Vec::new();
+
+        // Collect all cells that need to be updated
+        for (address, cell) in self.repository.borrow().iter() {
+            if address.col >= col_index {
+                // This cell needs to be moved right
+                let new_address = CellAddress::new(address.col + 1, address.row);
+                cells_to_move.push((address.clone(), new_address, cell.clone()));
+            } else if let Some(ast) = &cell.formula {
+                // This cell's formula might reference cells that are moving
+                let new_ast = transformer.adjust_for_column_insert(ast.clone(), col_index);
+                if *ast != new_ast {
+                    cells_to_update.push((address.clone(), new_ast));
+                }
+            }
+        }
+
+        // Store counts before consuming vectors
+        let move_count = cells_to_move.len();
+        let update_count = cells_to_update.len();
+
+        // Move cells that are shifting right
+        for (old_addr, new_addr, mut cell) in cells_to_move {
+            // Update the formula if it exists
+            if let Some(ast) = &cell.formula {
+                cell.formula = Some(transformer.adjust_for_column_insert(ast.clone(), col_index));
+            }
+
+            self.repository.borrow_mut().delete(&old_addr);
+            self.repository.borrow_mut().set(&new_addr, cell);
+
+            // Update dependency graph
+            self.dependency_graph.borrow_mut().remove_cell(&old_addr);
+        }
+
+        // Update formulas in cells that reference moved cells
+        for (address, new_ast) in cells_to_update {
+            if let Some(mut cell) = self.repository.borrow().get(&address).cloned() {
+                cell.formula = Some(new_ast.clone());
+                // Re-evaluate the formula
+                let mut context = RepositoryContext::new(&self.repository);
+                let mut evaluator = Evaluator::new(&mut context);
+                if let Ok(result) = evaluator.evaluate(&new_ast) {
+                    cell.set_computed_value(result);
+                }
+                self.repository.borrow_mut().set(&address, cell);
+            }
+        }
+
+        // Emit event
+        self.emit_event(SpreadsheetEvent::range_updated(
+            &CellAddress::new(col_index, 0),
+            &CellAddress::new(u32::MAX, u32::MAX),
+            move_count + update_count,
+        ));
+
+        // Trigger recalculation
+        self.recalculate()?;
+
+        Ok(())
+    }
+
+    /// Delete a column at the specified index
+    pub fn delete_column(&self, col_index: u32) -> Result<()> {
+        let transformer = crate::formula::FormulaTransformer::new();
+        let mut cells_to_update = Vec::new();
+        let mut cells_to_move = Vec::new();
+        let mut cells_to_delete = Vec::new();
+
+        // Collect all cells that need to be updated
+        for (address, cell) in self.repository.borrow().iter() {
+            if address.col == col_index {
+                // This cell is being deleted
+                cells_to_delete.push(address.clone());
+            } else if address.col > col_index {
+                // This cell needs to be moved left
+                let new_address = CellAddress::new(address.col - 1, address.row);
+                cells_to_move.push((address.clone(), new_address, cell.clone()));
+            } else if let Some(ast) = &cell.formula {
+                // This cell's formula might reference cells that are moving or being deleted
+                let new_ast = transformer.adjust_for_column_delete(ast.clone(), col_index);
+                if *ast != new_ast {
+                    cells_to_update.push((address.clone(), new_ast));
+                }
+            }
+        }
+
+        // Store counts before consuming vectors
+        let move_count = cells_to_move.len();
+        let update_count = cells_to_update.len();
+
+        // Delete cells in the deleted column
+        for address in cells_to_delete {
+            self.repository.borrow_mut().delete(&address);
+            self.dependency_graph.borrow_mut().remove_cell(&address);
+        }
+
+        // Move cells that are shifting left
+        for (old_addr, new_addr, mut cell) in cells_to_move {
+            // Update the formula if it exists
+            if let Some(ast) = &cell.formula {
+                cell.formula = Some(transformer.adjust_for_column_delete(ast.clone(), col_index));
+            }
+
+            self.repository.borrow_mut().delete(&old_addr);
+            self.repository.borrow_mut().set(&new_addr, cell);
+
+            // Update dependency graph
+            self.dependency_graph.borrow_mut().remove_cell(&old_addr);
+        }
+
+        // Update formulas in cells that reference moved or deleted cells
+        for (address, new_ast) in cells_to_update {
+            if let Some(mut cell) = self.repository.borrow().get(&address).cloned() {
+                cell.formula = Some(new_ast.clone());
+                // Re-evaluate the formula
+                let mut context = RepositoryContext::new(&self.repository);
+                let mut evaluator = Evaluator::new(&mut context);
+                if let Ok(result) = evaluator.evaluate(&new_ast) {
+                    cell.set_computed_value(result);
+                }
+                self.repository.borrow_mut().set(&address, cell);
+            }
+        }
+
+        // Emit event
+        self.emit_event(SpreadsheetEvent::range_updated(
+            &CellAddress::new(col_index, 0),
+            &CellAddress::new(u32::MAX, u32::MAX),
+            move_count + update_count,
+        ));
+
+        // Trigger recalculation
+        self.recalculate()?;
+
+        Ok(())
+    }
 }
 
 impl Default for SpreadsheetFacade {

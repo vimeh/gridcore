@@ -209,6 +209,38 @@ impl WasmSpreadsheetFacade {
             .commit_batch(&batch_id)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
+
+    /// Insert a row at the specified index
+    #[wasm_bindgen(js_name = "insertRow")]
+    pub fn insert_row(&self, row_index: u32) -> Result<(), JsValue> {
+        self.inner
+            .insert_row(row_index)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Delete a row at the specified index
+    #[wasm_bindgen(js_name = "deleteRow")]
+    pub fn delete_row(&self, row_index: u32) -> Result<(), JsValue> {
+        self.inner
+            .delete_row(row_index)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Insert a column at the specified index
+    #[wasm_bindgen(js_name = "insertColumn")]
+    pub fn insert_column(&self, col_index: u32) -> Result<(), JsValue> {
+        self.inner
+            .insert_column(col_index)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Delete a column at the specified index
+    #[wasm_bindgen(js_name = "deleteColumn")]
+    pub fn delete_column(&self, col_index: u32) -> Result<(), JsValue> {
+        self.inner
+            .delete_column(col_index)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
 }
 
 impl Default for WasmSpreadsheetFacade {
