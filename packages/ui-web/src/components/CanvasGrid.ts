@@ -1,5 +1,7 @@
 import { CellAddress, type SpreadsheetFacade } from "@gridcore/core";
 import type { SpreadsheetController } from "@gridcore/ui-core";
+import { DefaultSelectionManager } from "@gridcore/ui-core";
+import { SelectionAdapter } from "../adapters/SelectionAdapter";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
 import { MouseHandler } from "../interaction/MouseHandler";
 import { ResizeHandler } from "../interaction/ResizeHandler";
@@ -38,6 +40,7 @@ export class CanvasGrid {
   private headerRenderer!: HeaderRenderer;
   private selectionRenderer: SelectionRenderer;
   private selectionManager: SelectionManager;
+  private selectionAdapter?: SelectionAdapter;
   private mouseHandler: MouseHandler;
   private cellEditor: CellEditor;
   private keyboardHandler: KeyboardHandler;
@@ -62,6 +65,9 @@ export class CanvasGrid {
     // Create adapter if controller is provided
     if (this.controller) {
       this.adapter = new WebStateAdapter(this.controller);
+      // Create selection adapter using the core selection manager
+      const coreSelectionManager = new DefaultSelectionManager(this.facade);
+      this.selectionAdapter = new SelectionAdapter(coreSelectionManager);
     }
 
     this.setupDOM();
@@ -109,6 +115,11 @@ export class CanvasGrid {
       this.handleCellClick.bind(this),
       this.handleCellDoubleClick.bind(this),
     );
+    
+    // Set adapter if available
+    if (this.adapter) {
+      this.mouseHandler.setAdapter(this.adapter);
+    }
 
     this.keyboardHandler = new KeyboardHandler(
       this.container,
@@ -304,13 +315,17 @@ export class CanvasGrid {
 
       let previousMode: string | undefined = initialState.spreadsheetMode;
 
+      let previousCursor = initialState.cursor;
+      
       this.stateChangeUnsubscribe = this.adapter.subscribe((newState) => {
         const coreState = newState.coreState;
         const currentMode = coreState.spreadsheetMode;
+        const cursorMoved = !previousCursor.equals(coreState.cursor);
 
         console.log("State change detected:", {
           previousMode,
           currentMode,
+          cursorMoved,
           coreState: {
             spreadsheetMode: coreState.spreadsheetMode,
             cellMode:
@@ -345,6 +360,17 @@ export class CanvasGrid {
           // Editor should already be hidden via handleCellCommit/Cancel
           console.log("State transition to navigation mode");
         }
+        // Check for visual mode transitions or cursor movement in visual mode
+        else if (currentMode === "visual" || previousMode === "visual") {
+          // Re-render to show selection changes
+          console.log("Visual mode state change, re-rendering");
+          this.render();
+        }
+        // Also render when cursor moves in visual mode (selection extension)
+        else if (currentMode === "visual" && cursorMoved) {
+          console.log("Cursor moved in visual mode, re-rendering");
+          this.render();
+        }
         // Update editor content if already in editing mode
         else if (currentMode === "editing" && previousMode === "editing") {
           // Update the editor content with the latest state
@@ -354,8 +380,9 @@ export class CanvasGrid {
           );
         }
 
-        // Update previous mode for next comparison
+        // Update previous mode and cursor for next comparison
         previousMode = currentMode;
+        previousCursor = coreState.cursor;
 
         // Update mouse handler based on interaction mode
         this.mouseHandler.setEnabled(newState.interactionMode === "normal");
@@ -573,23 +600,45 @@ export class CanvasGrid {
       const isNavigationMode = this.adapter
         ? this.adapter.getCoreState().spreadsheetMode === "navigation"
         : true;
+      // Get active cell from controller state or fallback to local selection
+      const activeCell = this.adapter
+        ? this.adapter.getCoreState().cursor
+        : this.selectionManager.getActiveCell();
+        
       const cellsRendered = this.renderer.renderGrid(
         (address) => {
           const result = this.facade.getCell(address);
           if (!result.ok) return undefined;
           return result.value;
         },
-        this.selectionManager.getActiveCell(),
+        activeCell,
         this.cellEditor.isCurrentlyEditing(),
         isNavigationMode,
       );
 
       // Render selection after grid
-      this.selectionRenderer.renderSelection(
-        this.selectionManager.getSelectedCells(),
-        this.selectionManager.getSelectionRange(),
-        this.selectionManager.getVisualMode(),
-      );
+      if (this.selectionAdapter && this.adapter) {
+        // Use selection from UIState when controller is available
+        const state = this.adapter.getCoreState();
+        const { selection, visualMode } = this.selectionAdapter.getSelectionFromState(state);
+        
+        if (selection) {
+          const selectedCells = this.selectionAdapter.getSelectedCells(selection);
+          const selectionRange = this.selectionAdapter.getSelectionRange(selection);
+          this.selectionRenderer.renderSelection(
+            selectedCells,
+            selectionRange,
+            visualMode,
+          );
+        }
+      } else {
+        // Fallback to local selection manager when no controller
+        this.selectionRenderer.renderSelection(
+          this.selectionManager.getSelectedCells(),
+          this.selectionManager.getSelectionRange(),
+          this.selectionManager.getVisualMode(),
+        );
+      }
 
       // End debug frame tracking
       this.debugRenderer.endFrame(cellsRendered);

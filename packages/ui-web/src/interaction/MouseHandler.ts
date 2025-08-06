@@ -1,5 +1,6 @@
 import type { CellAddress } from "@gridcore/core";
 import type { Viewport } from "../components/Viewport";
+import type { WebStateAdapter } from "../state/WebStateAdapter";
 import type { SelectionManager } from "./SelectionManager";
 
 export type MouseEventHandler = (cell: CellAddress) => void;
@@ -7,6 +8,7 @@ export type MouseEventHandler = (cell: CellAddress) => void;
 export class MouseHandler {
   private isDragging: boolean = false;
   private enabled: boolean = true;
+  private adapter?: WebStateAdapter;
   private boundHandlers: {
     mousedown: (e: MouseEvent) => void;
     mousemove: (e: MouseEvent) => void;
@@ -70,6 +72,10 @@ export class MouseHandler {
     );
   }
 
+  setAdapter(adapter: WebStateAdapter): void {
+    this.adapter = adapter;
+  }
+
   private handleMouseDown(event: MouseEvent): void {
     if (!this.enabled) return;
 
@@ -82,13 +88,27 @@ export class MouseHandler {
 
     this.isDragging = true;
 
-    if (event.shiftKey && this.selectionManager.getActiveCell()) {
-      // Extend selection
-      this.selectionManager.updateRangeSelection(cell);
-    } else {
-      // Start new selection
-      this.selectionManager.startRangeSelection(cell);
+    // If we have an adapter, use it for selection
+    if (this.adapter) {
+      if (event.shiftKey) {
+        // For shift-click, first click to move cursor, then enter visual mode
+        this.adapter.handleMouseAction({ type: "click", address: cell });
+        this.adapter.handleMouseAction({ type: "dragStart", address: cell });
+      } else {
+        // Start new selection with drag
+        this.adapter.handleMouseAction({ type: "dragStart", address: cell });
+      }
       this.onCellClick?.(cell);
+    } else {
+      // Fallback to local selection manager
+      if (event.shiftKey && this.selectionManager.getActiveCell()) {
+        // Extend selection
+        this.selectionManager.updateRangeSelection(cell);
+      } else {
+        // Start new selection
+        this.selectionManager.startRangeSelection(cell);
+        this.onCellClick?.(cell);
+      }
     }
   }
 
@@ -104,13 +124,32 @@ export class MouseHandler {
 
     const cell = this.getCellAddressAtPosition(x, y);
     if (cell) {
-      this.selectionManager.updateRangeSelection(cell);
+      if (this.adapter) {
+        // Use adapter to handle drag move
+        this.adapter.handleMouseAction({ type: "dragMove", address: cell });
+      } else {
+        // Fallback to local selection manager
+        this.selectionManager.updateRangeSelection(cell);
+      }
     }
   }
 
   private handleMouseUp(_event: MouseEvent): void {
     this.isDragging = false;
-    this.selectionManager.endRangeSelection();
+    
+    if (this.adapter) {
+      // Let adapter know drag ended
+      const rect = this.canvas.getBoundingClientRect();
+      const x = _event.clientX - rect.left;
+      const y = _event.clientY - rect.top;
+      const cell = this.getCellAddressAtPosition(x, y);
+      if (cell) {
+        this.adapter.handleMouseAction({ type: "dragEnd", address: cell });
+      }
+    } else {
+      // Fallback to local selection manager
+      this.selectionManager.endRangeSelection();
+    }
   }
 
   private handleDoubleClick(event: MouseEvent): void {

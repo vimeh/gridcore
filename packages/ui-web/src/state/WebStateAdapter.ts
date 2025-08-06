@@ -154,7 +154,7 @@ export class WebStateAdapter {
 
       case "dragMove": {
         // In visual mode, navigate to extend selection
-        if (currentState.spreadsheetMode === "navigation") {
+        if (currentState.spreadsheetMode === "visual") {
           const deltaRow = action.address.row - currentState.cursor.row;
           const deltaCol = action.address.col - currentState.cursor.col;
 
