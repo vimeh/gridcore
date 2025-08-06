@@ -154,9 +154,15 @@ impl CellAddress {
 
 **Immediate Testing:** Create TypeScript tests that validate CellValue and CellAddress work correctly through WASM.
 
-## Phase 2: Formula AST & Parser (Week 2)
+## Phase 2: Formula AST & Parser (Week 2) ✅ COMPLETED
 
-### 2.1 Formula AST Definition
+**Status:** Implementation complete with manual recursive descent parser. The original plan used Chumsky 0.9 API, but we're using 0.10 which is a complete rewrite with breaking changes. Rather than migrate the parser design to the new API during implementation, a simpler manual parser was built.
+
+**Future Work:** Once familiar with Chumsky 0.10's new API (zero-copy parsing, context-sensitive grammars, pratt combinators), we can rewrite the parser to use it for better error recovery and performance.
+
+**Test Coverage:** Basic tests implemented. See [FORMULA_PARSER_TEST_PLAN.md](./FORMULA_PARSER_TEST_PLAN.md) for comprehensive test plan to be implemented before Phase 3.
+
+### 2.1 Formula AST Definition ✅
 
 ```rust
 // gridcore-core/src/formula/ast.rs
@@ -191,10 +197,12 @@ pub enum BinaryOperator {
 }
 ```
 
-### 2.2 Chumsky Formula Parser
+### 2.2 Chumsky Formula Parser ✅ (Manual Implementation)
+
+**Note:** The design below targets Chumsky 0.9. We implemented a manual recursive descent parser instead because Chumsky 0.10 (which we're using) is a complete rewrite with different APIs. The manual parser works well for our current needs.
 
 ```rust
-// gridcore-core/src/formula/parser.rs
+// gridcore-core/src/formula/parser.rs (original Chumsky 0.9 design - not implemented)
 use chumsky::prelude::*;
 
 pub struct FormulaParser;
