@@ -1,6 +1,8 @@
 use crate::{Result, SpreadsheetError};
 use crate::types::{CellAddress, CellValue};
 use super::ast::{Expr, BinaryOperator, UnaryOperator, CellRange};
+use chumsky::prelude::*;
+use chumsky::pratt::*;
 
 pub struct FormulaParser;
 
@@ -10,233 +12,242 @@ impl FormulaParser {
         // Remove leading '=' if present
         let formula = formula.trim_start_matches('=').trim();
         
-        // For now, use a simple manual parser
-        // TODO: Implement full chumsky parser once API is stabilized
-        Self::simple_parse(formula)
-    }
-    
-    /// Simple manual parser (temporary implementation)
-    fn simple_parse(formula: &str) -> Result<Expr> {
-        let formula = formula.trim();
-        
-        // Check for unary minus
-        if formula.starts_with('-') && formula.len() > 1 {
-            // Parse what comes after the minus
-            let inner = Self::simple_parse(&formula[1..].trim())?;
-            return Ok(Expr::UnaryOp {
-                op: UnaryOperator::Negate,
-                expr: Box::new(inner),
-            });
-        }
-        
-        // Try to parse as number
-        if let Ok(num) = formula.parse::<f64>() {
-            return Ok(Expr::Literal {
-                value: CellValue::Number(num),
-            });
-        }
-        
-        // Try to parse as boolean
-        if formula == "TRUE" {
-            return Ok(Expr::Literal {
-                value: CellValue::Boolean(true),
-            });
-        }
-        if formula == "FALSE" {
-            return Ok(Expr::Literal {
-                value: CellValue::Boolean(false),
-            });
-        }
-        
-        // Try to parse as string literal
-        if formula.starts_with('"') && formula.ends_with('"') && formula.len() > 1 {
-            let content = &formula[1..formula.len()-1];
-            return Ok(Expr::Literal {
-                value: CellValue::String(content.to_string()),
-            });
-        }
-        
-        // Try to parse as function call FIRST (before checking for ranges)
-        // This way SUM(A1:A10) gets parsed as a function, not a range
-        if let Some(paren_pos) = formula.find('(') {
-            if formula.ends_with(')') {
-                let func_name = formula[..paren_pos].trim().to_uppercase();
-                let args_str = &formula[paren_pos+1..formula.len()-1];
-                
-                let args = if args_str.trim().is_empty() {
-                    Vec::new()
-                } else {
-                    // Split by comma, but be careful with nested structures
-                    let mut args = Vec::new();
-                    let mut current_arg = String::new();
-                    let mut paren_depth = 0;
-                    
-                    for ch in args_str.chars() {
-                        match ch {
-                            '(' => {
-                                paren_depth += 1;
-                                current_arg.push(ch);
-                            }
-                            ')' => {
-                                paren_depth -= 1;
-                                current_arg.push(ch);
-                            }
-                            ',' if paren_depth == 0 => {
-                                args.push(Self::simple_parse(current_arg.trim())?);
-                                current_arg.clear();
-                            }
-                            _ => current_arg.push(ch),
-                        }
-                    }
-                    
-                    if !current_arg.trim().is_empty() {
-                        args.push(Self::simple_parse(current_arg.trim())?);
-                    }
-                    
-                    args
-                };
-                
-                return Ok(Expr::FunctionCall {
-                    name: func_name,
-                    args,
-                });
+        // Parse and handle errors
+        match Self::parser().parse(formula).into_result() {
+            Ok(expr) => Ok(expr),
+            Err(errors) => {
+                // Combine error messages
+                let msg = errors
+                    .iter()
+                    .map(|e| format!("{:?}", e))
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                Err(SpreadsheetError::Parse(msg))
             }
         }
-        
-        // Try to parse as cell reference or range (after function check)
-        if let Some(colon_pos) = formula.find(':') {
-            // It's a range
-            let start_str = &formula[..colon_pos];
-            let end_str = &formula[colon_pos+1..];
+    }
+    
+    /// Build the Chumsky 0.10 parser
+    fn parser<'a>() -> impl Parser<'a, &'a str, Expr, extra::Err<Rich<'a, char>>> {
+        recursive(|expr| {
+            // Numbers
+            let number = text::int(10)
+                .then(just('.').then(text::digits(10)).or_not())
+                .to_slice()
+                .map(|s: &str| {
+                    let num = s.parse::<f64>().unwrap_or(0.0);
+                    Expr::Literal { value: CellValue::Number(num) }
+                })
+                .padded();
             
-            let start = Self::parse_cell_ref(start_str)?;
-            let end = Self::parse_cell_ref(end_str)?;
+            // Booleans
+            let boolean = choice((
+                text::keyword("TRUE").to(Expr::Literal { value: CellValue::Boolean(true) }),
+                text::keyword("FALSE").to(Expr::Literal { value: CellValue::Boolean(false) }),
+            ))
+            .padded();
             
-            return Ok(Expr::Range {
-                range: CellRange::new(start.0, end.0),
-                absolute_start_col: start.1,
-                absolute_start_row: start.2,
-                absolute_end_col: end.1,
-                absolute_end_row: end.2,
-            });
-        }
-        
-        // Try to parse as single cell reference
-        if let Ok((addr, abs_col, abs_row)) = Self::parse_cell_ref(formula) {
-            return Ok(Expr::Reference {
-                address: addr,
-                absolute_col: abs_col,
-                absolute_row: abs_row,
-            });
-        }
-        
-        // Try to parse simple binary operations (very basic)
-        for (op_str, op) in &[
-            ("+", BinaryOperator::Add),
-            ("-", BinaryOperator::Subtract),
-            ("*", BinaryOperator::Multiply),
-            ("/", BinaryOperator::Divide),
-            ("^", BinaryOperator::Power),
-            ("&", BinaryOperator::Concat),
-            ("=", BinaryOperator::Equal),
-            ("<>", BinaryOperator::NotEqual),
-            ("<=", BinaryOperator::LessThanOrEqual),
-            (">=", BinaryOperator::GreaterThanOrEqual),
-            ("<", BinaryOperator::LessThan),
-            (">", BinaryOperator::GreaterThan),
-        ] {
-            if let Some(op_pos) = formula.find(op_str) {
-                // Make sure it's not inside quotes
-                let before = &formula[..op_pos];
-                let after = &formula[op_pos + op_str.len()..];
+            // Strings
+            let string = just('"')
+                .ignore_then(
+                    none_of('"')
+                        .repeated()
+                        .to_slice()
+                )
+                .then_ignore(just('"'))
+                .map(|s: &str| Expr::Literal { value: CellValue::String(s.to_string()) })
+                .padded();
+            
+            // Cell reference parser helper
+            let cell_ref_parser = {
+                let dollar = just('$').or_not().map(|d| d.is_some());
+                // Parse column letters (A-Z repeated)
+                let col_letters = one_of('A'..='Z')
+                    .repeated()
+                    .at_least(1)
+                    .to_slice();
+                let row_num = text::int(10);
                 
-                if !before.contains('"') && !after.contains('"') {
-                    let left = Self::simple_parse(before.trim())?;
-                    let right = Self::simple_parse(after.trim())?;
-                    
-                    return Ok(Expr::BinaryOp {
-                        op: *op,
+                dollar
+                    .then(col_letters)
+                    .then(dollar)
+                    .then(row_num)
+                    .try_map(|(((abs_col, col_str), abs_row), row_str): (((bool, &str), bool), &str), span| {
+                        let col = CellAddress::column_label_to_number(col_str)
+                            .map_err(|e| Rich::custom(span, e.to_string()))?;
+                        let row: u32 = row_str.parse()
+                            .map_err(|_| Rich::custom(span, "Invalid row number"))?;
+                        if row == 0 {
+                            return Err(Rich::custom(span, "Row must be greater than 0"));
+                        }
+                        Ok((CellAddress::new(col, row - 1), abs_col, abs_row))
+                    })
+            };
+            
+            // Cell range (A1:B10)
+            let range = cell_ref_parser.clone()
+                .then_ignore(just(':'))
+                .then(cell_ref_parser.clone())
+                .map(|((start_addr, abs_start_col, abs_start_row), (end_addr, abs_end_col, abs_end_row))| {
+                    Expr::Range {
+                        range: CellRange::new(start_addr, end_addr),
+                        absolute_start_col: abs_start_col,
+                        absolute_start_row: abs_start_row,
+                        absolute_end_col: abs_end_col,
+                        absolute_end_row: abs_end_row,
+                    }
+                })
+                .padded();
+            
+            // Single cell reference
+            let cell_reference = cell_ref_parser
+                .map(|(addr, abs_col, abs_row)| Expr::Reference {
+                    address: addr,
+                    absolute_col: abs_col,
+                    absolute_row: abs_row,
+                })
+                .padded();
+            
+            // Function names (case insensitive)
+            let func_name = text::ascii::ident()
+                .map(|s: &str| s.to_uppercase())
+                .padded();
+            
+            // Function call
+            let function_call = func_name
+                .then(
+                    expr.clone()
+                        .separated_by(just(',').padded())
+                        .allow_trailing()
+                        .collect::<Vec<_>>()
+                        .delimited_by(just('('), just(')'))
+                        .padded()
+                )
+                .map(|(name, args)| Expr::FunctionCall { name, args });
+            
+            // Atoms - the basic units that can appear in expressions
+            let atom = choice((
+                // Order matters: try more specific patterns first
+                function_call,
+                range,
+                cell_reference,
+                number,
+                boolean,
+                string,
+                // Parenthesized expression
+                expr.clone()
+                    .delimited_by(just('(').padded(), just(')').padded()),
+            ));
+            
+            // Build the expression parser with operator precedence using pratt
+            // Note: Chumsky 0.10 pratt operators expect an extra span parameter
+            atom.pratt((
+                // Percent postfix operator
+                postfix(6, just('%').padded(), |expr, _, _span| {
+                    Expr::UnaryOp {
+                        op: UnaryOperator::Percent,
+                        expr: Box::new(expr),
+                    }
+                }),
+                // Unary minus prefix operator
+                prefix(5, just('-').padded(), |_, expr, _span| {
+                    Expr::UnaryOp {
+                        op: UnaryOperator::Negate,
+                        expr: Box::new(expr),
+                    }
+                }),
+                // Power operator (right associative, highest precedence for binary ops)
+                infix(right(4), just('^').padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Power,
                         left: Box::new(left),
                         right: Box::new(right),
-                    });
-                }
-            }
-        }
-        
-        // Try to parse percent
-        if formula.ends_with('%') {
-            let inner = Self::simple_parse(&formula[..formula.len()-1].trim())?;
-            return Ok(Expr::UnaryOp {
-                op: UnaryOperator::Percent,
-                expr: Box::new(inner),
-            });
-        }
-        
-        Err(SpreadsheetError::Parse(format!(
-            "Unable to parse formula: {}",
-            formula
-        )))
-    }
-    
-    /// Parse a cell reference (e.g., A1, $A$1)
-    fn parse_cell_ref(s: &str) -> Result<(CellAddress, bool, bool)> {
-        let s = s.trim();
-        let mut chars = s.chars().peekable();
-        
-        // Check for absolute column marker
-        let abs_col = if chars.peek() == Some(&'$') {
-            chars.next();
-            true
-        } else {
-            false
-        };
-        
-        // Parse column letters
-        let mut col_str = String::new();
-        while let Some(&c) = chars.peek() {
-            if c.is_ascii_uppercase() {
-                col_str.push(c);
-                chars.next();
-            } else {
-                break;
-            }
-        }
-        
-        if col_str.is_empty() {
-            return Err(SpreadsheetError::InvalidAddress(format!(
-                "No column in address: {}",
-                s
-            )));
-        }
-        
-        // Check for absolute row marker
-        let abs_row = if chars.peek() == Some(&'$') {
-            chars.next();
-            true
-        } else {
-            false
-        };
-        
-        // Parse row number
-        let row_str: String = chars.collect();
-        if row_str.is_empty() {
-            return Err(SpreadsheetError::InvalidAddress(format!(
-                "No row in address: {}",
-                s
-            )));
-        }
-        
-        let col = CellAddress::column_label_to_number(&col_str)?;
-        let row: u32 = row_str.parse()
-            .map_err(|e| SpreadsheetError::InvalidAddress(format!("Invalid row: {}", e)))?;
-        
-        if row == 0 {
-            return Err(SpreadsheetError::InvalidAddress(
-                "Row must be greater than 0".to_string()
-            ));
-        }
-        
-        Ok((CellAddress::new(col, row - 1), abs_col, abs_row))
+                    }
+                }),
+                // Multiplication and division
+                infix(left(3), just('*').padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                infix(left(3), just('/').padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Divide,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                // Addition and subtraction
+                infix(left(2), just('+').padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Add,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                infix(left(2), just('-').padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Subtract,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                // Comparison operators
+                infix(left(1), just("<=").padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::LessThanOrEqual,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                infix(left(1), just(">=").padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::GreaterThanOrEqual,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                infix(left(1), just("<>").padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::NotEqual,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                infix(left(1), just('<').padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::LessThan,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                infix(left(1), just('>').padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::GreaterThan,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                infix(left(1), just('=').padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Equal,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+                // Concatenation operator (lowest precedence)
+                infix(left(0), just('&').padded(), |left, _, right, _span| {
+                    Expr::BinaryOp {
+                        op: BinaryOperator::Concat,
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    }
+                }),
+            ))
+            .padded()
+        })
     }
 }
 
@@ -326,6 +337,20 @@ mod tests {
     }
     
     #[test]
+    fn test_parse_function_with_range() {
+        // This was the bug we fixed before - make sure it still works
+        let expr = FormulaParser::parse("SUM(A1:A10)").unwrap();
+        match expr {
+            Expr::FunctionCall { name, args } => {
+                assert_eq!(name, "SUM");
+                assert_eq!(args.len(), 1);
+                assert!(matches!(args[0], Expr::Range { .. }));
+            }
+            _ => panic!("Expected function call with range"),
+        }
+    }
+    
+    #[test]
     fn test_parse_unary() {
         let expr = FormulaParser::parse("-42").unwrap();
         match expr {
@@ -346,6 +371,76 @@ mod tests {
         match expr {
             Expr::BinaryOp { op: BinaryOperator::Add, .. } => {}
             _ => panic!("Expected addition"),
+        }
+    }
+    
+    #[test]
+    fn test_operator_precedence() {
+        // Test that multiplication happens before addition
+        let expr = FormulaParser::parse("2 + 3 * 4").unwrap();
+        match expr {
+            Expr::BinaryOp { op: BinaryOperator::Add, left, right } => {
+                // Left should be 2
+                assert!(matches!(left.as_ref(), Expr::Literal { value: CellValue::Number(n) } if n == &2.0));
+                // Right should be 3 * 4
+                assert!(matches!(right.as_ref(), Expr::BinaryOp { op: BinaryOperator::Multiply, .. }));
+            }
+            _ => panic!("Expected addition with multiplication on right"),
+        }
+        
+        // Test that power is right-associative
+        let expr = FormulaParser::parse("2 ^ 3 ^ 2").unwrap();
+        match expr {
+            Expr::BinaryOp { op: BinaryOperator::Power, left, right } => {
+                // Left should be 2
+                assert!(matches!(left.as_ref(), Expr::Literal { value: CellValue::Number(n) } if n == &2.0));
+                // Right should be 3 ^ 2
+                assert!(matches!(right.as_ref(), Expr::BinaryOp { op: BinaryOperator::Power, .. }));
+            }
+            _ => panic!("Expected power operation"),
+        }
+    }
+    
+    #[test]
+    fn test_complex_expression() {
+        // Test a complex expression with multiple operators
+        let expr = FormulaParser::parse("(A1 + B1) * 2 - C1 / 4").unwrap();
+        // Just verify it parses without error
+        assert!(matches!(expr, Expr::BinaryOp { op: BinaryOperator::Subtract, .. }));
+    }
+    
+    #[test]
+    fn test_comparison_operators() {
+        let tests = vec![
+            ("A1 = B1", BinaryOperator::Equal),
+            ("A1 <> B1", BinaryOperator::NotEqual),
+            ("A1 < B1", BinaryOperator::LessThan),
+            ("A1 > B1", BinaryOperator::GreaterThan),
+            ("A1 <= B1", BinaryOperator::LessThanOrEqual),
+            ("A1 >= B1", BinaryOperator::GreaterThanOrEqual),
+        ];
+        
+        for (formula, expected_op) in tests {
+            let expr = FormulaParser::parse(formula).unwrap();
+            match expr {
+                Expr::BinaryOp { op, .. } => {
+                    assert_eq!(op, expected_op, "Failed for formula: {}", formula);
+                }
+                _ => panic!("Expected binary operation for: {}", formula),
+            }
+        }
+    }
+    
+    #[test]
+    fn test_concat_operator() {
+        let expr = FormulaParser::parse("A1 & \" \" & B1").unwrap();
+        // Should parse as (A1 & " ") & B1 due to left associativity
+        match expr {
+            Expr::BinaryOp { op: BinaryOperator::Concat, left, right } => {
+                // Left should be A1 & " "
+                assert!(matches!(left.as_ref(), Expr::BinaryOp { op: BinaryOperator::Concat, .. }));
+            }
+            _ => panic!("Expected concatenation"),
         }
     }
 }

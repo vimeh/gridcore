@@ -17,7 +17,9 @@
       "Bash(ls:*)",
       "Bash(grep:*)",
       "mcp__playwright__browser_snapshot",
-      "mcp__playwright__browser_type"
+      "mcp__playwright__browser_type",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": []
   }
