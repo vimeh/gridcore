@@ -153,12 +153,6 @@ export class StatusBar {
 
   private handleModeChange(state: UIState): void {
     this.updateDisplay(state);
-
-    // Add animation effect on mode change
-    this.modeElement.style.transform = "scale(1.05)";
-    setTimeout(() => {
-      this.modeElement.style.transform = "scale(1)";
-    }, 150);
   }
 
   private updateDisplay(state: UIState): void {
