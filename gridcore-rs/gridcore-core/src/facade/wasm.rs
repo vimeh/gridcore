@@ -1,7 +1,7 @@
 use crate::domain::cell::wasm_bindings::WasmCell;
 use crate::facade::spreadsheet_facade::SpreadsheetFacade;
+use crate::types::CellValue;
 use crate::types::wasm::WasmCellAddress;
-use crate::types::{CellAddress, CellValue};
 use js_sys::Function;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -240,6 +240,62 @@ impl WasmSpreadsheetFacade {
         self.inner
             .delete_column(col_index)
             .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Undo the last operation
+    #[wasm_bindgen(js_name = "undo")]
+    pub fn undo(&self) -> Result<(), JsValue> {
+        self.inner
+            .undo()
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Redo the last undone operation
+    #[wasm_bindgen(js_name = "redo")]
+    pub fn redo(&self) -> Result<(), JsValue> {
+        self.inner
+            .redo()
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Check if undo is available
+    #[wasm_bindgen(js_name = "canUndo")]
+    pub fn can_undo(&self) -> bool {
+        self.inner.can_undo()
+    }
+
+    /// Check if redo is available
+    #[wasm_bindgen(js_name = "canRedo")]
+    pub fn can_redo(&self) -> bool {
+        self.inner.can_redo()
+    }
+
+    /// Get undo history descriptions
+    #[wasm_bindgen(js_name = "getUndoHistory")]
+    pub fn get_undo_history(&self) -> Result<js_sys::Array, JsValue> {
+        let history = self.inner.get_undo_history();
+        let array = js_sys::Array::new();
+        for desc in history {
+            array.push(&JsValue::from_str(&desc));
+        }
+        Ok(array)
+    }
+
+    /// Get redo history descriptions
+    #[wasm_bindgen(js_name = "getRedoHistory")]
+    pub fn get_redo_history(&self) -> Result<js_sys::Array, JsValue> {
+        let history = self.inner.get_redo_history();
+        let array = js_sys::Array::new();
+        for desc in history {
+            array.push(&JsValue::from_str(&desc));
+        }
+        Ok(array)
+    }
+
+    /// Clear undo/redo history
+    #[wasm_bindgen(js_name = "clearHistory")]
+    pub fn clear_history(&self) {
+        self.inner.clear_history();
     }
 }
 

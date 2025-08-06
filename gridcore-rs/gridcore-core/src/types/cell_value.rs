@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CellValue {
@@ -123,6 +124,12 @@ impl CellValue {
 impl Default for CellValue {
     fn default() -> Self {
         CellValue::Empty
+    }
+}
+
+impl fmt::Display for CellValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_display_string())
     }
 }
 

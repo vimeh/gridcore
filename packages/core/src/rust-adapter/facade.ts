@@ -35,6 +35,13 @@ interface WasmSpreadsheetFacade {
   deleteRow(rowIndex: number): void
   insertColumn(colIndex: number): void
   deleteColumn(colIndex: number): void
+  undo(): void
+  redo(): void
+  canUndo(): boolean
+  canRedo(): boolean
+  getUndoHistory(): string[]
+  getRedoHistory(): string[]
+  clearHistory(): void
   onCellUpdate(callback: (event: any) => void): void
   onBatchComplete(callback: (event: any) => void): void
   onCalculationComplete(callback: (event: any) => void): void
@@ -392,6 +399,72 @@ export class SpreadsheetFacade extends EventEmitter {
     } catch (error) {
       return err(error instanceof Error ? error.message : String(error))
     }
+  }
+
+  /**
+   * Undo the last operation
+   */
+  undo(): Result<void> {
+    try {
+      this.ensureInitialized()
+      this.wasmFacade!.undo()
+      return ok(undefined)
+    } catch (error) {
+      return err(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  /**
+   * Redo the last undone operation
+   */
+  redo(): Result<void> {
+    try {
+      this.ensureInitialized()
+      this.wasmFacade!.redo()
+      return ok(undefined)
+    } catch (error) {
+      return err(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  /**
+   * Check if undo is available
+   */
+  canUndo(): boolean {
+    this.ensureInitialized()
+    return this.wasmFacade!.canUndo()
+  }
+
+  /**
+   * Check if redo is available
+   */
+  canRedo(): boolean {
+    this.ensureInitialized()
+    return this.wasmFacade!.canRedo()
+  }
+
+  /**
+   * Get undo history descriptions
+   */
+  getUndoHistory(): string[] {
+    this.ensureInitialized()
+    return this.wasmFacade!.getUndoHistory()
+  }
+
+  /**
+   * Get redo history descriptions
+   */
+  getRedoHistory(): string[] {
+    this.ensureInitialized()
+    return this.wasmFacade!.getRedoHistory()
+  }
+
+  /**
+   * Clear undo/redo history
+   */
+  clearHistory(): void {
+    this.ensureInitialized()
+    this.wasmFacade!.clearHistory()
   }
 
   /**

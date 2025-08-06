@@ -50,3 +50,7 @@ harness = false
 name = "structural_ops_bench"
 harness = false
 
+[[bench]]
+name = "undo_redo_benchmark"
+harness = false
+

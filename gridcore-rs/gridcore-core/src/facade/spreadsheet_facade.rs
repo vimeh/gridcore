@@ -1,3 +1,4 @@
+use crate::command::{CommandExecutor, UndoRedoManager};
 use crate::dependency::{DependencyAnalyzer, DependencyGraph};
 use crate::domain::Cell;
 use crate::evaluator::{EvaluationContext, Evaluator};
@@ -23,6 +24,8 @@ pub struct SpreadsheetFacade {
     batch_manager: RefCell<BatchManager>,
     /// Event callbacks
     event_callbacks: RefCell<Vec<Box<dyn EventCallback>>>,
+    /// Undo/redo manager
+    undo_redo_manager: RefCell<UndoRedoManager>,
 }
 
 impl SpreadsheetFacade {
@@ -33,6 +36,7 @@ impl SpreadsheetFacade {
             dependency_graph: Rc::new(RefCell::new(DependencyGraph::new())),
             batch_manager: RefCell::new(BatchManager::new()),
             event_callbacks: RefCell::new(Vec::new()),
+            undo_redo_manager: RefCell::new(UndoRedoManager::new()),
         }
     }
 
@@ -773,6 +777,233 @@ impl SpreadsheetFacade {
         self.recalculate()?;
 
         Ok(())
+    }
+
+    // Undo/Redo Operations
+
+    /// Undo the last operation
+    pub fn undo(&self) -> Result<()> {
+        // Create a wrapper that implements CommandExecutor
+        struct FacadeExecutor<'a> {
+            facade: &'a SpreadsheetFacade,
+        }
+
+        impl<'a> CommandExecutor for FacadeExecutor<'a> {
+            fn set_cell_direct(
+                &mut self,
+                address: &CellAddress,
+                value: &str,
+            ) -> Result<Option<Cell>> {
+                let old_cell = self.facade.get_cell(address);
+                self.facade.set_cell_value_without_command(address, value)?;
+                Ok(old_cell)
+            }
+
+            fn delete_cell_direct(&mut self, address: &CellAddress) -> Result<Option<Cell>> {
+                let old_cell = self.facade.get_cell(address);
+                self.facade.delete_cell_without_command(address)?;
+                Ok(old_cell)
+            }
+
+            fn insert_row_direct(&mut self, index: u32) -> Result<Vec<(CellAddress, Cell)>> {
+                let mut affected = Vec::new();
+                for (addr, cell) in self.facade.get_all_cells() {
+                    if addr.row >= index {
+                        affected.push((addr.clone(), cell.clone()));
+                    }
+                }
+                self.facade.insert_row_without_command(index)?;
+                Ok(affected)
+            }
+
+            fn delete_row_direct(&mut self, index: u32) -> Result<Vec<(CellAddress, Cell)>> {
+                let mut deleted = Vec::new();
+                for (addr, cell) in self.facade.get_all_cells() {
+                    if addr.row == index {
+                        deleted.push((addr.clone(), cell.clone()));
+                    }
+                }
+                self.facade.delete_row_without_command(index)?;
+                Ok(deleted)
+            }
+
+            fn insert_column_direct(&mut self, index: u32) -> Result<Vec<(CellAddress, Cell)>> {
+                let mut affected = Vec::new();
+                for (addr, cell) in self.facade.get_all_cells() {
+                    if addr.col >= index {
+                        affected.push((addr.clone(), cell.clone()));
+                    }
+                }
+                self.facade.insert_column_without_command(index)?;
+                Ok(affected)
+            }
+
+            fn delete_column_direct(&mut self, index: u32) -> Result<Vec<(CellAddress, Cell)>> {
+                let mut deleted = Vec::new();
+                for (addr, cell) in self.facade.get_all_cells() {
+                    if addr.col == index {
+                        deleted.push((addr.clone(), cell.clone()));
+                    }
+                }
+                self.facade.delete_column_without_command(index)?;
+                Ok(deleted)
+            }
+
+            fn get_cell(&self, address: &CellAddress) -> Option<Cell> {
+                self.facade.get_cell(address)
+            }
+        }
+
+        let mut executor = FacadeExecutor { facade: self };
+        self.undo_redo_manager.borrow_mut().undo(&mut executor)?;
+        Ok(())
+    }
+
+    /// Redo the last undone operation
+    pub fn redo(&self) -> Result<()> {
+        struct FacadeExecutor<'a> {
+            facade: &'a SpreadsheetFacade,
+        }
+
+        impl<'a> CommandExecutor for FacadeExecutor<'a> {
+            fn set_cell_direct(
+                &mut self,
+                address: &CellAddress,
+                value: &str,
+            ) -> Result<Option<Cell>> {
+                let old_cell = self.facade.get_cell(address);
+                self.facade.set_cell_value_without_command(address, value)?;
+                Ok(old_cell)
+            }
+
+            fn delete_cell_direct(&mut self, address: &CellAddress) -> Result<Option<Cell>> {
+                let old_cell = self.facade.get_cell(address);
+                self.facade.delete_cell_without_command(address)?;
+                Ok(old_cell)
+            }
+
+            fn insert_row_direct(&mut self, index: u32) -> Result<Vec<(CellAddress, Cell)>> {
+                let mut affected = Vec::new();
+                for (addr, cell) in self.facade.get_all_cells() {
+                    if addr.row >= index {
+                        affected.push((addr.clone(), cell.clone()));
+                    }
+                }
+                self.facade.insert_row_without_command(index)?;
+                Ok(affected)
+            }
+
+            fn delete_row_direct(&mut self, index: u32) -> Result<Vec<(CellAddress, Cell)>> {
+                let mut deleted = Vec::new();
+                for (addr, cell) in self.facade.get_all_cells() {
+                    if addr.row == index {
+                        deleted.push((addr.clone(), cell.clone()));
+                    }
+                }
+                self.facade.delete_row_without_command(index)?;
+                Ok(deleted)
+            }
+
+            fn insert_column_direct(&mut self, index: u32) -> Result<Vec<(CellAddress, Cell)>> {
+                let mut affected = Vec::new();
+                for (addr, cell) in self.facade.get_all_cells() {
+                    if addr.col >= index {
+                        affected.push((addr.clone(), cell.clone()));
+                    }
+                }
+                self.facade.insert_column_without_command(index)?;
+                Ok(affected)
+            }
+
+            fn delete_column_direct(&mut self, index: u32) -> Result<Vec<(CellAddress, Cell)>> {
+                let mut deleted = Vec::new();
+                for (addr, cell) in self.facade.get_all_cells() {
+                    if addr.col == index {
+                        deleted.push((addr.clone(), cell.clone()));
+                    }
+                }
+                self.facade.delete_column_without_command(index)?;
+                Ok(deleted)
+            }
+
+            fn get_cell(&self, address: &CellAddress) -> Option<Cell> {
+                self.facade.get_cell(address)
+            }
+        }
+
+        let mut executor = FacadeExecutor { facade: self };
+        self.undo_redo_manager.borrow_mut().redo(&mut executor)?;
+        Ok(())
+    }
+
+    /// Check if undo is available
+    pub fn can_undo(&self) -> bool {
+        self.undo_redo_manager.borrow().can_undo()
+    }
+
+    /// Check if redo is available
+    pub fn can_redo(&self) -> bool {
+        self.undo_redo_manager.borrow().can_redo()
+    }
+
+    /// Get undo history descriptions
+    pub fn get_undo_history(&self) -> Vec<String> {
+        self.undo_redo_manager.borrow().get_undo_history()
+    }
+
+    /// Get redo history descriptions
+    pub fn get_redo_history(&self) -> Vec<String> {
+        self.undo_redo_manager.borrow().get_redo_history()
+    }
+
+    /// Clear undo/redo history
+    pub fn clear_history(&self) {
+        self.undo_redo_manager.borrow_mut().clear_history();
+    }
+
+    /// Get all cells (for command state capture)
+    pub fn get_all_cells(&self) -> Vec<(CellAddress, Cell)> {
+        self.repository
+            .borrow()
+            .iter()
+            .map(|(addr, cell)| (addr.clone(), cell.clone()))
+            .collect()
+    }
+
+    // Methods without command tracking (for use by commands)
+
+    /// Set cell value without creating a command
+    pub fn set_cell_value_without_command(&self, address: &CellAddress, value: &str) -> Result<()> {
+        self.set_cell_value_internal(address, value)?;
+        self.recalculate_dependents(address)?;
+        Ok(())
+    }
+
+    /// Delete cell without creating a command
+    pub fn delete_cell_without_command(&self, address: &CellAddress) -> Result<()> {
+        self.delete_cell_internal(address)?;
+        self.recalculate_dependents(address)?;
+        Ok(())
+    }
+
+    /// Insert row without creating a command
+    pub fn insert_row_without_command(&self, index: u32) -> Result<()> {
+        self.insert_row(index)
+    }
+
+    /// Delete row without creating a command
+    pub fn delete_row_without_command(&self, index: u32) -> Result<()> {
+        self.delete_row(index)
+    }
+
+    /// Insert column without creating a command
+    pub fn insert_column_without_command(&self, index: u32) -> Result<()> {
+        self.insert_column(index)
+    }
+
+    /// Delete column without creating a command
+    pub fn delete_column_without_command(&self, index: u32) -> Result<()> {
+        self.delete_column(index)
     }
 }
 
