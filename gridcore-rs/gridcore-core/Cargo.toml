@@ -1,0 +1,36 @@
+[package]
+name = "gridcore-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chumsky = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+petgraph = { workspace = true }
+
+[features]
+default = []
+wasm = [
+  "dep:wasm-bindgen",
+  "dep:js-sys",
+  "dep:web-sys",
+  "dep:serde-wasm-bindgen",
+]
+
+[dependencies.wasm-bindgen]
+workspace = true
+optional = true
+
+[dependencies.js-sys]
+workspace = true
+optional = true
+
+[dependencies.web-sys]
+workspace = true
+optional = true
+
+[dependencies.serde-wasm-bindgen]
+workspace = true
+optional = true
+

@@ -1,0 +1,19 @@
+[package]
+name = "gridcore-wasm"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+gridcore-core = { path = "../gridcore-core", features = ["wasm"] }
+wasm-bindgen = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true }
+console_error_panic_hook = "0.1"
+
+[package.metadata.wasm-pack]
+"wasm-opt" = ["-O4"]
+
