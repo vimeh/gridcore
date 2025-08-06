@@ -10,6 +10,36 @@ pub enum CellValue {
 }
 
 impl CellValue {
+    /// Convert from JavaScript value
+    #[cfg(feature = "wasm")]
+    pub fn from_js(value: wasm_bindgen::JsValue) -> Result<Self, wasm_bindgen::JsValue> {
+        use wasm_bindgen::JsCast;
+        
+        if value.is_null() || value.is_undefined() {
+            Ok(CellValue::Null)
+        } else if let Some(b) = value.as_bool() {
+            Ok(CellValue::Boolean(b))
+        } else if let Some(n) = value.as_f64() {
+            Ok(CellValue::Number(n))
+        } else if let Some(s) = value.as_string() {
+            Ok(CellValue::String(s))
+        } else {
+            Err(wasm_bindgen::JsValue::from_str("Unsupported value type"))
+        }
+    }
+    
+    /// Convert to JavaScript value
+    #[cfg(feature = "wasm")]
+    pub fn to_js(&self) -> wasm_bindgen::JsValue {
+        match self {
+            CellValue::Number(n) => wasm_bindgen::JsValue::from_f64(*n),
+            CellValue::String(s) => wasm_bindgen::JsValue::from_str(s),
+            CellValue::Boolean(b) => wasm_bindgen::JsValue::from_bool(*b),
+            CellValue::Null => wasm_bindgen::JsValue::NULL,
+            CellValue::Error(e) => wasm_bindgen::JsValue::from_str(e),
+        }
+    }
+    
     /// Check if the value is numeric
     pub fn is_number(&self) -> bool {
         matches!(self, CellValue::Number(_))

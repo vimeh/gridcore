@@ -792,11 +792,11 @@ describe('WASM Integration', () => {
 - [x] Create initial TypeScript tests
 - [x] Successfully compile to 76KB WASM bundle
 
-### Phase 2
-- [ ] Define Formula AST
-- [ ] Implement chumsky parser
-- [ ] Create WASM parser bindings
-- [ ] Test formula parsing from TypeScript
+### Phase 2 (Completed)
+- [x] Define Formula AST
+- [x] Implement chumsky parser (using Chumsky 0.10 with pratt parsing)
+- [x] Create WASM parser bindings
+- [x] Test formula parsing from TypeScript
 
 ### Phase 3
 - [ ] Implement CellRepository
