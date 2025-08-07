@@ -10,6 +10,7 @@ pub struct ViewportInfo {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum CellMode {
     Normal,
     Insert,
@@ -17,6 +18,7 @@ pub enum CellMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum VisualMode {
     Character,
     Line,
@@ -24,6 +26,7 @@ pub enum VisualMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum SpreadsheetVisualMode {
     Char,
     Line,
@@ -34,31 +37,41 @@ pub enum SpreadsheetVisualMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InsertMode {
+    #[serde(rename = "i")]
     I,        // insert before cursor
+    #[serde(rename = "a")]
     A,        // append after cursor
+    #[serde(rename = "A")]
     CapitalA, // append at end of line
+    #[serde(rename = "I")]
     CapitalI, // insert at beginning of line
+    #[serde(rename = "o")]
     O,        // open line below
+    #[serde(rename = "O")]
     CapitalO, // open line above
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum SelectionType {
+    #[serde(rename = "cell")]
     Cell {
         address: CellAddress,
     },
+    #[serde(rename = "range")]
     Range {
         start: CellAddress,
         end: CellAddress,
     },
+    #[serde(rename = "column")]
     Column {
         columns: Vec<u32>,
     },
+    #[serde(rename = "row")]
     Row {
         rows: Vec<u32>,
     },
-    // Alternative name for compatibility
-    // Row { indices: Vec<u32> },
+    #[serde(rename = "multi")]
     Multi {
         selections: Vec<Selection>,
     },
@@ -66,6 +79,7 @@ pub enum SelectionType {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Selection {
+    #[serde(rename = "type")]
     pub selection_type: SelectionType,
     pub anchor: Option<CellAddress>,
 }
@@ -101,71 +115,103 @@ pub struct ParsedBulkCommand {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "spreadsheetMode", rename_all = "camelCase")]
 pub enum UIState {
+    #[serde(rename = "navigation")]
     Navigation {
         cursor: CellAddress,
         viewport: ViewportInfo,
         selection: Option<Selection>,
     },
+    #[serde(rename = "visual")]
     Visual {
         cursor: CellAddress,
         viewport: ViewportInfo,
         selection: Selection,
+        #[serde(rename = "visualMode")]
         visual_mode: SpreadsheetVisualMode,
         anchor: CellAddress,
     },
+    #[serde(rename = "editing")]
     Editing {
         cursor: CellAddress,
         viewport: ViewportInfo,
+        #[serde(rename = "cellMode")]
         cell_mode: CellMode,
+        #[serde(rename = "editingValue")]
         editing_value: String,
+        #[serde(rename = "cursorPosition")]
         cursor_position: usize,
+        #[serde(rename = "visualStart")]
         visual_start: Option<usize>,
+        #[serde(rename = "visualType")]
         visual_type: Option<VisualMode>,
+        #[serde(rename = "editVariant")]
         edit_variant: Option<InsertMode>,
     },
+    #[serde(rename = "command")]
     Command {
         cursor: CellAddress,
         viewport: ViewportInfo,
+        #[serde(rename = "commandValue")]
         command_value: String,
     },
+    #[serde(rename = "resize")]
     Resize {
         cursor: CellAddress,
         viewport: ViewportInfo,
         target: ResizeTarget,
+        #[serde(rename = "resizeTarget")]
         resize_target: ResizeTarget,
+        #[serde(rename = "resizeIndex")]
         resize_index: u32,
+        #[serde(rename = "originalSize")]
         original_size: u32,
+        #[serde(rename = "currentSize")]
         current_size: u32,
+        #[serde(rename = "initialPosition")]
         initial_position: f64,
+        #[serde(rename = "currentPosition")]
         current_position: f64,
     },
+    #[serde(rename = "insert")]
     Insert {
         cursor: CellAddress,
         viewport: ViewportInfo,
+        #[serde(rename = "insertType")]
         insert_type: InsertType,
         position: InsertPosition,
+        #[serde(rename = "insertPosition")]
         insert_position: InsertPosition,
         reference: u32,
         count: u32,
         target_index: u32,
     },
+    #[serde(rename = "delete")]
     Delete {
         cursor: CellAddress,
         viewport: ViewportInfo,
+        #[serde(rename = "deleteType")]
         delete_type: DeleteType,
         targets: Vec<u32>,
         selection: Vec<u32>,
+        #[serde(rename = "confirmationPending")]
         confirmation_pending: bool,
     },
+    #[serde(rename = "bulkOperation")]
     BulkOperation {
         cursor: CellAddress,
         viewport: ViewportInfo,
+        #[serde(rename = "command")]
         parsed_command: ParsedBulkCommand,
+        #[serde(rename = "previewAvailable")]
         preview_available: bool,
+        #[serde(rename = "previewVisible")]
         preview_visible: bool,
+        #[serde(rename = "affectedCells")]
         affected_cells: u32,
         status: BulkOperationStatus,
+        #[serde(rename = "errorMessage")]
         error_message: Option<String>,
     },
 }
