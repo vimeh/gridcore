@@ -1708,7 +1708,7 @@ export class WasmWorkbook {
      * Create a new workbook with default sheet
      */
     constructor() {
-        const ret = wasm.wasmworkbook_new();
+        const ret = wasm.wasmsheetmanager_new();
         this.__wbg_ptr = ret >>> 0;
         WasmWorkbookFinalization.register(this, this.__wbg_ptr, this);
         return this;

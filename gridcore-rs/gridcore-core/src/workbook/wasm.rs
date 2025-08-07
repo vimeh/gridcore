@@ -84,7 +84,7 @@ impl WasmWorkbook {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
-            inner: Rc::new(RefCell::new(Workbook::new())),
+            inner: Rc::new(RefCell::new(Workbook::with_sheet("Sheet1"))),
         }
     }
 
