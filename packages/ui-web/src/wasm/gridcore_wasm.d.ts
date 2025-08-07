@@ -460,6 +460,7 @@ export interface InitOutput {
   readonly wasmsheet_setRowHeight: (a: number, b: number, c: number) => void;
   readonly wasmsheet_clear: (a: number) => void;
   readonly __wbg_wasmworkbook_free: (a: number, b: number) => void;
+  readonly wasmworkbook_new: () => number;
   readonly wasmworkbook_withSheet: (a: number, b: number) => number;
   readonly wasmworkbook_getSheetCount: (a: number) => number;
   readonly wasmworkbook_getSheetNames: (a: number) => number;
@@ -478,7 +479,6 @@ export interface InitOutput {
   readonly wasmsheetmanager_new: () => number;
   readonly wasmsheetmanager_getStatistics: (a: number) => number;
   readonly wasmformulaparser_new: () => number;
-  readonly wasmworkbook_new: () => number;
   readonly __wbg_wasmformulaparser_free: (a: number, b: number) => void;
   readonly __wbindgen_export_0: (a: number, b: number) => number;
   readonly __wbindgen_export_1: (a: number, b: number, c: number, d: number) => number;

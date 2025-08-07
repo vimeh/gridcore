@@ -11,7 +11,7 @@ impl TextPatternDetector {
 
     fn extract_text_with_number(&self, text: &str) -> Option<(String, i32, String)> {
         // Match patterns like "Item 1", "Product-001", "A1", etc.
-        let re = Regex::new(r"^(.*?)(\d+)(.*)$").ok()?;
+        let re = Regex::new(r"^(.*?)([0-9]+)(.*)$").ok()?;
 
         if let Some(captures) = re.captures(text) {
             let prefix = captures.get(1)?.as_str().to_string();

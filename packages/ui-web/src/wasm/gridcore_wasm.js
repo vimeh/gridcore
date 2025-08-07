@@ -1708,7 +1708,7 @@ export class WasmWorkbook {
      * Create a new workbook with default sheet
      */
     constructor() {
-        const ret = wasm.wasmsheetmanager_new();
+        const ret = wasm.wasmworkbook_new();
         this.__wbg_ptr = ret >>> 0;
         WasmWorkbookFinalization.register(this, this.__wbg_ptr, this);
         return this;
@@ -2025,6 +2025,10 @@ function __wbg_get_imports() {
             wasm.__wbindgen_export_3(deferred0_0, deferred0_1, 1);
         }
     };
+    imports.wbg.__wbg_getTime_46267b1c24877e30 = function(arg0) {
+        const ret = getObject(arg0).getTime();
+        return ret;
+    };
     imports.wbg.__wbg_get_67b2ba62fc30de12 = function() { return handleError(function (arg0, arg1) {
         const ret = Reflect.get(getObject(arg0), getObject(arg1));
         return addHeapObject(ret);
@@ -2086,6 +2090,10 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_length_e2d2a49132c1b256 = function(arg0) {
         const ret = getObject(arg0).length;
         return ret;
+    };
+    imports.wbg.__wbg_new0_f788a2397c7ca929 = function() {
+        const ret = new Date();
+        return addHeapObject(ret);
     };
     imports.wbg.__wbg_new_405e22f390576ce2 = function() {
         const ret = new Object();

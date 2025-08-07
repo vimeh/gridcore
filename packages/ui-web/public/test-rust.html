@@ -222,7 +222,7 @@
                 
                 // Test 3: Clear cell
                 const addr3 = new wasmModule.WasmCellAddress(0, 0);
-                facade.clearCell(addr3);
+                facade.deleteCell(addr3);
                 const value3 = facade.getCellValue(addr3);
                 results += `<li>Clear A1: ${value3 === null || value3 === undefined ? '✓' : '✗'}</li>`;
                 addr3.free();

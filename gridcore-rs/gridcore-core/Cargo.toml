@@ -19,6 +19,7 @@ wasm = [
   "dep:web-sys",
   "dep:serde-wasm-bindgen",
   "dep:serde_json",
+  "chrono/wasmbind",
 ]
 
 [dependencies.wasm-bindgen]

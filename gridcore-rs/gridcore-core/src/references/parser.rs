@@ -14,9 +14,9 @@ pub struct ReferenceParser {
 impl ReferenceParser {
     pub fn new() -> Self {
         Self {
-            cell_ref_regex: Regex::new(r"(\$?)([A-Z]+)(\$?)(\d+)").unwrap(),
-            range_ref_regex: Regex::new(r"(\$?[A-Z]+\$?\d+):(\$?[A-Z]+\$?\d+)").unwrap(),
-            sheet_ref_regex: Regex::new(r"([A-Za-z0-9_]+)!(\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?)").unwrap(),
+            cell_ref_regex: Regex::new(r"(\$?)([A-Z]+)(\$?)([0-9]+)").unwrap(),
+            range_ref_regex: Regex::new(r"(\$?[A-Z]+\$?[0-9]+):(\$?[A-Z]+\$?[0-9]+)").unwrap(),
+            sheet_ref_regex: Regex::new(r"([A-Za-z0-9_]+)!(\$?[A-Z]+\$?[0-9]+(?::\$?[A-Z]+\$?[0-9]+)?)").unwrap(),
         }
     }
 

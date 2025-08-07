@@ -11,7 +11,7 @@ impl DefaultFormulaAdjuster {
     }
 
     fn parse_cell_reference(&self, reference: &str) -> Option<(bool, u32, bool, u32)> {
-        let re = Regex::new(r"^(\$?)([A-Z]+)(\$?)(\d+)$").ok()?;
+        let re = Regex::new(r"^(\$?)([A-Z]+)(\$?)([0-9]+)$").ok()?;
 
         if let Some(captures) = re.captures(reference) {
             let col_absolute = !captures.get(1)?.as_str().is_empty();
@@ -97,7 +97,7 @@ impl FormulaAdjuster for DefaultFormulaAdjuster {
 
         // Simple regex to find cell references
         // This is a simplified version - a real implementation would use the formula parser
-        let re = Regex::new(r"\$?[A-Z]+\$?\d+")
+        let re = Regex::new(r"\$?[A-Z]+\$?[0-9]+")
             .map_err(|e| SpreadsheetError::InvalidOperation(format!("Regex error: {}", e)))?;
 
         let mut result = String::from("=");

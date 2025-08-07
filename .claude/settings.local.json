@@ -28,7 +28,8 @@
       "Bash(cat:*)",
       "Bash(cargo bench:*)",
       "mcp__playwright__browser_network_requests",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(sg:*)"
     ],
     "deny": []
   }
