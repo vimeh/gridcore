@@ -96,9 +96,10 @@ impl SpreadsheetController {
 
     // High-level keyboard handling
     pub fn handle_keyboard_event(&mut self, event: KeyboardEvent) -> Result<()> {
-        let state = self.state_machine.get_state();
+        // Clone the mode to avoid borrowing issues
+        let mode = self.state_machine.get_state().spreadsheet_mode();
 
-        match state.spreadsheet_mode() {
+        match mode {
             SpreadsheetMode::Navigation => self.handle_navigation_key(event),
             SpreadsheetMode::Editing => self.handle_editing_key(event),
             SpreadsheetMode::Command => self.handle_command_key(event),
@@ -135,12 +136,15 @@ impl SpreadsheetController {
             return self.dispatch_action(Action::Escape);
         }
 
+        // Clone the state to avoid borrowing issues
+        let state = self.state_machine.get_state().clone();
+        
         if let UIState::Editing {
             cell_mode,
             editing_value,
             cursor_position,
             ..
-        } = self.state_machine.get_state()
+        } = state
         {
             match cell_mode {
                 CellMode::Normal => match event.key.as_str() {
@@ -157,7 +161,7 @@ impl SpreadsheetController {
                     if event.is_printable() {
                         // Add character to editing value
                         let mut new_value = editing_value.clone();
-                        let pos = *cursor_position;
+                        let pos = cursor_position;
                         new_value.insert_str(pos, &event.key);
                         self.dispatch_action(Action::UpdateEditingValue {
                             value: new_value,
@@ -167,7 +171,7 @@ impl SpreadsheetController {
                         match event.key.as_str() {
                             "Backspace" => {
                                 let mut new_value = editing_value.clone();
-                                let pos = *cursor_position;
+                                let pos = cursor_position;
                                 if pos > 0 {
                                     new_value.remove(pos - 1);
                                     self.dispatch_action(Action::UpdateEditingValue {
