@@ -6,6 +6,7 @@ pub mod evaluator;
 pub mod facade;
 pub mod fill;
 pub mod formula;
+pub mod references;
 pub mod repository;
 pub mod types;
 
