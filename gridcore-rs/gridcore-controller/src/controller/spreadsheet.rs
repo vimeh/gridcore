@@ -138,7 +138,7 @@ impl SpreadsheetController {
 
         // Clone the state to avoid borrowing issues
         let state = self.state_machine.get_state().clone();
-        
+
         if let UIState::Editing {
             cell_mode,
             editing_value,

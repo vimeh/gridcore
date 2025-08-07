@@ -38,15 +38,15 @@ pub enum SpreadsheetVisualMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InsertMode {
     #[serde(rename = "i")]
-    I,        // insert before cursor
+    I, // insert before cursor
     #[serde(rename = "a")]
-    A,        // append after cursor
+    A, // append after cursor
     #[serde(rename = "A")]
     CapitalA, // append at end of line
     #[serde(rename = "I")]
     CapitalI, // insert at beginning of line
     #[serde(rename = "o")]
-    O,        // open line below
+    O, // open line below
     #[serde(rename = "O")]
     CapitalO, // open line above
 }
@@ -55,26 +55,18 @@ pub enum InsertMode {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum SelectionType {
     #[serde(rename = "cell")]
-    Cell {
-        address: CellAddress,
-    },
+    Cell { address: CellAddress },
     #[serde(rename = "range")]
     Range {
         start: CellAddress,
         end: CellAddress,
     },
     #[serde(rename = "column")]
-    Column {
-        columns: Vec<u32>,
-    },
+    Column { columns: Vec<u32> },
     #[serde(rename = "row")]
-    Row {
-        rows: Vec<u32>,
-    },
+    Row { rows: Vec<u32> },
     #[serde(rename = "multi")]
-    Multi {
-        selections: Vec<Selection>,
-    },
+    Multi { selections: Vec<Selection> },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
