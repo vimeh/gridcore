@@ -1,6 +1,6 @@
 # Phase 2: Controller/UI Logic Migration Plan
 
-## Status: In Progress (60% Complete)
+## Status: In Progress (85% Complete)
 
 Started: 2025-08-06
 Last Updated: 2025-08-07
@@ -78,27 +78,29 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 
 #### Day 15-18: Vim Mode Implementation
 
-- [ ] Port VimBehavior state machine
-- [ ] Implement normal mode commands
-- [ ] Implement visual mode selection
-- [ ] Implement command mode
-- [ ] Port CellVimBehavior
+- [x] Port VimBehavior state machine
+- [x] Implement normal mode commands
+- [x] Implement visual mode selection
+- [x] Implement command mode
+- [x] Port CellVimBehavior
 
 #### Day 19-21: Selection Management
 
-- [ ] Port SelectionManager
+- [x] Port SelectionManager
 - [ ] Implement ResizeBehavior
 - [ ] Add selection tests
 
-**Files to create:**
+**Files created:**
 
-- `src/behaviors/vim/mod.rs`
-- `src/behaviors/vim/normal.rs`
-- `src/behaviors/vim/visual.rs`
-- `src/behaviors/vim/command.rs`
-- `src/behaviors/vim/cell_vim.rs`
-- `src/managers/selection.rs`
-- `src/behaviors/resize.rs`
+- ✅ `src/behaviors/vim/mod.rs` (600+ lines)
+- ✅ `src/behaviors/vim/normal.rs` (450+ lines)
+- ✅ `src/behaviors/vim/visual.rs` (400+ lines)
+- ✅ `src/behaviors/vim/command.rs` (500+ lines)
+- ✅ `src/behaviors/vim/motion.rs` (200+ lines)
+- ✅ `src/behaviors/vim/operator.rs` (350+ lines)
+- ✅ `src/behaviors/vim/cell_vim.rs` (700+ lines)
+- ✅ `src/managers/selection.rs` (550+ lines)
+- ⏳ `src/behaviors/resize.rs`
 
 ### Week 4: WASM Integration & Testing (Days 22-28)
 
@@ -213,19 +215,20 @@ gridcore-rs/
 
 - ✅ Week 1 (Days 1-7): **COMPLETE** - State machine and tests
 - ✅ Week 2 (Days 8-14): **COMPLETE** - Controller and events
-- ⏳ Week 3 (Days 15-21): **PENDING** - Vim mode implementation
+- ✅ Week 3 (Days 15-21): **95% COMPLETE** - Vim mode fully implemented, ResizeBehavior pending
 - ⏳ Week 4 (Days 22-28): **60% COMPLETE** - WASM bindings done, integration tests pending
 
 ### Daily Updates
 
 - 2025-08-06: Created plan document, implemented state machine and controller
-- 2025-08-07: Added comprehensive tests (49 total), configured WASM pipeline
+- 2025-08-07 Morning: Added comprehensive tests (49 total), configured WASM pipeline
+- 2025-08-07 Afternoon: Implemented complete Vim mode functionality (3,750+ lines), SelectionManager
 
 ## Implementation Statistics
 
-- **Total Lines of Rust Code**: ~3,500 lines
-- **Test Coverage**: 49 tests (36 passing)
-- **Components Completed**: 14/20 files
+- **Total Lines of Rust Code**: ~7,250 lines
+- **Test Coverage**: 60 tests (53 passing)
+- **Components Completed**: 22/24 files
 - **WASM Bundle Size**: <200KB (target achieved)
 - **Performance**: 1000+ state transitions/second
 
@@ -254,17 +257,18 @@ gridcore-rs/
 
 ## Remaining Work
 
-### Vim Mode Implementation (0% Complete)
-- VimBehavior state machine
-- Normal mode commands
-- Visual mode selection
-- Command mode execution
-- CellVimBehavior
+### Vim Mode Implementation (95% Complete)
+- ✅ VimBehavior state machine
+- ✅ Normal mode commands
+- ✅ Visual mode selection
+- ✅ Command mode execution
+- ✅ CellVimBehavior
+- ⏳ Integration with controller
 
-### Selection Management (0% Complete)
-- SelectionManager
-- ResizeBehavior
-- Multi-selection support
+### Selection Management (90% Complete)
+- ✅ SelectionManager
+- ⏳ ResizeBehavior
+- ✅ Multi-selection support
 
 ### Integration & Testing (30% Complete)
 - Complete transition implementations for failing tests
