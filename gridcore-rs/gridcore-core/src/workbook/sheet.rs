@@ -1,6 +1,6 @@
 use crate::dependency::DependencyGraph;
 use crate::repository::CellRepository;
-use crate::types::{CellAddress, CellValue};
+use crate::types::CellAddress;
 use crate::domain::Cell;
 use crate::Result;
 use std::collections::HashMap;

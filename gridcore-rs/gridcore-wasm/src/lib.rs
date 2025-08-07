@@ -1,7 +1,17 @@
 use wasm_bindgen::prelude::*;
 
-// Re-export types from gridcore-core
-pub use gridcore_core::wasm::*;
+// Re-export all WASM types from gridcore-core
+pub use gridcore_core::facade::wasm::WasmSpreadsheetFacade;
+pub use gridcore_core::workbook::wasm::{WasmWorkbook, WasmSheet, WasmSheetManager};
+pub use gridcore_core::types::wasm::WasmCellAddress;
+pub use gridcore_core::domain::cell::wasm_bindings::WasmCell;
+pub use gridcore_core::fill::wasm::JsFillOperation;
+pub use gridcore_core::formula::wasm::WasmFormulaParser;
+pub use gridcore_core::evaluator::wasm::WasmEvaluator;
+
+// Re-export controller types if available
+#[cfg(feature = "controller")]
+pub use gridcore_controller::wasm::{WasmSpreadsheetController, WasmUIState};
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
 #[cfg(feature = "wee_alloc")]

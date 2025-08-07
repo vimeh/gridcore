@@ -1,7 +1,7 @@
-use super::sheet::{Sheet, SheetProperties};
-use crate::formula::{Expr, FormulaParser};
+use super::sheet::Sheet;
 use crate::types::{CellAddress, CellValue};
 use crate::domain::Cell;
+use crate::formula::Expr;
 use crate::{Result, SpreadsheetError};
 use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Utc};
@@ -321,6 +321,17 @@ impl Workbook {
         sheet.set_cell(address, cell)?;
         self.metadata.modified_at = Utc::now();
         Ok(())
+    }
+
+    /// Delete a sheet (alias for remove_sheet)
+    pub fn delete_sheet(&mut self, name: &str) -> Result<()> {
+        self.remove_sheet(name)?;
+        Ok(())
+    }
+
+    /// Get the active sheet name
+    pub fn active_sheet_name(&self) -> Option<&str> {
+        self.active_sheet.as_deref()
     }
 }
 

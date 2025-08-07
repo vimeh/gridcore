@@ -45,6 +45,21 @@ impl SpreadsheetFacade {
         }
     }
 
+    /// Create a facade with specific repositories (for sheet integration)
+    pub fn with_repositories(
+        repository: Rc<RefCell<CellRepository>>,
+        dependency_graph: Rc<RefCell<DependencyGraph>>,
+    ) -> Self {
+        SpreadsheetFacade {
+            repository,
+            dependency_graph,
+            reference_tracker: RefCell::new(ReferenceTracker::new()),
+            batch_manager: RefCell::new(BatchManager::new()),
+            event_callbacks: RefCell::new(Vec::new()),
+            undo_redo_manager: RefCell::new(UndoRedoManager::new()),
+        }
+    }
+
     /// Add an event callback
     pub fn add_event_callback(&self, callback: Box<dyn EventCallback>) {
         self.event_callbacks.borrow_mut().push(callback);

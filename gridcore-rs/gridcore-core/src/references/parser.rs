@@ -3,7 +3,6 @@ use crate::formula::Expr;
 use crate::types::CellAddress;
 use regex::Regex;
 use std::collections::HashSet;
-use std::ops::Range;
 
 /// Parser for extracting references from formulas
 pub struct ReferenceParser {

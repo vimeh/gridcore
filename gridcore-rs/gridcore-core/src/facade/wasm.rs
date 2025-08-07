@@ -21,6 +21,31 @@ pub struct WasmSpreadsheetFacade {
     on_calculation_complete: RefCell<Option<Function>>,
 }
 
+impl WasmSpreadsheetFacade {
+    /// Create from an existing facade (used internally)
+    pub fn from_facade(facade: Rc<SpreadsheetFacade>) -> Self {
+        let on_cell_update = RefCell::new(None);
+        let on_batch_complete = RefCell::new(None);
+        let on_calculation_complete = RefCell::new(None);
+
+        // Add event callback that bridges to JS
+        let js_callback = JsEventBridge {
+            on_cell_update: on_cell_update.clone(),
+            on_batch_complete: on_batch_complete.clone(),
+            on_calculation_complete: on_calculation_complete.clone(),
+        };
+
+        facade.add_event_callback(Box::new(js_callback));
+
+        WasmSpreadsheetFacade {
+            inner: facade,
+            on_cell_update,
+            on_batch_complete,
+            on_calculation_complete,
+        }
+    }
+}
+
 #[wasm_bindgen]
 impl WasmSpreadsheetFacade {
     /// Create a new spreadsheet facade

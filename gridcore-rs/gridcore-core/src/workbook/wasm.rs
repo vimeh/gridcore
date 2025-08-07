@@ -1,0 +1,330 @@
+use crate::workbook::{Sheet, Workbook, SheetManager};
+use crate::facade::wasm::WasmSpreadsheetFacade;
+use crate::types::wasm::WasmCellAddress;
+use crate::types::CellValue;
+use crate::domain::Cell;
+use wasm_bindgen::prelude::*;
+use std::rc::Rc;
+use std::cell::RefCell;
+
+/// WASM wrapper for Sheet
+#[wasm_bindgen]
+pub struct WasmSheet {
+    #[wasm_bindgen(skip)]
+    pub inner: Rc<RefCell<Sheet>>,
+    name: String,
+}
+
+#[wasm_bindgen]
+impl WasmSheet {
+    /// Get the sheet name
+    #[wasm_bindgen(js_name = "getName")]
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
+
+    /// Get cell count
+    #[wasm_bindgen(js_name = "getCellCount")]
+    pub fn get_cell_count(&self) -> usize {
+        self.inner.borrow().cell_count()
+    }
+
+    /// Set visibility
+    #[wasm_bindgen(js_name = "setVisible")]
+    pub fn set_visible(&mut self, visible: bool) {
+        self.inner.borrow_mut().set_visible(visible);
+    }
+
+    /// Set protection
+    #[wasm_bindgen(js_name = "setProtected")]
+    pub fn set_protected(&mut self, protected: bool) {
+        self.inner.borrow_mut().set_protected(protected);
+    }
+
+    /// Get column width
+    #[wasm_bindgen(js_name = "getColumnWidth")]
+    pub fn get_column_width(&self, column: u32) -> f64 {
+        self.inner.borrow().get_column_width(column)
+    }
+
+    /// Set column width
+    #[wasm_bindgen(js_name = "setColumnWidth")]
+    pub fn set_column_width(&mut self, column: u32, width: f64) {
+        self.inner.borrow_mut().set_column_width(column, width);
+    }
+
+    /// Get row height
+    #[wasm_bindgen(js_name = "getRowHeight")]
+    pub fn get_row_height(&self, row: u32) -> f64 {
+        self.inner.borrow().get_row_height(row)
+    }
+
+    /// Set row height
+    #[wasm_bindgen(js_name = "setRowHeight")]
+    pub fn set_row_height(&mut self, row: u32, height: f64) {
+        self.inner.borrow_mut().set_row_height(row, height);
+    }
+
+    /// Clear all cells
+    #[wasm_bindgen]
+    pub fn clear(&self) {
+        self.inner.borrow().clear();
+    }
+}
+
+/// WASM wrapper for Workbook
+#[wasm_bindgen]
+pub struct WasmWorkbook {
+    inner: Rc<RefCell<Workbook>>,
+}
+
+#[wasm_bindgen]
+impl WasmWorkbook {
+    /// Create a new workbook with default sheet
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(Workbook::new())),
+        }
+    }
+
+    /// Create a new workbook with a named sheet
+    #[wasm_bindgen(js_name = "withSheet")]
+    pub fn with_sheet(sheet_name: &str) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(Workbook::with_sheet(sheet_name))),
+        }
+    }
+
+    /// Get the number of sheets
+    #[wasm_bindgen(js_name = "getSheetCount")]
+    pub fn get_sheet_count(&self) -> usize {
+        self.inner.borrow().sheet_count()
+    }
+
+    /// Get all sheet names
+    #[wasm_bindgen(js_name = "getSheetNames")]
+    pub fn get_sheet_names(&self) -> js_sys::Array {
+        let names = self.inner.borrow().sheet_names();
+        let array = js_sys::Array::new();
+        for name in names {
+            array.push(&JsValue::from_str(&name));
+        }
+        array
+    }
+
+    /// Create a new sheet
+    #[wasm_bindgen(js_name = "createSheet")]
+    pub fn create_sheet(&mut self, name: &str) -> Result<(), JsValue> {
+        self.inner
+            .borrow_mut()
+            .create_sheet(name)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Delete a sheet
+    #[wasm_bindgen(js_name = "deleteSheet")]
+    pub fn delete_sheet(&mut self, name: &str) -> Result<(), JsValue> {
+        self.inner
+            .borrow_mut()
+            .delete_sheet(name)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Rename a sheet
+    #[wasm_bindgen(js_name = "renameSheet")]
+    pub fn rename_sheet(&mut self, old_name: &str, new_name: &str) -> Result<(), JsValue> {
+        self.inner
+            .borrow_mut()
+            .rename_sheet(old_name, new_name)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Get the active sheet name
+    #[wasm_bindgen(js_name = "getActiveSheetName")]
+    pub fn get_active_sheet_name(&self) -> Option<String> {
+        self.inner.borrow().active_sheet_name().map(|s| s.to_string())
+    }
+
+    /// Set the active sheet
+    #[wasm_bindgen(js_name = "setActiveSheet")]
+    pub fn set_active_sheet(&mut self, name: &str) -> Result<(), JsValue> {
+        self.inner
+            .borrow_mut()
+            .set_active_sheet(name)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Get a facade for a specific sheet
+    #[wasm_bindgen(js_name = "getSheetFacade")]
+    pub fn get_sheet_facade(&self, sheet_name: &str) -> Result<WasmSpreadsheetFacade, JsValue> {
+        // Get the sheet
+        let sheet = self.inner
+            .borrow()
+            .get_sheet(sheet_name)
+            .ok_or_else(|| JsValue::from_str(&format!("Sheet '{}' not found", sheet_name)))?;
+        
+        // Create a facade using the sheet's cell repository and dependencies
+        let facade = crate::facade::SpreadsheetFacade::with_repositories(
+            sheet.cells(),
+            sheet.dependencies(),
+        );
+        
+        Ok(WasmSpreadsheetFacade::from_facade(Rc::new(facade)))
+    }
+
+    /// Get the active sheet's facade
+    #[wasm_bindgen(js_name = "getActiveFacade")]
+    pub fn get_active_facade(&self) -> Result<WasmSpreadsheetFacade, JsValue> {
+        let active_name = self.inner
+            .borrow()
+            .active_sheet_name()
+            .ok_or_else(|| JsValue::from_str("No active sheet"))?
+            .to_string();
+        
+        self.get_sheet_facade(&active_name)
+    }
+
+    /// Copy a sheet
+    #[wasm_bindgen(js_name = "copySheet")]
+    pub fn copy_sheet(&mut self, source_name: &str, new_name: &str) -> Result<(), JsValue> {
+        self.inner
+            .borrow_mut()
+            .copy_sheet(source_name, new_name)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Move a sheet to a different position
+    #[wasm_bindgen(js_name = "moveSheet")]
+    pub fn move_sheet(&mut self, sheet_name: &str, new_index: usize) -> Result<(), JsValue> {
+        self.inner
+            .borrow_mut()
+            .move_sheet(sheet_name, new_index)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Get a cell value from a specific sheet
+    #[wasm_bindgen(js_name = "getCellValue")]
+    pub fn get_cell_value(&self, sheet_name: &str, address: &WasmCellAddress) -> Option<JsValue> {
+        self.inner
+            .borrow()
+            .get_cell_value(sheet_name, &address.inner)
+            .map(|v| v.to_js())
+    }
+
+    /// Set a cell value in a specific sheet
+    #[wasm_bindgen(js_name = "setCellValue")]
+    pub fn set_cell_value(
+        &mut self,
+        sheet_name: &str,
+        address: &WasmCellAddress,
+        value: &str,
+    ) -> Result<(), JsValue> {
+        // Parse the value string
+        let cell_value = if value.starts_with('=') {
+            // It's a formula
+            CellValue::String(value.to_string())
+        } else if let Ok(num) = value.parse::<f64>() {
+            CellValue::Number(num)
+        } else if value == "true" || value == "false" {
+            CellValue::Boolean(value == "true")
+        } else {
+            CellValue::String(value.to_string())
+        };
+        
+        let cell = Cell::new(cell_value);
+        
+        // Set the cell using the workbook's method
+        self.inner
+            .borrow_mut()
+            .set_cell_value(sheet_name, &address.inner, cell)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+}
+
+impl Default for WasmWorkbook {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// WASM wrapper for SheetManager (for advanced cross-sheet operations)
+#[wasm_bindgen]
+pub struct WasmSheetManager {
+    inner: SheetManager,
+}
+
+#[wasm_bindgen]
+impl WasmSheetManager {
+    /// Create a new sheet manager
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self {
+            inner: SheetManager::new(),
+        }
+    }
+
+    /// Get workbook statistics
+    #[wasm_bindgen(js_name = "getStatistics")]
+    pub fn get_statistics(&self) -> JsValue {
+        let stats = self.inner.get_statistics();
+        let obj = js_sys::Object::new();
+        
+        let _ = js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("sheetCount"),
+            &JsValue::from_f64(stats.sheet_count as f64),
+        );
+        let _ = js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("totalCells"),
+            &JsValue::from_f64(stats.total_cells as f64),
+        );
+        let _ = js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("formulaCells"),
+            &JsValue::from_f64(stats.formula_cells as f64),
+        );
+        let _ = js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("errorCells"),
+            &JsValue::from_f64(stats.error_cells as f64),
+        );
+        
+        obj.into()
+    }
+}
+
+impl Default for WasmSheetManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// Helper trait for converting CellValue to JS
+trait ToJs {
+    fn to_js(&self) -> JsValue;
+}
+
+impl ToJs for CellValue {
+    fn to_js(&self) -> JsValue {
+        match self {
+            CellValue::Empty => JsValue::NULL,
+            CellValue::Number(n) => JsValue::from_f64(*n),
+            CellValue::String(s) => JsValue::from_str(s),
+            CellValue::Boolean(b) => JsValue::from_bool(*b),
+            CellValue::Error(e) => {
+                let obj = js_sys::Object::new();
+                let _ = js_sys::Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::from_str(e));
+                obj.into()
+            }
+            CellValue::Array(arr) => {
+                let js_array = js_sys::Array::new();
+                for val in arr {
+                    js_array.push(&val.to_js());
+                }
+                js_array.into()
+            }
+        }
+    }
+}
