@@ -25,15 +25,9 @@ export async function initializeWasm(): Promise<void> {
   if (initialized) return;
 
   try {
-    // Dynamic import of WASM module - using optional import
-    try {
-      // @ts-ignore - Dynamic import of optional dependency
-      wasmModule = await import("gridcore-controller");
-    } catch (firstError) {
-      // Try alternate path if package import fails
-      // @ts-ignore
-      wasmModule = await import("../../../gridcore-rs/gridcore-controller/pkg/gridcore_controller.js");
-    }
+    // Dynamic import of WASM module
+    // @ts-ignore - Dynamic import of optional dependency
+    wasmModule = await import("gridcore-controller");
     
     // Initialize WASM module
     if (wasmModule.init) {
@@ -289,7 +283,7 @@ export class RustSpreadsheetController {
  * Feature flag to enable/disable Rust controller
  */
 export const USE_RUST_CONTROLLER = 
-  process.env.USE_RUST_CONTROLLER === "true" ||
+  (typeof process !== "undefined" && process.env?.USE_RUST_CONTROLLER === "true") ||
   (typeof window !== "undefined" && 
    new URLSearchParams(window.location.search).get("rust") === "true");
 
