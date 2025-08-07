@@ -1,5 +1,5 @@
 /**
- * TypeScript adapter for Rust WASM controller
+ * TypeScript adapter for Rust WASM core and controller
  * Provides compatibility layer between TypeScript and Rust implementations
  */
 
@@ -27,21 +27,133 @@ export async function initializeWasm(): Promise<void> {
   try {
     // Dynamic import of WASM module
     // @ts-ignore - Dynamic import of optional dependency
-    wasmModule = await import("gridcore-controller");
+    const module = await import("../../../gridcore-rs/gridcore-wasm/pkg/gridcore_wasm.js");
     
     // Initialize WASM module
-    if (wasmModule.init) {
-      wasmModule.init();
-    } else if (wasmModule.default) {
-      // Handle default export
-      await wasmModule.default();
+    if (module.default) {
+      await module.default();
     }
-
+    
+    wasmModule = module;
     initialized = true;
-    console.log("WASM controller initialized successfully");
+    console.log("WASM core initialized successfully");
   } catch (error) {
-    console.error("Failed to initialize WASM controller:", error);
+    console.error("Failed to initialize WASM core:", error);
     throw error;
+  }
+}
+
+/**
+ * Rust SpreadsheetFacade adapter
+ * Wraps the WASM facade to match TypeScript interface
+ */
+export class RustSpreadsheetFacade implements SpreadsheetFacade {
+  private workbook: any; // WasmWorkbook instance
+  private facade: any; // WasmSpreadsheetFacade instance
+  
+  constructor() {
+    if (!initialized) {
+      throw new Error("WASM not initialized. Call initializeWasm() first.");
+    }
+    
+    // Create a new workbook with default sheet
+    this.workbook = new wasmModule.WasmWorkbook();
+    
+    // Get the facade for the active sheet
+    this.facade = this.workbook.getActiveFacade();
+  }
+  
+  // SpreadsheetFacade implementation
+  
+  setCellValue(address: CellAddress, value: string): void {
+    const wasmAddress = new wasmModule.WasmCellAddress(address.col, address.row);
+    this.facade.setCellValue(wasmAddress, value);
+    wasmAddress.free();
+  }
+  
+  getCellValue(address: CellAddress): any {
+    const wasmAddress = new wasmModule.WasmCellAddress(address.col, address.row);
+    const value = this.facade.getCellValue(wasmAddress);
+    wasmAddress.free();
+    return value;
+  }
+  
+  getCellFormula(address: CellAddress): string | null {
+    const wasmAddress = new wasmModule.WasmCellAddress(address.col, address.row);
+    const formula = this.facade.getCellFormula(wasmAddress);
+    wasmAddress.free();
+    return formula || null;
+  }
+  
+  deleteCells(addresses: CellAddress[]): void {
+    for (const address of addresses) {
+      const wasmAddress = new wasmModule.WasmCellAddress(address.col, address.row);
+      this.facade.deleteCell(wasmAddress);
+      wasmAddress.free();
+    }
+  }
+  
+  clearCells(addresses: CellAddress[]): void {
+    for (const address of addresses) {
+      const wasmAddress = new wasmModule.WasmCellAddress(address.col, address.row);
+      this.facade.clearCell(wasmAddress);
+      wasmAddress.free();
+    }
+  }
+  
+  // Workbook-specific methods
+  
+  createSheet(name: string): void {
+    this.workbook.createSheet(name);
+  }
+  
+  deleteSheet(name: string): void {
+    this.workbook.deleteSheet(name);
+  }
+  
+  renameSheet(oldName: string, newName: string): void {
+    this.workbook.renameSheet(oldName, newName);
+  }
+  
+  getSheetNames(): string[] {
+    return Array.from(this.workbook.getSheetNames());
+  }
+  
+  setActiveSheet(name: string): void {
+    this.workbook.setActiveSheet(name);
+    // Update facade to point to new active sheet
+    this.facade = this.workbook.getActiveFacade();
+  }
+  
+  getActiveSheetName(): string | null {
+    const name = this.workbook.getActiveSheetName();
+    return name === null ? null : name;
+  }
+  
+  // Cross-sheet references
+  
+  getCellValueFromSheet(sheetName: string, address: CellAddress): any {
+    const wasmAddress = new wasmModule.WasmCellAddress(address.col, address.row);
+    const value = this.workbook.getCellValue(sheetName, wasmAddress);
+    wasmAddress.free();
+    return value;
+  }
+  
+  setCellValueInSheet(sheetName: string, address: CellAddress, value: string): void {
+    const wasmAddress = new wasmModule.WasmCellAddress(address.col, address.row);
+    this.workbook.setCellValue(sheetName, wasmAddress, value);
+    wasmAddress.free();
+  }
+  
+  // Cleanup
+  
+  dispose(): void {
+    if (this.facade && this.facade.free) {
+      this.facade.free();
+    }
+    if (this.workbook && this.workbook.free) {
+      this.workbook.free();
+    }
   }
 }
 
@@ -51,7 +163,7 @@ export async function initializeWasm(): Promise<void> {
  */
 export class RustSpreadsheetController {
   private inner: any; // WasmSpreadsheetController instance
-  private facade: SpreadsheetFacade;
+  private facade: RustSpreadsheetFacade;
   private viewportManager: ViewportManager;
   private listeners: Array<(event: ControllerEvent) => void> = [];
   private _state: UIState | null = null;
@@ -63,11 +175,17 @@ export class RustSpreadsheetController {
 
     // Handle both constructor signatures for backward compatibility
     if ("facade" in options) {
-      this.facade = options.facade;
+      // Use provided facade or create Rust facade
+      if (options.facade instanceof RustSpreadsheetFacade) {
+        this.facade = options.facade;
+      } else {
+        // Wrap TypeScript facade in Rust adapter
+        this.facade = new RustSpreadsheetFacade();
+      }
       this.viewportManager = options.viewportManager;
     } else {
       // Legacy constructor signature
-      this.facade = options as SpreadsheetFacade;
+      this.facade = new RustSpreadsheetFacade();
       // Create default viewport manager
       this.viewportManager = {
         getColumnWidth: (index: number) => 100,
@@ -80,13 +198,17 @@ export class RustSpreadsheetController {
       };
     }
 
-    // Create WASM controller
-    this.inner = new (wasmModule as WasmModule).WasmSpreadsheetController();
-    
-    // Subscribe to WASM events (if implemented)
-    this.inner.subscribe((event: any) => {
-      this.handleWasmEvent(event);
-    });
+    // Create WASM controller if available
+    if (wasmModule.WasmSpreadsheetController) {
+      this.inner = new wasmModule.WasmSpreadsheetController();
+      
+      // Subscribe to WASM events (if implemented)
+      if (this.inner.subscribe) {
+        this.inner.subscribe((event: any) => {
+          this.handleWasmEvent(event);
+        });
+      }
+    }
   }
 
   private handleWasmEvent(event: any): void {
@@ -138,25 +260,27 @@ export class RustSpreadsheetController {
 
   handleKeydown(event: KeyboardEvent): void {
     try {
-      const keyEvent = {
-        key: event.key,
-        shift: event.shiftKey,
-        ctrl: event.ctrlKey,
-        alt: event.altKey,
-        meta: event.metaKey,
-      };
-      
-      this.inner.handleKeyboardEvent(keyEvent);
-      
-      // Update cached state
-      this._state = this.inner.getState();
-      
-      // Notify listeners
-      this.notify({
-        type: "stateChanged",
-        state: this._state as UIState,
-        action: { type: "KeyPress", key: event.key } as any,
-      });
+      if (this.inner && this.inner.handleKeyboardEvent) {
+        const keyEvent = {
+          key: event.key,
+          shift: event.shiftKey,
+          ctrl: event.ctrlKey,
+          alt: event.altKey,
+          meta: event.metaKey,
+        };
+        
+        this.inner.handleKeyboardEvent(keyEvent);
+        
+        // Update cached state
+        this._state = this.inner.getState();
+        
+        // Notify listeners
+        this.notify({
+          type: "stateChanged",
+          state: this._state as UIState,
+          action: { type: "KeyPress", key: event.key } as any,
+        });
+      }
     } catch (error) {
       console.error("Error handling keyboard event:", error);
       this.notify({
@@ -168,37 +292,39 @@ export class RustSpreadsheetController {
 
   handleMouseEvent(event: MouseEvent, target: HTMLElement): void {
     try {
-      const rect = target.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      
-      let eventType = "move";
-      switch (event.type) {
-        case "mousedown": eventType = "down"; break;
-        case "mouseup": eventType = "up"; break;
-        case "click": eventType = "click"; break;
-        case "dblclick": eventType = "doubleclick"; break;
-        case "wheel": eventType = "wheel"; break;
+      if (this.inner && this.inner.handleMouseEvent) {
+        const rect = target.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        let eventType = "move";
+        switch (event.type) {
+          case "mousedown": eventType = "down"; break;
+          case "mouseup": eventType = "up"; break;
+          case "click": eventType = "click"; break;
+          case "dblclick": eventType = "doubleclick"; break;
+          case "wheel": eventType = "wheel"; break;
+        }
+        
+        let button = "none";
+        switch (event.button) {
+          case 0: button = "left"; break;
+          case 1: button = "middle"; break;
+          case 2: button = "right"; break;
+        }
+        
+        const mouseEvent = {
+          x,
+          y,
+          button,
+          event_type: eventType,
+        };
+        
+        this.inner.handleMouseEvent(mouseEvent);
+        
+        // Update cached state
+        this._state = this.inner.getState();
       }
-      
-      let button = "none";
-      switch (event.button) {
-        case 0: button = "left"; break;
-        case 1: button = "middle"; break;
-        case 2: button = "right"; break;
-      }
-      
-      const mouseEvent = {
-        x,
-        y,
-        button,
-        event_type: eventType,
-      };
-      
-      this.inner.handleMouseEvent(mouseEvent);
-      
-      // Update cached state
-      this._state = this.inner.getState();
     } catch (error) {
       console.error("Error handling mouse event:", error);
     }
@@ -206,17 +332,48 @@ export class RustSpreadsheetController {
 
   getState(): UIState {
     if (!this._state) {
-      this._state = this.inner.getState();
+      if (this.inner && this.inner.getState) {
+        this._state = this.inner.getState();
+      } else {
+        // Return default state
+        this._state = {
+          mode: "normal",
+          cursor: { row: 0, col: 0 },
+          selection: null,
+          editingCell: null,
+          viewport: {
+            startRow: 0,
+            endRow: 50,
+            startCol: 0,
+            endCol: 20,
+            width: 1000,
+            height: 800,
+          },
+        };
+      }
     }
     return this._state as UIState;
   }
 
   getCursor(): CellAddress {
-    return this.inner.getCursor();
+    if (this.inner && this.inner.getCursor) {
+      return this.inner.getCursor();
+    }
+    return { row: 0, col: 0 };
   }
 
   getViewport(): ViewportInfo {
-    return this.inner.getViewport();
+    if (this.inner && this.inner.getViewport) {
+      return this.inner.getViewport();
+    }
+    return {
+      startRow: 0,
+      endRow: 50,
+      startCol: 0,
+      endCol: 20,
+      width: 1000,
+      height: 800,
+    };
   }
 
   subscribe(listener: (event: ControllerEvent) => void): () => void {
@@ -241,37 +398,52 @@ export class RustSpreadsheetController {
   }
 
   setCellValue(address: CellAddress, value: string): void {
-    this.inner.setCellValue(address.col, address.row, value);
     this.facade.setCellValue(address, value);
+    if (this.inner && this.inner.setCellValue) {
+      this.inner.setCellValue(address.col, address.row, value);
+    }
   }
 
   getCellValue(address: CellAddress): any {
-    return this.inner.getCellValue(address.col, address.row);
+    return this.facade.getCellValue(address);
   }
 
   // Undo/Redo support (if implemented in WASM)
   
   undo(): void {
-    // Would need WASM support
-    console.warn("Undo not yet implemented in Rust controller");
+    if (this.inner && this.inner.undo) {
+      this.inner.undo();
+    } else {
+      console.warn("Undo not yet implemented in Rust controller");
+    }
   }
 
   redo(): void {
-    // Would need WASM support
-    console.warn("Redo not yet implemented in Rust controller");
+    if (this.inner && this.inner.redo) {
+      this.inner.redo();
+    } else {
+      console.warn("Redo not yet implemented in Rust controller");
+    }
   }
 
   canUndo(): boolean {
-    return false; // Would need WASM support
+    if (this.inner && this.inner.canUndo) {
+      return this.inner.canUndo();
+    }
+    return false;
   }
 
   canRedo(): boolean {
-    return false; // Would need WASM support
+    if (this.inner && this.inner.canRedo) {
+      return this.inner.canRedo();
+    }
+    return false;
   }
 
   // Cleanup
 
   dispose(): void {
+    this.facade.dispose();
     if (this.inner && this.inner.free) {
       this.inner.free();
     }
@@ -280,12 +452,26 @@ export class RustSpreadsheetController {
 }
 
 /**
- * Feature flag to enable/disable Rust controller
+ * Feature flag to enable/disable Rust implementation
  */
-export const USE_RUST_CONTROLLER = 
-  (typeof process !== "undefined" && process.env?.USE_RUST_CONTROLLER === "true") ||
+export const USE_RUST_CORE = 
+  (typeof process !== "undefined" && process.env?.USE_RUST_CORE === "true") ||
   (typeof window !== "undefined" && 
    new URLSearchParams(window.location.search).get("rust") === "true");
+
+/**
+ * Factory function to create the appropriate facade
+ */
+export async function createSpreadsheetFacade(): Promise<SpreadsheetFacade> {
+  if (USE_RUST_CORE) {
+    await initializeWasm();
+    return new RustSpreadsheetFacade();
+  } else {
+    // Import TypeScript implementation dynamically
+    const { createSpreadsheetFacade: createTsFacade } = await import("@gridcore/core");
+    return createTsFacade();
+  }
+}
 
 /**
  * Factory function to create the appropriate controller
@@ -293,7 +479,7 @@ export const USE_RUST_CONTROLLER =
 export async function createSpreadsheetController(
   options: SpreadsheetControllerOptions | SpreadsheetFacade
 ): Promise<any> {
-  if (USE_RUST_CONTROLLER) {
+  if (USE_RUST_CORE) {
     await initializeWasm();
     return new RustSpreadsheetController(options);
   } else {
