@@ -1,7 +1,6 @@
 use super::{Reference, ReferenceType};
 use crate::formula::Expr;
 use crate::types::CellAddress;
-use crate::Result;
 use regex::Regex;
 use std::collections::HashSet;
 use std::ops::Range;

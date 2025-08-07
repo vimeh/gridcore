@@ -1,10 +1,14 @@
 use crate::types::CellAddress;
-use crate::Result;
 
 pub mod parser;
 pub mod detector;
 pub mod adjuster;
 pub mod tracker;
+
+pub use self::tracker::ReferenceTracker;
+pub use self::adjuster::ReferenceAdjuster;
+pub use self::parser::ReferenceParser;
+pub use self::detector::ReferenceDetector;
 
 #[cfg(test)]
 mod tests;

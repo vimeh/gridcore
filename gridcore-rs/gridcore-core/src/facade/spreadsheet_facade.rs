@@ -4,6 +4,7 @@ use crate::domain::Cell;
 use crate::evaluator::{EvaluationContext, Evaluator};
 use crate::fill::{FillEngine, FillOperation, FillResult};
 use crate::formula::FormulaParser;
+use crate::references::{ReferenceTracker, StructuralOperation, ReferenceAdjuster};
 use crate::repository::CellRepository;
 use crate::types::{CellAddress, CellValue};
 use crate::{Result, SpreadsheetError};
@@ -21,6 +22,8 @@ pub struct SpreadsheetFacade {
     repository: Rc<RefCell<CellRepository>>,
     /// Dependency graph for tracking cell dependencies
     dependency_graph: Rc<RefCell<DependencyGraph>>,
+    /// Reference tracker for formula reference management
+    reference_tracker: RefCell<ReferenceTracker>,
     /// Batch manager for batch operations
     batch_manager: RefCell<BatchManager>,
     /// Event callbacks
@@ -35,6 +38,7 @@ impl SpreadsheetFacade {
         SpreadsheetFacade {
             repository: Rc::new(RefCell::new(CellRepository::new())),
             dependency_graph: Rc::new(RefCell::new(DependencyGraph::new())),
+            reference_tracker: RefCell::new(ReferenceTracker::new()),
             batch_manager: RefCell::new(BatchManager::new()),
             event_callbacks: RefCell::new(Vec::new()),
             undo_redo_manager: RefCell::new(UndoRedoManager::new()),
@@ -108,6 +112,9 @@ impl SpreadsheetFacade {
                     graph.add_dependency(address.clone(), dep.clone());
                 }
             }
+
+            // Update reference tracker
+            self.reference_tracker.borrow_mut().update_dependencies(address, &ast);
 
             // Create cell with formula
             let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
@@ -414,6 +421,77 @@ impl SpreadsheetFacade {
         self.batch_manager
             .borrow_mut()
             .add_operation(batch_id, operation)
+    }
+
+    /// Insert rows and adjust all affected references
+    pub fn insert_rows(&self, before_row: u32, count: u32) -> Result<()> {
+        let operation = StructuralOperation::InsertRows { before_row, count };
+        self.apply_structural_operation(operation)
+    }
+
+    /// Insert columns and adjust all affected references
+    pub fn insert_columns(&self, before_col: u32, count: u32) -> Result<()> {
+        let operation = StructuralOperation::InsertColumns { before_col, count };
+        self.apply_structural_operation(operation)
+    }
+
+    /// Delete rows and adjust all affected references
+    pub fn delete_rows(&self, start_row: u32, count: u32) -> Result<()> {
+        let operation = StructuralOperation::DeleteRows { start_row, count };
+        self.apply_structural_operation(operation)
+    }
+
+    /// Delete columns and adjust all affected references
+    pub fn delete_columns(&self, start_col: u32, count: u32) -> Result<()> {
+        let operation = StructuralOperation::DeleteColumns { start_col, count };
+        self.apply_structural_operation(operation)
+    }
+
+    /// Apply a structural operation and adjust all formulas
+    fn apply_structural_operation(&self, operation: StructuralOperation) -> Result<()> {
+        let adjuster = ReferenceAdjuster::new();
+        let mut adjusted_cells = Vec::new();
+
+        // First pass: collect all cells with formulas that need adjustment
+        {
+            let repo = self.repository.borrow();
+            for (address, cell) in repo.iter() {
+                if cell.has_formula() {
+                    // Get the original formula string from raw_value
+                    if let CellValue::String(formula_str) = &cell.raw_value {
+                        if formula_str.starts_with('=') {
+                            if let Ok(adjusted_formula) = adjuster.adjust_formula(formula_str, &operation) {
+                                if adjusted_formula != *formula_str {
+                                    adjusted_cells.push((address.clone(), adjusted_formula));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Second pass: apply adjustments
+        for (address, adjusted_formula) in adjusted_cells {
+            self.set_cell_value_internal(&address, &adjusted_formula)?;
+        }
+
+        // Sync reference tracker with dependency graph
+        self.reference_tracker.borrow().sync_with_dependency_graph(&self.dependency_graph);
+
+        // Recalculate all affected cells
+        self.recalculate()?;
+
+        Ok(())
+    }
+
+    /// Update reference tracker when a cell formula changes
+    fn update_reference_tracking(&self, address: &CellAddress, formula: &str) -> Result<()> {
+        if let Ok(expr) = FormulaParser::parse(formula) {
+            self.reference_tracker.borrow_mut().update_dependencies(address, &expr);
+            self.reference_tracker.borrow().sync_with_dependency_graph(&self.dependency_graph);
+        }
+        Ok(())
     }
 
     /// Internal set cell value (without batch check)
