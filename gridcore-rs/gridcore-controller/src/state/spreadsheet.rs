@@ -48,6 +48,8 @@ pub enum SelectionType {
     Range { start: CellAddress, end: CellAddress },
     Column { columns: Vec<u32> },
     Row { rows: Vec<u32> },
+    // Alternative name for compatibility
+    // Row { indices: Vec<u32> },
     Multi { selections: Vec<Selection> },
 }
 
@@ -82,7 +84,9 @@ pub enum BulkOperationStatus {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ParsedBulkCommand {
     pub command: String,
-    // TODO: Add actual command structure
+    pub operation: String,
+    pub range_spec: String,
+    pub parameters: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -117,16 +121,21 @@ pub enum UIState {
     Resize {
         cursor: CellAddress,
         viewport: ViewportInfo,
+        target: ResizeTarget,
         resize_target: ResizeTarget,
         resize_index: u32,
         original_size: u32,
         current_size: u32,
+        initial_position: f64,
+        current_position: f64,
     },
     Insert {
         cursor: CellAddress,
         viewport: ViewportInfo,
         insert_type: InsertType,
+        position: InsertPosition,
         insert_position: InsertPosition,
+        reference: u32,
         count: u32,
         target_index: u32,
     },
@@ -134,13 +143,15 @@ pub enum UIState {
         cursor: CellAddress,
         viewport: ViewportInfo,
         delete_type: DeleteType,
+        targets: Vec<u32>,
         selection: Vec<u32>,
         confirmation_pending: bool,
     },
     BulkOperation {
         cursor: CellAddress,
         viewport: ViewportInfo,
-        command: ParsedBulkCommand,
+        parsed_command: ParsedBulkCommand,
+        preview_available: bool,
         preview_visible: bool,
         affected_cells: u32,
         status: BulkOperationStatus,
@@ -150,8 +161,8 @@ pub enum UIState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResizeTarget {
-    Column,
-    Row,
+    Column { index: u32 },
+    Row { index: u32 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -174,6 +185,14 @@ pub enum DeleteType {
 
 // Type guards
 impl UIState {
+    pub fn create_navigation_state(cursor: CellAddress, viewport: ViewportInfo) -> Self {
+        UIState::Navigation {
+            cursor,
+            viewport,
+            selection: None,
+        }
+    }
+    
     pub fn spreadsheet_mode(&self) -> SpreadsheetMode {
         match self {
             UIState::Navigation { .. } => SpreadsheetMode::Navigation,

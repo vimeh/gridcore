@@ -44,10 +44,26 @@ pub enum Action {
         insert_type: InsertType,
         insert_position: InsertPosition,
     },
+    StartInsert {
+        insert_type: InsertType,
+        position: InsertPosition,
+        reference: u32,
+    },
     ExitStructuralInsertMode,
     UpdateInsertCount {
         count: u32,
     },
+    ConfirmInsert,
+    CancelInsert,
+    StartResize {
+        target: ResizeTarget,
+        initial_position: f64,
+    },
+    UpdateResize {
+        new_position: f64,
+    },
+    CompleteResize,
+    CancelResize,
     EnterDeleteMode {
         delete_type: DeleteType,
         selection: Vec<u32>,
@@ -55,6 +71,13 @@ pub enum Action {
     ExitDeleteMode,
     ConfirmDelete,
     CancelDelete,
+    StartDelete {
+        targets: Vec<u32>,
+        delete_type: DeleteType,
+    },
+    ChangeVisualMode {
+        new_mode: SpreadsheetVisualMode,
+    },
     UpdateEditingValue {
         value: String,
         cursor_position: usize,
@@ -73,10 +96,11 @@ pub enum Action {
     },
     Escape,
     StartBulkOperation {
-        command: ParsedBulkCommand,
+        parsed_command: ParsedBulkCommand,
         affected_cells: Option<u32>,
     },
     ShowBulkPreview,
+    GeneratePreview,
     ExecuteBulkOperation,
     CancelBulkOperation,
     CompleteBulkOperation,
@@ -384,6 +408,10 @@ impl UIStateMachine {
 
     pub fn get_history(&self) -> Vec<HistoryEntry> {
         self.history.iter().cloned().collect()
+    }
+    
+    pub fn clear_history(&mut self) {
+        self.history.clear();
     }
 
     fn add_to_history(&mut self, state: UIState, action: Action) {

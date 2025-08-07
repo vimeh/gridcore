@@ -5,6 +5,12 @@ pub mod transitions;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod edge_case_tests;
+#[cfg(test)]
+mod complex_transition_tests;
+#[cfg(test)]
+mod performance_tests;
 
 pub use machine::{UIStateMachine, Action};
 pub use spreadsheet::{

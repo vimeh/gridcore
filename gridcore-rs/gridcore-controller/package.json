@@ -1,0 +1,23 @@
+{
+  "name": "@gridcore/controller-wasm",
+  "version": "0.1.0",
+  "description": "WASM bindings for gridcore-controller",
+  "scripts": {
+    "build": "./build.sh",
+    "build:web": "wasm-pack build --target web --out-dir pkg --features wasm",
+    "build:node": "wasm-pack build --target nodejs --out-dir pkg-node --features wasm",
+    "test": "wasm-pack test --headless --firefox --features wasm",
+    "test:chrome": "wasm-pack test --headless --chrome --features wasm",
+    "size": "wc -c pkg/*_bg.wasm"
+  },
+  "files": [
+    "pkg",
+    "pkg-node"
+  ],
+  "main": "./pkg-node/gridcore_controller.js",
+  "module": "./pkg/gridcore_controller.js",
+  "types": "./pkg/gridcore_controller.d.ts",
+  "devDependencies": {
+    "wasm-pack": "^0.12.1"
+  }
+}

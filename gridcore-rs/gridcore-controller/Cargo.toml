@@ -1,7 +1,10 @@
 [package]
 name = "gridcore-controller"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 gridcore-core = { path = "../gridcore-core" }
@@ -16,6 +19,9 @@ wasm = [
   "dep:web-sys",
   "dep:serde-wasm-bindgen",
   "dep:serde_json",
+  "dep:console_error_panic_hook",
+  "dep:console_log",
+  "dep:log",
   "gridcore-core/wasm",
 ]
 
@@ -49,9 +55,23 @@ optional = true
 workspace = true
 optional = true
 
+[dependencies.console_error_panic_hook]
+version = "0.1"
+optional = true
+
+[dependencies.console_log]
+version = "1.0"
+optional = true
+features = ["color"]
+
+[dependencies.log]
+version = "0.4"
+optional = true
+
 [dev-dependencies]
 criterion = "0.5"
 wasm-bindgen-test = "0.3"
+serde_json = { workspace = true }
 
 # [[bench]]
 # name = "controller_bench"
