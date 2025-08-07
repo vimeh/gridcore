@@ -59,6 +59,7 @@ impl WasmSpreadsheetController {
     pub fn set_cell_value(&mut self, col: u32, row: u32, value: String) -> Result<(), JsValue> {
         let address = CellAddress::new(col, row);
         self.inner.get_facade_mut().set_cell_value(&address, &value)
+            .map(|_| ()) // Ignore the returned Cell
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
     

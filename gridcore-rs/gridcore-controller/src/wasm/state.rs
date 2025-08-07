@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use serde_wasm_bindgen::{from_value, to_value};
-use crate::state::{UIStateMachine, UIState, Action, SpreadsheetMode};
+use crate::state::{UIStateMachine, UIState, Action};
 use gridcore_core::types::CellAddress;
 
 #[wasm_bindgen]
@@ -59,7 +59,7 @@ impl WasmUIStateMachine {
     
     #[wasm_bindgen(js_name = "getHistory")]
     pub fn get_history(&self) -> Result<JsValue, JsValue> {
-        to_value(self.inner.get_history())
+        to_value(&self.inner.get_history())
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
     

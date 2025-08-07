@@ -23,7 +23,8 @@
       "Bash(cargo check:*)",
       "Bash(cargo test:*)",
       "Bash(cargo build:*)",
-      "Bash(wasm-pack build:*)"
+      "Bash(wasm-pack build:*)",
+      "Bash(./build.sh:*)"
     ],
     "deny": []
   }

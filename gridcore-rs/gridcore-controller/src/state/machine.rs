@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use gridcore_core::{Result, SpreadsheetError, types::CellAddress};
+use serde::{Serialize, Deserialize};
 use crate::state::{
     UIState, CellMode, VisualMode, SpreadsheetVisualMode,
     InsertMode, ViewportInfo, Selection, ParsedBulkCommand,
@@ -8,7 +9,7 @@ use crate::state::{
     create_navigation_state, create_editing_state, create_command_state, create_visual_state,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Action {
     StartEditing {
         edit_mode: Option<InsertMode>,
@@ -123,7 +124,7 @@ pub struct UIStateMachine {
     max_history_size: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryEntry {
     pub state: UIState,
     pub action: Action,
@@ -218,12 +219,18 @@ impl UIStateMachine {
             },
             
             (UIState::Editing { .. }, Action::EnterVisualMode { visual_type, anchor }) => {
-                // Allow entering visual mode from editing
+                // Allow entering visual mode from editing (handles both Normal and other modes)
                 let mut new_state = state.clone();
-                if let UIState::Editing { cell_mode: mode, visual_type: v_type, visual_start, .. } = &mut new_state {
+                if let UIState::Editing { 
+                    cell_mode: mode, 
+                    visual_type: v_type, 
+                    visual_start, 
+                    cursor_position,
+                    .. 
+                } = &mut new_state {
                     *mode = CellMode::Visual;
                     *v_type = Some(*visual_type);
-                    *visual_start = *anchor;
+                    *visual_start = Some(anchor.unwrap_or(*cursor_position));
                 }
                 Ok(new_state)
             },
@@ -242,22 +249,6 @@ impl UIStateMachine {
                 if let UIState::Editing { cell_mode, edit_variant, .. } = &mut new_state {
                     *cell_mode = CellMode::Normal;
                     *edit_variant = None;
-                }
-                Ok(new_state)
-            },
-            
-            (UIState::Editing { cell_mode: CellMode::Normal, .. }, Action::EnterVisualMode { visual_type, anchor }) => {
-                let mut new_state = state.clone();
-                if let UIState::Editing { 
-                    cell_mode, 
-                    visual_type: vt, 
-                    visual_start, 
-                    cursor_position,
-                    .. 
-                } = &mut new_state {
-                    *cell_mode = CellMode::Visual;
-                    *vt = Some(*visual_type);
-                    *visual_start = Some(anchor.unwrap_or(*cursor_position));
                 }
                 Ok(new_state)
             },

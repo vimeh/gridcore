@@ -234,6 +234,15 @@ impl UndoRedoManager {
             .collect()
     }
 
+    /// Get undo history with metadata (description and timestamp)
+    pub fn get_undo_history_with_metadata(&self) -> Vec<(String, u64)> {
+        self.undo_stack
+            .iter()
+            .rev()
+            .map(|entry| (entry.command.description(), entry.metadata.timestamp))
+            .collect()
+    }
+
     /// Clear all undo/redo history
     pub fn clear_history(&mut self) {
         self.undo_stack.clear();

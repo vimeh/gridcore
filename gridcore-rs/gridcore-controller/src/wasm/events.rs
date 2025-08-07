@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use serde_wasm_bindgen::{from_value, to_value};
+use serde_wasm_bindgen::to_value;
 use crate::controller::{SpreadsheetEvent, KeyboardEvent, MouseEvent};
 use crate::controller::events::{MouseButton, MouseEventType};
 
