@@ -200,9 +200,17 @@ export class WasmSpreadsheetFacade {
    */
   getCell(address: WasmCellAddress): WasmCell | undefined;
   /**
+   * Get a cell formula
+   */
+  getCellFormula(address: WasmCellAddress): string | undefined;
+  /**
    * Delete a cell
    */
   deleteCell(address: WasmCellAddress): void;
+  /**
+   * Clear a cell (sets it to empty but keeps the cell)
+   */
+  clearCell(address: WasmCellAddress): void;
   /**
    * Recalculate all cells
    */
@@ -386,7 +394,9 @@ export interface InitOutput {
   readonly wasmspreadsheetfacade_setCellValue: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly wasmspreadsheetfacade_getCellValue: (a: number, b: number, c: number) => void;
   readonly wasmspreadsheetfacade_getCell: (a: number, b: number) => number;
+  readonly wasmspreadsheetfacade_getCellFormula: (a: number, b: number, c: number) => void;
   readonly wasmspreadsheetfacade_deleteCell: (a: number, b: number, c: number) => void;
+  readonly wasmspreadsheetfacade_clearCell: (a: number, b: number, c: number) => void;
   readonly wasmspreadsheetfacade_recalculate: (a: number, b: number) => void;
   readonly wasmspreadsheetfacade_recalculateCell: (a: number, b: number, c: number) => void;
   readonly wasmspreadsheetfacade_beginBatch: (a: number, b: number, c: number, d: number) => void;

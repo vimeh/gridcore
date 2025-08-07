@@ -306,6 +306,19 @@ export class RustSpreadsheetController {
     }
   }
 
+  // Alias for compatibility with different calling conventions
+  handleKeyPress(key: string, modifiers?: { key: string; ctrl: boolean; alt: boolean; shift: boolean }): void {
+    // Create a synthetic KeyboardEvent-like object
+    const event = new KeyboardEvent("keydown", {
+      key: modifiers?.key || key,
+      ctrlKey: modifiers?.ctrl || false,
+      altKey: modifiers?.alt || false,
+      shiftKey: modifiers?.shift || false,
+      metaKey: false,
+    });
+    this.handleKeydown(event);
+  }
+
   handleMouseEvent(event: MouseEvent, target: HTMLElement): void {
     try {
       if (this.inner && this.inner.handleMouseEvent) {

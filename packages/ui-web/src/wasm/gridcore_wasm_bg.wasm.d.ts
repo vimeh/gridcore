@@ -28,7 +28,9 @@ export const wasmspreadsheetfacade_onCalculationComplete: (a: number, b: number)
 export const wasmspreadsheetfacade_setCellValue: (a: number, b: number, c: number, d: number, e: number) => void;
 export const wasmspreadsheetfacade_getCellValue: (a: number, b: number, c: number) => void;
 export const wasmspreadsheetfacade_getCell: (a: number, b: number) => number;
+export const wasmspreadsheetfacade_getCellFormula: (a: number, b: number, c: number) => void;
 export const wasmspreadsheetfacade_deleteCell: (a: number, b: number, c: number) => void;
+export const wasmspreadsheetfacade_clearCell: (a: number, b: number, c: number) => void;
 export const wasmspreadsheetfacade_recalculate: (a: number, b: number) => void;
 export const wasmspreadsheetfacade_recalculateCell: (a: number, b: number, c: number) => void;
 export const wasmspreadsheetfacade_beginBatch: (a: number, b: number, c: number, d: number) => void;
