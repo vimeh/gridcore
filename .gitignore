@@ -14,3 +14,5 @@ playwright/.cache/# WASM build artifacts
 gridcore-rs/gridcore-wasm/pkg/
 gridcore-rs/target/
 
+# build artifacts
+packages/ui-web/src/wasm/
