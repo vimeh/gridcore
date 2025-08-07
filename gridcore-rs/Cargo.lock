@@ -282,6 +282,7 @@ dependencies = [
  "gridcore-core",
  "js-sys",
  "log",
+ "regex",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",

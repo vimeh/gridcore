@@ -543,3 +543,766 @@ impl VimBehavior {
         vim
     }
 }
+
+/// Bulk command types for spreadsheet operations
+#[derive(Debug, Clone, PartialEq)]
+pub enum BulkCommandType {
+    FindReplace {
+        find_pattern: String,
+        replace_with: String,
+        options: FindReplaceOptions,
+    },
+    BulkSet {
+        value: String,
+        requires_selection: bool,
+    },
+    MathOperation {
+        operation: MathOp,
+        value: f64,
+    },
+    Fill {
+        direction: FillDirection,
+    },
+    Transform {
+        transformation: TransformType,
+    },
+    Format {
+        format_type: FormatType,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FindReplaceOptions {
+    pub global: bool,
+    pub case_sensitive: bool,
+    pub scope: SearchScope,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SearchScope {
+    Selection,
+    Sheet,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MathOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FillDirection {
+    Down,
+    Up,
+    Left,
+    Right,
+    Series,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TransformType {
+    Upper,
+    Lower,
+    Trim,
+    Clean,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FormatType {
+    Currency,
+    Percent,
+    Date,
+    Number,
+}
+
+/// Parser for bulk commands in vim command mode
+pub struct BulkCommandParser;
+
+impl BulkCommandParser {
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// Parse a command string into a BulkCommandType
+    pub fn parse(&self, command: &str) -> Option<BulkCommandType> {
+        if !command.starts_with(':') {
+            return None;
+        }
+
+        let cmd = &command[1..]; // Remove leading colon
+
+        // Check for find/replace pattern
+        if cmd.starts_with("s/") || cmd.starts_with("%s/") {
+            return self.parse_find_replace(cmd);
+        }
+
+        // Parse other commands
+        let parts: Vec<&str> = cmd.split_whitespace().collect();
+        if parts.is_empty() {
+            return None;
+        }
+
+        match parts[0] {
+            "set" => self.parse_set(&parts[1..]),
+            "add" => self.parse_math_op(MathOp::Add, &parts[1..]),
+            "sub" => self.parse_math_op(MathOp::Sub, &parts[1..]),
+            "mul" => self.parse_math_op(MathOp::Mul, &parts[1..]),
+            "div" => self.parse_math_op(MathOp::Div, &parts[1..]),
+            "fill" => self.parse_fill(&parts[1..]),
+            "upper" => Some(BulkCommandType::Transform {
+                transformation: TransformType::Upper,
+            }),
+            "lower" => Some(BulkCommandType::Transform {
+                transformation: TransformType::Lower,
+            }),
+            "trim" => Some(BulkCommandType::Transform {
+                transformation: TransformType::Trim,
+            }),
+            "clean" => Some(BulkCommandType::Transform {
+                transformation: TransformType::Clean,
+            }),
+            "format" => self.parse_format(&parts[1..]),
+            _ => None,
+        }
+    }
+
+    fn parse_find_replace(&self, cmd: &str) -> Option<BulkCommandType> {
+        let (scope, pattern) = if cmd.starts_with("%s/") {
+            (SearchScope::Sheet, &cmd[3..])
+        } else {
+            (SearchScope::Selection, &cmd[2..])
+        };
+
+        // Find the delimiter positions
+        let mut parts = Vec::new();
+        let mut current = String::new();
+        let mut escaped = false;
+        
+        let mut chars = pattern.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if escaped {
+                current.push(ch);
+                escaped = false;
+            } else if ch == '\\' {
+                current.push(ch);
+                escaped = true;
+            } else if ch == '/' {
+                parts.push(current);
+                current = String::new();
+                if parts.len() == 2 {
+                    // Everything remaining is flags
+                    while let Some(ch) = chars.next() {
+                        current.push(ch);
+                    }
+                    break;
+                }
+            } else {
+                current.push(ch);
+            }
+        }
+
+        // The last part is either the replacement (if no trailing /) or flags
+        if parts.len() == 1 {
+            // No replacement found
+            return None;
+        } else if parts.len() == 2 && !current.is_empty() {
+            // Current contains flags
+        } else if parts.len() < 2 {
+            return None;
+        }
+
+        let flags = current;
+        let global = flags.contains('g');
+        let case_sensitive = !flags.contains('i');
+
+        Some(BulkCommandType::FindReplace {
+            find_pattern: parts[0].clone(),
+            replace_with: parts.get(1).cloned().unwrap_or_default(),
+            options: FindReplaceOptions {
+                global,
+                case_sensitive,
+                scope,
+            },
+        })
+    }
+
+    fn parse_set(&self, args: &[&str]) -> Option<BulkCommandType> {
+        if args.is_empty() {
+            return None;
+        }
+
+        let value = args.join(" ");
+        Some(BulkCommandType::BulkSet {
+            value,
+            requires_selection: true,
+        })
+    }
+
+    fn parse_math_op(&self, op: MathOp, args: &[&str]) -> Option<BulkCommandType> {
+        if args.is_empty() {
+            return None;
+        }
+
+        args[0].parse::<f64>().ok().map(|value| {
+            BulkCommandType::MathOperation {
+                operation: op,
+                value,
+            }
+        })
+    }
+
+    fn parse_fill(&self, args: &[&str]) -> Option<BulkCommandType> {
+        if args.is_empty() {
+            return None;
+        }
+
+        let direction = match args[0] {
+            "down" => FillDirection::Down,
+            "up" => FillDirection::Up,
+            "left" => FillDirection::Left,
+            "right" => FillDirection::Right,
+            "series" => FillDirection::Series,
+            _ => return None,
+        };
+
+        Some(BulkCommandType::Fill { direction })
+    }
+
+    fn parse_format(&self, args: &[&str]) -> Option<BulkCommandType> {
+        if args.is_empty() {
+            return None;
+        }
+
+        let format_type = match args[0] {
+            "currency" => FormatType::Currency,
+            "percent" => FormatType::Percent,
+            "date" => FormatType::Date,
+            "number" => FormatType::Number,
+            _ => return None,
+        };
+
+        Some(BulkCommandType::Format { format_type })
+    }
+
+    /// Get command completions for a partial command
+    pub fn get_completions(&self, partial: &str) -> Vec<String> {
+        if !partial.starts_with(':') {
+            return vec![];
+        }
+
+        let cmd = &partial[1..].to_lowercase();
+        let mut completions = vec![];
+
+        // All available commands
+        let commands = [
+            ("set ", "Set value in cells"),
+            ("sub ", "Subtract from cells"),
+            ("add ", "Add to cells"),
+            ("mul ", "Multiply cells"),
+            ("div ", "Divide cells"),
+            ("fill ", "Fill cells"),
+            ("upper", "Convert to uppercase"),
+            ("lower", "Convert to lowercase"),
+            ("trim", "Trim whitespace"),
+            ("clean", "Clean text"),
+            ("format ", "Format cells"),
+        ];
+
+        for (command, _) in commands {
+            if command.starts_with(cmd) {
+                completions.push(format!(":{}", command));
+            }
+        }
+
+        // Special handling for :fill command
+        if cmd.starts_with("fill") && !cmd.contains(' ') {
+            completions.clear();
+            for dir in ["down", "up", "left", "right", "series"] {
+                completions.push(format!(":fill {}", dir));
+            }
+        }
+
+        completions
+    }
+
+    /// Validate a parsed command
+    pub fn validate_command(&self, command: &BulkCommandType, has_selection: bool) -> Option<String> {
+        match command {
+            BulkCommandType::BulkSet { requires_selection, .. } => {
+                if *requires_selection && !has_selection {
+                    Some("This operation requires a selection".to_string())
+                } else {
+                    None
+                }
+            }
+            BulkCommandType::FindReplace { find_pattern, .. } => {
+                if find_pattern.is_empty() {
+                    Some("Find pattern cannot be empty".to_string())
+                } else {
+                    // Try to compile as regex to validate
+                    match regex::Regex::new(find_pattern) {
+                        Ok(_) => None,
+                        Err(e) => Some(format!("Invalid regex pattern: {}", e)),
+                    }
+                }
+            }
+            BulkCommandType::MathOperation { operation: MathOp::Div, value } => {
+                if *value == 0.0 {
+                    Some("Cannot divide by zero".to_string())
+                } else {
+                    None
+                }
+            }
+            BulkCommandType::Format { format_type } => {
+                // Validate format type (already validated in parse)
+                match format_type {
+                    FormatType::Currency | FormatType::Percent | FormatType::Date | FormatType::Number => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// Get help text for bulk commands
+    pub fn get_help_text(&self) -> String {
+        r#"Bulk Command Help:
+
+Find & Replace:
+  :s/pattern/replacement/g    - Replace in selection
+  :%s/pattern/replacement/gi  - Replace in entire sheet (case-insensitive)
+
+Math Operations:
+  :add 10    - Add 10 to selected cells
+  :sub 5     - Subtract 5 from selected cells
+  :mul 2     - Multiply selected cells by 2
+  :div 4     - Divide selected cells by 4
+
+Fill Operations:
+  :fill down   - Fill down from first cell
+  :fill up     - Fill up from last cell
+  :fill left   - Fill left from rightmost cell
+  :fill right  - Fill right from leftmost cell
+  :fill series - Fill with incrementing series
+
+Text Transformations:
+  :upper  - Convert to uppercase
+  :lower  - Convert to lowercase
+  :trim   - Remove leading/trailing whitespace
+  :clean  - Clean text (remove non-printable characters)
+
+Formatting:
+  :format currency  - Format as currency
+  :format percent   - Format as percentage
+  :format date      - Format as date
+  :format number    - Format as number
+
+Set Value:
+  :set Hello World  - Set all selected cells to "Hello World"
+  :set =A1+B1      - Set formula in selected cells
+"#.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_parser() -> BulkCommandParser {
+        BulkCommandParser::new()
+    }
+
+    mod find_replace_tests {
+        use super::*;
+
+        #[test]
+        fn test_basic_find_replace() {
+            let parser = create_parser();
+            let cmd = parser.parse(":s/old/new/g").unwrap();
+            
+            match cmd {
+                BulkCommandType::FindReplace { find_pattern, replace_with, options } => {
+                    assert_eq!(find_pattern, "old");
+                    assert_eq!(replace_with, "new");
+                    assert!(options.global);
+                    assert!(options.case_sensitive);
+                    assert_eq!(options.scope, SearchScope::Selection);
+                }
+                _ => panic!("Expected FindReplace command"),
+            }
+        }
+
+        #[test]
+        fn test_sheet_wide_find_replace() {
+            let parser = create_parser();
+            let cmd = parser.parse(":%s/old/new/gi").unwrap();
+            
+            match cmd {
+                BulkCommandType::FindReplace { options, .. } => {
+                    assert_eq!(options.scope, SearchScope::Sheet);
+                    assert!(options.global);
+                    assert!(!options.case_sensitive);
+                }
+                _ => panic!("Expected FindReplace command"),
+            }
+        }
+
+        #[test]
+        fn test_find_replace_without_flags() {
+            let parser = create_parser();
+            let cmd = parser.parse(":s/test/result/").unwrap();
+            
+            match cmd {
+                BulkCommandType::FindReplace { find_pattern, replace_with, options } => {
+                    assert_eq!(find_pattern, "test");
+                    assert_eq!(replace_with, "result");
+                    assert!(!options.global);
+                    assert!(options.case_sensitive);
+                }
+                _ => panic!("Expected FindReplace command"),
+            }
+        }
+
+        #[test]
+        fn test_complex_patterns() {
+            let parser = create_parser();
+            let cmd = parser.parse(r":s/\d+\.\d+/NUMBER/g").unwrap();
+            
+            match cmd {
+                BulkCommandType::FindReplace { find_pattern, replace_with, .. } => {
+                    assert_eq!(find_pattern, r"\d+\.\d+");
+                    assert_eq!(replace_with, "NUMBER");
+                }
+                _ => panic!("Expected FindReplace command"),
+            }
+        }
+    }
+
+    mod bulk_set_tests {
+        use super::*;
+
+        #[test]
+        fn test_bulk_set_text() {
+            let parser = create_parser();
+            let cmd = parser.parse(":set Hello World").unwrap();
+            
+            match cmd {
+                BulkCommandType::BulkSet { value, requires_selection } => {
+                    assert_eq!(value, "Hello World");
+                    assert!(requires_selection);
+                }
+                _ => panic!("Expected BulkSet command"),
+            }
+        }
+
+        #[test]
+        fn test_bulk_set_number() {
+            let parser = create_parser();
+            let cmd = parser.parse(":set 42").unwrap();
+            
+            match cmd {
+                BulkCommandType::BulkSet { value, .. } => {
+                    assert_eq!(value, "42");
+                }
+                _ => panic!("Expected BulkSet command"),
+            }
+        }
+
+        #[test]
+        fn test_bulk_set_formula() {
+            let parser = create_parser();
+            let cmd = parser.parse(":set =A1+B1").unwrap();
+            
+            match cmd {
+                BulkCommandType::BulkSet { value, .. } => {
+                    assert_eq!(value, "=A1+B1");
+                }
+                _ => panic!("Expected BulkSet command"),
+            }
+        }
+    }
+
+    mod math_operation_tests {
+        use super::*;
+
+        #[test]
+        fn test_add_command() {
+            let parser = create_parser();
+            let cmd = parser.parse(":add 10").unwrap();
+            
+            match cmd {
+                BulkCommandType::MathOperation { operation, value } => {
+                    assert_eq!(operation, MathOp::Add);
+                    assert_eq!(value, 10.0);
+                }
+                _ => panic!("Expected MathOperation command"),
+            }
+        }
+
+        #[test]
+        fn test_subtract_with_decimal() {
+            let parser = create_parser();
+            let cmd = parser.parse(":sub 3.14").unwrap();
+            
+            match cmd {
+                BulkCommandType::MathOperation { operation, value } => {
+                    assert_eq!(operation, MathOp::Sub);
+                    assert_eq!(value, 3.14);
+                }
+                _ => panic!("Expected MathOperation command"),
+            }
+        }
+
+        #[test]
+        fn test_multiply_command() {
+            let parser = create_parser();
+            let cmd = parser.parse(":mul 2").unwrap();
+            
+            match cmd {
+                BulkCommandType::MathOperation { operation, value } => {
+                    assert_eq!(operation, MathOp::Mul);
+                    assert_eq!(value, 2.0);
+                }
+                _ => panic!("Expected MathOperation command"),
+            }
+        }
+
+        #[test]
+        fn test_divide_command() {
+            let parser = create_parser();
+            let cmd = parser.parse(":div 4").unwrap();
+            
+            match cmd {
+                BulkCommandType::MathOperation { operation, value } => {
+                    assert_eq!(operation, MathOp::Div);
+                    assert_eq!(value, 4.0);
+                }
+                _ => panic!("Expected MathOperation command"),
+            }
+        }
+
+        #[test]
+        fn test_negative_numbers() {
+            let parser = create_parser();
+            let cmd = parser.parse(":add -5").unwrap();
+            
+            match cmd {
+                BulkCommandType::MathOperation { value, .. } => {
+                    assert_eq!(value, -5.0);
+                }
+                _ => panic!("Expected MathOperation command"),
+            }
+        }
+    }
+
+    mod fill_tests {
+        use super::*;
+
+        #[test]
+        fn test_fill_down() {
+            let parser = create_parser();
+            let cmd = parser.parse(":fill down").unwrap();
+            
+            match cmd {
+                BulkCommandType::Fill { direction } => {
+                    assert_eq!(direction, FillDirection::Down);
+                }
+                _ => panic!("Expected Fill command"),
+            }
+        }
+
+        #[test]
+        fn test_all_fill_directions() {
+            let parser = create_parser();
+            let directions = [
+                ("down", FillDirection::Down),
+                ("up", FillDirection::Up),
+                ("left", FillDirection::Left),
+                ("right", FillDirection::Right),
+                ("series", FillDirection::Series),
+            ];
+
+            for (dir_str, expected) in directions {
+                let cmd = parser.parse(&format!(":fill {}", dir_str)).unwrap();
+                match cmd {
+                    BulkCommandType::Fill { direction } => {
+                        assert_eq!(direction, expected);
+                    }
+                    _ => panic!("Expected Fill command"),
+                }
+            }
+        }
+    }
+
+    mod transform_tests {
+        use super::*;
+
+        #[test]
+        fn test_transform_commands() {
+            let parser = create_parser();
+            let transforms = [
+                ("upper", TransformType::Upper),
+                ("lower", TransformType::Lower),
+                ("trim", TransformType::Trim),
+                ("clean", TransformType::Clean),
+            ];
+
+            for (cmd_str, expected) in transforms {
+                let cmd = parser.parse(&format!(":{}", cmd_str)).unwrap();
+                match cmd {
+                    BulkCommandType::Transform { transformation } => {
+                        assert_eq!(transformation, expected);
+                    }
+                    _ => panic!("Expected Transform command"),
+                }
+            }
+        }
+    }
+
+    mod format_tests {
+        use super::*;
+
+        #[test]
+        fn test_format_commands() {
+            let parser = create_parser();
+            let formats = [
+                ("currency", FormatType::Currency),
+                ("percent", FormatType::Percent),
+                ("date", FormatType::Date),
+                ("number", FormatType::Number),
+            ];
+
+            for (fmt_str, expected) in formats {
+                let cmd = parser.parse(&format!(":format {}", fmt_str)).unwrap();
+                match cmd {
+                    BulkCommandType::Format { format_type } => {
+                        assert_eq!(format_type, expected);
+                    }
+                    _ => panic!("Expected Format command"),
+                }
+            }
+        }
+    }
+
+    mod completion_tests {
+        use super::*;
+
+        #[test]
+        fn test_completions_for_partial() {
+            let parser = create_parser();
+            let completions = parser.get_completions(":s");
+            assert!(completions.contains(&":set ".to_string()));
+            assert!(completions.contains(&":sub ".to_string()));
+        }
+
+        #[test]
+        fn test_completions_for_fill() {
+            let parser = create_parser();
+            let completions = parser.get_completions(":fill");
+            assert!(completions.contains(&":fill down".to_string()));
+            assert!(completions.contains(&":fill series".to_string()));
+        }
+
+        #[test]
+        fn test_empty_completions_for_non_command() {
+            let parser = create_parser();
+            let completions = parser.get_completions("hello");
+            assert!(completions.is_empty());
+        }
+
+        #[test]
+        fn test_case_insensitive_completions() {
+            let parser = create_parser();
+            let completions = parser.get_completions(":SET");
+            assert!(completions.contains(&":set ".to_string()));
+        }
+    }
+
+    mod validation_tests {
+        use super::*;
+
+        #[test]
+        fn test_validate_requires_selection() {
+            let parser = create_parser();
+            let cmd = BulkCommandType::BulkSet {
+                value: "test".to_string(),
+                requires_selection: true,
+            };
+            
+            let error = parser.validate_command(&cmd, false);
+            assert_eq!(error, Some("This operation requires a selection".to_string()));
+            
+            let no_error = parser.validate_command(&cmd, true);
+            assert!(no_error.is_none());
+        }
+
+        #[test]
+        fn test_validate_empty_find_pattern() {
+            let parser = create_parser();
+            let cmd = BulkCommandType::FindReplace {
+                find_pattern: "".to_string(),
+                replace_with: "replacement".to_string(),
+                options: FindReplaceOptions {
+                    global: true,
+                    case_sensitive: true,
+                    scope: SearchScope::Selection,
+                },
+            };
+            
+            let error = parser.validate_command(&cmd, false);
+            assert_eq!(error, Some("Find pattern cannot be empty".to_string()));
+        }
+
+        #[test]
+        fn test_validate_division_by_zero() {
+            let parser = create_parser();
+            let cmd = BulkCommandType::MathOperation {
+                operation: MathOp::Div,
+                value: 0.0,
+            };
+            
+            let error = parser.validate_command(&cmd, true);
+            assert_eq!(error, Some("Cannot divide by zero".to_string()));
+        }
+    }
+
+    mod invalid_command_tests {
+        use super::*;
+
+        #[test]
+        fn test_invalid_commands() {
+            let parser = create_parser();
+            let invalid_commands = [
+                ":invalid",
+                ":set",      // missing value
+                ":add",      // missing number
+                ":add text", // non-numeric value
+                ":fill invalid", // invalid direction
+            ];
+
+            for cmd in invalid_commands {
+                assert!(parser.parse(cmd).is_none());
+            }
+        }
+
+        #[test]
+        fn test_non_colon_commands() {
+            let parser = create_parser();
+            assert!(parser.parse("not a command").is_none());
+        }
+    }
+
+    mod help_tests {
+        use super::*;
+
+        #[test]
+        fn test_help_text() {
+            let parser = create_parser();
+            let help = parser.get_help_text();
+            assert!(help.contains("Find & Replace"));
+            assert!(help.contains("Math Operations"));
+            assert!(help.contains(":s/pattern/replacement/g"));
+        }
+    }
+}

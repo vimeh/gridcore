@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 gridcore-core = { path = "../gridcore-core" }
 thiserror = { workspace = true }
 serde = { workspace = true }
+regex.workspace = true
 
 [features]
 default = []
