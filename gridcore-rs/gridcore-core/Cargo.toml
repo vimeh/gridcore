@@ -56,3 +56,7 @@ harness = false
 name = "undo_redo_benchmark"
 harness = false
 
+[[bench]]
+name = "fill_bench"
+harness = false
+
