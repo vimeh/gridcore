@@ -2,6 +2,7 @@ use crate::command::{CommandExecutor, UndoRedoManager};
 use crate::dependency::{DependencyAnalyzer, DependencyGraph};
 use crate::domain::Cell;
 use crate::evaluator::{EvaluationContext, Evaluator};
+use crate::fill::{FillEngine, FillOperation, FillResult};
 use crate::formula::FormulaParser;
 use crate::repository::CellRepository;
 use crate::types::{CellAddress, CellValue};
@@ -356,6 +357,54 @@ impl SpreadsheetFacade {
     /// Get the number of cells
     pub fn get_cell_count(&self) -> usize {
         self.repository.borrow().len()
+    }
+
+    /// Perform a fill operation
+    pub fn fill(&self, operation: &FillOperation) -> Result<FillResult> {
+        // Create a read-only clone of the repository for the fill engine
+        let repo = self.repository.borrow();
+        let repo_clone = repo.clone();
+        let repo_rc = Rc::new(repo_clone);
+        
+        // Create fill engine with the repository
+        let engine = FillEngine::new(repo_rc);
+        
+        // Perform the fill operation
+        let result = engine.fill(operation)?;
+        
+        // Apply the results to the actual repository
+        for (address, value) in &result.affected_cells {
+            let cell = Cell::new(value.clone());
+            self.repository.borrow_mut().set(address, cell);
+        }
+        
+        // Apply formula adjustments
+        for (address, formula) in &result.formulas_adjusted {
+            self.set_cell_value_internal(address, formula)?;
+        }
+        
+        // Recalculate affected cells
+        let affected_addresses: HashSet<_> = result.affected_cells
+            .iter()
+            .map(|(addr, _)| addr.clone())
+            .collect();
+        self.batch_recalculate(affected_addresses)?;
+        
+        Ok(result)
+    }
+
+    /// Preview a fill operation without applying it
+    pub fn preview_fill(&self, operation: &FillOperation) -> Result<Vec<(CellAddress, CellValue)>> {
+        // Create a read-only clone of the repository for the fill engine
+        let repo = self.repository.borrow();
+        let repo_clone = repo.clone();
+        let repo_rc = Rc::new(repo_clone);
+        
+        // Create fill engine with the repository
+        let engine = FillEngine::new(repo_rc);
+        
+        // Preview the fill operation
+        engine.preview(operation)
     }
 
     // Helper methods

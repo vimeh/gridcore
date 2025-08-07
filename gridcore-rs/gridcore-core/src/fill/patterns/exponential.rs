@@ -65,13 +65,16 @@ impl PatternDetector for ExponentialPatternDetector {
     }
 
     fn can_handle(&self, values: &[CellValue]) -> bool {
-        // Need at least 2 non-zero numeric values
-        let numeric_count = values
+        // Need at least 2 numeric values and none can be zero (can't have exponential with zero)
+        let numbers: Vec<f64> = values
             .iter()
-            .filter(|v| matches!(v, CellValue::Number(n) if *n != 0.0))
-            .count();
+            .filter_map(|v| match v {
+                CellValue::Number(n) => Some(*n),
+                _ => None,
+            })
+            .collect();
 
-        numeric_count >= 2
+        numbers.len() >= 2 && !numbers.iter().any(|&n| n == 0.0)
     }
 }
 

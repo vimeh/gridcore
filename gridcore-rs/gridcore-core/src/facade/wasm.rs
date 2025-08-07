@@ -1,5 +1,6 @@
 use crate::domain::cell::wasm_bindings::WasmCell;
 use crate::facade::spreadsheet_facade::SpreadsheetFacade;
+use crate::fill::wasm::{parse_fill_operation, convert_fill_result, JsFillOperation};
 use crate::types::CellValue;
 use crate::types::wasm::WasmCellAddress;
 use js_sys::Function;
@@ -166,6 +167,57 @@ impl WasmSpreadsheetFacade {
     #[wasm_bindgen(js_name = "getCellCount")]
     pub fn get_cell_count(&self) -> usize {
         self.inner.get_cell_count()
+    }
+
+    /// Perform a fill operation
+    #[wasm_bindgen(js_name = "fill")]
+    pub fn fill(&self, operation_js: JsValue) -> Result<JsValue, JsValue> {
+        // Parse the fill operation from JS
+        let operation: JsFillOperation = serde_wasm_bindgen::from_value(operation_js)
+            .map_err(|e| JsValue::from_str(&format!("Failed to parse fill operation: {}", e)))?;
+        
+        // Convert to internal fill operation
+        let fill_operation = parse_fill_operation(operation)
+            .map_err(|e| JsValue::from_str(&e))?;
+        
+        // Perform the fill
+        let result = self.inner.fill(&fill_operation)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        
+        // Convert result to JS
+        let js_result = convert_fill_result(result);
+        serde_wasm_bindgen::to_value(&js_result)
+            .map_err(|e| JsValue::from_str(&format!("Failed to serialize result: {}", e)))
+    }
+
+    /// Preview a fill operation without applying it
+    #[wasm_bindgen(js_name = "previewFill")]
+    pub fn preview_fill(&self, operation_js: JsValue) -> Result<JsValue, JsValue> {
+        // Parse the fill operation from JS
+        let operation: JsFillOperation = serde_wasm_bindgen::from_value(operation_js)
+            .map_err(|e| JsValue::from_str(&format!("Failed to parse fill operation: {}", e)))?;
+        
+        // Convert to internal fill operation
+        let fill_operation = parse_fill_operation(operation)
+            .map_err(|e| JsValue::from_str(&e))?;
+        
+        // Preview the fill
+        let preview = self.inner.preview_fill(&fill_operation)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        
+        // Convert preview to JS
+        use crate::fill::wasm::JsAffectedCell;
+        let js_preview: Vec<JsAffectedCell> = preview
+            .into_iter()
+            .map(|(addr, value)| JsAffectedCell {
+                col: addr.col,
+                row: addr.row,
+                value: value.into(),
+            })
+            .collect();
+        
+        serde_wasm_bindgen::to_value(&js_preview)
+            .map_err(|e| JsValue::from_str(&format!("Failed to serialize preview: {}", e)))
     }
 
     /// Set multiple cell values in a batch

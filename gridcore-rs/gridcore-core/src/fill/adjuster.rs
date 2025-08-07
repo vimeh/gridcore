@@ -52,7 +52,7 @@ impl DefaultFormulaAdjuster {
     fn adjust_reference(&self, reference: &str, from: &CellAddress, to: &CellAddress) -> String {
         if let Some((col_abs, col, row_abs, row)) = self.parse_cell_reference(reference) {
             let mut new_col = col;
-            let mut new_row = row;
+            let mut new_row = row - 1; // Convert to 0-based for calculation
 
             // Adjust relative references
             if !col_abs {
@@ -62,7 +62,7 @@ impl DefaultFormulaAdjuster {
 
             if !row_abs {
                 let row_diff = to.row as i32 - from.row as i32;
-                new_row = ((row as i32) + row_diff).max(0) as u32;
+                new_row = ((new_row as i32) + row_diff).max(0) as u32;
             }
 
             // Reconstruct the reference
@@ -71,7 +71,7 @@ impl DefaultFormulaAdjuster {
                 if col_abs { "$" } else { "" },
                 self.number_to_column(new_col),
                 if row_abs { "$" } else { "" },
-                new_row + 1 // Convert to 1-based
+                new_row + 1 // Convert back to 1-based
             )
         } else {
             reference.to_string()

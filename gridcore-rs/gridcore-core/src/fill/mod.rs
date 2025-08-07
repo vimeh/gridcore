@@ -6,6 +6,9 @@ pub mod adjuster;
 pub mod engine;
 pub mod patterns;
 
+#[cfg(feature = "wasm")]
+pub mod wasm;
+
 #[cfg(test)]
 mod tests;
 
