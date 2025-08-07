@@ -12,7 +12,7 @@ impl TextPatternDetector {
     fn extract_text_with_number(&self, text: &str) -> Option<(String, i32, String)> {
         // Match patterns like "Item 1", "Product-001", "A1", etc.
         let re = Regex::new(r"^(.*?)(\d+)(.*)$").ok()?;
-        
+
         if let Some(captures) = re.captures(text) {
             let prefix = captures.get(1)?.as_str().to_string();
             let number = captures.get(2)?.as_str().parse::<i32>().ok()?;
@@ -30,7 +30,7 @@ impl TextPatternDetector {
 
         // Check if all values have the same prefix/suffix pattern with incrementing numbers
         let mut parsed_values = Vec::new();
-        
+
         for value in values {
             if let Some(parsed) = self.extract_text_with_number(value) {
                 parsed_values.push(parsed);
@@ -42,10 +42,10 @@ impl TextPatternDetector {
         // Check if prefixes and suffixes are consistent
         let first_prefix = &parsed_values[0].0;
         let first_suffix = &parsed_values[0].2;
-        
-        let consistent_format = parsed_values.iter().all(|(prefix, _, suffix)| {
-            prefix == first_prefix && suffix == first_suffix
-        });
+
+        let consistent_format = parsed_values
+            .iter()
+            .all(|(prefix, _, suffix)| prefix == first_prefix && suffix == first_suffix);
 
         if !consistent_format {
             return false;
@@ -90,7 +90,7 @@ impl PatternDetector for TextPatternDetector {
             .iter()
             .filter(|v| matches!(v, CellValue::String(_)))
             .count();
-        
+
         text_count >= 2
     }
 }

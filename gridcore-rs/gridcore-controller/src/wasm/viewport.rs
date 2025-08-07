@@ -1,5 +1,5 @@
-use wasm_bindgen::prelude::*;
 use gridcore_core::types::CellAddress;
+use wasm_bindgen::prelude::*;
 
 /// WASM wrapper for ViewportManager
 /// This is a simplified version for JavaScript interop
@@ -24,60 +24,66 @@ impl WasmViewportManager {
             scroll_callback: None,
         }
     }
-    
+
     #[wasm_bindgen(js_name = "getColumnWidth")]
     pub fn get_column_width(&self, index: u32) -> f64 {
-        self.column_widths.get(index as usize).copied().unwrap_or(100.0)
+        self.column_widths
+            .get(index as usize)
+            .copied()
+            .unwrap_or(100.0)
     }
-    
+
     #[wasm_bindgen(js_name = "setColumnWidth")]
     pub fn set_column_width(&mut self, index: u32, width: f64) {
         if (index as usize) < self.column_widths.len() {
             self.column_widths[index as usize] = width;
         }
     }
-    
+
     #[wasm_bindgen(js_name = "getRowHeight")]
     pub fn get_row_height(&self, index: u32) -> f64 {
-        self.row_heights.get(index as usize).copied().unwrap_or(30.0)
+        self.row_heights
+            .get(index as usize)
+            .copied()
+            .unwrap_or(30.0)
     }
-    
+
     #[wasm_bindgen(js_name = "setRowHeight")]
     pub fn set_row_height(&mut self, index: u32, height: f64) {
         if (index as usize) < self.row_heights.len() {
             self.row_heights[index as usize] = height;
         }
     }
-    
+
     #[wasm_bindgen(js_name = "getTotalRows")]
     pub fn get_total_rows(&self) -> u32 {
         self.total_rows
     }
-    
+
     #[wasm_bindgen(js_name = "getTotalCols")]
     pub fn get_total_cols(&self) -> u32 {
         self.total_cols
     }
-    
+
     #[wasm_bindgen(js_name = "scrollTo")]
     pub fn scroll_to(&self, row: u32, col: u32) {
         if let Some(callback) = &self.scroll_callback {
             let _ = callback.call2(&JsValue::NULL, &JsValue::from(row), &JsValue::from(col));
         }
     }
-    
+
     #[wasm_bindgen(js_name = "setScrollCallback")]
     pub fn set_scroll_callback(&mut self, callback: js_sys::Function) {
         self.scroll_callback = Some(callback);
     }
-    
+
     #[wasm_bindgen(js_name = "ensureVisible")]
     pub fn ensure_visible(&self, col: u32, row: u32) {
         // Calculate if we need to scroll to make this cell visible
         // This is a simplified implementation
         self.scroll_to(row, col);
     }
-    
+
     #[wasm_bindgen(js_name = "viewportToCell")]
     pub fn viewport_to_cell(&self, x: f64, y: f64) -> JsValue {
         // Convert viewport coordinates to cell address
@@ -85,7 +91,7 @@ impl WasmViewportManager {
         let mut row = 0u32;
         let mut x_pos = 0.0;
         let mut y_pos = 0.0;
-        
+
         // Find column
         for i in 0..self.total_cols {
             let width = self.get_column_width(i);
@@ -95,7 +101,7 @@ impl WasmViewportManager {
             }
             x_pos += width;
         }
-        
+
         // Find row
         for i in 0..self.total_rows {
             let height = self.get_row_height(i);
@@ -105,7 +111,7 @@ impl WasmViewportManager {
             }
             y_pos += height;
         }
-        
+
         // Return as JavaScript object
         let obj = js_sys::Object::new();
         js_sys::Reflect::set(&obj, &"col".into(), &col.into()).unwrap();

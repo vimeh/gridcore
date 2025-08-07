@@ -1,5 +1,5 @@
-use gridcore_core::{Result, types::CellAddress};
 use crate::state::{Selection, SelectionType};
+use gridcore_core::{types::CellAddress, Result};
 use std::collections::HashSet;
 
 /// Manages spreadsheet selections and multi-cursor operations
@@ -41,12 +41,12 @@ impl SelectionManager {
             clipboard: None,
         }
     }
-    
+
     /// Get the current primary selection
     pub fn get_primary(&self) -> &Selection {
         &self.primary_selection
     }
-    
+
     /// Set the primary selection
     pub fn set_primary(&mut self, selection: Selection) {
         // Add current selection to history
@@ -54,53 +54,57 @@ impl SelectionManager {
             self.selection_history.remove(0);
         }
         self.selection_history.push(self.primary_selection.clone());
-        
+
         self.primary_selection = selection;
     }
-    
+
     /// Get all secondary selections
     pub fn get_secondary(&self) -> &[Selection] {
         &self.secondary_selections
     }
-    
+
     /// Add a secondary selection (for multi-cursor)
     pub fn add_secondary(&mut self, selection: Selection) {
         self.secondary_selections.push(selection);
     }
-    
+
     /// Clear all secondary selections
     pub fn clear_secondary(&mut self) {
         self.secondary_selections.clear();
     }
-    
+
     /// Get all selections (primary and secondary)
     pub fn get_all(&self) -> Vec<&Selection> {
         let mut all = vec![&self.primary_selection];
         all.extend(self.secondary_selections.iter());
         all
     }
-    
+
     /// Check if a cell is selected
     pub fn is_selected(&self, address: &CellAddress) -> bool {
-        self.get_all().iter().any(|sel| self.selection_contains(sel, address))
+        self.get_all()
+            .iter()
+            .any(|sel| self.selection_contains(sel, address))
     }
-    
+
     /// Check if a selection contains a cell
     fn selection_contains(&self, selection: &Selection, address: &CellAddress) -> bool {
         match &selection.selection_type {
             SelectionType::Cell { address: sel_addr } => sel_addr == address,
             SelectionType::Range { start, end } => {
-                address.col >= start.col && address.col <= end.col &&
-                address.row >= start.row && address.row <= end.row
+                address.col >= start.col
+                    && address.col <= end.col
+                    && address.row >= start.row
+                    && address.row <= end.row
             }
             SelectionType::Column { columns } => columns.contains(&address.col),
             SelectionType::Row { rows } => rows.contains(&address.row),
-            SelectionType::Multi { selections } => {
-                selections.iter().any(|sel| self.selection_contains(sel, address))
-            }
+            SelectionType::Multi { selections } => selections
+                .iter()
+                .any(|sel| self.selection_contains(sel, address)),
         }
     }
-    
+
     /// Expand selection in a direction
     pub fn expand_selection(&mut self, direction: Direction, amount: u32) -> Result<()> {
         match &mut self.primary_selection.selection_type {
@@ -151,7 +155,7 @@ impl SelectionManager {
                     }
                     _ => vec![],
                 };
-                
+
                 for new_row in new_rows {
                     if !rows.contains(&new_row) {
                         rows.push(new_row);
@@ -178,7 +182,7 @@ impl SelectionManager {
                     }
                     _ => vec![],
                 };
-                
+
                 for new_col in new_cols {
                     if !columns.contains(&new_col) {
                         columns.push(new_col);
@@ -191,10 +195,10 @@ impl SelectionManager {
                 // TODO: Implement
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Contract selection in a direction
     pub fn contract_selection(&mut self, direction: Direction, amount: u32) -> Result<()> {
         let (new_start, new_end) = match &self.primary_selection.selection_type {
@@ -206,37 +210,51 @@ impl SelectionManager {
             }
             _ => return Ok(()), // No contraction for other types
         };
-        
+
         // Check if range collapses to a single cell
         if new_start == new_end {
-            self.primary_selection.selection_type = SelectionType::Cell {
-                address: new_start,
-            };
+            self.primary_selection.selection_type = SelectionType::Cell { address: new_start };
         } else {
-            if let SelectionType::Range { start, end } = &mut self.primary_selection.selection_type {
+            if let SelectionType::Range { start, end } = &mut self.primary_selection.selection_type
+            {
                 *start = new_start;
                 *end = new_end;
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Move an address in a direction
-    fn move_address(&self, address: &CellAddress, direction: Direction, amount: u32) -> Result<CellAddress> {
+    fn move_address(
+        &self,
+        address: &CellAddress,
+        direction: Direction,
+        amount: u32,
+    ) -> Result<CellAddress> {
         Self::move_address_static(address, direction, amount)
     }
-    
+
     /// Static version of move_address for use when self is already borrowed
-    fn move_address_static(address: &CellAddress, direction: Direction, amount: u32) -> Result<CellAddress> {
+    fn move_address_static(
+        address: &CellAddress,
+        direction: Direction,
+        amount: u32,
+    ) -> Result<CellAddress> {
         match direction {
-            Direction::Up => Ok(CellAddress::new(address.col, address.row.saturating_sub(amount))),
+            Direction::Up => Ok(CellAddress::new(
+                address.col,
+                address.row.saturating_sub(amount),
+            )),
             Direction::Down => Ok(CellAddress::new(address.col, address.row + amount)),
-            Direction::Left => Ok(CellAddress::new(address.col.saturating_sub(amount), address.row)),
+            Direction::Left => Ok(CellAddress::new(
+                address.col.saturating_sub(amount),
+                address.row,
+            )),
             Direction::Right => Ok(CellAddress::new(address.col + amount, address.row)),
         }
     }
-    
+
     /// Select all cells in a range
     pub fn select_range(&mut self, start: CellAddress, end: CellAddress) {
         self.set_primary(Selection {
@@ -244,7 +262,7 @@ impl SelectionManager {
             anchor: Some(start.clone()),
         });
     }
-    
+
     /// Select entire rows
     pub fn select_rows(&mut self, rows: Vec<u32>) {
         self.set_primary(Selection {
@@ -252,7 +270,7 @@ impl SelectionManager {
             anchor: None,
         });
     }
-    
+
     /// Select entire columns
     pub fn select_columns(&mut self, columns: Vec<u32>) {
         self.set_primary(Selection {
@@ -260,7 +278,7 @@ impl SelectionManager {
             anchor: None,
         });
     }
-    
+
     /// Select all cells
     pub fn select_all(&mut self) {
         self.set_primary(Selection {
@@ -271,7 +289,7 @@ impl SelectionManager {
             anchor: Some(CellAddress::new(0, 0)),
         });
     }
-    
+
     /// Clear all selections
     pub fn clear_all(&mut self) {
         self.primary_selection = Selection {
@@ -282,7 +300,7 @@ impl SelectionManager {
         };
         self.secondary_selections.clear();
     }
-    
+
     /// Get the bounding box of a selection
     pub fn get_bounds(&self, selection: &Selection) -> (CellAddress, CellAddress) {
         match &selection.selection_type {
@@ -291,32 +309,39 @@ impl SelectionManager {
             SelectionType::Row { rows } => {
                 let min_row = rows.iter().min().copied().unwrap_or(0);
                 let max_row = rows.iter().max().copied().unwrap_or(0);
-                (CellAddress::new(0, min_row), CellAddress::new(u32::MAX, max_row))
+                (
+                    CellAddress::new(0, min_row),
+                    CellAddress::new(u32::MAX, max_row),
+                )
             }
             SelectionType::Column { columns } => {
                 let min_col = columns.iter().min().copied().unwrap_or(0);
                 let max_col = columns.iter().max().copied().unwrap_or(0);
-                (CellAddress::new(min_col, 0), CellAddress::new(max_col, u32::MAX))
+                (
+                    CellAddress::new(min_col, 0),
+                    CellAddress::new(max_col, u32::MAX),
+                )
             }
             SelectionType::Multi { selections } => {
-                let bounds: Vec<_> = selections.iter()
-                    .map(|sel| self.get_bounds(sel))
-                    .collect();
-                
+                let bounds: Vec<_> = selections.iter().map(|sel| self.get_bounds(sel)).collect();
+
                 let min_col = bounds.iter().map(|(start, _)| start.col).min().unwrap_or(0);
                 let min_row = bounds.iter().map(|(start, _)| start.row).min().unwrap_or(0);
                 let max_col = bounds.iter().map(|(_, end)| end.col).max().unwrap_or(0);
                 let max_row = bounds.iter().map(|(_, end)| end.row).max().unwrap_or(0);
-                
-                (CellAddress::new(min_col, min_row), CellAddress::new(max_col, max_row))
+
+                (
+                    CellAddress::new(min_col, min_row),
+                    CellAddress::new(max_col, max_row),
+                )
             }
         }
     }
-    
+
     /// Get all selected cells
     pub fn get_selected_cells(&self) -> HashSet<CellAddress> {
         let mut cells = HashSet::new();
-        
+
         for selection in self.get_all() {
             match &selection.selection_type {
                 SelectionType::Cell { address } => {
@@ -356,13 +381,13 @@ impl SelectionManager {
                 }
             }
         }
-        
+
         cells
     }
-    
+
     fn get_selected_cells_for_selection(&self, selection: &Selection) -> HashSet<CellAddress> {
         let mut cells = HashSet::new();
-        
+
         match &selection.selection_type {
             SelectionType::Cell { address } => {
                 cells.insert(address.clone());
@@ -376,10 +401,10 @@ impl SelectionManager {
             }
             _ => {} // Simplified for internal use
         }
-        
+
         cells
     }
-    
+
     /// Copy selection to clipboard
     pub fn copy_selection(&mut self, contents: Vec<CellContent>) {
         self.clipboard = Some(ClipboardContent {
@@ -388,7 +413,7 @@ impl SelectionManager {
             is_cut: false,
         });
     }
-    
+
     /// Cut selection to clipboard
     pub fn cut_selection(&mut self, contents: Vec<CellContent>) {
         self.clipboard = Some(ClipboardContent {
@@ -397,17 +422,17 @@ impl SelectionManager {
             is_cut: true,
         });
     }
-    
+
     /// Get clipboard content
     pub fn get_clipboard(&self) -> Option<&ClipboardContent> {
         self.clipboard.as_ref()
     }
-    
+
     /// Clear clipboard
     pub fn clear_clipboard(&mut self) {
         self.clipboard = None;
     }
-    
+
     /// Navigate to previous selection in history
     pub fn previous_selection(&mut self) -> Option<Selection> {
         self.selection_history.pop()
@@ -442,11 +467,11 @@ impl Default for SelectionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_selection_contains() {
         let manager = SelectionManager::new();
-        
+
         // Test cell selection
         let selection = Selection {
             selection_type: SelectionType::Cell {
@@ -456,7 +481,7 @@ mod tests {
         };
         assert!(manager.selection_contains(&selection, &CellAddress::new(5, 5)));
         assert!(!manager.selection_contains(&selection, &CellAddress::new(5, 6)));
-        
+
         // Test range selection
         let selection = Selection {
             selection_type: SelectionType::Range {
@@ -471,11 +496,11 @@ mod tests {
         assert!(!manager.selection_contains(&selection, &CellAddress::new(6, 6)));
         assert!(!manager.selection_contains(&selection, &CellAddress::new(1, 1)));
     }
-    
+
     #[test]
     fn test_expand_selection() {
         let mut manager = SelectionManager::new();
-        
+
         // Start with a single cell
         manager.set_primary(Selection {
             selection_type: SelectionType::Cell {
@@ -483,10 +508,10 @@ mod tests {
             },
             anchor: None,
         });
-        
+
         // Expand right
         manager.expand_selection(Direction::Right, 2).unwrap();
-        
+
         match &manager.get_primary().selection_type {
             SelectionType::Range { start, end } => {
                 assert_eq!(*start, CellAddress::new(5, 5));
@@ -494,10 +519,10 @@ mod tests {
             }
             _ => panic!("Expected range selection"),
         }
-        
+
         // Expand down
         manager.expand_selection(Direction::Down, 3).unwrap();
-        
+
         match &manager.get_primary().selection_type {
             SelectionType::Range { start, end } => {
                 assert_eq!(*start, CellAddress::new(5, 5));
@@ -506,14 +531,14 @@ mod tests {
             _ => panic!("Expected range selection"),
         }
     }
-    
+
     #[test]
     fn test_selected_cells() {
         let mut manager = SelectionManager::new();
-        
+
         // Select a range
         manager.select_range(CellAddress::new(1, 1), CellAddress::new(3, 3));
-        
+
         let cells = manager.get_selected_cells();
         assert_eq!(cells.len(), 9); // 3x3 grid
         assert!(cells.contains(&CellAddress::new(1, 1)));
@@ -521,11 +546,11 @@ mod tests {
         assert!(cells.contains(&CellAddress::new(3, 3)));
         assert!(!cells.contains(&CellAddress::new(4, 4)));
     }
-    
+
     #[test]
     fn test_selection_history() {
         let mut manager = SelectionManager::new();
-        
+
         // Make several selections
         manager.set_primary(Selection {
             selection_type: SelectionType::Cell {
@@ -533,28 +558,28 @@ mod tests {
             },
             anchor: None,
         });
-        
+
         manager.set_primary(Selection {
             selection_type: SelectionType::Cell {
                 address: CellAddress::new(2, 2),
             },
             anchor: None,
         });
-        
+
         manager.set_primary(Selection {
             selection_type: SelectionType::Cell {
                 address: CellAddress::new(3, 3),
             },
             anchor: None,
         });
-        
+
         // Go back through history
         let prev = manager.previous_selection().unwrap();
         match prev.selection_type {
             SelectionType::Cell { address } => assert_eq!(address, CellAddress::new(2, 2)),
             _ => panic!("Expected cell selection"),
         }
-        
+
         let prev = manager.previous_selection().unwrap();
         match prev.selection_type {
             SelectionType::Cell { address } => assert_eq!(address, CellAddress::new(1, 1)),

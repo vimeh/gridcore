@@ -1,3 +1,3 @@
 pub mod selection;
 
-pub use selection::{SelectionManager, Direction, ClipboardContent, CellContent};
+pub use selection::{CellContent, ClipboardContent, Direction, SelectionManager};

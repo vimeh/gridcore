@@ -52,7 +52,7 @@ impl ExponentialPatternDetector {
 impl PatternDetector for ExponentialPatternDetector {
     fn detect(&self, values: &[CellValue]) -> Option<PatternType> {
         let numbers = self.extract_numbers(values);
-        
+
         if let Some(rate) = self.detect_exponential_pattern(&numbers) {
             Some(PatternType::Exponential(rate))
         } else {
@@ -70,7 +70,7 @@ impl PatternDetector for ExponentialPatternDetector {
             .iter()
             .filter(|v| matches!(v, CellValue::Number(n) if *n != 0.0))
             .count();
-        
+
         numeric_count >= 2
     }
 }
@@ -90,7 +90,9 @@ mod tests {
         ];
 
         let pattern = detector.detect(&values);
-        assert!(matches!(pattern, Some(PatternType::Exponential(rate)) if (rate - 2.0).abs() < 1e-10));
+        assert!(
+            matches!(pattern, Some(PatternType::Exponential(rate)) if (rate - 2.0).abs() < 1e-10)
+        );
     }
 
     #[test]
@@ -104,7 +106,9 @@ mod tests {
         ];
 
         let pattern = detector.detect(&values);
-        assert!(matches!(pattern, Some(PatternType::Exponential(rate)) if (rate - 0.5).abs() < 1e-10));
+        assert!(
+            matches!(pattern, Some(PatternType::Exponential(rate)) if (rate - 0.5).abs() < 1e-10)
+        );
     }
 
     #[test]
@@ -118,7 +122,9 @@ mod tests {
         ];
 
         let pattern = detector.detect(&values);
-        assert!(matches!(pattern, Some(PatternType::Exponential(rate)) if (rate - 3.0).abs() < 1e-10));
+        assert!(
+            matches!(pattern, Some(PatternType::Exponential(rate)) if (rate - 3.0).abs() < 1e-10)
+        );
     }
 
     #[test]

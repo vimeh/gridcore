@@ -59,7 +59,7 @@ pub enum SpreadsheetError {
 
     #[error("Batch operation failed: {0}")]
     BatchOperationFailed(String),
-    
+
     #[error("Invalid operation: {0}")]
     InvalidOperation(String),
 }

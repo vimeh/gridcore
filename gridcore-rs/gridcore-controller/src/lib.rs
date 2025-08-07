@@ -1,17 +1,17 @@
-pub mod state;
-pub mod controller;
 pub mod behaviors;
+pub mod controller;
 pub mod managers;
+pub mod state;
 
 #[cfg(feature = "wasm")]
 pub mod wasm;
 
 // Re-export key types
-pub use state::{
-    UIState, UIStateMachine, SpreadsheetMode, CellMode, Action,
-    ViewportInfo, Selection, SelectionType,
-};
 pub use controller::SpreadsheetController;
+pub use state::{
+    Action, CellMode, Selection, SelectionType, SpreadsheetMode, UIState, UIStateMachine,
+    ViewportInfo,
+};
 
 #[cfg(test)]
 mod tests {

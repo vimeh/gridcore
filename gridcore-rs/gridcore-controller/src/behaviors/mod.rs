@@ -1,2 +1,2 @@
-pub mod vim;
 pub mod resize;
+pub mod vim;

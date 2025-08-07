@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use gridcore_core::types::CellAddress;
+use serde::{Deserialize, Serialize};
 
 /// Events that can occur in the spreadsheet
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -15,7 +15,7 @@ pub enum SpreadsheetEvent {
         rows: u32,
         cols: u32,
     },
-    
+
     // Cell events
     CellEditStarted {
         address: CellAddress,
@@ -27,7 +27,7 @@ pub enum SpreadsheetEvent {
     CellEditCancelled {
         address: CellAddress,
     },
-    
+
     // Selection events
     SelectionChanged {
         selection: crate::state::Selection,
@@ -36,19 +36,19 @@ pub enum SpreadsheetEvent {
         start: CellAddress,
         end: CellAddress,
     },
-    
+
     // Mode changes
     ModeChanged {
         from: crate::state::SpreadsheetMode,
         to: crate::state::SpreadsheetMode,
     },
-    
+
     // Command events
     CommandExecuted {
         command: String,
     },
     CommandCancelled,
-    
+
     // Structural events
     RowsInserted {
         index: u32,
@@ -64,7 +64,7 @@ pub enum SpreadsheetEvent {
     ColumnsDeleted {
         indices: Vec<u32>,
     },
-    
+
     // Resize events
     ColumnResized {
         index: u32,
@@ -74,7 +74,7 @@ pub enum SpreadsheetEvent {
         index: u32,
         new_height: u32,
     },
-    
+
     // Copy/paste events
     CellsCopied {
         selection: crate::state::Selection,
@@ -85,11 +85,11 @@ pub enum SpreadsheetEvent {
     CellsPasted {
         target: CellAddress,
     },
-    
+
     // Undo/redo events
     UndoPerformed,
     RedoPerformed,
-    
+
     // File events
     FileSaved {
         path: String,
@@ -121,7 +121,7 @@ impl KeyboardEvent {
             meta: false,
         }
     }
-    
+
     pub fn with_modifiers(mut self, shift: bool, ctrl: bool, alt: bool, meta: bool) -> Self {
         self.shift = shift;
         self.ctrl = ctrl;
@@ -129,24 +129,31 @@ impl KeyboardEvent {
         self.meta = meta;
         self
     }
-    
+
     /// Check if this is a printable character
     pub fn is_printable(&self) -> bool {
         self.key.len() == 1 && !self.ctrl && !self.alt && !self.meta
     }
-    
+
     /// Check if this is a navigation key
     pub fn is_navigation(&self) -> bool {
-        matches!(self.key.as_str(), 
-            "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" |
-            "Home" | "End" | "PageUp" | "PageDown"
+        matches!(
+            self.key.as_str(),
+            "ArrowUp"
+                | "ArrowDown"
+                | "ArrowLeft"
+                | "ArrowRight"
+                | "Home"
+                | "End"
+                | "PageUp"
+                | "PageDown"
         )
     }
-    
+
     /// Convert to vim-style key notation
     pub fn to_vim_notation(&self) -> String {
         let mut result = String::new();
-        
+
         if self.ctrl {
             result.push_str("C-");
         }
@@ -156,7 +163,7 @@ impl KeyboardEvent {
         if self.meta {
             result.push_str("M-");
         }
-        
+
         // Map special keys
         let key_str = match self.key.as_str() {
             "ArrowUp" => "Up",
@@ -175,7 +182,7 @@ impl KeyboardEvent {
             }
             key => key,
         };
-        
+
         result.push_str(key_str);
         result
     }
@@ -225,7 +232,7 @@ impl MouseEvent {
             meta: false,
         }
     }
-    
+
     pub fn with_modifiers(mut self, shift: bool, ctrl: bool, alt: bool, meta: bool) -> Self {
         self.shift = shift;
         self.ctrl = ctrl;
@@ -246,7 +253,7 @@ impl EventDispatcher {
             listeners: Vec::new(),
         }
     }
-    
+
     pub fn subscribe<F>(&mut self, listener: F) -> usize
     where
         F: Fn(&SpreadsheetEvent) + Send + 'static,
@@ -254,19 +261,19 @@ impl EventDispatcher {
         self.listeners.push(Box::new(listener));
         self.listeners.len() - 1
     }
-    
+
     pub fn unsubscribe(&mut self, index: usize) {
         if index < self.listeners.len() {
             self.listeners.remove(index);
         }
     }
-    
+
     pub fn dispatch(&self, event: &SpreadsheetEvent) {
         for listener in &self.listeners {
             listener(event);
         }
     }
-    
+
     pub fn clear(&mut self) {
         self.listeners.clear();
     }
@@ -281,42 +288,41 @@ impl Default for EventDispatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_keyboard_event() {
         let event = KeyboardEvent::new("a".to_string());
         assert!(event.is_printable());
         assert!(!event.is_navigation());
         assert_eq!(event.to_vim_notation(), "a");
-        
-        let ctrl_a = KeyboardEvent::new("a".to_string())
-            .with_modifiers(false, true, false, false);
+
+        let ctrl_a = KeyboardEvent::new("a".to_string()).with_modifiers(false, true, false, false);
         assert!(!ctrl_a.is_printable());
         assert_eq!(ctrl_a.to_vim_notation(), "C-a");
-        
+
         let arrow = KeyboardEvent::new("ArrowUp".to_string());
         assert!(arrow.is_navigation());
         assert_eq!(arrow.to_vim_notation(), "Up");
     }
-    
+
     #[test]
     fn test_event_dispatcher() {
         use std::sync::{Arc, Mutex};
-        
+
         let mut dispatcher = EventDispatcher::new();
         let received = Arc::new(Mutex::new(Vec::new()));
         let received_clone = received.clone();
-        
+
         dispatcher.subscribe(move |event| {
             let mut events = received_clone.lock().unwrap();
             events.push(format!("{:?}", event));
         });
-        
+
         dispatcher.dispatch(&SpreadsheetEvent::CursorMoved {
             from: CellAddress::new(0, 0),
             to: CellAddress::new(1, 1),
         });
-        
+
         let events = received.lock().unwrap();
         assert_eq!(events.len(), 1);
     }

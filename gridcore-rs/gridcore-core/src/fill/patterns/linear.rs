@@ -37,18 +37,14 @@ impl LinearPatternDetector {
             .iter()
             .all(|&diff| (diff - first_diff).abs() < tolerance);
 
-        if is_linear {
-            Some(first_diff)
-        } else {
-            None
-        }
+        if is_linear { Some(first_diff) } else { None }
     }
 }
 
 impl PatternDetector for LinearPatternDetector {
     fn detect(&self, values: &[CellValue]) -> Option<PatternType> {
         let numbers = self.extract_numbers(values);
-        
+
         if let Some(slope) = self.detect_linear_pattern(&numbers) {
             Some(PatternType::Linear(slope))
         } else {
@@ -66,7 +62,7 @@ impl PatternDetector for LinearPatternDetector {
             .iter()
             .filter(|v| matches!(v, CellValue::Number(_)))
             .count();
-        
+
         numeric_count >= 2
     }
 }

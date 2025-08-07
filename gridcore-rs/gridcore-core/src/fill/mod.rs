@@ -1,5 +1,5 @@
-use crate::types::{CellAddress, CellValue};
 use crate::Result;
+use crate::types::{CellAddress, CellValue};
 use std::time::Duration;
 
 pub mod adjuster;
@@ -21,12 +21,12 @@ pub enum FillDirection {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PatternType {
-    Linear(f64),           // slope
-    Exponential(f64),      // growth rate
-    Date(Duration),        // increment
-    Text,                  // copy or increment
-    Custom(String),        // formula pattern
-    Copy,                  // simple copy (fallback)
+    Linear(f64),      // slope
+    Exponential(f64), // growth rate
+    Date(Duration),   // increment
+    Text,             // copy or increment
+    Custom(String),   // formula pattern
+    Copy,             // simple copy (fallback)
 }
 
 #[derive(Debug, Clone)]
@@ -76,9 +76,9 @@ impl CellRange {
 
 pub trait PatternDetector {
     fn detect(&self, values: &[CellValue]) -> Option<PatternType>;
-    
+
     fn priority(&self) -> u32;
-    
+
     fn can_handle(&self, values: &[CellValue]) -> bool;
 }
 
@@ -91,4 +91,3 @@ pub trait FormulaAdjuster {
         direction: FillDirection,
     ) -> Result<String>;
 }
-

@@ -198,7 +198,7 @@ impl FillEngine {
             })?;
 
         let mut current_value = last_value;
-        
+
         for addr in target_range.iter_cells() {
             current_value += slope;
             result.push((addr, CellValue::Number(current_value)));
@@ -228,7 +228,7 @@ impl FillEngine {
             })?;
 
         let mut current_value = last_value;
-        
+
         for addr in target_range.iter_cells() {
             current_value *= rate;
             result.push((addr, CellValue::Number(current_value)));
@@ -274,8 +274,12 @@ impl FillEngine {
                     if text.starts_with('=') {
                         // Generate adjusted formulas for each target cell
                         for target_addr in target_range.iter_cells() {
-                            let adjusted_formula =
-                                adjuster.adjust_formula(text, &source_addr, &target_addr, direction)?;
+                            let adjusted_formula = adjuster.adjust_formula(
+                                text,
+                                &source_addr,
+                                &target_addr,
+                                direction,
+                            )?;
                             adjusted.push((target_addr, adjusted_formula));
                         }
                     }
@@ -308,10 +312,10 @@ mod tests {
     fn test_get_source_values_empty_range() {
         let repo = Rc::new(CellRepository::new());
         let engine = FillEngine::new(repo);
-        
+
         let range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(2, 0));
         let values = engine.get_source_values(&range).unwrap();
-        
+
         assert_eq!(values.len(), 3);
         assert!(values.iter().all(|v| matches!(v, CellValue::Empty)));
     }
@@ -319,7 +323,7 @@ mod tests {
     #[test]
     fn test_copy_pattern_generation() {
         let repo = setup_repository();
-        
+
         // Add some source values
         {
             let mut repo_mut = repo.borrow_mut();
@@ -328,7 +332,7 @@ mod tests {
             repo_mut.set(&CellAddress::new(0, 0), cell1);
             repo_mut.set(&CellAddress::new(1, 0), cell2);
         }
-        
+
         // Note: FillEngine expects Rc<CellRepository>, not Rc<RefCell<CellRepository>>
         // We need to extract it for the test or modify the FillEngine
         // For now, let's skip this test and focus on completing the implementation

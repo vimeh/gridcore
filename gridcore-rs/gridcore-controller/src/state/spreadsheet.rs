@@ -34,23 +34,34 @@ pub enum SpreadsheetVisualMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InsertMode {
-    I,  // insert before cursor
-    A,  // append after cursor
-    CapitalA,  // append at end of line
-    CapitalI,  // insert at beginning of line
-    O,  // open line below
-    CapitalO,  // open line above
+    I,        // insert before cursor
+    A,        // append after cursor
+    CapitalA, // append at end of line
+    CapitalI, // insert at beginning of line
+    O,        // open line below
+    CapitalO, // open line above
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SelectionType {
-    Cell { address: CellAddress },
-    Range { start: CellAddress, end: CellAddress },
-    Column { columns: Vec<u32> },
-    Row { rows: Vec<u32> },
+    Cell {
+        address: CellAddress,
+    },
+    Range {
+        start: CellAddress,
+        end: CellAddress,
+    },
+    Column {
+        columns: Vec<u32>,
+    },
+    Row {
+        rows: Vec<u32>,
+    },
     // Alternative name for compatibility
     // Row { indices: Vec<u32> },
-    Multi { selections: Vec<Selection> },
+    Multi {
+        selections: Vec<Selection>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -198,7 +209,7 @@ impl UIState {
             selection: None,
         }
     }
-    
+
     pub fn spreadsheet_mode(&self) -> SpreadsheetMode {
         match self {
             UIState::Navigation { .. } => SpreadsheetMode::Navigation,
@@ -214,27 +225,27 @@ impl UIState {
 
     pub fn cursor(&self) -> &CellAddress {
         match self {
-            UIState::Navigation { cursor, .. } |
-            UIState::Visual { cursor, .. } |
-            UIState::Editing { cursor, .. } |
-            UIState::Command { cursor, .. } |
-            UIState::Resize { cursor, .. } |
-            UIState::Insert { cursor, .. } |
-            UIState::Delete { cursor, .. } |
-            UIState::BulkOperation { cursor, .. } => cursor,
+            UIState::Navigation { cursor, .. }
+            | UIState::Visual { cursor, .. }
+            | UIState::Editing { cursor, .. }
+            | UIState::Command { cursor, .. }
+            | UIState::Resize { cursor, .. }
+            | UIState::Insert { cursor, .. }
+            | UIState::Delete { cursor, .. }
+            | UIState::BulkOperation { cursor, .. } => cursor,
         }
     }
 
     pub fn viewport(&self) -> &ViewportInfo {
         match self {
-            UIState::Navigation { viewport, .. } |
-            UIState::Visual { viewport, .. } |
-            UIState::Editing { viewport, .. } |
-            UIState::Command { viewport, .. } |
-            UIState::Resize { viewport, .. } |
-            UIState::Insert { viewport, .. } |
-            UIState::Delete { viewport, .. } |
-            UIState::BulkOperation { viewport, .. } => viewport,
+            UIState::Navigation { viewport, .. }
+            | UIState::Visual { viewport, .. }
+            | UIState::Editing { viewport, .. }
+            | UIState::Command { viewport, .. }
+            | UIState::Resize { viewport, .. }
+            | UIState::Insert { viewport, .. }
+            | UIState::Delete { viewport, .. }
+            | UIState::BulkOperation { viewport, .. } => viewport,
         }
     }
 }
@@ -294,10 +305,7 @@ pub fn create_editing_state(
     }
 }
 
-pub fn create_command_state(
-    cursor: CellAddress,
-    viewport: ViewportInfo,
-) -> UIState {
+pub fn create_command_state(cursor: CellAddress, viewport: ViewportInfo) -> UIState {
     UIState::Command {
         cursor,
         viewport,

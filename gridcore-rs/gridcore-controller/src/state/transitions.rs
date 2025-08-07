@@ -1,5 +1,5 @@
+use crate::state::{Action, UIState};
 use gridcore_core::Result;
-use crate::state::{UIState, Action};
 
 /// Represents a state transition rule
 pub struct Transition {
@@ -20,11 +20,11 @@ impl Transition {
             handler,
         }
     }
-    
+
     pub fn can_apply(&self, state: &UIState, action: &Action) -> bool {
         (self.from_state)(state) && (self.action_type)(action)
     }
-    
+
     pub fn apply(&self, state: &UIState, action: &Action) -> Result<UIState> {
         (self.handler)(state, action)
     }
@@ -41,15 +41,13 @@ impl TransitionRegistry {
             transitions: Vec::new(),
         }
     }
-    
+
     pub fn register(&mut self, transition: Transition) {
         self.transitions.push(transition);
     }
-    
+
     pub fn find_transition(&self, state: &UIState, action: &Action) -> Option<&Transition> {
-        self.transitions
-            .iter()
-            .find(|t| t.can_apply(state, action))
+        self.transitions.iter().find(|t| t.can_apply(state, action))
     }
 }
 

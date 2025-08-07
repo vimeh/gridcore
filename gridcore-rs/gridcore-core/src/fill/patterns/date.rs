@@ -1,6 +1,6 @@
 use crate::fill::{PatternDetector, PatternType};
 use crate::types::CellValue;
-use chrono::{NaiveDate, Duration as ChronoDuration};
+use chrono::{Duration as ChronoDuration, NaiveDate};
 use std::time::Duration;
 
 pub struct DatePatternDetector;
@@ -14,7 +14,8 @@ impl DatePatternDetector {
         match value {
             CellValue::String(s) => {
                 // Try common date formats
-                NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
+                NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                    .ok()
                     .or_else(|| NaiveDate::parse_from_str(s, "%m/%d/%Y").ok())
                     .or_else(|| NaiveDate::parse_from_str(s, "%d/%m/%Y").ok())
                     .or_else(|| NaiveDate::parse_from_str(s, "%Y/%m/%d").ok())
@@ -55,10 +56,7 @@ impl DatePatternDetector {
 
 impl PatternDetector for DatePatternDetector {
     fn detect(&self, values: &[CellValue]) -> Option<PatternType> {
-        let dates: Vec<_> = values
-            .iter()
-            .filter_map(|v| self.parse_date(v))
-            .collect();
+        let dates: Vec<_> = values.iter().filter_map(|v| self.parse_date(v)).collect();
 
         if let Some(duration) = self.detect_date_pattern(&dates) {
             Some(PatternType::Date(duration))
@@ -77,7 +75,7 @@ impl PatternDetector for DatePatternDetector {
             .iter()
             .filter(|v| self.parse_date(v).is_some())
             .count();
-        
+
         date_count >= 2
     }
 }

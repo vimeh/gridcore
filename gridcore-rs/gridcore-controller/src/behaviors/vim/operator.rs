@@ -1,6 +1,6 @@
-use gridcore_core::{Result, types::CellAddress};
+use super::{Motion, Operator, VimBehavior, VimCommand};
 use crate::state::{Action, UIState};
-use super::{VimBehavior, VimCommand, Operator, Motion};
+use gridcore_core::{types::CellAddress, Result};
 
 /// Context for operator execution
 pub struct OperatorContext<'a> {
@@ -21,7 +21,7 @@ impl VimBehavior {
             let cursor = context.current_state.cursor();
             (cursor.clone(), cursor.clone())
         };
-        
+
         match context.operator {
             Operator::Delete => self.execute_delete_operator(range, context.register),
             Operator::Change => self.execute_change_operator(range, context.register),
@@ -34,22 +34,30 @@ impl VimBehavior {
             Operator::ToggleCase => self.execute_togglecase_operator(range),
         }
     }
-    
+
     /// Calculate the range affected by an operator motion
-    fn calculate_operator_range(&self, motion: &Motion, current_state: &UIState) -> Result<(CellAddress, CellAddress)> {
+    fn calculate_operator_range(
+        &self,
+        motion: &Motion,
+        current_state: &UIState,
+    ) -> Result<(CellAddress, CellAddress)> {
         let context = super::motion::MotionContext::new(
             current_state.cursor().clone(),
             current_state.viewport().clone(),
         );
-        
+
         super::motion::motion_range(motion, &context)
     }
-    
-    fn execute_delete_operator(&mut self, range: (CellAddress, CellAddress), register: Option<char>) -> Result<Option<Action>> {
+
+    fn execute_delete_operator(
+        &mut self,
+        range: (CellAddress, CellAddress),
+        register: Option<char>,
+    ) -> Result<Option<Action>> {
         // Store deleted content in register
         let reg = register.unwrap_or('0');
         self.registers.insert(reg, String::new()); // TODO: Get actual content
-        
+
         // Delete the range
         if range.0.row == range.1.row {
             // Delete columns in same row
@@ -67,130 +75,162 @@ impl VimBehavior {
             }))
         }
     }
-    
-    fn execute_change_operator(&mut self, _range: (CellAddress, CellAddress), register: Option<char>) -> Result<Option<Action>> {
+
+    fn execute_change_operator(
+        &mut self,
+        _range: (CellAddress, CellAddress),
+        register: Option<char>,
+    ) -> Result<Option<Action>> {
         // Store changed content in register
         let reg = register.unwrap_or('0');
         self.registers.insert(reg, String::new()); // TODO: Get actual content
-        
+
         // Delete and enter insert mode
         self.mode = super::VimMode::Insert;
-        
+
         // TODO: Delete the range first
         Ok(Some(Action::EnterInsertMode { mode: None }))
     }
-    
-    fn execute_yank_operator(&mut self, range: (CellAddress, CellAddress), register: Option<char>) -> Result<Option<Action>> {
+
+    fn execute_yank_operator(
+        &mut self,
+        range: (CellAddress, CellAddress),
+        register: Option<char>,
+    ) -> Result<Option<Action>> {
         // Store yanked content in register
         let reg = register.unwrap_or('0');
-        
+
         // TODO: Get actual content from cells
         let content = format!("Yanked from {:?} to {:?}", range.0, range.1);
         self.registers.insert(reg, content);
-        
+
         // Also store in unnamed register
         if reg != '"' {
             self.registers.insert('"', self.registers[&reg].clone());
         }
-        
+
         // Yanking doesn't change the buffer
         Ok(None)
     }
-    
-    fn execute_indent_operator(&mut self, range: (CellAddress, CellAddress), count: Option<usize>) -> Result<Option<Action>> {
+
+    fn execute_indent_operator(
+        &mut self,
+        range: (CellAddress, CellAddress),
+        count: Option<usize>,
+    ) -> Result<Option<Action>> {
         let indent_level = count.unwrap_or(1);
-        
+
         // TODO: Implement actual indentation
         let _ = (range, indent_level);
         Ok(None)
     }
-    
-    fn execute_outdent_operator(&mut self, range: (CellAddress, CellAddress), count: Option<usize>) -> Result<Option<Action>> {
+
+    fn execute_outdent_operator(
+        &mut self,
+        range: (CellAddress, CellAddress),
+        count: Option<usize>,
+    ) -> Result<Option<Action>> {
         let outdent_level = count.unwrap_or(1);
-        
+
         // TODO: Implement actual outdentation
         let _ = (range, outdent_level);
         Ok(None)
     }
-    
-    fn execute_format_operator(&mut self, range: (CellAddress, CellAddress)) -> Result<Option<Action>> {
+
+    fn execute_format_operator(
+        &mut self,
+        range: (CellAddress, CellAddress),
+    ) -> Result<Option<Action>> {
         // Format the range
         let command = crate::state::ParsedBulkCommand {
             command: "format".to_string(),
             operation: "format".to_string(),
-            range_spec: format!("{}:{}", 
+            range_spec: format!(
+                "{}:{}",
                 self.address_to_string(&range.0),
                 self.address_to_string(&range.1)
             ),
             parameters: vec![],
         };
-        
+
         Ok(Some(Action::StartBulkOperation {
             parsed_command: command,
             affected_cells: None,
         }))
     }
-    
-    fn execute_lowercase_operator(&mut self, range: (CellAddress, CellAddress)) -> Result<Option<Action>> {
+
+    fn execute_lowercase_operator(
+        &mut self,
+        range: (CellAddress, CellAddress),
+    ) -> Result<Option<Action>> {
         // Convert to lowercase
         let command = crate::state::ParsedBulkCommand {
             command: "lowercase".to_string(),
             operation: "lowercase".to_string(),
-            range_spec: format!("{}:{}", 
+            range_spec: format!(
+                "{}:{}",
                 self.address_to_string(&range.0),
                 self.address_to_string(&range.1)
             ),
             parameters: vec![],
         };
-        
+
         Ok(Some(Action::StartBulkOperation {
             parsed_command: command,
             affected_cells: None,
         }))
     }
-    
-    fn execute_uppercase_operator(&mut self, range: (CellAddress, CellAddress)) -> Result<Option<Action>> {
+
+    fn execute_uppercase_operator(
+        &mut self,
+        range: (CellAddress, CellAddress),
+    ) -> Result<Option<Action>> {
         // Convert to uppercase
         let command = crate::state::ParsedBulkCommand {
             command: "uppercase".to_string(),
             operation: "uppercase".to_string(),
-            range_spec: format!("{}:{}", 
+            range_spec: format!(
+                "{}:{}",
                 self.address_to_string(&range.0),
                 self.address_to_string(&range.1)
             ),
             parameters: vec![],
         };
-        
+
         Ok(Some(Action::StartBulkOperation {
             parsed_command: command,
             affected_cells: None,
         }))
     }
-    
-    fn execute_togglecase_operator(&mut self, range: (CellAddress, CellAddress)) -> Result<Option<Action>> {
+
+    fn execute_togglecase_operator(
+        &mut self,
+        range: (CellAddress, CellAddress),
+    ) -> Result<Option<Action>> {
         // Toggle case
         let command = crate::state::ParsedBulkCommand {
             command: "togglecase".to_string(),
             operation: "togglecase".to_string(),
-            range_spec: format!("{}:{}", 
+            range_spec: format!(
+                "{}:{}",
                 self.address_to_string(&range.0),
                 self.address_to_string(&range.1)
             ),
             parameters: vec![],
         };
-        
+
         Ok(Some(Action::StartBulkOperation {
             parsed_command: command,
             affected_cells: None,
         }))
     }
-    
+
     /// Convert a cell address to Excel-style notation (A1, B2, etc.)
     fn address_to_string(&self, addr: &CellAddress) -> String {
         let col_letter = self.col_to_letter(addr.col);
         format!("{}{}", col_letter, addr.row + 1)
     }
-    
+
     fn col_to_letter(&self, col: u32) -> String {
         if col < 26 {
             ((b'A' + col as u8) as char).to_string()
@@ -198,7 +238,8 @@ impl VimBehavior {
             // Handle multi-letter columns (AA, AB, etc.)
             let first = col / 26 - 1;
             let second = col % 26;
-            format!("{}{}", 
+            format!(
+                "{}{}",
                 (b'A' + first as u8) as char,
                 (b'A' + second as u8) as char
             )
@@ -212,7 +253,7 @@ impl VimBehavior {
     pub fn is_operator_pending(&self) -> bool {
         self.mode == super::VimMode::OperatorPending
     }
-    
+
     /// Get the pending operator
     pub fn get_pending_operator(&self) -> Option<Operator> {
         if self.is_operator_pending() {
@@ -221,9 +262,13 @@ impl VimBehavior {
             None
         }
     }
-    
+
     /// Complete an operator with a motion
-    pub fn complete_operator(&mut self, motion: Motion, current_state: &UIState) -> Result<Option<Action>> {
+    pub fn complete_operator(
+        &mut self,
+        motion: Motion,
+        current_state: &UIState,
+    ) -> Result<Option<Action>> {
         if let Some(operator) = self.current_command.operator {
             let context = OperatorContext {
                 operator,
@@ -232,26 +277,31 @@ impl VimBehavior {
                 count: self.current_command.count,
                 current_state,
             };
-            
+
             // Store for repeat
             self.repeat_command = Some(self.current_command.clone());
-            
+
             // Clear current command
             self.current_command = VimCommand::new();
             self.mode = super::VimMode::Normal;
-            
+
             self.execute_operator(context)
         } else {
             Ok(None)
         }
     }
-    
+
     /// Execute a linewise operator (dd, cc, yy)
-    pub fn execute_linewise_operator(&mut self, operator: Operator, count: usize, current_state: &UIState) -> Result<Option<Action>> {
+    pub fn execute_linewise_operator(
+        &mut self,
+        operator: Operator,
+        count: usize,
+        current_state: &UIState,
+    ) -> Result<Option<Action>> {
         let cursor = current_state.cursor();
         let start = CellAddress::new(0, cursor.row);
         let end = CellAddress::new(u32::MAX, cursor.row + count as u32 - 1);
-        
+
         match operator {
             Operator::Delete => self.execute_delete_operator((start, end), None),
             Operator::Change => self.execute_change_operator((start, end), None),
@@ -264,22 +314,22 @@ impl VimBehavior {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_address_to_string() {
         let vim = VimBehavior::new();
-        
+
         assert_eq!(vim.address_to_string(&CellAddress::new(0, 0)), "A1");
         assert_eq!(vim.address_to_string(&CellAddress::new(1, 0)), "B1");
         assert_eq!(vim.address_to_string(&CellAddress::new(25, 0)), "Z1");
         assert_eq!(vim.address_to_string(&CellAddress::new(26, 0)), "AA1");
         assert_eq!(vim.address_to_string(&CellAddress::new(0, 9)), "A10");
     }
-    
+
     #[test]
     fn test_col_to_letter() {
         let vim = VimBehavior::new();
-        
+
         assert_eq!(vim.col_to_letter(0), "A");
         assert_eq!(vim.col_to_letter(25), "Z");
         assert_eq!(vim.col_to_letter(26), "AA");
