@@ -27,9 +27,9 @@ export async function initializeWasm(): Promise<void> {
   try {
     // Dynamic import of WASM module
     // @ts-ignore - Dynamic import of optional dependency
-    const module = await import("../../../gridcore-rs/gridcore-wasm/pkg/gridcore_wasm.js");
+    const module = await import("../wasm/gridcore_wasm.js");
     
-    // Initialize WASM module
+    // Initialize WASM module - this loads the WASM binary
     if (module.default) {
       await module.default();
     }

@@ -8,8 +8,8 @@ chumsky = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 petgraph = { workspace = true }
-regex = { workspace = true }
-chrono = { workspace = true }
+regex = { workspace = true, default-features = false, features = ["std", "perf"] }
+chrono = { workspace = true, default-features = false, features = ["clock", "std"] }
 
 [features]
 default = []
