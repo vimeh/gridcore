@@ -65,9 +65,12 @@ export class RustSpreadsheetFacade {
   
   // SpreadsheetFacade implementation
   
-  setCellValue(address: CellAddress, value: string): void {
+  setCellValue(address: CellAddress, value: any): void {
     const wasmAddress = new wasmModule.WasmCellAddress(address.col, address.row);
-    this.facade.setCellValue(wasmAddress, value);
+    // Convert value to string to match WASM expectations
+    // The Rust side will parse it back to the appropriate type
+    const stringValue = String(value);
+    this.facade.setCellValue(wasmAddress, stringValue);
     wasmAddress.free();
   }
   
