@@ -21,6 +21,8 @@
     "build:rust": "bun run build:wasm && bun run build:ui-core",
     "test": "bun test packages/core && bun test packages/ui-web/src",
     "test:all": "bun test packages/core && bun test packages/ui-web/src && bun run --cwd packages/ui-web test:e2e",
+    "test:rust": "USE_RUST_CORE=true bun test packages/core && USE_RUST_CORE=true bun test packages/ui-web/src",
+    "test:all:rust": "USE_RUST_CORE=true bun test packages/core && USE_RUST_CORE=true bun test packages/ui-web/src && bun run --cwd packages/ui-web test:e2e:rust",
     "typecheck": "bun run --filter '*' typecheck",
     "check": "biome check --write .",
     "clean": "rm -rf node_modules && bun run --filter '*' clean"

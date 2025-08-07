@@ -12,8 +12,11 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
     "test:unit": "bun test src",
+    "test:unit:rust": "USE_RUST_CORE=true bun test src",
     "test:e2e": "playwright test",
+    "test:e2e:rust": "USE_RUST_CORE=true playwright test",
     "test:ui": "playwright test --ui",
+    "test:ui:rust": "USE_RUST_CORE=true playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report",
     "clean": "rm -rf dist node_modules coverage .next out playwright-report test-results"
