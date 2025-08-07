@@ -24,7 +24,10 @@
       "Bash(cargo test:*)",
       "Bash(cargo build:*)",
       "Bash(wasm-pack build:*)",
-      "Bash(./build.sh:*)"
+      "Bash(./build.sh:*)",
+      "Bash(cat:*)",
+      "Bash(cargo bench:*)",
+      "mcp__playwright__browser_network_requests"
     ],
     "deny": []
   }
