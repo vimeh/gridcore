@@ -23,16 +23,16 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 ### Week 1: Project Setup & State Machine (Days 1-7)
 
 #### Day 1-2: Project Setup
-- [ ] Create `gridcore-rs/gridcore-controller` package
-- [ ] Configure Cargo.toml with dependencies
-- [ ] Set up module structure
+- [x] Create `gridcore-rs/gridcore-controller` package
+- [x] Configure Cargo.toml with dependencies
+- [x] Set up module structure
 - [ ] Configure WASM build pipeline
 
 #### Day 3-7: State Machine Implementation
-- [ ] Port UIStateMachine from TypeScript
-- [ ] Implement SpreadsheetState enum
-- [ ] Create StateContext for shared state
-- [ ] Port state transitions
+- [x] Port UIStateMachine from TypeScript
+- [x] Implement SpreadsheetState enum
+- [x] Create StateContext for shared state
+- [x] Port state transitions
 - [ ] Add state machine tests
 
 **Files to create:**

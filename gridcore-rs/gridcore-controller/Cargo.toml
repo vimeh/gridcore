@@ -53,6 +53,6 @@ optional = true
 criterion = "0.5"
 wasm-bindgen-test = "0.3"
 
-[[bench]]
-name = "controller_bench"
-harness = false
+# [[bench]]
+# name = "controller_bench"
+# harness = false

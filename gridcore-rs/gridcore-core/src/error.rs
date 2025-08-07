@@ -59,6 +59,9 @@ pub enum SpreadsheetError {
 
     #[error("Batch operation failed: {0}")]
     BatchOperationFailed(String),
+    
+    #[error("Invalid operation: {0}")]
+    InvalidOperation(String),
 }
 
 pub type Result<T> = std::result::Result<T, SpreadsheetError>;
