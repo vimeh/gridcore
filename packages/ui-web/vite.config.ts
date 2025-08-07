@@ -16,7 +16,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "gridcore-controller": "/Users/vinay/v/code/gridcore/worktrees/rust/gridcore-rs/gridcore-controller/pkg/gridcore_controller.js"
+      "gridcore-controller": "/Users/vinay/v/code/gridcore/worktrees/rust/packages/ui-core/dist/gridcore_controller.js"
     }
   }
 });
