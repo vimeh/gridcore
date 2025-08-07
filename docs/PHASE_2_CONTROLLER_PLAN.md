@@ -1,6 +1,6 @@
 # Phase 2: Controller/UI Logic Migration Plan
 
-## Status: In Progress (85% Complete)
+## Status: In Progress (90% Complete)
 
 Started: 2025-08-06
 Last Updated: 2025-08-07
@@ -87,7 +87,7 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 #### Day 19-21: Selection Management
 
 - [x] Port SelectionManager
-- [ ] Implement ResizeBehavior
+- [x] Implement ResizeBehavior
 - [ ] Add selection tests
 
 **Files created:**
@@ -100,7 +100,7 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 - ✅ `src/behaviors/vim/operator.rs` (350+ lines)
 - ✅ `src/behaviors/vim/cell_vim.rs` (700+ lines)
 - ✅ `src/managers/selection.rs` (550+ lines)
-- ⏳ `src/behaviors/resize.rs`
+- ✅ `src/behaviors/resize.rs` (250+ lines)
 
 ### Week 4: WASM Integration & Testing (Days 22-28)
 
@@ -137,7 +137,7 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 - [x] Event handling maintains 60fps performance (1000+ transitions/sec achieved)
 - [x] WASM bundle size < 200KB (target met)
 - [x] Zero breaking changes in API
-- [⏳] All tests passing (36/49 passing, 7 need transition implementations)
+- [x] All tests passing (66/66 passing)
 
 ## Technical Decisions
 
@@ -215,7 +215,7 @@ gridcore-rs/
 
 - ✅ Week 1 (Days 1-7): **COMPLETE** - State machine and tests
 - ✅ Week 2 (Days 8-14): **COMPLETE** - Controller and events
-- ✅ Week 3 (Days 15-21): **95% COMPLETE** - Vim mode fully implemented, ResizeBehavior pending
+- ✅ Week 3 (Days 15-21): **COMPLETE** - Vim mode, SelectionManager, and ResizeBehavior
 - ⏳ Week 4 (Days 22-28): **60% COMPLETE** - WASM bindings done, integration tests pending
 
 ### Daily Updates
@@ -223,12 +223,13 @@ gridcore-rs/
 - 2025-08-06: Created plan document, implemented state machine and controller
 - 2025-08-07 Morning: Added comprehensive tests (49 total), configured WASM pipeline
 - 2025-08-07 Afternoon: Implemented complete Vim mode functionality (3,750+ lines), SelectionManager
+- 2025-08-07 Evening: Implemented ResizeBehavior, fixed all state transitions, 66 tests passing
 
 ## Implementation Statistics
 
-- **Total Lines of Rust Code**: ~7,250 lines
-- **Test Coverage**: 60 tests (53 passing)
-- **Components Completed**: 22/24 files
+- **Total Lines of Rust Code**: ~7,500 lines
+- **Test Coverage**: 66 tests (all passing)
+- **Components Completed**: 23/24 files
 - **WASM Bundle Size**: <200KB (target achieved)
 - **Performance**: 1000+ state transitions/second
 
@@ -257,24 +258,25 @@ gridcore-rs/
 
 ## Remaining Work
 
-### Vim Mode Implementation (95% Complete)
+### Vim Mode Implementation (100% Complete)
 - ✅ VimBehavior state machine
 - ✅ Normal mode commands
 - ✅ Visual mode selection
 - ✅ Command mode execution
 - ✅ CellVimBehavior
-- ⏳ Integration with controller
+- ✅ All state transitions
 
-### Selection Management (90% Complete)
+### Selection Management (100% Complete)
 - ✅ SelectionManager
-- ⏳ ResizeBehavior
+- ✅ ResizeBehavior
 - ✅ Multi-selection support
 
-### Integration & Testing (30% Complete)
-- Complete transition implementations for failing tests
-- Integration tests with WASM
-- TypeScript adapter layer
-- Performance benchmarking
+### Integration & Testing (40% Complete)
+- ✅ All state transitions implemented
+- ⏳ Component-specific tests
+- ⏳ Integration tests with WASM
+- ⏳ TypeScript adapter layer
+- ⏳ Performance benchmarking
 
 ## Notes
 
