@@ -161,7 +161,7 @@ export class RustSpreadsheetController {
       this.notify({
         type: "stateChanged",
         state: this._state as UIState,
-        action: { type: "KeyPress", key: event.key } as Action,
+        action: { type: "KeyPress", key: event.key } as any,
       });
     } catch (error) {
       console.error("Error handling keyboard event:", error);
@@ -214,7 +214,7 @@ export class RustSpreadsheetController {
     if (!this._state) {
       this._state = this.inner.getState();
     }
-    return this._state;
+    return this._state as UIState;
   }
 
   getCursor(): CellAddress {

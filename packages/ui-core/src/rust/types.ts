@@ -3,7 +3,21 @@
  * These are used for WASM interop
  */
 
-// Re-export existing types from ui-core that match Rust
+// Import types for use in this file
+import type {
+  CellMode,
+  InsertMode,
+  Selection,
+  SelectionType,
+  SpreadsheetVisualMode,
+  UIState,
+  ViewportInfo,
+  VisualMode,
+} from "../state/UIState";
+
+import type { Action } from "../state/UIStateMachine";
+
+// Re-export the types
 export type {
   CellMode,
   InsertMode,

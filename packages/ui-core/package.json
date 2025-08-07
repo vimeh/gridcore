@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --external @gridcore/core && tsc --declaration --emitDeclarationOnly --outDir dist",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --external @gridcore/core && tsc --declaration --emitDeclarationOnly --outDir dist && cp ../../gridcore-rs/gridcore-controller/pkg/*.wasm ./dist/ 2>/dev/null || true",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "clean": "rm -rf dist node_modules coverage",

@@ -4,8 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:rust": "USE_RUST_CONTROLLER=true vite",
     "build": "tsc && vite build",
+    "build:rust": "USE_RUST_CONTROLLER=true tsc && USE_RUST_CONTROLLER=true vite build",
     "preview": "vite preview",
+    "preview:rust": "USE_RUST_CONTROLLER=true vite preview",
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
     "test:unit": "bun test src",
