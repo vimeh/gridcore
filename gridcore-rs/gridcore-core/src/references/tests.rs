@@ -50,17 +50,19 @@ mod references_integration_tests {
     #[test]
     fn test_adjust_formula_with_insert() {
         let adjuster = ReferenceAdjuster::new();
+        // The operation uses 0-based row indices
+        // To insert before row 5 (1-based), we use row 4 (0-based)
         let operation = StructuralOperation::InsertRows {
-            before_row: 5,
+            before_row: 4,  // Insert before row 5 in 1-based terms
             count: 2,
         };
         
         let formula = "=$A$5+$B$10+C3";
         let adjusted = adjuster.adjust_formula(formula, &operation).unwrap();
         
-        // $A$5 should become $A$7 (affected by insert)
-        // $B$10 should become $B$12 (affected by insert)
-        // C3 shouldn't change (relative, before insert point)
+        // $A$5 (row 4 in 0-based) should become $A$7 (affected by insert at row 4)
+        // $B$10 (row 9 in 0-based) should become $B$12 (affected by insert)
+        // C3 (row 2 in 0-based) shouldn't change (before insert point)
         assert!(adjusted.contains("$A$7"));
         assert!(adjusted.contains("$B$12"));
     }

@@ -58,6 +58,8 @@ impl ReferenceAdjuster {
     fn adjust_for_insert_rows(&self, reference: &Reference, before_row: u32, count: u32) -> Option<String> {
         match &reference.ref_type {
             ReferenceType::Absolute(col, row) => {
+                // before_row is 0-based; we need to check if the reference's row (also 0-based) is affected
+                // References at or after the insertion point should be shifted down
                 if *row >= before_row {
                     Some(self.format_absolute_reference(*col, row + count))
                 } else {
@@ -78,6 +80,14 @@ impl ReferenceAdjuster {
                 match (start_adjusted, end_adjusted) {
                     (Some(s), Some(e)) => Some(format!("{}:{}", s, e)),
                     _ => None,
+                }
+            }
+            ReferenceType::Sheet(sheet_name, inner_ref) => {
+                // Adjust the inner reference and prepend the sheet name
+                if let Some(adjusted) = self.adjust_for_insert_rows(inner_ref, before_row, count) {
+                    Some(format!("{}!{}", sheet_name, adjusted))
+                } else {
+                    None
                 }
             }
             _ => None,
@@ -107,6 +117,14 @@ impl ReferenceAdjuster {
                 match (start_adjusted, end_adjusted) {
                     (Some(s), Some(e)) => Some(format!("{}:{}", s, e)),
                     _ => None,
+                }
+            }
+            ReferenceType::Sheet(sheet_name, inner_ref) => {
+                // Adjust the inner reference and prepend the sheet name
+                if let Some(adjusted) = self.adjust_for_insert_columns(inner_ref, before_col, count) {
+                    Some(format!("{}!{}", sheet_name, adjusted))
+                } else {
+                    None
                 }
             }
             _ => None,
