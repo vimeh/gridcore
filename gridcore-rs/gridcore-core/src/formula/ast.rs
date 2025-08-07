@@ -13,6 +13,34 @@ impl CellRange {
         CellRange { start, end }
     }
 
+    /// Create a cell range ensuring start <= end
+    pub fn create(start: CellAddress, end: CellAddress) -> Result<Self, String> {
+        if start.col > end.col || start.row > end.row {
+            return Err("Range start must be before or equal to end".to_string());
+        }
+        Ok(CellRange { start, end })
+    }
+
+    /// Parse a range from A1:B2 notation
+    pub fn from_string(s: &str) -> Result<Self, String> {
+        let parts: Vec<&str> = s.split(':').collect();
+        if parts.len() != 2 {
+            return Err(format!("Invalid range format: {}", s));
+        }
+
+        let start = CellAddress::from_a1(parts[0])
+            .map_err(|_| format!("Invalid start address: {}", parts[0]))?;
+        let end = CellAddress::from_a1(parts[1])
+            .map_err(|_| format!("Invalid end address: {}", parts[1]))?;
+
+        Self::create(start, end)
+    }
+
+    /// Convert to A1:B2 notation
+    pub fn to_string(&self) -> String {
+        format!("{}:{}", self.start.to_a1(), self.end.to_a1())
+    }
+
     /// Check if a cell address is within this range
     pub fn contains(&self, addr: &CellAddress) -> bool {
         addr.col >= self.start.col
@@ -37,6 +65,16 @@ impl CellRange {
         let cols = (self.end.col - self.start.col + 1) as usize;
         let rows = (self.end.row - self.start.row + 1) as usize;
         cols * rows
+    }
+
+    /// Get the number of rows in this range
+    pub fn row_count(&self) -> usize {
+        (self.end.row - self.start.row + 1) as usize
+    }
+
+    /// Get the number of columns in this range
+    pub fn col_count(&self) -> usize {
+        (self.end.col - self.start.col + 1) as usize
     }
 }
 
@@ -152,19 +190,138 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_cell_range() {
-        let start = CellAddress::new(0, 0); // A1
-        let end = CellAddress::new(2, 2); // C3
-        let range = CellRange::new(start, end);
+    fn test_cell_range_creation() {
+        let range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(2, 2));
+        assert_eq!(range.start, CellAddress::new(0, 0));
+        assert_eq!(range.end, CellAddress::new(2, 2));
+    }
 
-        assert_eq!(range.size(), 9);
+    #[test]
+    fn test_cell_range_create_validates() {
+        // Valid range
+        let result = CellRange::create(CellAddress::new(0, 0), CellAddress::new(5, 5));
+        assert!(result.is_ok());
+
+        // Invalid range - start > end
+        let result = CellRange::create(CellAddress::new(5, 5), CellAddress::new(0, 0));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("start must be before or equal to end"));
+
+        // Single cell range is valid
+        let result = CellRange::create(CellAddress::new(5, 5), CellAddress::new(5, 5));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cell_range_from_string() {
+        // Valid range
+        let result = CellRange::from_string("A1:B2");
+        assert!(result.is_ok());
+        let range = result.unwrap();
+        assert_eq!(range.start.col, 0);
+        assert_eq!(range.start.row, 0);
+        assert_eq!(range.end.col, 1);
+        assert_eq!(range.end.row, 1);
+
+        // Single cell range
+        let result = CellRange::from_string("A1:A1");
+        assert!(result.is_ok());
+        let range = result.unwrap();
+        assert_eq!(range.start, range.end);
+
+        // Invalid format - wrong separator
+        let result = CellRange::from_string("A1-B2");
+        assert!(result.is_err());
+
+        // Invalid start address
+        let result = CellRange::from_string("1A:B2");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid start address"));
+
+        // Invalid end address
+        let result = CellRange::from_string("A1:2B");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid end address"));
+    }
+
+    #[test]
+    fn test_cell_range_to_string() {
+        let range = CellRange::from_string("A1:B2").unwrap();
+        assert_eq!(range.to_string(), "A1:B2");
+
+        let range = CellRange::from_string("AA10:ZZ999").unwrap();
+        assert_eq!(range.to_string(), "AA10:ZZ999");
+    }
+
+    #[test]
+    fn test_cell_range_contains() {
+        let range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(2, 2));
+
+        // Contains cells within range
+        assert!(range.contains(&CellAddress::new(0, 0))); // A1
         assert!(range.contains(&CellAddress::new(1, 1))); // B2
-        assert!(!range.contains(&CellAddress::new(3, 3))); // D4
+        assert!(range.contains(&CellAddress::new(2, 2))); // C3
 
+        // Does not contain cells outside range
+        assert!(!range.contains(&CellAddress::new(3, 3))); // D4
+        assert!(!range.contains(&CellAddress::new(0, 3))); // A4
+        assert!(!range.contains(&CellAddress::new(3, 0))); // D1
+
+        // Contains corner cells
+        let range = CellRange::from_string("A1:C3").unwrap();
+        assert!(range.contains(&CellAddress::from_a1("A1").unwrap()));
+        assert!(range.contains(&CellAddress::from_a1("A3").unwrap()));
+        assert!(range.contains(&CellAddress::from_a1("C1").unwrap()));
+        assert!(range.contains(&CellAddress::from_a1("C3").unwrap()));
+    }
+
+    #[test]
+    fn test_cell_range_cells_iterator() {
+        let range = CellRange::from_string("A1:B2").unwrap();
+        let cells: Vec<_> = range.cells().collect();
+        assert_eq!(cells.len(), 4);
+
+        let cell_strings: Vec<String> = cells.iter().map(|c| c.to_a1()).collect();
+        assert_eq!(cell_strings, vec!["A1", "B1", "A2", "B2"]);
+
+        // Single cell range
+        let range = CellRange::from_string("B2:B2").unwrap();
+        let cells: Vec<_> = range.cells().collect();
+        assert_eq!(cells.len(), 1);
+        assert_eq!(cells[0].to_a1(), "B2");
+
+        // Larger range
+        let range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(2, 2));
         let cells: Vec<_> = range.cells().collect();
         assert_eq!(cells.len(), 9);
         assert_eq!(cells[0], CellAddress::new(0, 0)); // A1
         assert_eq!(cells[8], CellAddress::new(2, 2)); // C3
+    }
+
+    #[test]
+    fn test_cell_range_dimensions() {
+        let range = CellRange::from_string("A1:C4").unwrap();
+        assert_eq!(range.row_count(), 4);
+        assert_eq!(range.col_count(), 3);
+        assert_eq!(range.size(), 12);
+
+        // Single cell dimensions
+        let range = CellRange::from_string("B2:B2").unwrap();
+        assert_eq!(range.row_count(), 1);
+        assert_eq!(range.col_count(), 1);
+        assert_eq!(range.size(), 1);
+
+        // Row range
+        let range = CellRange::from_string("A1:E1").unwrap();
+        assert_eq!(range.row_count(), 1);
+        assert_eq!(range.col_count(), 5);
+        assert_eq!(range.size(), 5);
+
+        // Column range
+        let range = CellRange::from_string("A1:A10").unwrap();
+        assert_eq!(range.row_count(), 10);
+        assert_eq!(range.col_count(), 1);
+        assert_eq!(range.size(), 10);
     }
 
     #[test]
