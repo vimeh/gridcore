@@ -9,6 +9,7 @@ pub mod formula;
 pub mod references;
 pub mod repository;
 pub mod types;
+pub mod workbook;
 
 // Re-export commonly used types
 pub use dependency::{DependencyAnalyzer, DependencyGraph};

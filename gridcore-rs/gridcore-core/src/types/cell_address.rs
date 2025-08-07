@@ -53,6 +53,30 @@ impl CellAddress {
         Ok(result - 1)
     }
 
+    /// Create a CellAddress from A1 notation (e.g., "A1", "B10")
+    pub fn from_a1(s: &str) -> Result<CellAddress> {
+        Self::parse_a1_notation(s)
+    }
+
+    /// Convert to A1 notation (e.g., "A1", "B10")
+    pub fn to_a1(&self) -> String {
+        format!("{}{}", Self::number_to_column_label(self.col), self.row + 1)
+    }
+
+    /// Convert column number to column label (0 -> "A", 25 -> "Z", 26 -> "AA")
+    fn number_to_column_label(col: u32) -> String {
+        let mut result = String::new();
+        let mut n = col + 1; // Convert to 1-based
+
+        while n > 0 {
+            n -= 1;
+            result = format!("{}{}", (b'A' + (n % 26) as u8) as char, result);
+            n /= 26;
+        }
+
+        result
+    }
+
     /// Parse A1 notation manually (simplified for now)
     pub fn parse_a1_notation(s: &str) -> Result<CellAddress> {
         let mut col_part = String::new();
