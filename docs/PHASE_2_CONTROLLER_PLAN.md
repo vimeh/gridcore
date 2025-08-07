@@ -1,12 +1,15 @@
 # Phase 2: Controller/UI Logic Migration Plan
 
 ## Status: In Progress
+
 Started: 2025-08-06
 
 ## Overview
+
 Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full API compatibility via WASM bindings.
 
 ## Phase 1 Status: ✅ COMPLETE
+
 - 7,022 lines of Rust code implemented
 - 66 passing tests
 - Core components complete:
@@ -23,12 +26,14 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 ### Week 1: Project Setup & State Machine (Days 1-7)
 
 #### Day 1-2: Project Setup
+
 - [x] Create `gridcore-rs/gridcore-controller` package
 - [x] Configure Cargo.toml with dependencies
 - [x] Set up module structure
 - [ ] Configure WASM build pipeline
 
 #### Day 3-7: State Machine Implementation
+
 - [x] Port UIStateMachine from TypeScript
 - [x] Implement SpreadsheetState enum
 - [x] Create StateContext for shared state
@@ -36,6 +41,7 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 - [ ] Add state machine tests
 
 **Files to create:**
+
 - `src/state/machine.rs`
 - `src/state/spreadsheet.rs`
 - `src/state/context.rs`
@@ -45,17 +51,20 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 ### Week 2: Controller Core (Days 8-14)
 
 #### Day 8-10: SpreadsheetController
+
 - [ ] Port main controller logic
 - [ ] Implement ViewportManager trait
 - [ ] Create event handling system
 
 #### Day 11-14: Event System
+
 - [ ] Define event types
 - [ ] Implement event dispatcher
 - [ ] Create keyboard/mouse event handlers
 - [ ] Add controller tests
 
 **Files to create:**
+
 - `src/controller/spreadsheet.rs`
 - `src/controller/events.rs`
 - `src/controller/viewport.rs`
@@ -64,6 +73,7 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 ### Week 3: Vim Mode & Selection (Days 15-21)
 
 #### Day 15-18: Vim Mode Implementation
+
 - [ ] Port VimBehavior state machine
 - [ ] Implement normal mode commands
 - [ ] Implement visual mode selection
@@ -71,11 +81,13 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 - [ ] Port CellVimBehavior
 
 #### Day 19-21: Selection Management
+
 - [ ] Port SelectionManager
 - [ ] Implement ResizeBehavior
 - [ ] Add selection tests
 
 **Files to create:**
+
 - `src/behaviors/vim/mod.rs`
 - `src/behaviors/vim/normal.rs`
 - `src/behaviors/vim/visual.rs`
@@ -87,12 +99,14 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 ### Week 4: WASM Integration & Testing (Days 22-28)
 
 #### Day 22-24: WASM Bindings
+
 - [ ] Create WASM exports
 - [ ] Implement state machine bindings
 - [ ] Create controller bindings
 - [ ] Build event bridge to JavaScript
 
 #### Day 25-28: Integration & Testing
+
 - [ ] Port TypeScript tests to Rust
 - [ ] Create integration tests
 - [ ] Build WASM package
@@ -100,6 +114,7 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 - [ ] Performance benchmarking
 
 **Files to create:**
+
 - `src/wasm/mod.rs`
 - `src/wasm/state.rs`
 - `src/wasm/controller.rs`
@@ -112,26 +127,27 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 - [ ] State machine transitions match exactly
 - [ ] Vim mode commands work identically
 - [ ] Event handling maintains 60fps performance
-- [ ] WASM bundle size < 200KB
 - [ ] Zero breaking changes in API
 - [ ] All tests passing
-- [ ] Performance benchmarks show improvement
 
 ## Technical Decisions
 
 ### Architecture
+
 - Use trait-based design for extensibility
 - Maintain exact API compatibility with TypeScript
 - Use Rc/RefCell for shared state management
 - Implement event system with callbacks
 
 ### Dependencies
+
 - gridcore-core: Local dependency
 - wasm-bindgen: WASM bindings
 - js-sys/web-sys: JavaScript interop
 - serde: Serialization
 
 ### Testing Strategy
+
 - Unit tests for each module
 - Integration tests with gridcore-core
 - WASM tests using wasm-bindgen-test
@@ -140,9 +156,9 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 ## Risk Mitigation
 
 1. **Parallel Development**: Keep TypeScript implementation running
-2. **Feature Flags**: Use environment variables for gradual rollout
-3. **Component Testing**: Test each component independently
-4. **Test Coverage**: Maintain 100% test coverage for critical paths
+1. **Feature Flags**: Use environment variables for gradual rollout
+1. **Component Testing**: Test each component independently
+1. **Test Coverage**: Maintain 100% test coverage for critical paths
 
 ## File Structure
 
@@ -187,10 +203,12 @@ gridcore-rs/
 ## Progress Tracking
 
 ### Current Status: Day 1
+
 - Starting project setup
 - Creating gridcore-controller package
 
 ### Daily Updates
+
 - 2025-08-06: Created plan document, starting implementation
 
 ## Notes
@@ -198,3 +216,4 @@ gridcore-rs/
 - Prioritize exact behavior compatibility over optimization initially
 - Focus on WASM API design for smooth TypeScript integration
 - Consider using feature flags for experimental optimizations
+
