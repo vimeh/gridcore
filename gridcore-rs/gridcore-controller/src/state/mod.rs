@@ -3,6 +3,9 @@ pub mod spreadsheet;
 pub mod context;
 pub mod transitions;
 
+#[cfg(test)]
+mod tests;
+
 pub use machine::{UIStateMachine, Action};
 pub use spreadsheet::{
     UIState, SpreadsheetMode, CellMode, VisualMode, SpreadsheetVisualMode,
