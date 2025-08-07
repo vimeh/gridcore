@@ -6,6 +6,9 @@ pub mod adjuster;
 pub mod engine;
 pub mod patterns;
 
+#[cfg(test)]
+mod tests;
+
 pub use engine::FillEngine;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,37 +92,3 @@ pub trait FormulaAdjuster {
     ) -> Result<String>;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_cell_range_contains() {
-        let range = CellRange::new(CellAddress::new(1, 1), CellAddress::new(3, 3));
-        
-        assert!(range.contains(&CellAddress::new(2, 2)));
-        assert!(!range.contains(&CellAddress::new(0, 0)));
-        assert!(!range.contains(&CellAddress::new(4, 4)));
-    }
-
-    #[test]
-    fn test_cell_range_count() {
-        let range = CellRange::new(CellAddress::new(1, 1), CellAddress::new(3, 3));
-        assert_eq!(range.cell_count(), 9);
-        
-        let single_cell = CellRange::new(CellAddress::new(1, 1), CellAddress::new(1, 1));
-        assert_eq!(single_cell.cell_count(), 1);
-    }
-
-    #[test]
-    fn test_cell_range_iter() {
-        let range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(1, 1));
-        let cells: Vec<_> = range.iter_cells().collect();
-        
-        assert_eq!(cells.len(), 4);
-        assert_eq!(cells[0], CellAddress::new(0, 0));
-        assert_eq!(cells[1], CellAddress::new(1, 0));
-        assert_eq!(cells[2], CellAddress::new(0, 1));
-        assert_eq!(cells[3], CellAddress::new(1, 1));
-    }
-}
