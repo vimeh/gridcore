@@ -1,14 +1,14 @@
 {
-  "name": "gridcore-wasm",
+  "name": "gridcore-controller",
   "type": "module",
   "version": "0.1.0",
   "files": [
-    "gridcore_wasm_bg.wasm",
-    "gridcore_wasm.js",
-    "gridcore_wasm.d.ts"
+    "gridcore_controller_bg.wasm",
+    "gridcore_controller.js",
+    "gridcore_controller.d.ts"
   ],
-  "main": "gridcore_wasm.js",
-  "types": "gridcore_wasm.d.ts",
+  "main": "gridcore_controller.js",
+  "types": "gridcore_controller.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]

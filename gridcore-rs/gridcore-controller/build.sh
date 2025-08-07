@@ -17,11 +17,11 @@ rm -rf pkg pkg-node
 
 # Build for web target (ES6 modules)
 echo "Building for web target..."
-wasm-pack build --target web --out-dir pkg --features wasm
+wasm-pack build --no-opt --target web --out-dir pkg --features wasm
 
 # Build for Node.js target
 echo "Building for Node.js target..."
-wasm-pack build --target nodejs --out-dir pkg-node --features wasm
+wasm-pack build --no-opt --target nodejs --out-dir pkg-node --features wasm
 
 # Check bundle size
 echo ""

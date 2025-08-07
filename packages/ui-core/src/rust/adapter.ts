@@ -26,9 +26,9 @@ export async function initializeWasm(): Promise<void> {
   if (initialized) return;
 
   try {
-    // Dynamic import of WASM module from ui-web location
+    // Dynamic import of WASM controller module from ui-web location
     // @ts-ignore - Dynamic import of optional dependency
-    const module = await import("/src/wasm/gridcore_wasm.js");
+    const module = await import("/src/wasm/gridcore_controller.js");
     
     // Initialize WASM module - this loads the WASM binary
     if (module.default) {
@@ -37,9 +37,9 @@ export async function initializeWasm(): Promise<void> {
     
     wasmModule = module;
     initialized = true;
-    console.log("WASM core initialized successfully");
+    console.log("WASM controller initialized successfully");
   } catch (error) {
-    console.error("Failed to initialize WASM core:", error);
+    console.error("Failed to initialize WASM controller:", error);
     throw error;
   }
 }
@@ -53,8 +53,13 @@ export class RustSpreadsheetFacade {
   private facade: any; // WasmSpreadsheetFacade instance
   
   constructor() {
-    if (!initialized) {
+    if (!initialized || !wasmModule) {
       throw new Error("WASM not initialized. Call initializeWasm() first.");
+    }
+    
+    // Check if WasmWorkbook is available
+    if (!wasmModule.WasmWorkbook) {
+      throw new Error("WasmWorkbook not found in WASM module. Make sure the controller module is properly built.");
     }
     
     // Create a new workbook with default sheet
@@ -67,6 +72,10 @@ export class RustSpreadsheetFacade {
   // SpreadsheetFacade implementation
   
   setCellValue(address: CellAddress, value: any): void {
+    if (!wasmModule || !wasmModule.WasmCellAddress) {
+      console.error("WasmCellAddress not available");
+      return;
+    }
     const wasmAddress = new wasmModule.WasmCellAddress(address.col, address.row);
     // Convert value to string to match WASM expectations
     // The Rust side will parse it back to the appropriate type
@@ -277,19 +286,26 @@ export class RustSpreadsheetController {
 
   handleKeydown(event: KeyboardEvent): Result<UIState> {
     try {
-      if (this.inner && this.inner.handleKeyboardEvent) {
+      if (this.inner) {
+        // The Rust controller expects keyboard events to be serialized with a code field
         const keyEvent = {
           key: event.key,
+          code: event.code || `Key${event.key.toUpperCase()}`, // Add code field
           shift: event.shiftKey,
           ctrl: event.ctrlKey,
           alt: event.altKey,
           meta: event.metaKey,
         };
         
-        this.inner.handleKeyboardEvent(keyEvent);
+        // Use handleKeyboardEvent if available
+        if (this.inner.handleKeyboardEvent) {
+          this.inner.handleKeyboardEvent(keyEvent);
+        }
         
         // Update cached state
-        this._state = this.inner.getState();
+        if (this.inner.getState) {
+          this._state = this.inner.getState();
+        }
         
         // Notify listeners
         this.notify({

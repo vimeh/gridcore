@@ -19,9 +19,18 @@ export class SelectionAdapter {
   getSelectedCells(selection: Selection): Set<string> {
     const cells = new Set<string>()
     
+    // Check if selection is valid
+    if (!selection || !selection.type) {
+      return cells
+    }
+    
     // Use the core SelectionManager to get all cells in the selection
-    for (const address of this.coreSelectionManager.getCellsInSelection(selection)) {
-      cells.add(address.toString())
+    try {
+      for (const address of this.coreSelectionManager.getCellsInSelection(selection)) {
+        cells.add(address.toString())
+      }
+    } catch (error) {
+      console.warn("Error getting cells in selection:", error)
     }
     
     return cells
@@ -31,19 +40,28 @@ export class SelectionAdapter {
    * Extract CellRange from Selection if it's a range type
    */
   getSelectionRange(selection: Selection): CellRange | null {
+    // Check if selection is valid
+    if (!selection || !selection.type) {
+      return null
+    }
+    
     if (selection.type.type === "range") {
       const result = CellRange.create(selection.type.start, selection.type.end)
       return result.ok ? result.value : null
     }
     
     // For other selection types, calculate bounds and create a range
-    const bounds = this.coreSelectionManager.getSelectionBounds(selection)
-    const startResult = CellAddress.create(bounds.minRow, bounds.minCol)
-    const endResult = CellAddress.create(bounds.maxRow, bounds.maxCol)
-    
-    if (startResult.ok && endResult.ok) {
-      const rangeResult = CellRange.create(startResult.value, endResult.value)
-      return rangeResult.ok ? rangeResult.value : null
+    try {
+      const bounds = this.coreSelectionManager.getSelectionBounds(selection)
+      const startResult = CellAddress.create(bounds.minRow, bounds.minCol)
+      const endResult = CellAddress.create(bounds.maxRow, bounds.maxCol)
+      
+      if (startResult.ok && endResult.ok) {
+        const rangeResult = CellRange.create(startResult.value, endResult.value)
+        return rangeResult.ok ? rangeResult.value : null
+      }
+    } catch (error) {
+      console.warn("Error getting selection range:", error)
     }
     
     return null
