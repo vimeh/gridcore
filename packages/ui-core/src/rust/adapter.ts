@@ -11,6 +11,7 @@ import type {
 } from "../controllers/SpreadsheetController";
 import type { UIState, ViewportInfo } from "../state/UIState";
 import type { Action } from "../state/UIStateMachine";
+import type { Result } from "../utils/Result";
 
 // Dynamic import types for WASM module
 type WasmModule = any; // Type will be resolved at runtime
@@ -274,7 +275,7 @@ export class RustSpreadsheetController {
 
   // Public API matching TypeScript SpreadsheetController
 
-  handleKeydown(event: KeyboardEvent): void {
+  handleKeydown(event: KeyboardEvent): Result<UIState> {
     try {
       if (this.inner && this.inner.handleKeyboardEvent) {
         const keyEvent = {
@@ -296,18 +297,24 @@ export class RustSpreadsheetController {
           state: this._state as UIState,
           action: { type: "KeyPress", key: event.key } as any,
         });
+        
+        return { ok: true, value: this._state as UIState };
       }
+      
+      // If no inner controller, return current state
+      return { ok: true, value: this.getState() };
     } catch (error) {
       console.error("Error handling keyboard event:", error);
       this.notify({
         type: "error",
         error: String(error),
       });
+      return { ok: false, error: String(error) };
     }
   }
 
   // Alias for compatibility with different calling conventions
-  handleKeyPress(key: string, modifiers?: { key: string; ctrl: boolean; alt: boolean; shift: boolean }): void {
+  handleKeyPress(key: string, modifiers?: { key: string; ctrl: boolean; alt: boolean; shift: boolean }): Result<UIState> {
     // Create a synthetic KeyboardEvent-like object
     const event = new KeyboardEvent("keydown", {
       key: modifiers?.key || key,
@@ -316,7 +323,7 @@ export class RustSpreadsheetController {
       shiftKey: modifiers?.shift || false,
       metaKey: false,
     });
-    this.handleKeydown(event);
+    return this.handleKeydown(event);
   }
 
   handleMouseEvent(event: MouseEvent, target: HTMLElement): void {
