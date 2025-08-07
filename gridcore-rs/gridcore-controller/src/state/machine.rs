@@ -3,7 +3,8 @@ use gridcore_core::{Result, SpreadsheetError, types::CellAddress};
 use crate::state::{
     UIState, CellMode, VisualMode, SpreadsheetVisualMode,
     InsertMode, ViewportInfo, Selection, ParsedBulkCommand,
-    ResizeTarget, InsertType, InsertPosition, DeleteType,
+    ResizeTarget, ResizeMoveDirection, InsertType, InsertPosition, DeleteType,
+    BulkOperationStatus,
     create_navigation_state, create_editing_state, create_command_state, create_visual_state,
 };
 
@@ -60,9 +61,13 @@ pub enum Action {
         initial_position: f64,
     },
     UpdateResize {
-        new_position: f64,
+        delta: f64,
     },
-    CompleteResize,
+    MoveResizeTarget {
+        direction: ResizeMoveDirection,
+    },
+    AutoFitResize,
+    ConfirmResize,
     CancelResize,
     EnterDeleteMode {
         delete_type: DeleteType,
@@ -212,6 +217,17 @@ impl UIStateMachine {
                 Ok(create_navigation_state(cursor.clone(), viewport.clone(), None))
             },
             
+            (UIState::Editing { .. }, Action::EnterVisualMode { visual_type, anchor }) => {
+                // Allow entering visual mode from editing
+                let mut new_state = state.clone();
+                if let UIState::Editing { cell_mode: mode, visual_type: v_type, visual_start, .. } = &mut new_state {
+                    *mode = CellMode::Visual;
+                    *v_type = Some(*visual_type);
+                    *visual_start = *anchor;
+                }
+                Ok(new_state)
+            },
+            
             (UIState::Editing { cell_mode: CellMode::Normal, .. }, Action::EnterInsertMode { mode }) => {
                 let mut new_state = state.clone();
                 if let UIState::Editing { cell_mode, edit_variant, .. } = &mut new_state {
@@ -298,6 +314,161 @@ impl UIStateMachine {
                     *sel = selection.clone();
                 }
                 Ok(new_state)
+            },
+            
+            (UIState::Visual { .. }, Action::ChangeVisualMode { new_mode }) => {
+                let mut new_state = state.clone();
+                if let UIState::Visual { visual_mode, .. } = &mut new_state {
+                    *visual_mode = *new_mode;
+                }
+                Ok(new_state)
+            },
+            
+            // Resize mode transitions
+            (UIState::Navigation { cursor, viewport, .. }, Action::StartResize { target, initial_position }) => {
+                Ok(UIState::Resize {
+                    cursor: cursor.clone(),
+                    viewport: viewport.clone(),
+                    target: target.clone(),
+                    resize_target: target.clone(),
+                    resize_index: match target {
+                        ResizeTarget::Column { index } => *index,
+                        ResizeTarget::Row { index } => *index,
+                    },
+                    original_size: 100, // Default size, should be fetched from actual data
+                    current_size: 100,
+                    initial_position: *initial_position,
+                    current_position: *initial_position,
+                })
+            },
+            
+            (UIState::Resize { .. }, Action::UpdateResize { delta }) => {
+                let mut new_state = state.clone();
+                if let UIState::Resize { current_size: size, current_position: pos, .. } = &mut new_state {
+                    *size = (*size as i32 + *delta as i32).max(20) as u32; // Minimum size of 20
+                    *pos += delta;
+                }
+                Ok(new_state)
+            },
+            
+            (UIState::Resize { resize_target, .. }, Action::MoveResizeTarget { direction }) => {
+                let mut new_state = state.clone();
+                if let UIState::Resize { resize_index: index, target, resize_target: r_target, .. } = &mut new_state {
+                    match direction {
+                        ResizeMoveDirection::Previous => {
+                            *index = index.saturating_sub(1);
+                        },
+                        ResizeMoveDirection::Next => {
+                            *index = index.saturating_add(1);
+                        },
+                    }
+                    // Update both target and resize_target
+                    let new_target = match resize_target {
+                        ResizeTarget::Column { .. } => ResizeTarget::Column { index: *index },
+                        ResizeTarget::Row { .. } => ResizeTarget::Row { index: *index },
+                    };
+                    *target = new_target.clone();
+                    *r_target = new_target;
+                }
+                Ok(new_state)
+            },
+            
+            (UIState::Resize { .. }, Action::AutoFitResize) => {
+                // For now, just set a default size
+                let mut new_state = state.clone();
+                if let UIState::Resize { current_size, .. } = &mut new_state {
+                    *current_size = 120; // Default auto-fit size
+                }
+                Ok(new_state)
+            },
+            
+            (UIState::Resize { cursor, viewport, .. }, Action::ConfirmResize | Action::CancelResize) => {
+                Ok(create_navigation_state(cursor.clone(), viewport.clone(), None))
+            },
+            
+            // Insert mode transitions
+            (UIState::Navigation { cursor, viewport, .. }, Action::StartInsert { insert_type, position, reference }) => {
+                Ok(UIState::Insert {
+                    cursor: cursor.clone(),
+                    viewport: viewport.clone(),
+                    insert_type: *insert_type,
+                    position: *position,
+                    insert_position: *position,
+                    reference: *reference,
+                    count: 1,
+                    target_index: *reference,
+                })
+            },
+            
+            (UIState::Insert { .. }, Action::UpdateInsertCount { count }) => {
+                let mut new_state = state.clone();
+                if let UIState::Insert { count: c, .. } = &mut new_state {
+                    *c = *count;
+                }
+                Ok(new_state)
+            },
+            
+            (UIState::Insert { cursor, viewport, .. }, Action::ConfirmInsert | Action::CancelInsert) => {
+                Ok(create_navigation_state(cursor.clone(), viewport.clone(), None))
+            },
+            
+            // Delete mode transitions  
+            (UIState::Navigation { cursor, viewport, .. }, Action::StartDelete { targets, delete_type }) => {
+                Ok(UIState::Delete {
+                    cursor: cursor.clone(),
+                    viewport: viewport.clone(),
+                    delete_type: *delete_type,
+                    targets: targets.clone(),
+                    selection: targets.clone(),
+                    confirmation_pending: false,
+                })
+            },
+            
+            (UIState::Delete { cursor, viewport, .. }, Action::ConfirmDelete) => {
+                // In real implementation, this would execute the delete
+                Ok(create_navigation_state(cursor.clone(), viewport.clone(), None))
+            },
+            
+            (UIState::Delete { cursor, viewport, .. }, Action::CancelDelete) => {
+                Ok(create_navigation_state(cursor.clone(), viewport.clone(), None))
+            },
+            
+            // Bulk operation transitions
+            (UIState::Navigation { cursor, viewport, .. }, Action::StartBulkOperation { parsed_command, affected_cells }) => {
+                Ok(UIState::BulkOperation {
+                    cursor: cursor.clone(),
+                    viewport: viewport.clone(),
+                    parsed_command: parsed_command.clone(),
+                    preview_available: false,
+                    preview_visible: false,
+                    affected_cells: affected_cells.unwrap_or(0),
+                    status: BulkOperationStatus::Preparing,
+                    error_message: None,
+                })
+            },
+            
+            (UIState::BulkOperation { cursor, viewport, .. }, Action::CompleteBulkOperation) => {
+                Ok(create_navigation_state(cursor.clone(), viewport.clone(), None))
+            },
+            
+            (UIState::BulkOperation { cursor, viewport, .. }, Action::CancelBulkOperation) => {
+                Ok(create_navigation_state(cursor.clone(), viewport.clone(), None))
+            },
+            
+            (UIState::BulkOperation { .. }, Action::GeneratePreview) => {
+                // For now, just update the status to Previewing
+                let mut new_state = state.clone();
+                if let UIState::BulkOperation { status, preview_available, .. } = &mut new_state {
+                    *status = BulkOperationStatus::Previewing;
+                    *preview_available = true;
+                }
+                Ok(new_state)
+            },
+            
+            (UIState::BulkOperation { cursor, viewport, .. }, Action::ExecuteBulkOperation) => {
+                // For testing, execute completes immediately and returns to navigation
+                // In a real implementation, this would update status and handle async execution
+                Ok(create_navigation_state(cursor.clone(), viewport.clone(), None))
             },
             
             // Universal transitions (work in any mode)

@@ -261,7 +261,7 @@ mod complex_transition_tests {
         
         // Update resize position
         machine.transition(Action::UpdateResize {
-            new_position: 150.0,
+            delta: 50.0,
         }).unwrap();
         
         match machine.get_state() {
@@ -272,7 +272,7 @@ mod complex_transition_tests {
         }
         
         // Complete resize
-        machine.transition(Action::CompleteResize).unwrap();
+        machine.transition(Action::ConfirmResize).unwrap();
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
     

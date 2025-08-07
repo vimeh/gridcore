@@ -166,6 +166,12 @@ pub enum ResizeTarget {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ResizeMoveDirection {
+    Previous,
+    Next,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InsertType {
     Row,
     Column,
