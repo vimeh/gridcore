@@ -3,8 +3,11 @@
 // Rust adapter exports (optional, based on feature flag)
 export { 
   USE_RUST_CONTROLLER,
+  USE_RUST_CORE,
   RustSpreadsheetController,
+  RustSpreadsheetFacade,
   createSpreadsheetController,
+  createSpreadsheetFacade,
   initializeWasm 
 } from "./rust/adapter";
 

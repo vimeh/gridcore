@@ -45,9 +45,9 @@ export async function initializeWasm(): Promise<void> {
 
 /**
  * Rust SpreadsheetFacade adapter
- * Wraps the WASM facade to match TypeScript interface
+ * Wraps the WASM facade to provide a compatible interface
  */
-export class RustSpreadsheetFacade implements SpreadsheetFacade {
+export class RustSpreadsheetFacade {
   private workbook: any; // WasmWorkbook instance
   private facade: any; // WasmSpreadsheetFacade instance
   
@@ -83,6 +83,19 @@ export class RustSpreadsheetFacade implements SpreadsheetFacade {
     const formula = this.facade.getCellFormula(wasmAddress);
     wasmAddress.free();
     return formula || null;
+  }
+  
+  getCell(address: CellAddress): any {
+    const value = this.getCellValue(address);
+    const formula = this.getCellFormula(address);
+    return {
+      ok: true,
+      value: {
+        value,
+        formula,
+        rawValue: formula || value
+      }
+    };
   }
   
   deleteCells(addresses: CellAddress[]): void {
@@ -337,17 +350,13 @@ export class RustSpreadsheetController {
       } else {
         // Return default state
         this._state = {
-          mode: "normal",
-          cursor: { row: 0, col: 0 },
-          selection: null,
-          editingCell: null,
+          spreadsheetMode: "navigation",
+          cursor: { row: 0, col: 0 } as CellAddress,
           viewport: {
             startRow: 0,
-            endRow: 50,
             startCol: 0,
-            endCol: 20,
-            width: 1000,
-            height: 800,
+            rows: 50,
+            cols: 20,
           },
         };
       }
@@ -359,7 +368,7 @@ export class RustSpreadsheetController {
     if (this.inner && this.inner.getCursor) {
       return this.inner.getCursor();
     }
-    return { row: 0, col: 0 };
+    return { row: 0, col: 0 } as CellAddress;
   }
 
   getViewport(): ViewportInfo {
@@ -368,11 +377,9 @@ export class RustSpreadsheetController {
     }
     return {
       startRow: 0,
-      endRow: 50,
       startCol: 0,
-      endCol: 20,
-      width: 1000,
-      height: 800,
+      rows: 50,
+      cols: 20,
     };
   }
 
@@ -460,16 +467,23 @@ export const USE_RUST_CORE =
    new URLSearchParams(window.location.search).get("rust") === "true");
 
 /**
+ * Alias for backward compatibility
+ */
+export const USE_RUST_CONTROLLER = USE_RUST_CORE;
+
+/**
  * Factory function to create the appropriate facade
  */
-export async function createSpreadsheetFacade(): Promise<SpreadsheetFacade> {
+export async function createSpreadsheetFacade(): Promise<any> {
   if (USE_RUST_CORE) {
     await initializeWasm();
     return new RustSpreadsheetFacade();
   } else {
     // Import TypeScript implementation dynamically
-    const { createSpreadsheetFacade: createTsFacade } = await import("@gridcore/core");
-    return createTsFacade();
+    const { Workbook } = await import("@gridcore/core");
+    const workbook = new Workbook();
+    const sheet = workbook.getActiveSheet();
+    return sheet?.getFacade();
   }
 }
 

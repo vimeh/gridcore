@@ -3,7 +3,9 @@ import {
   SpreadsheetController, 
   type ViewportManager,
   USE_RUST_CONTROLLER,
+  USE_RUST_CORE,
   createSpreadsheetController,
+  createSpreadsheetFacade,
   initializeWasm
 } from "@gridcore/ui-core";
 import { CanvasGrid } from "./components/CanvasGrid";
@@ -12,19 +14,19 @@ import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
 import "./style.css";
 
-// Initialize WASM if using Rust controller
+// Initialize WASM if using Rust core or controller
 async function initApp() {
-  if (USE_RUST_CONTROLLER) {
-    console.log("Initializing Rust WASM controller...");
+  if (USE_RUST_CORE || USE_RUST_CONTROLLER) {
+    console.log("Initializing Rust WASM...");
     try {
       await initializeWasm();
-      console.log("Rust controller initialized successfully");
+      console.log(USE_RUST_CORE ? "Rust core initialized successfully" : "Rust controller initialized successfully");
     } catch (error) {
-      console.error("Failed to initialize Rust controller:", error);
-      console.log("Falling back to TypeScript controller");
+      console.error("Failed to initialize Rust:", error);
+      console.log("Falling back to TypeScript");
     }
   } else {
-    console.log("Using TypeScript controller");
+    console.log("Using TypeScript core and controller");
   }
   
   // Initialize the app
@@ -60,15 +62,26 @@ const tabBarContainer = app.querySelector(".tab-bar-container") as HTMLElement;
 const GRID_ROWS = 2000;
 const GRID_COLS = 52; // A-Z, AA-AZ
 
-// Create Workbook instance
-const workbook = new Workbook();
+// Create Workbook/Facade instance based on the core being used
+let workbook: Workbook | null = null;
+let facade: any = null;
+let activeSheet: any = null;
 
-// Get the facade for the active sheet
-let activeSheet = workbook.getActiveSheet();
-if (!activeSheet) {
-  throw new Error("No active sheet found");
+if (USE_RUST_CORE) {
+  // Use Rust facade directly (it includes workbook functionality)
+  facade = await createSpreadsheetFacade();
+  // Rust facade handles workbook internally
+} else {
+  // Use TypeScript Workbook
+  workbook = new Workbook();
+  
+  // Get the facade for the active sheet
+  activeSheet = workbook.getActiveSheet();
+  if (!activeSheet) {
+    throw new Error("No active sheet found");
+  }
+  facade = activeSheet.getFacade();
 }
-let facade = activeSheet.getFacade();
 
 // Create a ViewportManager that will be shared between controller and CanvasGrid
 let viewportManager: ViewportManager | null = null;
@@ -151,11 +164,16 @@ sampleData.forEach((row, i) => {
 // Create Formula Bar
 const formulaBar = new FormulaBar(formulaBarContainer, {
   onValueChange: (address, value) => {
-    const activeSheet = workbook.getActiveSheet();
-    if (!activeSheet) return;
+    if (USE_RUST_CORE) {
+      // Rust facade handles this directly
+      facade.setCellValue(address, value);
+    } else {
+      const activeSheet = workbook?.getActiveSheet();
+      if (!activeSheet) return;
 
-    const facade = activeSheet.getFacade();
-    facade.setCellValue(address, value);
+      const facade = activeSheet.getFacade();
+      facade.setCellValue(address, value);
+    }
   },
   onImport: () => {
     const input = document.createElement("input");
@@ -248,7 +266,7 @@ const formulaBar = new FormulaBar(formulaBarContainer, {
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      const sheetName = workbook.getActiveSheet()?.getName() || "sheet";
+      const sheetName = workbook?.getActiveSheet()?.getName() || "sheet";
       link.setAttribute("href", url);
       link.setAttribute("download", `${sheetName}.csv`);
       link.style.visibility = "hidden";
@@ -314,13 +332,13 @@ canvasGrid = new CanvasGrid(gridContainer, facade, {
 // Create alias for grid (used in import/export)
 let _grid = canvasGrid;
 
-// Create TabBar
-const tabBar = new TabBar({
+// Create TabBar (only for TypeScript core, Rust handles sheets internally for now)
+const tabBar = workbook ? new TabBar({
   container: tabBarContainer,
   workbook,
   onTabChange: async (_sheetId) => {
     // Update the active facade
-    activeSheet = workbook.getActiveSheet();
+    activeSheet = workbook!.getActiveSheet();
     if (!activeSheet) return;
     facade = activeSheet.getFacade();
 
@@ -393,7 +411,7 @@ const tabBar = new TabBar({
   },
   onTabAdd: () => {
     // Sheet is already added by TabBar, just need to re-render
-    tabBar.refresh();
+    tabBar!.refresh();
   },
   onTabRemove: (sheetId) => {
     // Sheet is already removed by TabBar
@@ -405,7 +423,7 @@ const tabBar = new TabBar({
   onTabReorder: (fromIndex, toIndex) => {
     console.log(`Sheet moved from ${fromIndex} to ${toIndex}`);
   },
-});
+}) : null;
 
 // Connect grid selection to formula bar
 canvasGrid.onCellClick = (cell) => {
@@ -420,6 +438,8 @@ canvasGrid.onCellClick = (cell) => {
 
 // Function to set up sheet navigation keyboard shortcuts
 const setupSheetNavigationCallbacks = () => {
+  if (!workbook || !tabBar) return; // Skip for Rust core
+  
   canvasGrid.getKeyboardHandler().setSheetNavigationCallbacks({
     onNextSheet: () => {
       const sheets = workbook.getAllSheets();
