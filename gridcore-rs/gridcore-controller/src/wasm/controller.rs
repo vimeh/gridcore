@@ -7,15 +7,26 @@ use gridcore_core::types::CellAddress;
 #[wasm_bindgen]
 pub struct WasmSpreadsheetController {
     inner: SpreadsheetController,
+    // Note: Event subscriptions will be handled differently in WASM
+    // JavaScript will poll for events or we'll use a different mechanism
 }
 
 #[wasm_bindgen]
 impl WasmSpreadsheetController {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
+        let controller = SpreadsheetController::new();
+        
         Self {
-            inner: SpreadsheetController::new(),
+            inner: controller,
         }
+    }
+    
+    #[wasm_bindgen(js_name = "withViewport")]
+    pub fn with_viewport(_viewport: JsValue) -> Result<WasmSpreadsheetController, JsValue> {
+        // For now, just create a new controller
+        // In a full implementation, we'd parse the viewport config
+        Ok(Self::new())
     }
     
     #[wasm_bindgen(js_name = "getState")]
@@ -123,5 +134,29 @@ impl WasmSpreadsheetController {
         
         let event = MouseEvent::new(x, y, button, event_type);
         to_value(&event).map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    
+    // Subscribe to events - simplified for WASM
+    // In production, we'd use a different pattern like message passing
+    #[wasm_bindgen(js_name = "subscribe")]
+    pub fn subscribe(&mut self, _callback: js_sys::Function) -> usize {
+        // For now, return a dummy ID
+        // Real implementation would use a different event system
+        0
+    }
+    
+    // Unsubscribe from events
+    #[wasm_bindgen(js_name = "unsubscribe")]
+    pub fn unsubscribe(&mut self, _listener_id: usize) -> bool {
+        // For now, always return true
+        true
+    }
+    
+    // Get facade (for advanced operations)
+    #[wasm_bindgen(js_name = "getFacade")]
+    pub fn get_facade(&self) -> Result<JsValue, JsValue> {
+        // Return a reference to the facade for operations
+        // Note: This would need WasmSpreadsheetFacade wrapper
+        to_value(&()).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }

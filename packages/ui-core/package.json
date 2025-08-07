@@ -13,7 +13,11 @@
     "view:state-diagram": "bun run scripts/viewStateDiagram.ts"
   },
   "dependencies": {
-    "@gridcore/core": "workspace:*"
+    "@gridcore/core": "workspace:*",
+    "gridcore-controller": "file:../../gridcore-rs/gridcore-controller/pkg"
+  },
+  "optionalDependencies": {
+    "gridcore-controller": "file:../../gridcore-rs/gridcore-controller/pkg"
   },
   "devDependencies": {
     "@types/bun": "latest",

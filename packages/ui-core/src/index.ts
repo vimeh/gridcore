@@ -1,5 +1,13 @@
 // State types and utilities
 
+// Rust adapter exports (optional, based on feature flag)
+export { 
+  USE_RUST_CONTROLLER,
+  RustSpreadsheetController,
+  createSpreadsheetController,
+  initializeWasm 
+} from "./rust/adapter";
+
 export { CellVimBehavior } from "./behaviors/CellVimBehavior";
 export { type ResizeAction, ResizeBehavior } from "./behaviors/ResizeBehavior";
 // Structural behaviors

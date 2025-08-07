@@ -1,18 +1,39 @@
 import { type Cell, CellAddress, Workbook } from "@gridcore/core";
-import { SpreadsheetController, type ViewportManager } from "@gridcore/ui-core";
+import { 
+  SpreadsheetController, 
+  type ViewportManager,
+  USE_RUST_CONTROLLER,
+  createSpreadsheetController,
+  initializeWasm
+} from "@gridcore/ui-core";
 import { CanvasGrid } from "./components/CanvasGrid";
 import { FormulaBar } from "./components/FormulaBar";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
 import "./style.css";
 
-// Initialize the app
-const app = document.querySelector<HTMLDivElement>("#app");
-if (!app) {
-  throw new Error("App container not found");
-}
+// Initialize WASM if using Rust controller
+async function initApp() {
+  if (USE_RUST_CONTROLLER) {
+    console.log("Initializing Rust WASM controller...");
+    try {
+      await initializeWasm();
+      console.log("Rust controller initialized successfully");
+    } catch (error) {
+      console.error("Failed to initialize Rust controller:", error);
+      console.log("Falling back to TypeScript controller");
+    }
+  } else {
+    console.log("Using TypeScript controller");
+  }
+  
+  // Initialize the app
+  const app = document.querySelector<HTMLDivElement>("#app");
+  if (!app) {
+    throw new Error("App container not found");
+  }
 
-// Create app structure
+  // Create app structure
 app.innerHTML = `
   <div class="spreadsheet-app">
     <!-- <div class="app-header"> -->
@@ -250,8 +271,8 @@ let canvasGrid = new CanvasGrid(gridContainer, facade, {
 // Get the viewport from the grid to use as ViewportManager
 viewportManager = canvasGrid.getViewport();
 
-// Create the controller with the viewport manager
-const controller = new SpreadsheetController({
+// Create the controller with the viewport manager (using factory for Rust/TS selection)
+const controller = await createSpreadsheetController({
   facade,
   viewportManager,
 });
@@ -297,7 +318,7 @@ let _grid = canvasGrid;
 const tabBar = new TabBar({
   container: tabBarContainer,
   workbook,
-  onTabChange: (_sheetId) => {
+  onTabChange: async (_sheetId) => {
     // Update the active facade
     activeSheet = workbook.getActiveSheet();
     if (!activeSheet) return;
@@ -305,8 +326,8 @@ const tabBar = new TabBar({
 
     // Create new grid for the sheet
     canvasGrid.destroy();
-    // Create new controller for the new sheet
-    const newController = new SpreadsheetController({
+    // Create new controller for the new sheet (using factory for Rust/TS selection)
+    const newController = await createSpreadsheetController({
       facade,
       viewportManager: viewportManager as ViewportManager,
     });
@@ -474,3 +495,9 @@ const statusBar = new StatusBar(statusBarContainer, controller, {
 
 // Initial focus
 gridContainer.focus();
+}
+
+// Start the application
+initApp().catch(error => {
+  console.error("Failed to initialize application:", error);
+});

@@ -7,6 +7,8 @@ pub mod state;
 pub mod controller;
 #[cfg(feature = "wasm")]
 pub mod events;
+#[cfg(feature = "wasm")]
+pub mod viewport;
 
 #[cfg(feature = "wasm")]
 #[wasm_bindgen(start)]
