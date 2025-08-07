@@ -4,6 +4,7 @@ pub mod domain;
 pub mod error;
 pub mod evaluator;
 pub mod facade;
+pub mod fill;
 pub mod formula;
 pub mod repository;
 pub mod types;
