@@ -132,12 +132,38 @@ impl WasmSpreadsheetFacade {
             .and_then(|cell| WasmCell::new(cell.get_computed_value().to_js()).ok())
     }
 
+    /// Get a cell formula
+    #[wasm_bindgen(js_name = "getCellFormula")]
+    pub fn get_cell_formula(&self, address: &WasmCellAddress) -> Option<String> {
+        self.inner
+            .get_cell(&address.inner)
+            .and_then(|cell| {
+                // Check if raw_value is a string starting with "="
+                if let CellValue::String(s) = &cell.raw_value {
+                    if s.starts_with('=') {
+                        return Some(s.clone());
+                    }
+                }
+                None
+            })
+    }
+
     /// Delete a cell
     #[wasm_bindgen(js_name = "deleteCell")]
     pub fn delete_cell(&self, address: &WasmCellAddress) -> Result<(), JsValue> {
         self.inner
             .delete_cell(&address.inner)
             .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Clear a cell (sets it to empty but keeps the cell)
+    #[wasm_bindgen(js_name = "clearCell")]
+    pub fn clear_cell(&self, address: &WasmCellAddress) -> Result<(), JsValue> {
+        // Set the cell to an empty value
+        self.inner
+            .set_cell_value(&address.inner, "")
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        Ok(())
     }
 
     /// Recalculate all cells

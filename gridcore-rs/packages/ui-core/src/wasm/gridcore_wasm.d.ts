@@ -1,7 +1,5 @@
 /* tslint:disable */
 /* eslint-disable */
-export function init(): void;
-export function version(): string;
 export function createFillOperation(source_start_col: number, source_start_row: number, source_end_col: number, source_end_row: number, target_start_col: number, target_start_row: number, target_end_col: number, target_end_row: number, direction: string): any;
 /**
  * Parse a formula directly (convenience function)
@@ -200,9 +198,17 @@ export class WasmSpreadsheetFacade {
    */
   getCell(address: WasmCellAddress): WasmCell | undefined;
   /**
+   * Get a cell formula
+   */
+  getCellFormula(address: WasmCellAddress): string | undefined;
+  /**
    * Delete a cell
    */
   deleteCell(address: WasmCellAddress): void;
+  /**
+   * Clear a cell (sets it to empty but keeps the cell)
+   */
+  clearCell(address: WasmCellAddress): void;
   /**
    * Recalculate all cells
    */
@@ -359,8 +365,6 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly init: () => void;
-  readonly version: (a: number) => void;
   readonly __wbg_wasmcell_free: (a: number, b: number) => void;
   readonly wasmcell_new: (a: number, b: number) => void;
   readonly wasmcell_empty: () => number;
@@ -386,7 +390,9 @@ export interface InitOutput {
   readonly wasmspreadsheetfacade_setCellValue: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly wasmspreadsheetfacade_getCellValue: (a: number, b: number, c: number) => void;
   readonly wasmspreadsheetfacade_getCell: (a: number, b: number) => number;
+  readonly wasmspreadsheetfacade_getCellFormula: (a: number, b: number, c: number) => void;
   readonly wasmspreadsheetfacade_deleteCell: (a: number, b: number, c: number) => void;
+  readonly wasmspreadsheetfacade_clearCell: (a: number, b: number, c: number) => void;
   readonly wasmspreadsheetfacade_recalculate: (a: number, b: number) => void;
   readonly wasmspreadsheetfacade_recalculateCell: (a: number, b: number, c: number) => void;
   readonly wasmspreadsheetfacade_beginBatch: (a: number, b: number, c: number, d: number) => void;
@@ -483,9 +489,8 @@ export interface InitOutput {
   readonly __wbindgen_export_0: (a: number, b: number) => number;
   readonly __wbindgen_export_1: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_export_2: (a: number) => void;
-  readonly __wbindgen_export_3: (a: number, b: number, c: number) => void;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
-  readonly __wbindgen_start: () => void;
+  readonly __wbindgen_export_3: (a: number, b: number, c: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

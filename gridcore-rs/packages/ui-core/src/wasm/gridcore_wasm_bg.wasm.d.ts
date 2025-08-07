@@ -1,8 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
-export const init: () => void;
-export const version: (a: number) => void;
 export const __wbg_wasmcell_free: (a: number, b: number) => void;
 export const wasmcell_new: (a: number, b: number) => void;
 export const wasmcell_empty: () => number;
@@ -28,7 +26,9 @@ export const wasmspreadsheetfacade_onCalculationComplete: (a: number, b: number)
 export const wasmspreadsheetfacade_setCellValue: (a: number, b: number, c: number, d: number, e: number) => void;
 export const wasmspreadsheetfacade_getCellValue: (a: number, b: number, c: number) => void;
 export const wasmspreadsheetfacade_getCell: (a: number, b: number) => number;
+export const wasmspreadsheetfacade_getCellFormula: (a: number, b: number, c: number) => void;
 export const wasmspreadsheetfacade_deleteCell: (a: number, b: number, c: number) => void;
+export const wasmspreadsheetfacade_clearCell: (a: number, b: number, c: number) => void;
 export const wasmspreadsheetfacade_recalculate: (a: number, b: number) => void;
 export const wasmspreadsheetfacade_recalculateCell: (a: number, b: number, c: number) => void;
 export const wasmspreadsheetfacade_beginBatch: (a: number, b: number, c: number, d: number) => void;
@@ -125,6 +125,5 @@ export const __wbg_wasmformulaparser_free: (a: number, b: number) => void;
 export const __wbindgen_export_0: (a: number, b: number) => number;
 export const __wbindgen_export_1: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_export_2: (a: number) => void;
-export const __wbindgen_export_3: (a: number, b: number, c: number) => void;
 export const __wbindgen_add_to_stack_pointer: (a: number) => number;
-export const __wbindgen_start: () => void;
+export const __wbindgen_export_3: (a: number, b: number, c: number) => void;

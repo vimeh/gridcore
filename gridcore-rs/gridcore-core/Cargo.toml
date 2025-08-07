@@ -3,10 +3,16 @@ name = "gridcore-core"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata.wasm-pack]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 chumsky = { workspace = true }
 thiserror = { workspace = true }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
 petgraph = { workspace = true }
 regex = { workspace = true, default-features = false, features = ["std", "perf"] }
 chrono = { workspace = true, default-features = false, features = ["clock", "std"] }
