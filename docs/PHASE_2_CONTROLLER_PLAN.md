@@ -30,7 +30,7 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 - [x] Create `gridcore-rs/gridcore-controller` package
 - [x] Configure Cargo.toml with dependencies
 - [x] Set up module structure
-- [ ] Configure WASM build pipeline
+- [x] Configure WASM build pipeline
 
 #### Day 3-7: State Machine Implementation
 
@@ -38,7 +38,7 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 - [x] Implement SpreadsheetState enum
 - [x] Create StateContext for shared state
 - [x] Port state transitions
-- [ ] Add state machine tests
+- [x] Add state machine tests (49 tests total: 13 basic, 13 edge case, 10 complex, 8 performance)
 
 **Files to create:**
 
@@ -52,16 +52,16 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 
 #### Day 8-10: SpreadsheetController
 
-- [ ] Port main controller logic
-- [ ] Implement ViewportManager trait
-- [ ] Create event handling system
+- [x] Port main controller logic
+- [x] Implement ViewportManager trait
+- [x] Create event handling system
 
 #### Day 11-14: Event System
 
-- [ ] Define event types
-- [ ] Implement event dispatcher
-- [ ] Create keyboard/mouse event handlers
-- [ ] Add controller tests
+- [x] Define event types
+- [x] Implement event dispatcher
+- [x] Create keyboard/mouse event handlers
+- [x] Add controller tests
 
 **Files to create:**
 
@@ -100,10 +100,10 @@ Migration of `@gridcore/ui-core` TypeScript package to Rust, maintaining full AP
 
 #### Day 22-24: WASM Bindings
 
-- [ ] Create WASM exports
-- [ ] Implement state machine bindings
-- [ ] Create controller bindings
-- [ ] Build event bridge to JavaScript
+- [x] Create WASM exports
+- [x] Implement state machine bindings
+- [x] Create controller bindings
+- [x] Build event bridge to JavaScript
 
 #### Day 25-28: Integration & Testing
 
