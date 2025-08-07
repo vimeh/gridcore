@@ -301,8 +301,12 @@ controller.subscribe((event) => {
     const state = event.state;
     if (state.spreadsheetMode === "editing") {
       // Update formula bar with editing value
+      // Ensure editingValue is a string (fix for Rust backend which may return objects)
+      const editingValue = typeof state.editingValue === 'object' 
+        ? String(state.editingValue) 
+        : state.editingValue || '';
       formulaBar.setActiveCell(state.cursor, {
-        rawValue: state.editingValue,
+        rawValue: editingValue,
       } as Cell);
       formulaBar.setEditingState(true);
     } else {
