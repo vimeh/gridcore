@@ -3,7 +3,7 @@ use crate::types::{CellAddress, CellValue};
 use crate::domain::Cell;
 use crate::formula::Expr;
 use crate::{Result, SpreadsheetError};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 
 /// Metadata for a workbook

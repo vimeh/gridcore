@@ -105,7 +105,10 @@ impl WasmWorkbook {
     /// Get all sheet names
     #[wasm_bindgen(js_name = "getSheetNames")]
     pub fn get_sheet_names(&self) -> js_sys::Array {
-        let names = self.inner.borrow().sheet_names();
+        let names = {
+            let workbook = self.inner.borrow();
+            workbook.sheet_names().to_vec()
+        };
         let array = js_sys::Array::new();
         for name in names {
             array.push(&JsValue::from_str(&name));
@@ -142,8 +145,11 @@ impl WasmWorkbook {
 
     /// Get the active sheet name
     #[wasm_bindgen(js_name = "getActiveSheetName")]
-    pub fn get_active_sheet_name(&self) -> Option<String> {
-        self.inner.borrow().active_sheet_name().map(|s| s.to_string())
+    pub fn get_active_sheet_name(&self) -> JsValue {
+        match self.inner.borrow().active_sheet_name() {
+            Some(name) => JsValue::from_str(name),
+            None => JsValue::NULL,
+        }
     }
 
     /// Set the active sheet
@@ -158,17 +164,17 @@ impl WasmWorkbook {
     /// Get a facade for a specific sheet
     #[wasm_bindgen(js_name = "getSheetFacade")]
     pub fn get_sheet_facade(&self, sheet_name: &str) -> Result<WasmSpreadsheetFacade, JsValue> {
-        // Get the sheet
-        let sheet = self.inner
-            .borrow()
-            .get_sheet(sheet_name)
-            .ok_or_else(|| JsValue::from_str(&format!("Sheet '{}' not found", sheet_name)))?;
+        // Get the sheet's repositories
+        let (cells, deps) = {
+            let workbook = self.inner.borrow();
+            let sheet = workbook
+                .get_sheet(sheet_name)
+                .ok_or_else(|| JsValue::from_str(&format!("Sheet '{}' not found", sheet_name)))?;
+            (sheet.cells(), sheet.dependencies())
+        };
         
         // Create a facade using the sheet's cell repository and dependencies
-        let facade = crate::facade::SpreadsheetFacade::with_repositories(
-            sheet.cells(),
-            sheet.dependencies(),
-        );
+        let facade = crate::facade::SpreadsheetFacade::with_repositories(cells, deps);
         
         Ok(WasmSpreadsheetFacade::from_facade(Rc::new(facade)))
     }
@@ -176,11 +182,12 @@ impl WasmWorkbook {
     /// Get the active sheet's facade
     #[wasm_bindgen(js_name = "getActiveFacade")]
     pub fn get_active_facade(&self) -> Result<WasmSpreadsheetFacade, JsValue> {
-        let active_name = self.inner
-            .borrow()
-            .active_sheet_name()
-            .ok_or_else(|| JsValue::from_str("No active sheet"))?
-            .to_string();
+        let active_name = {
+            let workbook = self.inner.borrow();
+            workbook.active_sheet_name()
+                .ok_or_else(|| JsValue::from_str("No active sheet"))?
+                .to_string()
+        };
         
         self.get_sheet_facade(&active_name)
     }
@@ -205,11 +212,11 @@ impl WasmWorkbook {
 
     /// Get a cell value from a specific sheet
     #[wasm_bindgen(js_name = "getCellValue")]
-    pub fn get_cell_value(&self, sheet_name: &str, address: &WasmCellAddress) -> Option<JsValue> {
-        self.inner
-            .borrow()
-            .get_cell_value(sheet_name, &address.inner)
-            .map(|v| v.to_js())
+    pub fn get_cell_value(&self, sheet_name: &str, address: &WasmCellAddress) -> JsValue {
+        match self.inner.borrow().get_cell_value(sheet_name, &address.inner) {
+            Some(value) => value.to_js(),
+            None => JsValue::UNDEFINED,
+        }
     }
 
     /// Set a cell value in a specific sheet

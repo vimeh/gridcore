@@ -1,10 +1,9 @@
-use super::{Sheet, Workbook};
+use super::Workbook;
 use crate::types::{CellAddress, CellValue};
 use crate::domain::Cell;
-use crate::formula::{Expr, FormulaParser};
+use crate::formula::FormulaParser;
 use crate::references::{ReferenceAdjuster, StructuralOperation};
 use crate::{Result, SpreadsheetError};
-use std::collections::HashMap;
 
 /// Manages operations across multiple sheets
 pub struct SheetManager {

@@ -20,8 +20,8 @@ rm -rf gridcore-controller/pkg gridcore-controller/pkg-node
 # Build gridcore-wasm (includes core functionality)
 echo "🔨 Building gridcore-wasm..."
 cd gridcore-wasm
-wasm-pack build --target web --out-dir pkg --features wasm
-wasm-pack build --target nodejs --out-dir pkg-node --features wasm
+wasm-pack build --target web --out-dir pkg
+wasm-pack build --target nodejs --out-dir pkg-node
 
 # Check bundle size
 WASM_SIZE=$(wc -c < pkg/*_bg.wasm | awk '{print $1/1024}')

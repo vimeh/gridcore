@@ -506,7 +506,7 @@ mod tests {
             Expr::BinaryOp {
                 op: BinaryOperator::Concat,
                 left,
-                right,
+                right: _,
             } => {
                 // Left should be A1 & " "
                 assert!(matches!(
