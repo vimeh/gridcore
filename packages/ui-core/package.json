@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target browser --external @gridcore/core --external gridcore-controller && tsc --declaration --emitDeclarationOnly --outDir dist && cp ../../gridcore-rs/gridcore-controller/pkg/*.wasm ./dist/ 2>/dev/null || true && cp ../../gridcore-rs/gridcore-controller/pkg/*.js ./dist/ 2>/dev/null || true",
+    "build": "bun build ./src/index.ts --outdir ./dist --target browser --external @gridcore/core && tsc --declaration --emitDeclarationOnly --outDir dist",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "clean": "rm -rf dist node_modules coverage",
@@ -13,11 +13,7 @@
     "view:state-diagram": "bun run scripts/viewStateDiagram.ts"
   },
   "dependencies": {
-    "@gridcore/core": "workspace:*",
-    "gridcore-controller": "file:../../gridcore-rs/gridcore-controller/pkg"
-  },
-  "optionalDependencies": {
-    "gridcore-controller": "file:../../gridcore-rs/gridcore-controller/pkg"
+    "@gridcore/core": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",
