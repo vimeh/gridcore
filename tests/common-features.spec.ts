@@ -8,16 +8,16 @@ test.describe("Common Features", () => {
 
   test("should display initial data correctly", async ({ page }) => {
     // Check initial values
-    await expect(page.locator(".formula-input")).toHaveText("Hello");
+    await expect(page.locator(".formula-input")).toHaveValue("Hello");
 
     await page.keyboard.press("l");
-    await expect(page.locator(".formula-input")).toHaveText("World");
+    await expect(page.locator(".formula-input")).toHaveValue("World");
 
     await page.keyboard.press("j");
-    await expect(page.locator(".formula-input")).toHaveText("123");
+    await expect(page.locator(".formula-input")).toHaveValue("123");
 
     await page.keyboard.press("l");
-    await expect(page.locator(".formula-input")).toHaveText("=A2+B2");
+    await expect(page.locator(".formula-input")).toHaveValue("=A2+B2");
   });
 
   test("should update formula bar when navigating", async ({ page }) => {
@@ -25,14 +25,14 @@ test.describe("Common Features", () => {
     const cellValue = page.locator(".formula-input");
 
     // Check A1
-    await expect(cellRef).toHaveValue("A1");
-    await expect(cellValue).toHaveText("Hello");
+    await expect(cellRef).toHaveText("A1");
+    await expect(cellValue).toHaveValue("Hello");
 
     // Navigate to B2
     await page.keyboard.press("l");
     await page.keyboard.press("j");
-    await expect(cellRef).toHaveValue("B2");
-    await expect(cellValue).toHaveText("123");
+    await expect(cellRef).toHaveText("B2");
+    await expect(cellValue).toHaveValue("123");
   });
 
   test("should show mode indicator", async ({ page }) => {

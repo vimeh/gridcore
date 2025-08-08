@@ -28,19 +28,19 @@ pub fn StatusBar(
     selection_stats: ReadSignal<SelectionStats>,
 ) -> impl IntoView {
 
-    // Format mode display with color
+    // Format mode display with color and detail text
     let mode_display = move || {
-        let (text, color) = match current_mode.get() {
-            SpreadsheetMode::Navigation => ("NORMAL", "#4caf50"),
-            SpreadsheetMode::Insert => ("INSERT", "#2196f3"),
-            SpreadsheetMode::Editing => ("EDIT", "#ff9800"),
-            SpreadsheetMode::Visual => ("VISUAL", "#9c27b0"),
-            SpreadsheetMode::Command => ("COMMAND", "#f44336"),
-            SpreadsheetMode::Resize => ("RESIZE", "#795548"),
-            SpreadsheetMode::Delete => ("DELETE", "#e91e63"),
-            SpreadsheetMode::BulkOperation => ("BULK", "#607d8b"),
+        let (text, color, detail) = match current_mode.get() {
+            SpreadsheetMode::Navigation => ("NORMAL", "#4caf50", "hjkl to move"),
+            SpreadsheetMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
+            SpreadsheetMode::Editing => ("EDIT", "#ff9800", "ESC to exit"),
+            SpreadsheetMode::Visual => ("VISUAL", "#9c27b0", "ESC to exit"),
+            SpreadsheetMode::Command => ("COMMAND", "#f44336", "Enter to execute"),
+            SpreadsheetMode::Resize => ("RESIZE", "#795548", ""),
+            SpreadsheetMode::Delete => ("DELETE", "#e91e63", ""),
+            SpreadsheetMode::BulkOperation => ("BULK", "#607d8b", ""),
         };
-        (text, color)
+        (text, color, detail)
     };
 
     // Format selection statistics
@@ -91,11 +91,12 @@ pub fn StatusBar(
             </div>
 
             // Right section: Mode indicator
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="mode-indicator" style="display: flex; align-items: center; gap: 8px;">
                 {move || {
-                    let (mode_text, mode_color) = mode_display();
+                    let (mode_text, mode_color, mode_detail) = mode_display();
                     view! {
                         <span
+                            class="mode-text"
                             style=format!(
                                 "padding: 2px 8px; background: {}; color: white; border-radius: 3px; font-weight: 600; font-size: 11px;",
                                 mode_color
@@ -103,6 +104,15 @@ pub fn StatusBar(
                         >
                             {mode_text}
                         </span>
+                        {if !mode_detail.is_empty() {
+                            view! {
+                                <span class="mode-detail" style="color: #666; font-size: 11px;">
+                                    {mode_detail}
+                                </span>
+                            }.into_view()
+                        } else {
+                            view! { <span></span> }.into_view()
+                        }}
                     }
                 }}
             </div>

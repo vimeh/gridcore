@@ -11,15 +11,60 @@ use std::rc::Rc;
 pub fn App() -> impl IntoView {
     // Create the SpreadsheetController
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
+    
+    // Initialize with test data
+    {
+        let facade = controller.borrow().get_facade();
+        let _ = facade.set_cell_value(&CellAddress::new(0, 0), "Hello");   // A1
+        let _ = facade.set_cell_value(&CellAddress::new(1, 0), "World");   // B1
+        let _ = facade.set_cell_value(&CellAddress::new(0, 1), "123");     // A2
+        let _ = facade.set_cell_value(&CellAddress::new(1, 1), "123");     // B2
+        let _ = facade.set_cell_value(&CellAddress::new(1, 2), "=A2+B2");  // B3
+    }
+    
     provide_context(controller.clone());
 
     // Create reactive signals for UI state
-    let (formula_value, set_formula_value) = create_signal(String::new());
     let (active_cell, set_active_cell) = create_signal(CellAddress::new(0, 0));
     let (active_sheet, set_active_sheet) = create_signal(0);
+    
+    // Initialize formula value with A1's content
+    let initial_formula_value = {
+        let facade = controller.borrow().get_facade();
+        if let Some(cell_obj) = facade.get_cell(&CellAddress::new(0, 0)) {
+            if cell_obj.has_formula() {
+                cell_obj.raw_value.to_string()
+            } else {
+                cell_obj.get_display_value().to_string()
+            }
+        } else {
+            String::new()
+        }
+    };
+    let (formula_value, set_formula_value) = create_signal(initial_formula_value);
 
     // Get initial mode from controller
     let initial_mode = controller.borrow().get_state().spreadsheet_mode();
+    
+    // Update formula bar when active cell changes
+    let ctrl_for_effect = controller.clone();
+    create_effect(move |_| {
+        let cell = active_cell.get();
+        let ctrl = ctrl_for_effect.clone();
+        let ctrl_borrow = ctrl.borrow();
+        let facade = ctrl_borrow.get_facade();
+        
+        // Get cell value for formula bar
+        if let Some(cell_obj) = facade.get_cell(&cell) {
+            if cell_obj.has_formula() {
+                set_formula_value.set(cell_obj.raw_value.to_string());
+            } else {
+                set_formula_value.set(cell_obj.get_display_value().to_string());
+            }
+        } else {
+            set_formula_value.set(String::new());
+        }
+    });
     let (current_mode, set_current_mode) = create_signal(initial_mode);
 
     // Sheet management
