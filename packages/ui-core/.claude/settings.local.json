@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": ["Bash(bun test:*)"],
-    "deny": [],
-    "additionalDirectories": [
-      "/Users/vinay/v/code/gridcore/worktrees/integration"
-    ]
-  }
-}
