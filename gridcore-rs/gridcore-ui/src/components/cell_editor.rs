@@ -46,25 +46,16 @@ pub fn CellEditor(
                     cursor_position,
                     .. 
                 } => {
-                    // Check if we have an initial value from the state
-                    // This handles both direct typing (non-empty) and Enter key (empty but Some)
-                    // vs 'i' key which passes None and results in empty editing_value
+                    // Always use the editing_value from state
+                    // The state machine now properly sets it based on the action:
+                    // - For Enter key: empty string (clear content)
+                    // - For direct typing: the typed character
+                    // - For 'i' key: existing cell content with cursor at 0
+                    // - For 'a' key: existing cell content with cursor at end
+                    set_editor_value.set(editing_value.clone());
                     
-                    if !editing_value.is_empty() {
-                        // Direct typing - use the typed character(s)
-                        set_editor_value.set(editing_value.clone());
-                        // Set cursor position after the typed character
-                        (true, *cursor_position)
-                    } else {
-                        // Empty editing_value - could be Enter key or 'i' key
-                        // For now, check edit_variant to decide
-                        // TODO: This is a workaround - better to track whether initial_value was Some or None
-                        
-                        // Simplified: always use editing_value from state
-                        // If it's empty, that's what we want (Enter key clears content)
-                        set_editor_value.set(editing_value.clone());
-                        (false, 0)
-                    }
+                    // Use the cursor position from state
+                    (true, *cursor_position)
                 }
                 _ => {
                     // Not in editing state
