@@ -1,5 +1,4 @@
 use gridcore_controller::state::SpreadsheetMode;
-use gridcore_core::types::CellAddress;
 use leptos::*;
 
 #[derive(Clone, Debug)]
@@ -26,14 +25,8 @@ impl Default for SelectionStats {
 #[component]
 pub fn StatusBar(
     current_mode: ReadSignal<SpreadsheetMode>,
-    active_cell: ReadSignal<CellAddress>,
     selection_stats: ReadSignal<SelectionStats>,
 ) -> impl IntoView {
-    // Format cell address (e.g., "A1")
-    let cell_address = move || {
-        let cell = active_cell.get();
-        format!("{}{}", get_column_label(cell.col as usize), cell.row + 1)
-    };
 
     // Format mode display with color
     let mode_display = move || {
@@ -80,13 +73,8 @@ pub fn StatusBar(
             class="status-bar"
             style="display: flex; align-items: center; justify-content: space-between; height: 24px; padding: 0 12px; background: #f5f5f5; border-top: 1px solid #e0e0e0; font-size: 12px; font-family: monospace;"
         >
-            // Left section: Cell address
+            // Left section: Selection statistics
             <div style="display: flex; align-items: center; gap: 16px;">
-                <span style="font-weight: 600;">
-                    {cell_address}
-                </span>
-
-                // Selection statistics
                 {move || if !stats_display().is_empty() {
                     view! {
                         <span style="color: #666;">
@@ -94,7 +82,11 @@ pub fn StatusBar(
                         </span>
                     }.into_view()
                 } else {
-                    view! { }.into_view()
+                    view! { 
+                        <span style="color: #999;">
+                            "Ready"
+                        </span>
+                    }.into_view()
                 }}
             </div>
 
@@ -118,18 +110,3 @@ pub fn StatusBar(
     }
 }
 
-// Helper function to convert column index to letter(s)
-fn get_column_label(col: usize) -> String {
-    let mut label = String::new();
-    let mut n = col;
-
-    loop {
-        label.insert(0, ((n % 26) as u8 + b'A') as char);
-        if n < 26 {
-            break;
-        }
-        n = n / 26 - 1;
-    }
-
-    label
-}

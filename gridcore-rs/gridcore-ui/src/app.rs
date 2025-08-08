@@ -64,14 +64,22 @@ pub fn App() -> impl IntoView {
         <div class="spreadsheet-app">
             <div class="top-toolbar">
                 <div class="formula-bar">
-                    <span style="padding: 0 8px; font-weight: bold;">"fx"</span>
+                    <div class="cell-indicator">
+                        {move || {
+                            let cell = active_cell.get();
+                            let col = ((cell.col as u8 + b'A') as char).to_string();
+                            let row = (cell.row + 1).to_string();
+                            format!("{}{}", col, row)
+                        }}
+                    </div>
+                    <span class="formula-fx">"fx"</span>
                     <input
                         type="text"
+                        class="formula-input"
                         placeholder="Enter formula or value"
                         value=move || formula_value.get()
                         on:input=move |ev| set_formula_value.set(event_target_value(&ev))
                         on:keydown=on_formula_submit
-                        style="flex: 1; border: 1px solid #e0e0e0; padding: 4px; font-family: monospace;"
                     />
                 </div>
             </div>
@@ -85,7 +93,7 @@ pub fn App() -> impl IntoView {
                 />
             </div>
 
-            <div class="bottom-toolbar" style="display: flex; flex-direction: column;">
+            <div class="bottom-toolbar">
                 <TabBar
                     sheets=sheets
                     active_sheet=active_sheet
@@ -93,7 +101,6 @@ pub fn App() -> impl IntoView {
                 />
                 <StatusBar
                     current_mode=current_mode
-                    active_cell=active_cell
                     selection_stats=selection_stats
                 />
             </div>

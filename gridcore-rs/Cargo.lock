@@ -710,18 +710,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gridcore-wasm"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "gridcore-core",
- "js-sys",
- "serde-wasm-bindgen",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
 name = "half"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

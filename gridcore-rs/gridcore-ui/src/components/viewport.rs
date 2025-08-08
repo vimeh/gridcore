@@ -144,9 +144,9 @@ impl Viewport {
     }
 
     pub fn get_visible_bounds(&self) -> ViewportBounds {
-        let mut start_row = 0;
+        let mut start_row = None;
         let mut end_row = self.total_rows;
-        let mut start_col = 0;
+        let mut start_col = None;
         let mut end_col = self.total_cols;
 
         // Calculate visible rows
@@ -154,8 +154,8 @@ impl Viewport {
         let scroll_y = self.scroll_position.y;
         for row in 0..self.total_rows {
             let height = self.get_row_height(row);
-            if y + height > scroll_y && start_row == 0 {
-                start_row = row;
+            if y + height > scroll_y && start_row.is_none() {
+                start_row = Some(row);
             }
             if y >= scroll_y + self.viewport_height {
                 end_row = row;
@@ -169,8 +169,8 @@ impl Viewport {
         let scroll_x = self.scroll_position.x;
         for col in 0..self.total_cols {
             let width = self.get_column_width(col);
-            if x + width > scroll_x && start_col == 0 {
-                start_col = col;
+            if x + width > scroll_x && start_col.is_none() {
+                start_col = Some(col);
             }
             if x >= scroll_x + self.viewport_width {
                 end_col = col;
@@ -180,9 +180,9 @@ impl Viewport {
         }
 
         ViewportBounds {
-            start_row,
+            start_row: start_row.unwrap_or(0),
             end_row: end_row.min(self.total_rows - 1),
-            start_col,
+            start_col: start_col.unwrap_or(0),
             end_col: end_col.min(self.total_cols - 1),
         }
     }

@@ -1,7 +1,6 @@
 [workspace]
 members = [
   "gridcore-core",
-  "gridcore-wasm",
   "gridcore-controller",
   "gridcore-ui",
 ]
