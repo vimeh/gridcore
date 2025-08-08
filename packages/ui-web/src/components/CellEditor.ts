@@ -203,21 +203,22 @@ export class CellEditor {
 
       // Check if we should exit editing
       if (state.spreadsheetMode !== "editing") {
-          // Always commit the edit when exiting from editing mode
-          // The controller handles saving the value when needed
-          this.commitEdit();
-          return;
-        }
-
-        // Update editor content if it changed
-        if (state.editingValue !== this.editorDiv.textContent) {
-          this.editorDiv.textContent = state.editingValue;
-          this.setCursorPosition(state.cursorPosition);
-        }
-
-        // Handle mode change notification
-        this.callbacks.onModeChange?.();
+        // Always commit the edit when exiting from editing mode
+        // The controller handles saving the value when needed
+        this.commitEdit();
+        return;
       }
+
+      // Update editor content if it changed
+      if (state.editingValue !== this.editorDiv.textContent) {
+        this.editorDiv.textContent = state.editingValue || '';
+        if (state.editingCursorPosition !== undefined) {
+          this.setCursorPosition(state.editingCursorPosition);
+        }
+      }
+
+      // Handle mode change notification
+      this.callbacks.onModeChange?.();
       return;
     }
 
@@ -276,8 +277,8 @@ export class CellEditor {
         cursorPosition,
       });
 
-      // Update the controller state with the new text and cursor position
-      this.controller.updateEditingValue(newText, cursorPosition);
+      // Update the controller state with the new text
+      this.controller.updateEditingValue(newText);
     }
   }
 
