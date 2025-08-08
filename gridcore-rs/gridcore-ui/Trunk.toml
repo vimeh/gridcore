@@ -4,6 +4,10 @@
 [build]
 target = "index.html"
 dist = "dist"
+# Use the optimized wasm-release profile for release builds
+release = true
+# Specify cargo profile for release builds
+cargo_profile = "wasm-release"
 
 [watch]
 watch = ["src", "Cargo.toml", "index.html", "style"]

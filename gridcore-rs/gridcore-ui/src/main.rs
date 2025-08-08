@@ -3,7 +3,8 @@ use leptos::wasm_bindgen::JsCast;
 use leptos::*;
 
 fn main() {
-    // Set panic hook for better error messages in browser console
+    // Set panic hook for better error messages in browser console (debug builds only)
+    #[cfg(feature = "debug")]
     console_error_panic_hook::set_once();
 
     // Mount the app to the DOM element with id "app"
