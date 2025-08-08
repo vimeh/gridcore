@@ -407,9 +407,10 @@ pub fn CanvasGrid(
                             pos.height,
                         ));
                         // Enter key replaces existing content
+                        // Use a special marker that cell_editor can detect
                         Some(Action::StartEditing {
                             edit_mode: Some(InsertMode::I),
-                            initial_value: Some(String::new()), // Empty string to replace content
+                            initial_value: Some("\x00REPLACE\x00".to_string()), // Special marker for replace mode
                             cursor_position: Some(0),
                         })
                     }

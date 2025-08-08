@@ -1,5 +1,5 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{Action, UIState, CellMode};
+use gridcore_controller::state::{Action, UIState, CellMode, InsertMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Input;
 use leptos::*;
@@ -37,61 +37,82 @@ pub fn CellEditor(
             let ctrl_borrow = ctrl.borrow();
             
             // Check the current editing state to get initial value and edit mode
-            let (initial_value, edit_variant) = match ctrl_borrow.get_state() {
+            let editing_state = ctrl_borrow.get_state();
+            
+            let (should_set_cursor_pos, cursor_pos_to_set) = match editing_state {
                 gridcore_controller::state::UIState::Editing { 
                     editing_value, 
                     edit_variant,
+                    cursor_position,
                     .. 
                 } => {
-                    // If there's an initial value (from direct typing), use it
-                    // Direct typing should replace existing content entirely
-                    if !editing_value.is_empty() {
-                        (Some(editing_value.clone()), edit_variant.clone())
+                    // Check for special replace marker from Enter key
+                    if editing_value == "\x00REPLACE\x00" {
+                        // Enter key wants to replace content - start with empty
+                        set_editor_value.set(String::new());
+                        (false, 0)
+                    } else if !editing_value.is_empty() {
+                        // Direct typing - use the typed character(s)
+                        set_editor_value.set(editing_value.clone());
+                        // Set cursor position from state (for direct typing, this should be after the character)
+                        (true, *cursor_position)
                     } else {
-                        (None, edit_variant.clone())
+                        // 'i' or 'a' key - preserve existing content
+                        let facade = ctrl_borrow.get_facade();
+                        let existing_value = if let Some(cell_obj) = facade.get_cell(&cell) {
+                            if cell_obj.has_formula() {
+                                cell_obj.raw_value.to_string()
+                            } else {
+                                cell_obj.get_display_value().to_string()
+                            }
+                        } else {
+                            String::new()
+                        };
+                        set_editor_value.set(existing_value);
+                        (false, 0)
                     }
                 }
-                _ => (None, None),
+                _ => {
+                    // Not in editing state
+                    set_editor_value.set(String::new());
+                    (false, 0)
+                }
             };
-            
-            if let Some(val) = initial_value {
-                // For direct typing - replace entire content
-                set_editor_value.set(val);
-            } else {
-                // Check the edit variant to determine behavior
-                let facade = ctrl_borrow.get_facade();
-                let existing_value = if let Some(cell_obj) = facade.get_cell(&cell) {
-                    if cell_obj.has_formula() {
-                        cell_obj.raw_value.to_string()
-                    } else {
-                        cell_obj.get_display_value().to_string()
-                    }
-                } else {
-                    String::new()
-                };
-                
-                // For Enter key or 'i' mode, preserve existing content
-                // For 'a' append mode, also preserve existing content (cursor positioning handled elsewhere)
-                set_editor_value.set(existing_value);
-            }
 
-            // Focus the input
+            // Focus the input and set cursor position
             if let Some(input) = input_ref.get() {
                 let _ = input.focus();
                 
+                // Set cursor position if needed (for direct typing)
+                if should_set_cursor_pos {
+                    let _ = input.set_selection_start(Some(cursor_pos_to_set as u32));
+                    let _ = input.set_selection_end(Some(cursor_pos_to_set as u32));
+                }
+                
                 // Set cursor position based on edit mode
-                if let Some(variant) = edit_variant {
-                    match variant {
-                        gridcore_controller::state::InsertMode::A => {
-                            // Append mode - cursor at end
-                            let len = editor_value.get().len();
-                            let _ = input.set_selection_start(Some(len as u32));
-                            let _ = input.set_selection_end(Some(len as u32));
-                        }
-                        _ => {
-                            // Other modes - cursor at beginning or specified position
+                match editing_state {
+                    gridcore_controller::state::UIState::Editing { edit_variant, .. } => {
+                        if let Some(variant) = edit_variant {
+                            match variant {
+                                InsertMode::A | InsertMode::CapitalA => {
+                                    // Append modes - cursor at end
+                                    // Use set_timeout to ensure the value is set first
+                                    let input_clone = input_ref.clone();
+                                    set_timeout(move || {
+                                        if let Some(input) = input_clone.get() {
+                                            let len = input.value().len();
+                                            let _ = input.set_selection_start(Some(len as u32));
+                                            let _ = input.set_selection_end(Some(len as u32));
+                                        }
+                                    }, std::time::Duration::from_millis(0));
+                                }
+                                _ => {
+                                    // Other modes - cursor at beginning or specified position
+                                }
+                            }
                         }
                     }
+                    _ => {}
                 }
             }
         }
