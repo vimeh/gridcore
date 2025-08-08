@@ -1,5 +1,5 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{Action, UIState};
+use gridcore_controller::state::{Action, UIState, CellMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Input;
 use leptos::*;
@@ -13,6 +13,7 @@ pub fn CellEditor(
     editing_mode: ReadSignal<bool>,
     set_editing_mode: WriteSignal<bool>,
     cell_position: ReadSignal<(f64, f64, f64, f64)>, // x, y, width, height
+    set_formula_value: WriteSignal<String>,
 ) -> impl IntoView {
     // Get controller from context
     let controller: Rc<RefCell<SpreadsheetController>> =
@@ -172,16 +173,59 @@ pub fn CellEditor(
             }
             "Escape" => {
                 ev.prevent_default();
-
-                // Cancel editing
-                set_editing_mode.set(false);
-                set_suggestions.set(Vec::new());
-                set_selected_suggestion.set(None);
-
+                
                 let ctrl = ctrl_cancel.clone();
-                let mut ctrl_mut = ctrl.borrow_mut();
-                if let Err(e) = ctrl_mut.dispatch_action(Action::ExitToNavigation) {
-                    leptos::logging::log!("Error canceling edit mode: {:?}", e);
+                let (is_insert_mode, is_normal_mode) = {
+                    let ctrl_borrow = ctrl.borrow();
+                    match ctrl_borrow.get_state() {
+                        UIState::Editing { cell_mode, .. } => {
+                            match cell_mode {
+                                CellMode::Insert => (true, false),
+                                CellMode::Normal => (false, true),
+                                _ => (false, false),
+                            }
+                        }
+                        _ => (false, false),
+                    }
+                };
+                
+                if is_insert_mode {
+                    // First Escape: go from Insert to Normal mode (stay in editor)
+                    let mut ctrl_mut = ctrl.borrow_mut();
+                    if let Err(e) = ctrl_mut.dispatch_action(Action::ExitInsertMode) {
+                        leptos::logging::log!("Error exiting insert mode: {:?}", e);
+                    }
+                } else if is_normal_mode {
+                    // Second Escape: save and exit to navigation
+                    // First save the value
+                    let value = editor_value.get();
+                    let cell = active_cell.get();
+                    
+                    if !value.is_empty() {
+                        let ctrl_borrow = ctrl.borrow();
+                        let facade = ctrl_borrow.get_facade();
+                        if let Err(e) = facade.set_cell_value(&cell, &value) {
+                            leptos::logging::log!("Error setting cell value: {:?}", e);
+                        }
+                    }
+                    
+                    // Then exit editing
+                    set_editing_mode.set(false);
+                    set_suggestions.set(Vec::new());
+                    set_selected_suggestion.set(None);
+                    
+                    let mut ctrl_mut = ctrl.borrow_mut();
+                    if let Err(e) = ctrl_mut.dispatch_action(Action::ExitToNavigation) {
+                        leptos::logging::log!("Error exiting edit mode: {:?}", e);
+                    }
+                    
+                    // Update formula bar
+                    set_formula_value.set(value);
+                } else {
+                    // Not in expected state - just exit
+                    set_editing_mode.set(false);
+                    let mut ctrl_mut = ctrl.borrow_mut();
+                    let _ = ctrl_mut.dispatch_action(Action::ExitToNavigation);
                 }
             }
             "ArrowDown" => {

@@ -22,7 +22,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Escape");
 
     // Check value was saved
-    await expect(page.locator(".formula-input")).toHaveText("New Value");
+    await expect(page.locator(".formula-input")).toHaveValue("New Value");
   });
 
   test("should edit cell by typing", async ({ page }) => {
@@ -37,7 +37,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Escape");
 
     // Check value
-    await expect(page.locator(".formula-input")).toHaveText("Quick entry");
+    await expect(page.locator(".formula-input")).toHaveValue("Quick entry");
   });
 
   test("should cancel edit with Escape", async ({ page }) => {
@@ -61,7 +61,7 @@ test.describe("Cell Editing", () => {
 
     // Current implementation saves, cursor correctly positioned at beginning with 'i'
     // When pressing 'i', cursor is at the beginning, so "Changed" appears before "World"
-    await expect(page.locator(".formula-input")).toHaveText(
+    await expect(page.locator(".formula-input")).toHaveValue(
       "ChangedWorld",
     );
   });
@@ -80,7 +80,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Escape");
 
     // Formula should be in formula bar
-    await expect(page.locator(".formula-input")).toHaveText("=A2+B2");
+    await expect(page.locator(".formula-input")).toHaveValue("=A2+B2");
   });
 
   test("should delete cell content with Delete key", async ({ page }) => {
@@ -91,7 +91,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Delete");
 
     // Cell should be empty
-    await expect(page.locator(".formula-input")).toHaveText("");
+    await expect(page.locator(".formula-input")).toHaveValue("");
   });
 
   test("should delete cell content with Backspace key", async ({ page }) => {
@@ -101,7 +101,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Backspace");
 
     // Cell should be empty
-    await expect(page.locator(".formula-input")).toHaveText("");
+    await expect(page.locator(".formula-input")).toHaveValue("");
   });
 
   test("should handle multi-line edit with proper cursor", async ({ page }) => {
@@ -154,7 +154,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Escape");
 
     // Check that text was inserted at the beginning
-    await expect(page.locator(".formula-input")).toHaveText("!World");
+    await expect(page.locator(".formula-input")).toHaveValue("!World");
   });
 
 });

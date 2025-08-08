@@ -25,7 +25,7 @@ test.describe("Vim Mode - Text Saving Fixes", () => {
     await page.keyboard.press("ArrowUp");
 
     // The formula bar should show the saved text
-    await expect(page.locator(".formula-input")).toHaveText(
+    await expect(page.locator(".formula-input")).toHaveValue(
       "Test content",
     );
   });
@@ -86,7 +86,7 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
 
-    await expect(page.locator(".formula-input")).toHaveText(
+    await expect(page.locator(".formula-input")).toHaveValue(
       "Start Hello World",
     );
   });
@@ -107,7 +107,7 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
     await page.keyboard.press("Escape");
 
     // Text should be appended at the end
-    await expect(page.locator(".formula-input")).toHaveText(
+    await expect(page.locator(".formula-input")).toHaveValue(
       "Hello World123",
     );
   });

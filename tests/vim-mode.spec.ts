@@ -43,7 +43,7 @@ test.describe("Vim Mode", () => {
     await page.keyboard.press("Escape"); // Exit editor and save
 
     // Check that text was saved
-    await expect(page.locator(".formula-input")).toHaveText("Hello Vim");
+    await expect(page.locator(".formula-input")).toHaveValue("Hello Vim");
   });
 
   test("should transition between vim modes correctly", async ({ page }) => {
@@ -115,7 +115,7 @@ test.describe("Vim Mode", () => {
     await page.keyboard.press("Escape"); // Exit editor and save
 
     // Check the result
-    await expect(page.locator(".formula-input")).toHaveText("World!");
+    await expect(page.locator(".formula-input")).toHaveValue("World!");
   });
 
   test("should show visual mode", async ({ page }) => {

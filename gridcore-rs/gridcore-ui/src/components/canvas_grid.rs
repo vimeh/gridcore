@@ -501,6 +501,7 @@ pub fn CanvasGrid(
                 editing_mode=editing_mode
                 set_editing_mode=set_editing_mode
                 cell_position=cell_position
+                set_formula_value=set_formula_value
             />
         </div>
     }
