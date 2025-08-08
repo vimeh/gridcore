@@ -1,6 +1,6 @@
 use crate::workbook::{Sheet, Workbook, SheetManager};
 use crate::facade::wasm::WasmSpreadsheetFacade;
-use crate::types::wasm::WasmCellAddress;
+use crate::types::CellAddress;
 use crate::types::CellValue;
 use crate::domain::Cell;
 use wasm_bindgen::prelude::*;
@@ -212,8 +212,8 @@ impl WasmWorkbook {
 
     /// Get a cell value from a specific sheet
     #[wasm_bindgen(js_name = "getCellValue")]
-    pub fn get_cell_value(&self, sheet_name: &str, address: &WasmCellAddress) -> JsValue {
-        match self.inner.borrow().get_cell_value(sheet_name, &address.inner) {
+    pub fn get_cell_value(&self, sheet_name: &str, address: &CellAddress) -> JsValue {
+        match self.inner.borrow().get_cell_value(sheet_name, address) {
             Some(value) => value.to_js(),
             None => JsValue::UNDEFINED,
         }
@@ -224,7 +224,7 @@ impl WasmWorkbook {
     pub fn set_cell_value(
         &mut self,
         sheet_name: &str,
-        address: &WasmCellAddress,
+        address: &CellAddress,
         value: &str,
     ) -> Result<(), JsValue> {
         // Parse the value string
@@ -244,7 +244,7 @@ impl WasmWorkbook {
         // Set the cell using the workbook's method
         self.inner
             .borrow_mut()
-            .set_cell_value(sheet_name, &address.inner, cell)
+            .set_cell_value(sheet_name, address, cell)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }

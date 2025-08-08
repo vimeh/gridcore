@@ -105,7 +105,7 @@ impl CellRepository {
 pub mod wasm_bindings {
     use super::*;
     use crate::domain::cell::wasm_bindings::WasmCell;
-    use crate::types::wasm::WasmCellAddress;
+    use crate::types::CellAddress;
     use wasm_bindgen::prelude::*;
 
     #[wasm_bindgen]
@@ -123,8 +123,7 @@ pub mod wasm_bindings {
         }
 
         #[wasm_bindgen(js_name = "get")]
-        pub fn get(&self, address: &WasmCellAddress) -> Option<WasmCell> {
-            let address = &address.inner;
+        pub fn get(&self, address: &CellAddress) -> Option<WasmCell> {
             self.inner
                 .get(address)
                 .map(|cell| {
@@ -137,8 +136,7 @@ pub mod wasm_bindings {
         }
 
         #[wasm_bindgen(js_name = "set")]
-        pub fn set(&mut self, address: &WasmCellAddress, cell: &WasmCell) -> Result<(), JsValue> {
-            let address = &address.inner;
+        pub fn set(&mut self, address: &CellAddress, cell: &WasmCell) -> Result<(), JsValue> {
             // Convert WasmCell to Cell
             // For now, we'll use JSON serialization as a bridge
             let json = cell.to_json()?;
@@ -149,8 +147,7 @@ pub mod wasm_bindings {
         }
 
         #[wasm_bindgen(js_name = "delete")]
-        pub fn delete(&mut self, address: &WasmCellAddress) -> bool {
-            let address = &address.inner;
+        pub fn delete(&mut self, address: &CellAddress) -> bool {
             self.inner.delete(address).is_some()
         }
 
@@ -160,8 +157,7 @@ pub mod wasm_bindings {
         }
 
         #[wasm_bindgen(js_name = "contains")]
-        pub fn contains(&self, address: &WasmCellAddress) -> bool {
-            let address = &address.inner;
+        pub fn contains(&self, address: &CellAddress) -> bool {
             self.inner.contains(address)
         }
 
@@ -176,12 +172,8 @@ pub mod wasm_bindings {
         }
 
         #[wasm_bindgen(js_name = "getAllAddresses")]
-        pub fn get_all_addresses(&self) -> Vec<WasmCellAddress> {
-            self.inner
-                .get_addresses()
-                .into_iter()
-                .map(|addr| WasmCellAddress { inner: addr })
-                .collect()
+        pub fn get_all_addresses(&self) -> Vec<CellAddress> {
+            self.inner.get_addresses()
         }
     }
 }

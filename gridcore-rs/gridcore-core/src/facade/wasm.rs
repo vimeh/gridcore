@@ -2,7 +2,7 @@ use crate::domain::cell::wasm_bindings::WasmCell;
 use crate::facade::spreadsheet_facade::SpreadsheetFacade;
 use crate::fill::wasm::{parse_fill_operation, convert_fill_result, JsFillOperation};
 use crate::types::CellValue;
-use crate::types::wasm::WasmCellAddress;
+use crate::types::CellAddress;
 use js_sys::Function;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -98,12 +98,12 @@ impl WasmSpreadsheetFacade {
     #[wasm_bindgen(js_name = "setCellValue")]
     pub fn set_cell_value(
         &self,
-        address: &WasmCellAddress,
+        address: &CellAddress,
         value: &str,
     ) -> Result<WasmCell, JsValue> {
         let cell = self
             .inner
-            .set_cell_value(&address.inner, value)
+            .set_cell_value(address, value)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         // Convert to WasmCell
@@ -115,10 +115,10 @@ impl WasmSpreadsheetFacade {
 
     /// Get a cell value
     #[wasm_bindgen(js_name = "getCellValue")]
-    pub fn get_cell_value(&self, address: &WasmCellAddress) -> Result<JsValue, JsValue> {
+    pub fn get_cell_value(&self, address: &CellAddress) -> Result<JsValue, JsValue> {
         let value = self
             .inner
-            .get_cell_value(&address.inner)
+            .get_cell_value(address)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         Ok(value.to_js())
@@ -126,17 +126,17 @@ impl WasmSpreadsheetFacade {
 
     /// Get a cell
     #[wasm_bindgen(js_name = "getCell")]
-    pub fn get_cell(&self, address: &WasmCellAddress) -> Option<WasmCell> {
+    pub fn get_cell(&self, address: &CellAddress) -> Option<WasmCell> {
         self.inner
-            .get_cell(&address.inner)
+            .get_cell(address)
             .and_then(|cell| WasmCell::new(cell.get_computed_value().to_js()).ok())
     }
 
     /// Get a cell formula
     #[wasm_bindgen(js_name = "getCellFormula")]
-    pub fn get_cell_formula(&self, address: &WasmCellAddress) -> Option<String> {
+    pub fn get_cell_formula(&self, address: &CellAddress) -> Option<String> {
         self.inner
-            .get_cell(&address.inner)
+            .get_cell(address)
             .and_then(|cell| {
                 // Check if raw_value is a string starting with "="
                 if let CellValue::String(s) = &cell.raw_value {
@@ -150,18 +150,18 @@ impl WasmSpreadsheetFacade {
 
     /// Delete a cell
     #[wasm_bindgen(js_name = "deleteCell")]
-    pub fn delete_cell(&self, address: &WasmCellAddress) -> Result<(), JsValue> {
+    pub fn delete_cell(&self, address: &CellAddress) -> Result<(), JsValue> {
         self.inner
-            .delete_cell(&address.inner)
+            .delete_cell(address)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     /// Clear a cell (sets it to empty but keeps the cell)
     #[wasm_bindgen(js_name = "clearCell")]
-    pub fn clear_cell(&self, address: &WasmCellAddress) -> Result<(), JsValue> {
+    pub fn clear_cell(&self, address: &CellAddress) -> Result<(), JsValue> {
         // Set the cell to an empty value
         self.inner
-            .set_cell_value(&address.inner, "")
+            .set_cell_value(address, "")
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
         Ok(())
     }
@@ -176,10 +176,10 @@ impl WasmSpreadsheetFacade {
 
     /// Recalculate a specific cell
     #[wasm_bindgen(js_name = "recalculateCell")]
-    pub fn recalculate_cell(&self, address: &WasmCellAddress) -> Result<WasmCell, JsValue> {
+    pub fn recalculate_cell(&self, address: &CellAddress) -> Result<WasmCell, JsValue> {
         let cell = self
             .inner
-            .recalculate_cell(&address.inner)
+            .recalculate_cell(address)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         WasmCell::new(cell.get_computed_value().to_js())

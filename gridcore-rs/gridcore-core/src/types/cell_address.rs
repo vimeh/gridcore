@@ -3,12 +3,17 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct CellAddress {
     pub col: u32,
     pub row: u32,
 }
 
+// Regular Rust implementation
 impl CellAddress {
     /// Create a new CellAddress
     pub fn new(col: u32, row: u32) -> Self {
@@ -161,69 +166,57 @@ impl FromStr for CellAddress {
     }
 }
 
+// WASM-specific methods
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+impl CellAddress {
+    /// Create a new CellAddress (WASM constructor)
+    #[wasm_bindgen(constructor)]
+    pub fn new_wasm(col: u32, row: u32) -> Self {
+        CellAddress { col, row }
+    }
+    
+    /// Create from A1 notation for WASM
+    #[wasm_bindgen(js_name = "fromA1")]
+    pub fn from_a1_wasm(s: &str) -> std::result::Result<CellAddress, JsValue> {
+        Self::parse_a1_notation(s)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    
+    /// Convert to A1 notation for WASM
+    #[wasm_bindgen(js_name = "toA1")]
+    pub fn to_a1_wasm(&self) -> String {
+        self.to_a1()
+    }
+    
+    /// Offset for WASM
+    #[wasm_bindgen(js_name = "offset")]
+    pub fn offset_wasm(&self, row_offset: i32, col_offset: i32) -> std::result::Result<CellAddress, JsValue> {
+        self.offset(row_offset, col_offset)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    
+    /// Get column as string for WASM
+    #[wasm_bindgen(js_name = "columnLabel")]
+    pub fn column_label(&self) -> String {
+        Self::column_number_to_label(self.col)
+    }
+    
+    /// Check equality for WASM
+    #[wasm_bindgen(js_name = "equals")]
+    pub fn equals(&self, other: &CellAddress) -> bool {
+        self == other
+    }
+}
+
+// Deprecated: WasmCellAddress wrapper is no longer needed
+// CellAddress is now directly exportable with #[wasm_bindgen]
 #[cfg(feature = "wasm")]
 pub mod wasm {
     use super::*;
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen]
-    pub struct WasmCellAddress {
-        pub(crate) inner: CellAddress,
-    }
-
-    #[wasm_bindgen]
-    impl WasmCellAddress {
-        #[wasm_bindgen(constructor)]
-        pub fn new(col: u32, row: u32) -> Self {
-            WasmCellAddress {
-                inner: CellAddress::new(col, row),
-            }
-        }
-
-        #[wasm_bindgen(js_name = "fromString")]
-        pub fn from_string(s: &str) -> std::result::Result<WasmCellAddress, JsValue> {
-            CellAddress::from_str(s)
-                .map(|addr| WasmCellAddress { inner: addr })
-                .map_err(|e| JsValue::from_str(&e.to_string()))
-        }
-
-        #[wasm_bindgen(js_name = "toString")]
-        pub fn to_string(&self) -> String {
-            self.inner.to_string()
-        }
-
-        #[wasm_bindgen(getter)]
-        pub fn col(&self) -> u32 {
-            self.inner.col
-        }
-
-        #[wasm_bindgen(getter)]
-        pub fn row(&self) -> u32 {
-            self.inner.row
-        }
-
-        #[wasm_bindgen(js_name = "offset")]
-        pub fn offset(
-            &self,
-            row_offset: i32,
-            col_offset: i32,
-        ) -> std::result::Result<WasmCellAddress, JsValue> {
-            self.inner
-                .offset(row_offset, col_offset)
-                .map(|addr| WasmCellAddress { inner: addr })
-                .map_err(|e| JsValue::from_str(&e.to_string()))
-        }
-
-        #[wasm_bindgen(js_name = "equals")]
-        pub fn equals(&self, other: &WasmCellAddress) -> bool {
-            self.inner == other.inner
-        }
-
-        #[wasm_bindgen(js_name = "columnLabel")]
-        pub fn column_label(&self) -> String {
-            CellAddress::column_number_to_label(self.inner.col)
-        }
-    }
+    
+    #[deprecated(note = "Use CellAddress directly instead of WasmCellAddress")]
+    pub type WasmCellAddress = CellAddress;
 }
 
 #[cfg(test)]
