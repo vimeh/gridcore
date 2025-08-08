@@ -119,7 +119,7 @@ describe("CellEditor", () => {
 
   test("double escape should save text in insert mode", () => {
     // Start editing in insert mode
-    const addressResult = CellAddress.create(0, 0);
+    const addressResult = (CellAddress as any).create(0, 0);
     if (!addressResult.ok) throw new Error("Failed to create address");
 
     // First enter edit mode by pressing 'i' in the controller
@@ -186,7 +186,7 @@ describe("CellEditor", () => {
 
   test("escape transitions from insert to normal mode", () => {
     // Start editing in insert mode
-    const addressResult = CellAddress.create(0, 0);
+    const addressResult = (CellAddress as any).create(0, 0);
     if (!addressResult.ok) throw new Error("Failed to create address");
 
     // Enter insert mode

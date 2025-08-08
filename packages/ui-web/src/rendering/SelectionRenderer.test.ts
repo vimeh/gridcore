@@ -6,7 +6,7 @@ import { SelectionRenderer } from "./SelectionRenderer";
 
 // Helper function to create CellAddress and convert to string for tests
 function createCellAddressString(row: number, col: number): string {
-  const result = CellAddress.create(row, col);
+  const result = (CellAddress as any).create(row, col);
   if (!result.ok)
     throw new Error(`Failed to create CellAddress: ${result.error}`);
   return cellAddressToString(result.value);
@@ -14,7 +14,7 @@ function createCellAddressString(row: number, col: number): string {
 
 // Helper function to create CellAddres for tests
 function createCellAddress(row: number, col: number): CellAddress {
-  const result = CellAddress.create(row, col);
+  const result = (CellAddress as any).create(row, col);
   if (!result.ok)
     throw new Error(`Failed to create CellAddress: ${result.error}`);
   return result.value;
@@ -133,7 +133,7 @@ describe("SelectionRenderer", () => {
 
   test("should use selection range when provided", () => {
     const selectedCells = new Set<string>();
-    const selectionRangeResult = CellRange.create(
+    const selectionRangeResult = (CellRange as any).create(
       createCellAddress(1, 1),
       createCellAddress(3, 3),
     );

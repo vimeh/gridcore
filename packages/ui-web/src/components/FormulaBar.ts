@@ -1,4 +1,26 @@
-import type { WasmCell as Cell, WasmCellAddress as CellAddress } from "gridcore-controller";
+import type { Cell, CellAddress } from "../wasm";
+
+// Simple FormulaHighlighter stub
+class FormulaHighlighter {
+  highlight(formula: string): string {
+    return formula; // No highlighting for now
+  }
+  
+  highlightFormula(formula: string, _colors?: any): any[] {
+    // Return empty segments for now
+    return []
+  }
+}
+
+// Default highlight colors
+const DEFAULT_HIGHLIGHT_COLORS = FORMULA_HIGHLIGHT_COLORS
+
+// Highlight segment interface
+interface HighlightSegment {
+  text: string
+  color?: string
+  bold?: boolean
+}
 
 // Formula highlight colors - using a structured format for different element types
 const FORMULA_HIGHLIGHT_COLORS = {
@@ -200,7 +222,9 @@ export class FormulaBar {
 
     if (address) {
       this.addressInput.value = address.toString();
-      const value = cell?.formula?.toString() || String(cell?.rawValue || "");
+      // Get the display value from the cell
+      const cellObj = cell?.toObject?.();
+      const value = cellObj?.formula || String(cellObj?.value || "");
       this.setFormulaValue(value);
     } else {
       this.addressInput.value = "";

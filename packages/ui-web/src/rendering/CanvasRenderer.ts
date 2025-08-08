@@ -61,7 +61,7 @@ export class CanvasRenderer {
     for (let row = bounds.startRow; row <= bounds.endRow; row++) {
       for (let col = bounds.startCol; col <= bounds.endCol; col++) {
         cellsRendered++;
-        const addressResult = CellAddress.create(row, col);
+        const addressResult = (CellAddress as any).create(row, col);
         if (!addressResult.ok) continue;
         const address = addressResult.value;
         const position = this.viewport.getCellPosition(address);

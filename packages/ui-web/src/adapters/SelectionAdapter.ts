@@ -1,11 +1,17 @@
-import { CellAddress, CellRange } from "../wasm"
+import { CellAddress, CellRange, SpreadsheetVisualMode } from "../wasm"
 import type {
   Selection,
-  SelectionManager as CoreSelectionManager,
-  SpreadsheetVisualMode,
   UIState,
 } from "../wasm"
 import { isSpreadsheetVisualMode } from "../wasm"
+
+// Temporary interface for core selection manager
+interface CoreSelectionManager {
+  setSelection(selection: Selection): void
+  getCellsInSelection(): CellAddress[]
+  getSelectionBounds(): { start: CellAddress; end: CellAddress } | null
+  isCellSelected(address: CellAddress): boolean
+}
 
 /**
  * Adapter to bridge UIState's Selection with ui-web's rendering needs
@@ -57,7 +63,7 @@ export class SelectionAdapter {
       this.coreSelectionManager.setSelection(selection)
       const bounds = this.coreSelectionManager.getSelectionBounds()
       if (bounds) {
-        return CellRange.create(bounds.start, bounds.end)
+        return (CellRange as any).create(bounds.start, bounds.end)
       }
     } catch (error) {
       console.warn("Error getting selection range:", error)
@@ -74,15 +80,18 @@ export class SelectionAdapter {
   ): "character" | "line" | "block" | null {
     if (!visualMode) return null
     
-    switch (visualMode) {
+    switch (visualMode as any) {
       case "char":
+      case SpreadsheetVisualMode.CharacterWise:
         return "character"
       case "line":
       case "row":
+      case SpreadsheetVisualMode.LineWise:
         return "line"
       case "column":
         return "line"
       case "block":
+      case SpreadsheetVisualMode.BlockWise:
         return "block"
       default:
         return null
@@ -115,6 +124,8 @@ export class SelectionAdapter {
     // No selection, just the cursor
     return {
       selection: {
+        anchor: state.cursor,
+        focus: state.cursor,
         primary: state.cursor,
         ranges: [{
           start: state.cursor,

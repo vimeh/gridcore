@@ -100,7 +100,7 @@ describe("Controller Integration with Web UI", () => {
 
   test("adapter converts mouse actions to keyboard commands", () => {
     // Click on cell B2 (row 1, col 1)
-    const addressResult = CellAddress.create(1, 1);
+    const addressResult = (CellAddress as any).create(1, 1);
     if (!addressResult.ok) throw new Error("Failed to create address");
 
     const result = adapter.handleMouseAction({
@@ -124,7 +124,7 @@ describe("Controller Integration with Web UI", () => {
     expect(newState.interactionMode).toBe("keyboard-only");
 
     // In keyboard-only mode, mouse clicks should be ignored
-    const addressResult = CellAddress.create(5, 5);
+    const addressResult = (CellAddress as any).create(5, 5);
     if (!addressResult.ok) throw new Error("Failed to create address");
 
     const clickResult = adapter.handleMouseAction({

@@ -194,8 +194,8 @@ export class SelectionRenderer {
     }
 
     // Get positions for corner cells
-    const topLeftResult = CellAddress.create(minRow, minCol);
-    const bottomRightResult = CellAddress.create(maxRow, maxCol);
+    const topLeftResult = (CellAddress as any).create(minRow, minCol);
+    const bottomRightResult = (CellAddress as any).create(maxRow, maxCol);
     if (!topLeftResult.ok || !bottomRightResult.ok) {
       return null;
     }

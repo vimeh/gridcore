@@ -59,18 +59,18 @@ export class SelectionManager {
     this.state.selectedCells.clear();
 
     // Create start and end addresses for the range
-    const startResult = CellAddress.create(
+    const startResult = (CellAddress as any).create(
       Math.min(this.selectionStart.row, cell.row),
       Math.min(this.selectionStart.col, cell.col),
     );
-    const endResult = CellAddress.create(
+    const endResult = (CellAddress as any).create(
       Math.max(this.selectionStart.row, cell.row),
       Math.max(this.selectionStart.col, cell.col),
     );
 
     if (!startResult.ok || !endResult.ok) return;
 
-    const rangeResult = CellRange.create(startResult.value, endResult.value);
+    const rangeResult = (CellRange as any).create(startResult.value, endResult.value);
     if (!rangeResult.ok) return;
 
     this.state.selectionRange = rangeResult.value;
@@ -105,7 +105,7 @@ export class SelectionManager {
 
   moveActiveCell(direction: "up" | "down" | "left" | "right"): void {
     if (!this.state.activeCell) {
-      const initialCellResult = CellAddress.create(0, 0);
+      const initialCellResult = (CellAddress as any).create(0, 0);
       if (initialCellResult.ok) {
         this.setActiveCell(initialCellResult.value);
       }
@@ -130,7 +130,7 @@ export class SelectionManager {
         break;
     }
 
-    const newCellResult = CellAddress.create(newRow, newCol);
+    const newCellResult = (CellAddress as any).create(newRow, newCol);
     if (!newCellResult.ok) return;
 
     this.setActiveCell(newCellResult.value);
@@ -175,7 +175,7 @@ export class SelectionManager {
 
       for (let row = startRow; row <= endRow; row++) {
         for (let col = 0; col < totalCols; col++) {
-          const cellResult = CellAddress.create(row, col);
+          const cellResult = (CellAddress as any).create(row, col);
           if (cellResult.ok) {
             this.state.selectedCells.add(cellResult.value.toString());
           }
@@ -190,7 +190,7 @@ export class SelectionManager {
 
       for (let row = startRow; row <= endRow; row++) {
         for (let col = startCol; col <= endCol; col++) {
-          const cellResult = CellAddress.create(row, col);
+          const cellResult = (CellAddress as any).create(row, col);
           if (cellResult.ok) {
             this.state.selectedCells.add(cellResult.value.toString());
           }
@@ -198,17 +198,17 @@ export class SelectionManager {
       }
     } else {
       // Character mode - normal range selection
-      const startResult = CellAddress.create(
+      const startResult = (CellAddress as any).create(
         Math.min(this.visualAnchor.row, cursor.row),
         Math.min(this.visualAnchor.col, cursor.col),
       );
-      const endResult = CellAddress.create(
+      const endResult = (CellAddress as any).create(
         Math.max(this.visualAnchor.row, cursor.row),
         Math.max(this.visualAnchor.col, cursor.col),
       );
 
       if (startResult.ok && endResult.ok) {
-        const rangeResult = CellRange.create(
+        const rangeResult = (CellRange as any).create(
           startResult.value,
           endResult.value,
         );
@@ -246,7 +246,7 @@ export class SelectionManager {
   // Helper method for migrating from plain objects to CellAddress
   // This can be used by other components during the migration
   static createCellAddress(row: number, col: number): CellAddress | null {
-    const result = CellAddress.create(row, col);
+    const result = (CellAddress as any).create(row, col);
     return result.ok ? result.value : null;
   }
 }

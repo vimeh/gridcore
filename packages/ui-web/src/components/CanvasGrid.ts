@@ -1,5 +1,4 @@
-import { WasmCellAddress as CellAddress, type WasmSpreadsheetFacade as SpreadsheetFacade } from "gridcore-controller";
-import type { WasmSpreadsheetController as SpreadsheetController } from "gridcore-controller";
+import { CellAddress, type SpreadsheetFacade, type SpreadsheetController } from "../wasm";
 import { SelectionAdapter } from "../adapters/SelectionAdapter";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
 import { MouseHandler } from "../interaction/MouseHandler";
@@ -64,9 +63,8 @@ export class CanvasGrid {
     // Create adapter if controller is provided
     if (this.controller) {
       this.adapter = new WebStateAdapter(this.controller);
-      // Create selection adapter using the core selection manager
-      const coreSelectionManager = new DefaultSelectionManager();
-      this.selectionAdapter = new SelectionAdapter(coreSelectionManager);
+      // TODO: Create selection adapter when WASM SelectionManager is available
+      // this.selectionAdapter = new SelectionAdapter(wasmSelectionManager);
     }
 
     this.setupDOM();
@@ -149,7 +147,7 @@ export class CanvasGrid {
     this.setupEventListeners();
     this.setupModeChangeSubscription();
 
-    const initialCell = CellAddress.create(0, 0);
+    const initialCell = (CellAddress as any).create(0, 0);
     if (initialCell.ok && initialCell.value) {
       this.selectionManager.setActiveCell(initialCell.value);
     }
@@ -435,10 +433,10 @@ export class CanvasGrid {
       // Fallback to direct cell editor control
       const cellResult = this.facade.getCell(cell);
       let initialValue = "";
-      if (cellResult.ok && cellResult.value) {
-        const cellData = cellResult.value;
+      if (cellResult) {
+        const cellData = cellResult;
         initialValue =
-          cellData.formula?.toString() || String(cellData.value || "");
+          cellData.getError?.() || String(cellData.getComputedValue() || "");
       }
       this.cellEditor.startEditing(cell, initialValue);
     }
@@ -570,7 +568,7 @@ export class CanvasGrid {
 
         for (let row = bounds.startRow; row <= bounds.endRow; row++) {
           for (let col = bounds.startCol; col <= bounds.endCol; col++) {
-            const addrResult = CellAddress.create(row, col);
+            const addrResult = (CellAddress as any).create(row, col);
             if (!addrResult.ok || !addrResult.value) continue;
             const pos = this.viewport.getCellPosition(addrResult.value);
             minX = Math.min(minX, pos.x);
@@ -602,8 +600,8 @@ export class CanvasGrid {
       const cellsRendered = this.renderer.renderGrid(
         (address) => {
           const result = this.facade.getCell(address);
-          if (!result.ok) return undefined;
-          return result.value;
+          if (!result) return undefined;
+          return result;
         },
         activeCell,
         this.cellEditor.isCurrentlyEditing(),

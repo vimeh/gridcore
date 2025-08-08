@@ -1,4 +1,4 @@
-import type { WasmWorkbook as Workbook } from "gridcore-controller";
+import type { Workbook } from "../wasm";
 
 // Define Sheet interface locally as WasmSheet may have different methods
 interface Sheet {

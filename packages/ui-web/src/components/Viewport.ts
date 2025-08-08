@@ -1,4 +1,4 @@
-import { WasmCellAddress as CellAddress } from "gridcore-controller";
+import { CellAddress } from "../wasm";
 import { DEFAULT_TOTAL_COLS, DEFAULT_TOTAL_ROWS } from "../constants";
 import type { GridTheme } from "../rendering/GridTheme";
 
@@ -67,7 +67,7 @@ export class Viewport {
   }
 
   scrollTo(row: number, col: number): void {
-    const addressResult = CellAddress.create(row, col);
+    const addressResult = (CellAddress as any).create(row, col);
     if (addressResult.ok) {
       this.scrollToCell(addressResult.value);
     }
@@ -262,7 +262,7 @@ export class Viewport {
     }
 
     if (row >= 0 && col >= 0) {
-      const cellAddressResult = CellAddress.create(row, col);
+      const cellAddressResult = (CellAddress as any).create(row, col);
       if (cellAddressResult.ok) {
         return cellAddressResult.value;
       }

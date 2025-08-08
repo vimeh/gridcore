@@ -82,7 +82,7 @@ describe("WebStateAdapter", () => {
   });
 
   test("handles mouse click in normal mode", () => {
-    const address = CellAddress.create(5, 3);
+    const address = (CellAddress as any).create(5, 3);
     if (!address.ok) throw new Error("Failed to create address");
 
     const result = adapter.handleMouseAction({
@@ -101,7 +101,7 @@ describe("WebStateAdapter", () => {
     adapter.setInteractionMode("keyboard-only");
 
     const originalCursor = adapter.getCoreState().cursor;
-    const newAddress = CellAddress.create(5, 3);
+    const newAddress = (CellAddress as any).create(5, 3);
     if (!newAddress.ok) throw new Error("Failed to create address");
 
     const result = adapter.handleMouseAction({
@@ -117,7 +117,7 @@ describe("WebStateAdapter", () => {
   });
 
   test("handles double click to start editing", () => {
-    const address = CellAddress.create(2, 4);
+    const address = (CellAddress as any).create(2, 4);
     if (!address.ok) throw new Error("Failed to create address");
 
     const result = adapter.handleMouseAction({
@@ -136,7 +136,7 @@ describe("WebStateAdapter", () => {
   test("ignores double click in keyboard-only mode", () => {
     adapter.setInteractionMode("keyboard-only");
 
-    const address = CellAddress.create(2, 4);
+    const address = (CellAddress as any).create(2, 4);
     if (!address.ok) throw new Error("Failed to create address");
 
     const result = adapter.handleMouseAction({

@@ -1,4 +1,4 @@
-import type { WasmSpreadsheetController as SpreadsheetController } from "gridcore-controller";
+import type { SpreadsheetController } from "../wasm";
 
 // Define SpreadsheetState locally as it may not be exported from WASM
 interface SpreadsheetState {
