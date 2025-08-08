@@ -4,7 +4,7 @@ use crate::domain::Cell;
 use crate::evaluator::{EvaluationContext, Evaluator};
 use crate::fill::{FillEngine, FillOperation, FillResult};
 use crate::formula::FormulaParser;
-use crate::references::{ReferenceTracker, StructuralOperation, ReferenceAdjuster};
+use crate::references::{ReferenceAdjuster, ReferenceTracker, StructuralOperation};
 use crate::repository::CellRepository;
 use crate::types::{CellAddress, CellValue};
 use crate::{Result, SpreadsheetError};
@@ -129,7 +129,9 @@ impl SpreadsheetFacade {
             }
 
             // Update reference tracker
-            self.reference_tracker.borrow_mut().update_dependencies(address, &ast);
+            self.reference_tracker
+                .borrow_mut()
+                .update_dependencies(address, &ast);
 
             // Create cell with formula
             let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
@@ -387,31 +389,32 @@ impl SpreadsheetFacade {
         let repo = self.repository.borrow();
         let repo_clone = repo.clone();
         let repo_rc = Rc::new(repo_clone);
-        
+
         // Create fill engine with the repository
         let engine = FillEngine::new(repo_rc);
-        
+
         // Perform the fill operation
         let result = engine.fill(operation)?;
-        
+
         // Apply the results to the actual repository
         for (address, value) in &result.affected_cells {
             let cell = Cell::new(value.clone());
             self.repository.borrow_mut().set(address, cell);
         }
-        
+
         // Apply formula adjustments
         for (address, formula) in &result.formulas_adjusted {
             self.set_cell_value_internal(address, formula)?;
         }
-        
+
         // Recalculate affected cells
-        let affected_addresses: HashSet<_> = result.affected_cells
+        let affected_addresses: HashSet<_> = result
+            .affected_cells
             .iter()
             .map(|(addr, _)| addr.clone())
             .collect();
         self.batch_recalculate(affected_addresses)?;
-        
+
         Ok(result)
     }
 
@@ -421,10 +424,10 @@ impl SpreadsheetFacade {
         let repo = self.repository.borrow();
         let repo_clone = repo.clone();
         let repo_rc = Rc::new(repo_clone);
-        
+
         // Create fill engine with the repository
         let engine = FillEngine::new(repo_rc);
-        
+
         // Preview the fill operation
         engine.preview(operation)
     }
@@ -475,7 +478,9 @@ impl SpreadsheetFacade {
                     // Get the original formula string from raw_value
                     if let CellValue::String(formula_str) = &cell.raw_value {
                         if formula_str.starts_with('=') {
-                            if let Ok(adjusted_formula) = adjuster.adjust_formula(formula_str, &operation) {
+                            if let Ok(adjusted_formula) =
+                                adjuster.adjust_formula(formula_str, &operation)
+                            {
                                 if adjusted_formula != *formula_str {
                                     adjusted_cells.push((address.clone(), adjusted_formula));
                                 }
@@ -492,7 +497,9 @@ impl SpreadsheetFacade {
         }
 
         // Sync reference tracker with dependency graph
-        self.reference_tracker.borrow().sync_with_dependency_graph(&self.dependency_graph);
+        self.reference_tracker
+            .borrow()
+            .sync_with_dependency_graph(&self.dependency_graph);
 
         // Recalculate all affected cells
         self.recalculate()?;
@@ -503,8 +510,12 @@ impl SpreadsheetFacade {
     /// Update reference tracker when a cell formula changes
     fn update_reference_tracking(&self, address: &CellAddress, formula: &str) -> Result<()> {
         if let Ok(expr) = FormulaParser::parse(formula) {
-            self.reference_tracker.borrow_mut().update_dependencies(address, &expr);
-            self.reference_tracker.borrow().sync_with_dependency_graph(&self.dependency_graph);
+            self.reference_tracker
+                .borrow_mut()
+                .update_dependencies(address, &expr);
+            self.reference_tracker
+                .borrow()
+                .sync_with_dependency_graph(&self.dependency_graph);
         }
         Ok(())
     }

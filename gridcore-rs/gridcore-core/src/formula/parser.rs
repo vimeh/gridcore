@@ -550,7 +550,10 @@ mod tests {
         assert!(result.is_err(), "Unclosed parenthesis should return error");
 
         let result = FormulaParser::parse("(A1 + B1");
-        assert!(result.is_err(), "Unclosed parenthesis in expression should return error");
+        assert!(
+            result.is_err(),
+            "Unclosed parenthesis in expression should return error"
+        );
     }
 
     #[test]
@@ -792,21 +795,45 @@ mod tests {
         // Should parse the same with or without leading =
         let expr1 = FormulaParser::parse("=A1+B1").unwrap();
         let expr2 = FormulaParser::parse("A1+B1").unwrap();
-        
+
         // Both should be addition
-        assert!(matches!(expr1, Expr::BinaryOp { op: BinaryOperator::Add, .. }));
-        assert!(matches!(expr2, Expr::BinaryOp { op: BinaryOperator::Add, .. }));
+        assert!(matches!(
+            expr1,
+            Expr::BinaryOp {
+                op: BinaryOperator::Add,
+                ..
+            }
+        ));
+        assert!(matches!(
+            expr2,
+            Expr::BinaryOp {
+                op: BinaryOperator::Add,
+                ..
+            }
+        ));
     }
 
     #[test]
     fn test_whitespace_handling() {
         // Leading/trailing spaces
         let expr = FormulaParser::parse("  A1 + B1  ").unwrap();
-        assert!(matches!(expr, Expr::BinaryOp { op: BinaryOperator::Add, .. }));
+        assert!(matches!(
+            expr,
+            Expr::BinaryOp {
+                op: BinaryOperator::Add,
+                ..
+            }
+        ));
 
         // Extra spaces around operators
         let expr = FormulaParser::parse("A1   +   B1").unwrap();
-        assert!(matches!(expr, Expr::BinaryOp { op: BinaryOperator::Add, .. }));
+        assert!(matches!(
+            expr,
+            Expr::BinaryOp {
+                op: BinaryOperator::Add,
+                ..
+            }
+        ));
 
         // Spaces in function calls
         let expr = FormulaParser::parse("SUM( A1 , B1 )").unwrap();
@@ -1083,10 +1110,26 @@ mod tests {
                 assert_eq!(name, "IF");
                 assert_eq!(args.len(), 3);
                 // First arg is comparison
-                assert!(matches!(&args[0], Expr::BinaryOp { op: BinaryOperator::GreaterThan, .. }));
+                assert!(matches!(
+                    &args[0],
+                    Expr::BinaryOp {
+                        op: BinaryOperator::GreaterThan,
+                        ..
+                    }
+                ));
                 // Second and third are strings
-                assert!(matches!(&args[1], Expr::Literal { value: CellValue::String(_) }));
-                assert!(matches!(&args[2], Expr::Literal { value: CellValue::String(_) }));
+                assert!(matches!(
+                    &args[1],
+                    Expr::Literal {
+                        value: CellValue::String(_)
+                    }
+                ));
+                assert!(matches!(
+                    &args[2],
+                    Expr::Literal {
+                        value: CellValue::String(_)
+                    }
+                ));
             }
             _ => panic!("Expected IF formula"),
         }
@@ -1115,8 +1158,18 @@ mod tests {
                 assert_eq!(args.len(), 4);
                 assert!(matches!(&args[0], Expr::Reference { .. }));
                 assert!(matches!(&args[1], Expr::Range { .. }));
-                assert!(matches!(&args[2], Expr::Literal { value: CellValue::Number(_) }));
-                assert!(matches!(&args[3], Expr::Literal { value: CellValue::Boolean(false) }));
+                assert!(matches!(
+                    &args[2],
+                    Expr::Literal {
+                        value: CellValue::Number(_)
+                    }
+                ));
+                assert!(matches!(
+                    &args[3],
+                    Expr::Literal {
+                        value: CellValue::Boolean(false)
+                    }
+                ));
             }
             _ => panic!("Expected VLOOKUP formula"),
         }
@@ -1149,8 +1202,8 @@ mod tests {
             Expr::Range { range, .. } => {
                 assert_eq!(range.start.col, 0); // A
                 assert_eq!(range.start.row, 0); // 1
-                assert_eq!(range.end.col, 2);   // C
-                assert_eq!(range.end.row, 9);   // 10
+                assert_eq!(range.end.col, 2); // C
+                assert_eq!(range.end.row, 9); // 10
             }
             _ => panic!("Expected multi-column range"),
         }
@@ -1165,9 +1218,9 @@ mod tests {
                 absolute_end_col,
                 absolute_end_row,
             } => {
-                assert_eq!(range.start.col, 0);  // A
-                assert_eq!(range.end.col, 25);   // Z
-                assert_eq!(range.end.row, 99);   // 100 (0-indexed)
+                assert_eq!(range.start.col, 0); // A
+                assert_eq!(range.end.col, 25); // Z
+                assert_eq!(range.end.row, 99); // 100 (0-indexed)
                 assert!(absolute_start_col);
                 assert!(absolute_start_row);
                 assert!(absolute_end_col);

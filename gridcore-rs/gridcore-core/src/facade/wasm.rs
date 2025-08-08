@@ -1,7 +1,7 @@
 use crate::domain::cell::wasm_bindings::WasmCell;
 use crate::facade::spreadsheet_facade::SpreadsheetFacade;
-use crate::fill::wasm::{parse_fill_operation, convert_fill_result, JsFillOperation};
-use crate::types::{CellValue, CellAddress, ToJs};
+use crate::fill::wasm::{JsFillOperation, convert_fill_result, parse_fill_operation};
+use crate::types::{CellAddress, CellValue, ToJs};
 use js_sys::Function;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -95,11 +95,7 @@ impl WasmSpreadsheetFacade {
 
     /// Set a cell value
     #[wasm_bindgen(js_name = "setCellValue")]
-    pub fn set_cell_value(
-        &self,
-        address: &CellAddress,
-        value: &str,
-    ) -> Result<WasmCell, JsValue> {
+    pub fn set_cell_value(&self, address: &CellAddress, value: &str) -> Result<WasmCell, JsValue> {
         let cell = self
             .inner
             .set_cell_value(address, value)
@@ -134,17 +130,15 @@ impl WasmSpreadsheetFacade {
     /// Get a cell formula
     #[wasm_bindgen(js_name = "getCellFormula")]
     pub fn get_cell_formula(&self, address: &CellAddress) -> Option<String> {
-        self.inner
-            .get_cell(address)
-            .and_then(|cell| {
-                // Check if raw_value is a string starting with "="
-                if let CellValue::String(s) = &cell.raw_value {
-                    if s.starts_with('=') {
-                        return Some(s.clone());
-                    }
+        self.inner.get_cell(address).and_then(|cell| {
+            // Check if raw_value is a string starting with "="
+            if let CellValue::String(s) = &cell.raw_value {
+                if s.starts_with('=') {
+                    return Some(s.clone());
                 }
-                None
-            })
+            }
+            None
+        })
     }
 
     /// Delete a cell
@@ -225,15 +219,16 @@ impl WasmSpreadsheetFacade {
         // Parse the fill operation from JS
         let operation: JsFillOperation = serde_wasm_bindgen::from_value(operation_js)
             .map_err(|e| JsValue::from_str(&format!("Failed to parse fill operation: {}", e)))?;
-        
+
         // Convert to internal fill operation
-        let fill_operation = parse_fill_operation(operation)
-            .map_err(|e| JsValue::from_str(&e))?;
-        
+        let fill_operation = parse_fill_operation(operation).map_err(|e| JsValue::from_str(&e))?;
+
         // Perform the fill
-        let result = self.inner.fill(&fill_operation)
+        let result = self
+            .inner
+            .fill(&fill_operation)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+
         // Convert result to JS
         let js_result = convert_fill_result(result);
         serde_wasm_bindgen::to_value(&js_result)
@@ -246,15 +241,16 @@ impl WasmSpreadsheetFacade {
         // Parse the fill operation from JS
         let operation: JsFillOperation = serde_wasm_bindgen::from_value(operation_js)
             .map_err(|e| JsValue::from_str(&format!("Failed to parse fill operation: {}", e)))?;
-        
+
         // Convert to internal fill operation
-        let fill_operation = parse_fill_operation(operation)
-            .map_err(|e| JsValue::from_str(&e))?;
-        
+        let fill_operation = parse_fill_operation(operation).map_err(|e| JsValue::from_str(&e))?;
+
         // Preview the fill
-        let preview = self.inner.preview_fill(&fill_operation)
+        let preview = self
+            .inner
+            .preview_fill(&fill_operation)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+
         // Convert preview to JS
         use crate::fill::wasm::JsAffectedCell;
         let js_preview: Vec<JsAffectedCell> = preview
@@ -265,7 +261,7 @@ impl WasmSpreadsheetFacade {
                 value: value.into(),
             })
             .collect();
-        
+
         serde_wasm_bindgen::to_value(&js_preview)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize preview: {}", e)))
     }
@@ -445,4 +441,3 @@ impl crate::facade::EventCallback for JsEventBridge {
         }
     }
 }
-

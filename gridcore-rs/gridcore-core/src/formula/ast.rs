@@ -205,7 +205,11 @@ mod tests {
         // Invalid range - start > end
         let result = CellRange::create(CellAddress::new(5, 5), CellAddress::new(0, 0));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("start must be before or equal to end"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("start must be before or equal to end")
+        );
 
         // Single cell range is valid
         let result = CellRange::create(CellAddress::new(5, 5), CellAddress::new(5, 5));

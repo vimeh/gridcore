@@ -32,11 +32,18 @@ impl ReferenceDetector {
                     || self.is_affected_by_insert_columns(end, before_col)
             }
             ReferenceType::Sheet(_, inner) => self.is_affected_by_insert_columns(inner, before_col),
-            ReferenceType::External(_, inner) => self.is_affected_by_insert_columns(inner, before_col),
+            ReferenceType::External(_, inner) => {
+                self.is_affected_by_insert_columns(inner, before_col)
+            }
         }
     }
 
-    pub fn is_affected_by_delete_rows(&self, reference: &Reference, start_row: u32, count: u32) -> bool {
+    pub fn is_affected_by_delete_rows(
+        &self,
+        reference: &Reference,
+        start_row: u32,
+        count: u32,
+    ) -> bool {
         let end_row = start_row + count;
         match &reference.ref_type {
             ReferenceType::Absolute(_, row) | ReferenceType::MixedRow(_, row) => {
@@ -47,12 +54,21 @@ impl ReferenceDetector {
                 self.is_affected_by_delete_rows(start, start_row, count)
                     || self.is_affected_by_delete_rows(end, start_row, count)
             }
-            ReferenceType::Sheet(_, inner) => self.is_affected_by_delete_rows(inner, start_row, count),
-            ReferenceType::External(_, inner) => self.is_affected_by_delete_rows(inner, start_row, count),
+            ReferenceType::Sheet(_, inner) => {
+                self.is_affected_by_delete_rows(inner, start_row, count)
+            }
+            ReferenceType::External(_, inner) => {
+                self.is_affected_by_delete_rows(inner, start_row, count)
+            }
         }
     }
 
-    pub fn is_affected_by_delete_columns(&self, reference: &Reference, start_col: u32, count: u32) -> bool {
+    pub fn is_affected_by_delete_columns(
+        &self,
+        reference: &Reference,
+        start_col: u32,
+        count: u32,
+    ) -> bool {
         let end_col = start_col + count;
         match &reference.ref_type {
             ReferenceType::Absolute(col, _) | ReferenceType::MixedCol(col, _) => {
@@ -63,8 +79,12 @@ impl ReferenceDetector {
                 self.is_affected_by_delete_columns(start, start_col, count)
                     || self.is_affected_by_delete_columns(end, start_col, count)
             }
-            ReferenceType::Sheet(_, inner) => self.is_affected_by_delete_columns(inner, start_col, count),
-            ReferenceType::External(_, inner) => self.is_affected_by_delete_columns(inner, start_col, count),
+            ReferenceType::Sheet(_, inner) => {
+                self.is_affected_by_delete_columns(inner, start_col, count)
+            }
+            ReferenceType::External(_, inner) => {
+                self.is_affected_by_delete_columns(inner, start_col, count)
+            }
         }
     }
 

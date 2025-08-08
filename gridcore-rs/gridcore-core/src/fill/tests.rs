@@ -20,15 +20,15 @@ mod fill_integration_tests {
     #[test]
     fn test_linear_pattern_fill_down() {
         use crate::domain::Cell;
-        
+
         // Test filling down with linear pattern: 1, 2, 3 -> 4, 5, 6
         let mut repo = CellRepository::new();
-        
+
         // Add source values: 1, 2, 3
         repo.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
         repo.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)));
         repo.set(&CellAddress::new(0, 2), Cell::new(CellValue::Number(3.0)));
-        
+
         let repo = Rc::new(repo);
         let engine = FillEngine::new(repo.clone());
 
@@ -54,15 +54,15 @@ mod fill_integration_tests {
     #[test]
     fn test_exponential_pattern_fill_right() {
         use crate::domain::Cell;
-        
+
         // Test filling right with exponential pattern: 2, 4, 8 -> 16, 32, 64
         let mut repo = CellRepository::new();
-        
+
         // Add source values: 2, 4, 8 (in a horizontal row)
         repo.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(2.0)));
         repo.set(&CellAddress::new(1, 0), Cell::new(CellValue::Number(4.0)));
         repo.set(&CellAddress::new(2, 0), Cell::new(CellValue::Number(8.0)));
-        
+
         let repo = Rc::new(repo);
         let engine = FillEngine::new(repo.clone());
 
@@ -78,7 +78,7 @@ mod fill_integration_tests {
 
         let result = engine.fill(&operation).unwrap();
         assert_eq!(result.affected_cells.len(), 3);
-        
+
         // Check the generated values
         assert_eq!(result.affected_cells[0].1, CellValue::Number(16.0));
         assert_eq!(result.affected_cells[1].1, CellValue::Number(32.0));
@@ -188,13 +188,13 @@ mod fill_integration_tests {
     #[test]
     fn test_fill_with_large_range() {
         use crate::domain::Cell;
-        
+
         let mut repo = CellRepository::new();
-        
+
         // Add source values: 1, 2
         repo.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
         repo.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)));
-        
+
         let repo = Rc::new(repo);
         let engine = FillEngine::new(repo.clone());
 
@@ -211,7 +211,7 @@ mod fill_integration_tests {
 
         let result = engine.fill(&operation).unwrap();
         assert_eq!(result.affected_cells.len(), 100);
-        
+
         // Check some values
         assert_eq!(result.affected_cells[0].1, CellValue::Number(3.0)); // First target cell
         assert_eq!(result.affected_cells[99].1, CellValue::Number(102.0)); // Last target cell

@@ -2,9 +2,9 @@ use super::{CellRange, FillDirection, FillOperation, FillResult, PatternType};
 use crate::types::{CellAddress, CellValue};
 
 #[cfg(feature = "wasm")]
-use wasm_bindgen::prelude::*;
-#[cfg(feature = "wasm")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "wasm")]
 #[derive(Serialize, Deserialize)]
@@ -17,7 +17,7 @@ pub struct JsFillOperation {
     pub target_start_row: u32,
     pub target_end_col: u32,
     pub target_end_row: u32,
-    pub direction: String, // "down", "up", "left", "right"
+    pub direction: String,          // "down", "up", "left", "right"
     pub pattern: Option<String>, // "linear", "exponential", "date", "text", "copy", or null for auto-detect
     pub pattern_param: Option<f64>, // slope for linear, rate for exponential, etc.
 }
@@ -65,8 +65,8 @@ impl From<CellValue> for JsCellValue {
             CellValue::String(s) => JsCellValue::String { value: s },
             CellValue::Boolean(b) => JsCellValue::Boolean { value: b },
             CellValue::Error(e) => JsCellValue::Error { value: e },
-            CellValue::Array(_) => JsCellValue::Error { 
-                value: "Array values not yet supported in fill operations".to_string() 
+            CellValue::Array(_) => JsCellValue::Error {
+                value: "Array values not yet supported in fill operations".to_string(),
             },
         }
     }
@@ -139,7 +139,7 @@ impl WasmFillOperation {
             pattern: self.pattern.clone(),
             pattern_param: self.pattern_param,
         };
-        
+
         serde_wasm_bindgen::to_value(&operation)
             .map_err(|e| JsValue::from_str(&format!("Failed to convert operation: {}", e)))
     }

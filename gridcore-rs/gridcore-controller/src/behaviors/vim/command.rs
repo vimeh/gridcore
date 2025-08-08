@@ -679,7 +679,7 @@ impl BulkCommandParser {
         let mut parts = Vec::new();
         let mut current = String::new();
         let mut escaped = false;
-        
+
         let mut chars = pattern.chars().peekable();
         while let Some(ch) = chars.next() {
             if escaped {
@@ -745,12 +745,13 @@ impl BulkCommandParser {
             return None;
         }
 
-        args[0].parse::<f64>().ok().map(|value| {
-            BulkCommandType::MathOperation {
+        args[0]
+            .parse::<f64>()
+            .ok()
+            .map(|value| BulkCommandType::MathOperation {
                 operation: op,
                 value,
-            }
-        })
+            })
     }
 
     fn parse_fill(&self, args: &[&str]) -> Option<BulkCommandType> {
@@ -828,9 +829,15 @@ impl BulkCommandParser {
     }
 
     /// Validate a parsed command
-    pub fn validate_command(&self, command: &BulkCommandType, has_selection: bool) -> Option<String> {
+    pub fn validate_command(
+        &self,
+        command: &BulkCommandType,
+        has_selection: bool,
+    ) -> Option<String> {
         match command {
-            BulkCommandType::BulkSet { requires_selection, .. } => {
+            BulkCommandType::BulkSet {
+                requires_selection, ..
+            } => {
                 if *requires_selection && !has_selection {
                     Some("This operation requires a selection".to_string())
                 } else {
@@ -848,7 +855,10 @@ impl BulkCommandParser {
                     }
                 }
             }
-            BulkCommandType::MathOperation { operation: MathOp::Div, value } => {
+            BulkCommandType::MathOperation {
+                operation: MathOp::Div,
+                value,
+            } => {
                 if *value == 0.0 {
                     Some("Cannot divide by zero".to_string())
                 } else {
@@ -858,7 +868,10 @@ impl BulkCommandParser {
             BulkCommandType::Format { format_type } => {
                 // Validate format type (already validated in parse)
                 match format_type {
-                    FormatType::Currency | FormatType::Percent | FormatType::Date | FormatType::Number => None,
+                    FormatType::Currency
+                    | FormatType::Percent
+                    | FormatType::Date
+                    | FormatType::Number => None,
                 }
             }
             _ => None,
@@ -901,7 +914,8 @@ Formatting:
 Set Value:
   :set Hello World  - Set all selected cells to "Hello World"
   :set =A1+B1      - Set formula in selected cells
-"#.to_string()
+"#
+        .to_string()
     }
 }
 
@@ -920,9 +934,13 @@ mod tests {
         fn test_basic_find_replace() {
             let parser = create_parser();
             let cmd = parser.parse(":s/old/new/g").unwrap();
-            
+
             match cmd {
-                BulkCommandType::FindReplace { find_pattern, replace_with, options } => {
+                BulkCommandType::FindReplace {
+                    find_pattern,
+                    replace_with,
+                    options,
+                } => {
                     assert_eq!(find_pattern, "old");
                     assert_eq!(replace_with, "new");
                     assert!(options.global);
@@ -937,7 +955,7 @@ mod tests {
         fn test_sheet_wide_find_replace() {
             let parser = create_parser();
             let cmd = parser.parse(":%s/old/new/gi").unwrap();
-            
+
             match cmd {
                 BulkCommandType::FindReplace { options, .. } => {
                     assert_eq!(options.scope, SearchScope::Sheet);
@@ -952,9 +970,13 @@ mod tests {
         fn test_find_replace_without_flags() {
             let parser = create_parser();
             let cmd = parser.parse(":s/test/result/").unwrap();
-            
+
             match cmd {
-                BulkCommandType::FindReplace { find_pattern, replace_with, options } => {
+                BulkCommandType::FindReplace {
+                    find_pattern,
+                    replace_with,
+                    options,
+                } => {
                     assert_eq!(find_pattern, "test");
                     assert_eq!(replace_with, "result");
                     assert!(!options.global);
@@ -968,9 +990,13 @@ mod tests {
         fn test_complex_patterns() {
             let parser = create_parser();
             let cmd = parser.parse(r":s/\d+\.\d+/NUMBER/g").unwrap();
-            
+
             match cmd {
-                BulkCommandType::FindReplace { find_pattern, replace_with, .. } => {
+                BulkCommandType::FindReplace {
+                    find_pattern,
+                    replace_with,
+                    ..
+                } => {
                     assert_eq!(find_pattern, r"\d+\.\d+");
                     assert_eq!(replace_with, "NUMBER");
                 }
@@ -986,9 +1012,12 @@ mod tests {
         fn test_bulk_set_text() {
             let parser = create_parser();
             let cmd = parser.parse(":set Hello World").unwrap();
-            
+
             match cmd {
-                BulkCommandType::BulkSet { value, requires_selection } => {
+                BulkCommandType::BulkSet {
+                    value,
+                    requires_selection,
+                } => {
                     assert_eq!(value, "Hello World");
                     assert!(requires_selection);
                 }
@@ -1000,7 +1029,7 @@ mod tests {
         fn test_bulk_set_number() {
             let parser = create_parser();
             let cmd = parser.parse(":set 42").unwrap();
-            
+
             match cmd {
                 BulkCommandType::BulkSet { value, .. } => {
                     assert_eq!(value, "42");
@@ -1013,7 +1042,7 @@ mod tests {
         fn test_bulk_set_formula() {
             let parser = create_parser();
             let cmd = parser.parse(":set =A1+B1").unwrap();
-            
+
             match cmd {
                 BulkCommandType::BulkSet { value, .. } => {
                     assert_eq!(value, "=A1+B1");
@@ -1030,7 +1059,7 @@ mod tests {
         fn test_add_command() {
             let parser = create_parser();
             let cmd = parser.parse(":add 10").unwrap();
-            
+
             match cmd {
                 BulkCommandType::MathOperation { operation, value } => {
                     assert_eq!(operation, MathOp::Add);
@@ -1044,7 +1073,7 @@ mod tests {
         fn test_subtract_with_decimal() {
             let parser = create_parser();
             let cmd = parser.parse(":sub 3.14").unwrap();
-            
+
             match cmd {
                 BulkCommandType::MathOperation { operation, value } => {
                     assert_eq!(operation, MathOp::Sub);
@@ -1058,7 +1087,7 @@ mod tests {
         fn test_multiply_command() {
             let parser = create_parser();
             let cmd = parser.parse(":mul 2").unwrap();
-            
+
             match cmd {
                 BulkCommandType::MathOperation { operation, value } => {
                     assert_eq!(operation, MathOp::Mul);
@@ -1072,7 +1101,7 @@ mod tests {
         fn test_divide_command() {
             let parser = create_parser();
             let cmd = parser.parse(":div 4").unwrap();
-            
+
             match cmd {
                 BulkCommandType::MathOperation { operation, value } => {
                     assert_eq!(operation, MathOp::Div);
@@ -1086,7 +1115,7 @@ mod tests {
         fn test_negative_numbers() {
             let parser = create_parser();
             let cmd = parser.parse(":add -5").unwrap();
-            
+
             match cmd {
                 BulkCommandType::MathOperation { value, .. } => {
                     assert_eq!(value, -5.0);
@@ -1103,7 +1132,7 @@ mod tests {
         fn test_fill_down() {
             let parser = create_parser();
             let cmd = parser.parse(":fill down").unwrap();
-            
+
             match cmd {
                 BulkCommandType::Fill { direction } => {
                     assert_eq!(direction, FillDirection::Down);
@@ -1229,10 +1258,13 @@ mod tests {
                 value: "test".to_string(),
                 requires_selection: true,
             };
-            
+
             let error = parser.validate_command(&cmd, false);
-            assert_eq!(error, Some("This operation requires a selection".to_string()));
-            
+            assert_eq!(
+                error,
+                Some("This operation requires a selection".to_string())
+            );
+
             let no_error = parser.validate_command(&cmd, true);
             assert!(no_error.is_none());
         }
@@ -1249,7 +1281,7 @@ mod tests {
                     scope: SearchScope::Selection,
                 },
             };
-            
+
             let error = parser.validate_command(&cmd, false);
             assert_eq!(error, Some("Find pattern cannot be empty".to_string()));
         }
@@ -1261,7 +1293,7 @@ mod tests {
                 operation: MathOp::Div,
                 value: 0.0,
             };
-            
+
             let error = parser.validate_command(&cmd, true);
             assert_eq!(error, Some("Cannot divide by zero".to_string()));
         }
@@ -1275,9 +1307,9 @@ mod tests {
             let parser = create_parser();
             let invalid_commands = [
                 ":invalid",
-                ":set",      // missing value
-                ":add",      // missing number
-                ":add text", // non-numeric value
+                ":set",          // missing value
+                ":add",          // missing number
+                ":add text",     // non-numeric value
                 ":fill invalid", // invalid direction
             ];
 

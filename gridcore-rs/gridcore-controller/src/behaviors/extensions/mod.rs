@@ -14,10 +14,10 @@ pub trait VimExtension {
         meta: &KeyMeta,
         state: &UIState,
     ) -> Result<Option<Action>>;
-    
+
     /// Get the name of this extension
     fn name(&self) -> &str;
-    
+
     /// Check if this extension is enabled
     fn is_enabled(&self) -> bool {
         true
@@ -44,22 +44,22 @@ impl KeyMeta {
             meta: false,
         }
     }
-    
+
     pub fn with_ctrl(mut self) -> Self {
         self.ctrl = true;
         self
     }
-    
+
     pub fn with_shift(mut self) -> Self {
         self.shift = true;
         self
     }
-    
+
     pub fn with_alt(mut self) -> Self {
         self.alt = true;
         self
     }
-    
+
     pub fn with_meta(mut self) -> Self {
         self.meta = true;
         self

@@ -15,7 +15,8 @@ impl ToJs for CellValue {
             CellValue::Boolean(b) => JsValue::from_bool(*b),
             CellValue::Error(e) => {
                 let obj = js_sys::Object::new();
-                let _ = js_sys::Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::from_str(e));
+                let _ =
+                    js_sys::Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::from_str(e));
                 obj.into()
             }
             CellValue::Array(arr) => {

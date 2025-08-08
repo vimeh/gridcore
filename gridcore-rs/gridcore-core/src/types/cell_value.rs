@@ -262,7 +262,7 @@ mod tests {
         assert!(CellValue::Number(0.0).is_number());
         assert!(CellValue::Number(-123.45).is_number());
         assert!(CellValue::Number(f64::INFINITY).is_number());
-        
+
         assert!(!CellValue::String("42".to_string()).is_number());
         assert!(!CellValue::Boolean(true).is_number());
         assert!(!CellValue::Empty.is_number());
@@ -274,7 +274,7 @@ mod tests {
         assert!(CellValue::String("hello".to_string()).is_string());
         assert!(CellValue::String("".to_string()).is_string());
         assert!(CellValue::String("123".to_string()).is_string());
-        
+
         assert!(!CellValue::Number(42.0).is_string());
         assert!(!CellValue::Boolean(true).is_string());
         assert!(!CellValue::Empty.is_string());
@@ -285,7 +285,7 @@ mod tests {
     fn test_is_boolean() {
         assert!(CellValue::Boolean(true).is_boolean());
         assert!(CellValue::Boolean(false).is_boolean());
-        
+
         assert!(!CellValue::String("true".to_string()).is_boolean());
         assert!(!CellValue::Number(1.0).is_boolean());
         assert!(!CellValue::Number(0.0).is_boolean());
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn test_is_empty() {
         assert!(CellValue::Empty.is_empty());
-        
+
         assert!(!CellValue::String("".to_string()).is_empty());
         assert!(!CellValue::Number(0.0).is_empty());
         assert!(!CellValue::Boolean(false).is_empty());
@@ -306,7 +306,7 @@ mod tests {
     fn test_is_error() {
         assert!(CellValue::Error("Division by zero".to_string()).is_error());
         assert!(CellValue::Error("".to_string()).is_error());
-        
+
         assert!(!CellValue::String("error".to_string()).is_error());
         assert!(!CellValue::Number(0.0).is_error());
         assert!(!CellValue::Empty.is_error());
@@ -317,7 +317,7 @@ mod tests {
         assert_eq!(CellValue::Number(42.0).as_number(), Some(42.0));
         assert_eq!(CellValue::Number(0.0).as_number(), Some(0.0));
         assert_eq!(CellValue::Number(-123.45).as_number(), Some(-123.45));
-        
+
         assert_eq!(CellValue::String("42".to_string()).as_number(), None);
         assert_eq!(CellValue::Boolean(true).as_number(), None);
         assert_eq!(CellValue::Empty.as_number(), None);
@@ -325,9 +325,12 @@ mod tests {
 
     #[test]
     fn test_as_string() {
-        assert_eq!(CellValue::String("hello".to_string()).as_string(), Some("hello"));
+        assert_eq!(
+            CellValue::String("hello".to_string()).as_string(),
+            Some("hello")
+        );
         assert_eq!(CellValue::String("".to_string()).as_string(), Some(""));
-        
+
         assert_eq!(CellValue::Number(42.0).as_string(), None);
         assert_eq!(CellValue::Boolean(true).as_string(), None);
         assert_eq!(CellValue::Empty.as_string(), None);
@@ -337,7 +340,7 @@ mod tests {
     fn test_as_boolean() {
         assert_eq!(CellValue::Boolean(true).as_boolean(), Some(true));
         assert_eq!(CellValue::Boolean(false).as_boolean(), Some(false));
-        
+
         assert_eq!(CellValue::Number(1.0).as_boolean(), None);
         assert_eq!(CellValue::String("true".to_string()).as_boolean(), None);
         assert_eq!(CellValue::Empty.as_boolean(), None);
@@ -357,16 +360,19 @@ mod tests {
     fn test_to_display_string() {
         assert_eq!(CellValue::Number(42.0).to_display_string(), "42");
         assert_eq!(CellValue::Number(123.45).to_display_string(), "123.45");
-        assert_eq!(CellValue::String("hello".to_string()).to_display_string(), "hello");
+        assert_eq!(
+            CellValue::String("hello".to_string()).to_display_string(),
+            "hello"
+        );
         assert_eq!(CellValue::Boolean(true).to_display_string(), "TRUE");
         assert_eq!(CellValue::Boolean(false).to_display_string(), "FALSE");
         assert_eq!(CellValue::Empty.to_display_string(), "");
-        assert_eq!(CellValue::Error("ERROR".to_string()).to_display_string(), "ERROR");
-        
-        let array = CellValue::Array(vec![
-            CellValue::Number(1.0),
-            CellValue::Number(2.0),
-        ]);
+        assert_eq!(
+            CellValue::Error("ERROR".to_string()).to_display_string(),
+            "ERROR"
+        );
+
+        let array = CellValue::Array(vec![CellValue::Number(1.0), CellValue::Number(2.0)]);
         assert!(array.to_display_string().contains("Number(1"));
         assert!(array.to_display_string().contains("Number(2"));
     }
@@ -382,7 +388,7 @@ mod tests {
     fn test_equality() {
         assert_eq!(CellValue::Number(42.0), CellValue::Number(42.0));
         assert_ne!(CellValue::Number(42.0), CellValue::Number(43.0));
-        
+
         assert_eq!(
             CellValue::String("hello".to_string()),
             CellValue::String("hello".to_string())
@@ -391,12 +397,12 @@ mod tests {
             CellValue::String("hello".to_string()),
             CellValue::String("world".to_string())
         );
-        
+
         assert_eq!(CellValue::Boolean(true), CellValue::Boolean(true));
         assert_ne!(CellValue::Boolean(true), CellValue::Boolean(false));
-        
+
         assert_eq!(CellValue::Empty, CellValue::Empty);
-        
+
         assert_eq!(
             CellValue::Error("error".to_string()),
             CellValue::Error("error".to_string())
@@ -412,7 +418,7 @@ mod tests {
         let original = CellValue::String("hello".to_string());
         let cloned = original.clone();
         assert_eq!(original, cloned);
-        
+
         let original = CellValue::Array(vec![
             CellValue::Number(1.0),
             CellValue::String("test".to_string()),
@@ -424,10 +430,16 @@ mod tests {
     #[test]
     fn test_display_trait() {
         assert_eq!(format!("{}", CellValue::Number(42.0)), "42");
-        assert_eq!(format!("{}", CellValue::String("hello".to_string())), "hello");
+        assert_eq!(
+            format!("{}", CellValue::String("hello".to_string())),
+            "hello"
+        );
         assert_eq!(format!("{}", CellValue::Boolean(true)), "TRUE");
         assert_eq!(format!("{}", CellValue::Empty), "");
-        assert_eq!(format!("{}", CellValue::Error("ERROR".to_string())), "ERROR");
+        assert_eq!(
+            format!("{}", CellValue::Error("ERROR".to_string())),
+            "ERROR"
+        );
     }
 
     #[test]
@@ -436,12 +448,12 @@ mod tests {
         fn parse_numeric(s: &str) -> Option<f64> {
             s.parse::<f64>().ok()
         }
-        
+
         assert_eq!(parse_numeric("42"), Some(42.0));
         assert_eq!(parse_numeric("123.45"), Some(123.45));
         assert_eq!(parse_numeric("-67.89"), Some(-67.89));
         assert_eq!(parse_numeric("0"), Some(0.0));
-        
+
         assert_eq!(parse_numeric("abc"), None);
         assert_eq!(parse_numeric(""), None);
         assert_eq!(parse_numeric(" "), None);
@@ -462,7 +474,7 @@ mod tests {
         let pos_inf = CellValue::Number(f64::INFINITY);
         assert!(pos_inf.is_number());
         assert_eq!(pos_inf.as_number(), Some(f64::INFINITY));
-        
+
         let neg_inf = CellValue::Number(f64::NEG_INFINITY);
         assert!(neg_inf.is_number());
         assert_eq!(neg_inf.as_number(), Some(f64::NEG_INFINITY));

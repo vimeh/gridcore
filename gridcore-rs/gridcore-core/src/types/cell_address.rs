@@ -175,33 +175,36 @@ impl CellAddress {
     pub fn new_wasm(col: u32, row: u32) -> Self {
         CellAddress { col, row }
     }
-    
+
     /// Create from A1 notation for WASM
     #[wasm_bindgen(js_name = "fromA1")]
     pub fn from_a1_wasm(s: &str) -> std::result::Result<CellAddress, JsValue> {
-        Self::parse_a1_notation(s)
-            .map_err(|e| JsValue::from_str(&e.to_string()))
+        Self::parse_a1_notation(s).map_err(|e| JsValue::from_str(&e.to_string()))
     }
-    
+
     /// Convert to A1 notation for WASM
     #[wasm_bindgen(js_name = "toA1")]
     pub fn to_a1_wasm(&self) -> String {
         self.to_a1()
     }
-    
+
     /// Offset for WASM
     #[wasm_bindgen(js_name = "offset")]
-    pub fn offset_wasm(&self, row_offset: i32, col_offset: i32) -> std::result::Result<CellAddress, JsValue> {
+    pub fn offset_wasm(
+        &self,
+        row_offset: i32,
+        col_offset: i32,
+    ) -> std::result::Result<CellAddress, JsValue> {
         self.offset(row_offset, col_offset)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
-    
+
     /// Get column as string for WASM
     #[wasm_bindgen(js_name = "columnLabel")]
     pub fn column_label(&self) -> String {
         Self::column_number_to_label(self.col)
     }
-    
+
     /// Check equality for WASM
     #[wasm_bindgen(js_name = "equals")]
     pub fn equals(&self, other: &CellAddress) -> bool {
@@ -214,7 +217,7 @@ impl CellAddress {
 #[cfg(feature = "wasm")]
 pub mod wasm {
     use super::*;
-    
+
     #[deprecated(note = "Use CellAddress directly instead of WasmCellAddress")]
     pub type WasmCellAddress = CellAddress;
 }

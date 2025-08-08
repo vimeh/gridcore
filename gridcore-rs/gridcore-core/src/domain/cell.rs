@@ -218,10 +218,7 @@ mod tests {
                 absolute_row: false,
             }),
         };
-        let cell = Cell::with_formula(
-            CellValue::String("=A1+B1".to_string()),
-            formula.clone(),
-        );
+        let cell = Cell::with_formula(CellValue::String("=A1+B1".to_string()), formula.clone());
         assert!(cell.has_formula());
         assert_eq!(cell.formula, Some(formula));
         assert_eq!(cell.raw_value, CellValue::String("=A1+B1".to_string()));
@@ -301,27 +298,15 @@ mod tests {
                 value: CellValue::Number(2.0),
             }),
         };
-        let cell1 = Cell::with_formula(
-            CellValue::String("=1+2".to_string()),
-            formula.clone(),
-        );
-        let cell2 = Cell::with_formula(
-            CellValue::String("=1+2".to_string()),
-            formula.clone(),
-        );
+        let cell1 = Cell::with_formula(CellValue::String("=1+2".to_string()), formula.clone());
+        let cell2 = Cell::with_formula(CellValue::String("=1+2".to_string()), formula.clone());
         assert_eq!(cell1, cell2);
     }
 
     #[test]
     fn test_cells_with_different_errors_are_not_equal() {
-        let cell1 = Cell::with_error(
-            CellValue::Number(42.0),
-            "Error 1".to_string(),
-        );
-        let cell2 = Cell::with_error(
-            CellValue::Number(42.0),
-            "Error 2".to_string(),
-        );
+        let cell1 = Cell::with_error(CellValue::Number(42.0), "Error 1".to_string());
+        let cell2 = Cell::with_error(CellValue::Number(42.0), "Error 2".to_string());
         assert_ne!(cell1, cell2);
     }
 
@@ -332,7 +317,7 @@ mod tests {
             "Division by zero".to_string(),
         );
         assert!(cell.has_error());
-        
+
         cell.set_computed_value(CellValue::Number(42.0));
         assert!(!cell.has_error());
         assert_eq!(cell.computed_value, CellValue::Number(42.0));
@@ -344,12 +329,9 @@ mod tests {
         let formula = Expr::Literal {
             value: CellValue::Number(42.0),
         };
-        let mut cell = Cell::with_formula(
-            CellValue::String("=42".to_string()),
-            formula,
-        );
+        let mut cell = Cell::with_formula(CellValue::String("=42".to_string()), formula);
         assert_eq!(cell.computed_value, CellValue::Empty);
-        
+
         cell.set_computed_value(CellValue::Number(42.0));
         assert_eq!(cell.computed_value, CellValue::Number(42.0));
         assert_eq!(cell.raw_value, CellValue::String("=42".to_string()));

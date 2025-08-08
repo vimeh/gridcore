@@ -1,10 +1,10 @@
-use crate::workbook::{Sheet, Workbook, SheetManager};
+use crate::domain::Cell;
 use crate::facade::wasm::WasmSpreadsheetFacade;
 use crate::types::{CellAddress, CellValue, ToJs};
-use crate::domain::Cell;
-use wasm_bindgen::prelude::*;
-use std::rc::Rc;
+use crate::workbook::{Sheet, SheetManager, Workbook};
 use std::cell::RefCell;
+use std::rc::Rc;
+use wasm_bindgen::prelude::*;
 
 /// WASM wrapper for Sheet
 #[wasm_bindgen]
@@ -171,10 +171,10 @@ impl WasmWorkbook {
                 .ok_or_else(|| JsValue::from_str(&format!("Sheet '{}' not found", sheet_name)))?;
             (sheet.cells(), sheet.dependencies())
         };
-        
+
         // Create a facade using the sheet's cell repository and dependencies
         let facade = crate::facade::SpreadsheetFacade::with_repositories(cells, deps);
-        
+
         Ok(WasmSpreadsheetFacade::from_facade(Rc::new(facade)))
     }
 
@@ -183,11 +183,12 @@ impl WasmWorkbook {
     pub fn get_active_facade(&self) -> Result<WasmSpreadsheetFacade, JsValue> {
         let active_name = {
             let workbook = self.inner.borrow();
-            workbook.active_sheet_name()
+            workbook
+                .active_sheet_name()
                 .ok_or_else(|| JsValue::from_str("No active sheet"))?
                 .to_string()
         };
-        
+
         self.get_sheet_facade(&active_name)
     }
 
@@ -237,9 +238,9 @@ impl WasmWorkbook {
         } else {
             CellValue::String(value.to_string())
         };
-        
+
         let cell = Cell::new(cell_value);
-        
+
         // Set the cell using the workbook's method
         self.inner
             .borrow_mut()
@@ -275,7 +276,7 @@ impl WasmSheetManager {
     pub fn get_statistics(&self) -> JsValue {
         let stats = self.inner.get_statistics();
         let obj = js_sys::Object::new();
-        
+
         let _ = js_sys::Reflect::set(
             &obj,
             &JsValue::from_str("sheetCount"),
@@ -296,7 +297,7 @@ impl WasmSheetManager {
             &JsValue::from_str("errorCells"),
             &JsValue::from_f64(stats.error_cells as f64),
         );
-        
+
         obj.into()
     }
 }
@@ -306,4 +307,3 @@ impl Default for WasmSheetManager {
         Self::new()
     }
 }
-

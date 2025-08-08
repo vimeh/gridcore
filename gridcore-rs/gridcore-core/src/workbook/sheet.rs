@@ -1,11 +1,11 @@
+use crate::Result;
 use crate::dependency::DependencyGraph;
+use crate::domain::Cell;
 use crate::repository::CellRepository;
 use crate::types::CellAddress;
-use crate::domain::Cell;
-use crate::Result;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 /// Properties for a spreadsheet sheet
 #[derive(Debug, Clone)]
@@ -232,9 +232,9 @@ mod tests {
             CellAddress::new(2, 0),
         ];
         sheet.add_named_range("MyRange", range.clone());
-        
+
         assert_eq!(sheet.get_named_range("MyRange"), Some(&range));
-        
+
         let removed = sheet.remove_named_range("MyRange");
         assert_eq!(removed, Some(range));
         assert_eq!(sheet.get_named_range("MyRange"), None);

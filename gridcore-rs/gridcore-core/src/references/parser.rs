@@ -16,7 +16,10 @@ impl ReferenceParser {
         Self {
             cell_ref_regex: Regex::new(r"(\$?)([A-Z]+)(\$?)([0-9]+)").unwrap(),
             range_ref_regex: Regex::new(r"(\$?[A-Z]+\$?[0-9]+):(\$?[A-Z]+\$?[0-9]+)").unwrap(),
-            sheet_ref_regex: Regex::new(r"([A-Za-z0-9_]+)!(\$?[A-Z]+\$?[0-9]+(?::\$?[A-Z]+\$?[0-9]+)?)").unwrap(),
+            sheet_ref_regex: Regex::new(
+                r"([A-Za-z0-9_]+)!(\$?[A-Z]+\$?[0-9]+(?::\$?[A-Z]+\$?[0-9]+)?)",
+            )
+            .unwrap(),
         }
     }
 
@@ -29,17 +32,17 @@ impl ReferenceParser {
         for cap in self.sheet_ref_regex.captures_iter(formula) {
             let match_range = cap.get(0).unwrap().range();
             processed_positions.insert(match_range);
-            
+
             let sheet_name = cap.get(1).unwrap().as_str();
             let ref_text = cap.get(2).unwrap().as_str();
-            
+
             // Check if the inner reference is a range
             if ref_text.contains(':') {
                 // Parse as a range within the sheet
                 if let Some(range_cap) = self.range_ref_regex.captures(ref_text) {
                     let start_text = range_cap.get(1).unwrap().as_str();
                     let end_text = range_cap.get(2).unwrap().as_str();
-                    
+
                     if let (Some(start_ref), Some(end_ref)) = (
                         self.parse_single_reference(start_text),
                         self.parse_single_reference(end_text),
@@ -66,13 +69,16 @@ impl ReferenceParser {
         for cap in self.range_ref_regex.captures_iter(formula) {
             let match_range = cap.get(0).unwrap().range();
             // Skip if this range is part of a sheet reference
-            if processed_positions.iter().any(|r| r.contains(&match_range.start) || r.contains(&(match_range.end - 1))) {
+            if processed_positions
+                .iter()
+                .any(|r| r.contains(&match_range.start) || r.contains(&(match_range.end - 1)))
+            {
                 continue;
             }
-            
+
             let start_text = cap.get(1).unwrap().as_str();
             let end_text = cap.get(2).unwrap().as_str();
-            
+
             if let (Some(start_ref), Some(end_ref)) = (
                 self.parse_single_reference(start_text),
                 self.parse_single_reference(end_text),
@@ -89,10 +95,13 @@ impl ReferenceParser {
         for cap in self.cell_ref_regex.captures_iter(formula) {
             let match_range = cap.get(0).unwrap().range();
             // Skip if this is part of an already processed reference
-            if processed_positions.iter().any(|r| r.contains(&match_range.start) || r.contains(&(match_range.end - 1))) {
+            if processed_positions
+                .iter()
+                .any(|r| r.contains(&match_range.start) || r.contains(&(match_range.end - 1)))
+            {
                 continue;
             }
-            
+
             let full_match = cap.get(0).unwrap().as_str();
             // Also skip if this is part of a range or sheet reference not yet processed
             if !self.is_part_of_complex_reference(formula, full_match) {
@@ -170,7 +179,7 @@ impl ReferenceParser {
         let Some(pos) = formula.find(reference) else {
             return false;
         };
-        
+
         // Check if preceded by '!' (sheet reference)
         if pos > 0 {
             if let Some(prev_char) = formula.chars().nth(pos - 1) {
@@ -179,7 +188,7 @@ impl ReferenceParser {
                 }
             }
         }
-        
+
         // Check if followed by ':' (range reference)
         let end_pos = pos + reference.len();
         if end_pos < formula.len() {
@@ -189,7 +198,7 @@ impl ReferenceParser {
                 }
             }
         }
-        
+
         // Check if preceded by ':' (range reference)
         if pos > 0 {
             if let Some(prev_char) = formula.chars().nth(pos - 1) {
@@ -198,7 +207,7 @@ impl ReferenceParser {
                 }
             }
         }
-        
+
         false
     }
 
@@ -234,7 +243,7 @@ mod tests {
     fn test_parse_simple_reference() {
         let parser = ReferenceParser::new();
         let refs = parser.parse_formula("=A1+B2");
-        
+
         assert_eq!(refs.len(), 2);
         assert_eq!(refs[0].text, "A1");
         assert_eq!(refs[1].text, "B2");
@@ -244,7 +253,7 @@ mod tests {
     fn test_parse_absolute_reference() {
         let parser = ReferenceParser::new();
         let refs = parser.parse_formula("=$A$1+$B2+C$3");
-        
+
         assert_eq!(refs.len(), 3);
         assert!(matches!(refs[0].ref_type, ReferenceType::Absolute(_, _)));
         assert!(matches!(refs[1].ref_type, ReferenceType::MixedCol(_, _)));
@@ -255,7 +264,7 @@ mod tests {
     fn test_parse_range_reference() {
         let parser = ReferenceParser::new();
         let refs = parser.parse_formula("=SUM(A1:B10)");
-        
+
         assert_eq!(refs.len(), 1);
         assert!(matches!(refs[0].ref_type, ReferenceType::Range(_, _)));
     }
@@ -264,7 +273,7 @@ mod tests {
     fn test_parse_sheet_reference() {
         let parser = ReferenceParser::new();
         let refs = parser.parse_formula("=Sheet1!A1+Sheet2!B2:C3");
-        
+
         assert_eq!(refs.len(), 2);
         assert!(matches!(refs[0].ref_type, ReferenceType::Sheet(_, _)));
     }

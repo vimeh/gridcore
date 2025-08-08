@@ -1,14 +1,14 @@
 use crate::types::CellAddress;
 
-pub mod parser;
-pub mod detector;
 pub mod adjuster;
+pub mod detector;
+pub mod parser;
 pub mod tracker;
 
-pub use self::tracker::ReferenceTracker;
 pub use self::adjuster::ReferenceAdjuster;
-pub use self::parser::ReferenceParser;
 pub use self::detector::ReferenceDetector;
+pub use self::parser::ReferenceParser;
+pub use self::tracker::ReferenceTracker;
 
 #[cfg(test)]
 mod tests;
@@ -73,10 +73,7 @@ pub enum StructuralOperation {
     InsertColumns { before_col: u32, count: u32 },
     DeleteRows { start_row: u32, count: u32 },
     DeleteColumns { start_col: u32, count: u32 },
-    MoveRange { 
-        from: CellRange,
-        to: CellAddress,
-    },
+    MoveRange { from: CellRange, to: CellAddress },
 }
 
 /// A range of cells

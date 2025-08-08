@@ -2,9 +2,9 @@ use super::parser::ReferenceParser;
 use crate::dependency::DependencyGraph;
 use crate::formula::Expr;
 use crate::types::CellAddress;
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
-use std::cell::RefCell;
 
 /// Tracks references and their dependencies across the spreadsheet
 pub struct ReferenceTracker {
@@ -34,7 +34,8 @@ impl ReferenceTracker {
 
         // Add to forward dependencies
         if !dependencies.is_empty() {
-            self.forward_dependencies.insert(cell.clone(), dependencies.clone());
+            self.forward_dependencies
+                .insert(cell.clone(), dependencies.clone());
 
             // Update reverse dependencies
             for dep in dependencies {
@@ -106,7 +107,7 @@ impl ReferenceTracker {
     pub fn get_affected_cells(&self, changed_cells: &HashSet<CellAddress>) -> Vec<CellAddress> {
         let mut affected = HashSet::new();
         let mut to_process: Vec<_> = changed_cells.iter().cloned().collect();
-        
+
         while let Some(cell) = to_process.pop() {
             if affected.insert(cell.clone()) {
                 if let Some(dependents) = self.reverse_dependencies.get(&cell) {
@@ -168,7 +169,7 @@ impl ReferenceTracker {
     /// Integrate with existing dependency graph
     pub fn sync_with_dependency_graph(&self, graph: &Rc<RefCell<DependencyGraph>>) {
         let mut graph = graph.borrow_mut();
-        
+
         // Clear and rebuild based on current tracking
         for (from, to_set) in &self.forward_dependencies {
             for to in to_set {
@@ -185,22 +186,22 @@ mod tests {
     #[test]
     fn test_cycle_detection() {
         let mut tracker = ReferenceTracker::new();
-        
+
         // A1 -> B1
         tracker.forward_dependencies.insert(
             CellAddress::new(0, 0),
             vec![CellAddress::new(1, 0)].into_iter().collect(),
         );
-        
+
         // B1 -> C1
         tracker.forward_dependencies.insert(
             CellAddress::new(1, 0),
             vec![CellAddress::new(2, 0)].into_iter().collect(),
         );
-        
+
         // Check if C1 -> A1 would create cycle (yes)
         assert!(tracker.would_create_cycle(&CellAddress::new(2, 0), &CellAddress::new(0, 0)));
-        
+
         // Check if C1 -> D1 would create cycle (no)
         assert!(!tracker.would_create_cycle(&CellAddress::new(2, 0), &CellAddress::new(3, 0)));
     }
@@ -208,7 +209,7 @@ mod tests {
     #[test]
     fn test_affected_cells() {
         let mut tracker = ReferenceTracker::new();
-        
+
         // A1 -> B1
         tracker.forward_dependencies.insert(
             CellAddress::new(0, 0),
@@ -218,7 +219,7 @@ mod tests {
             CellAddress::new(1, 0),
             vec![CellAddress::new(0, 0)].into_iter().collect(),
         );
-        
+
         // B1 -> C1
         tracker.forward_dependencies.insert(
             CellAddress::new(1, 0),
@@ -228,11 +229,11 @@ mod tests {
             CellAddress::new(2, 0),
             vec![CellAddress::new(1, 0)].into_iter().collect(),
         );
-        
+
         // Get cells affected by changing B1
         let changed = vec![CellAddress::new(1, 0)].into_iter().collect();
         let affected = tracker.get_affected_cells(&changed);
-        
+
         assert_eq!(affected.len(), 2); // B1 and A1
         assert!(affected.contains(&CellAddress::new(0, 0)));
         assert!(affected.contains(&CellAddress::new(1, 0)));

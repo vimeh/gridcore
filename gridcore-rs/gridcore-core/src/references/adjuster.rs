@@ -1,7 +1,7 @@
-use super::{Reference, ReferenceType, StructuralOperation, CellRange};
 use super::parser::ReferenceParser;
-use crate::types::CellAddress;
+use super::{CellRange, Reference, ReferenceType, StructuralOperation};
 use crate::Result;
+use crate::types::CellAddress;
 
 /// Adjusts references in formulas when structural changes occur
 pub struct ReferenceAdjuster {
@@ -35,7 +35,11 @@ impl ReferenceAdjuster {
     }
 
     /// Adjust a single reference based on a structural operation
-    fn adjust_reference(&self, reference: &Reference, operation: &StructuralOperation) -> Option<String> {
+    fn adjust_reference(
+        &self,
+        reference: &Reference,
+        operation: &StructuralOperation,
+    ) -> Option<String> {
         match operation {
             StructuralOperation::InsertRows { before_row, count } => {
                 self.adjust_for_insert_rows(reference, *before_row, *count)
@@ -55,7 +59,12 @@ impl ReferenceAdjuster {
         }
     }
 
-    fn adjust_for_insert_rows(&self, reference: &Reference, before_row: u32, count: u32) -> Option<String> {
+    fn adjust_for_insert_rows(
+        &self,
+        reference: &Reference,
+        before_row: u32,
+        count: u32,
+    ) -> Option<String> {
         match &reference.ref_type {
             ReferenceType::Absolute(col, row) => {
                 // before_row is 0-based; we need to check if the reference's row (also 0-based) is affected
@@ -76,7 +85,7 @@ impl ReferenceAdjuster {
             ReferenceType::Range(start, end) => {
                 let start_adjusted = self.adjust_for_insert_rows(start, before_row, count);
                 let end_adjusted = self.adjust_for_insert_rows(end, before_row, count);
-                
+
                 match (start_adjusted, end_adjusted) {
                     (Some(s), Some(e)) => Some(format!("{}:{}", s, e)),
                     _ => None,
@@ -94,7 +103,12 @@ impl ReferenceAdjuster {
         }
     }
 
-    fn adjust_for_insert_columns(&self, reference: &Reference, before_col: u32, count: u32) -> Option<String> {
+    fn adjust_for_insert_columns(
+        &self,
+        reference: &Reference,
+        before_col: u32,
+        count: u32,
+    ) -> Option<String> {
         match &reference.ref_type {
             ReferenceType::Absolute(col, row) => {
                 if *col >= before_col {
@@ -113,7 +127,7 @@ impl ReferenceAdjuster {
             ReferenceType::Range(start, end) => {
                 let start_adjusted = self.adjust_for_insert_columns(start, before_col, count);
                 let end_adjusted = self.adjust_for_insert_columns(end, before_col, count);
-                
+
                 match (start_adjusted, end_adjusted) {
                     (Some(s), Some(e)) => Some(format!("{}:{}", s, e)),
                     _ => None,
@@ -121,7 +135,8 @@ impl ReferenceAdjuster {
             }
             ReferenceType::Sheet(sheet_name, inner_ref) => {
                 // Adjust the inner reference and prepend the sheet name
-                if let Some(adjusted) = self.adjust_for_insert_columns(inner_ref, before_col, count) {
+                if let Some(adjusted) = self.adjust_for_insert_columns(inner_ref, before_col, count)
+                {
                     Some(format!("{}!{}", sheet_name, adjusted))
                 } else {
                     None
@@ -131,7 +146,12 @@ impl ReferenceAdjuster {
         }
     }
 
-    fn adjust_for_delete_rows(&self, reference: &Reference, start_row: u32, count: u32) -> Option<String> {
+    fn adjust_for_delete_rows(
+        &self,
+        reference: &Reference,
+        start_row: u32,
+        count: u32,
+    ) -> Option<String> {
         match &reference.ref_type {
             ReferenceType::Absolute(col, row) => {
                 if *row >= start_row + count {
@@ -146,7 +166,12 @@ impl ReferenceAdjuster {
         }
     }
 
-    fn adjust_for_delete_columns(&self, reference: &Reference, start_col: u32, count: u32) -> Option<String> {
+    fn adjust_for_delete_columns(
+        &self,
+        reference: &Reference,
+        start_col: u32,
+        count: u32,
+    ) -> Option<String> {
         match &reference.ref_type {
             ReferenceType::Absolute(col, row) => {
                 if *col >= start_col + count {
@@ -161,16 +186,21 @@ impl ReferenceAdjuster {
         }
     }
 
-    fn adjust_for_move_range(&self, reference: &Reference, from: &CellRange, to: &CellAddress) -> Option<String> {
+    fn adjust_for_move_range(
+        &self,
+        reference: &Reference,
+        from: &CellRange,
+        to: &CellAddress,
+    ) -> Option<String> {
         // Check if reference is within the moved range
         if let Some(addr) = reference.to_absolute_address(&CellAddress::new(0, 0)) {
             if from.contains(&addr) {
                 let row_offset = to.row as i32 - from.start.row as i32;
                 let col_offset = to.col as i32 - from.start.col as i32;
-                
+
                 let new_row = (addr.row as i32 + row_offset).max(0) as u32;
                 let new_col = (addr.col as i32 + col_offset).max(0) as u32;
-                
+
                 return Some(self.format_relative_reference(new_col, new_row));
             }
         }
@@ -205,7 +235,7 @@ mod tests {
             before_row: 2,
             count: 3,
         };
-        
+
         let formula = "=A2+$B$3";
         let adjusted = adjuster.adjust_formula(formula, &operation).unwrap();
         assert_eq!(adjusted, "=A2+$B$6");
@@ -218,7 +248,7 @@ mod tests {
             start_col: 1,
             count: 1,
         };
-        
+
         let formula = "=$A$1+$C$1";
         let adjusted = adjuster.adjust_formula(formula, &operation).unwrap();
         assert_eq!(adjusted, "=$A$1+$B$1");
