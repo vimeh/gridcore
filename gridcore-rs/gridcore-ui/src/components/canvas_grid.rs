@@ -39,7 +39,7 @@ pub fn CanvasGrid(
     let (editing_mode, set_editing_mode) = create_signal(false);
     let (cell_position, set_cell_position) = create_signal((0.0, 0.0, 100.0, 25.0));
     let (cursor_style, set_cursor_style) = create_signal("cell");
-    let (canvas_dimensions, set_canvas_dimensions) = create_signal((1200.0, 800.0));
+    let (canvas_dimensions, set_canvas_dimensions) = create_signal((0.0, 0.0));
 
     // Create resize handler
     let resize_handler = ResizeHandler::new(viewport_rc.clone());
@@ -506,7 +506,15 @@ pub fn CanvasGrid(
                 on:mousedown=on_mouse_down
                 on:mousemove=on_mouse_move
                 on:mouseup=on_mouse_up
-                style=move || format!("display: block; border: 1px solid #e0e0e0; background: white; cursor: {};", cursor_style.get())
+                style=move || {
+                    let (width, height) = canvas_dimensions.get();
+                    format!(
+                        "display: block; border: 1px solid #e0e0e0; background: white; cursor: {}; width: {}px; height: {}px;",
+                        cursor_style.get(),
+                        if width > 0.0 { width } else { 0.0 },
+                        if height > 0.0 { height } else { 0.0 }
+                    )
+                }
             />
             <CellEditor
                 active_cell=active_cell
