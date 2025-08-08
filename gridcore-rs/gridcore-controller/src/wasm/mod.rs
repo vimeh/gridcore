@@ -14,12 +14,10 @@ pub mod viewport;
 #[wasm_bindgen(js_name = "initController")]
 pub fn init_controller() {
     // Initialize panic hook for better error messages in browser
-    #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
 
     // Initialize console logging
-    #[cfg(feature = "console_log")]
-    console_log::init_with_level(log::Level::Debug).unwrap();
+    let _ = console_log::init_with_level(log::Level::Debug);
 }
 
 #[cfg(feature = "wasm")]

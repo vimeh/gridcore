@@ -508,6 +508,7 @@ impl SpreadsheetFacade {
     }
 
     /// Update reference tracker when a cell formula changes
+    #[allow(dead_code)]
     fn update_reference_tracking(&self, address: &CellAddress, formula: &str) -> Result<()> {
         if let Ok(expr) = FormulaParser::parse(formula) {
             self.reference_tracker

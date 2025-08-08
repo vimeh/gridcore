@@ -36,7 +36,7 @@ impl SheetManager {
     /// Evaluate a cross-sheet formula
     pub fn evaluate_cross_sheet_formula(&self, formula: &str) -> Result<CellValue> {
         // Parse the formula
-        let expr = FormulaParser::parse(formula)?;
+        let _expr = FormulaParser::parse(formula)?;
 
         // This would need to be extended to handle cross-sheet references
         // For now, return a placeholder
@@ -146,7 +146,7 @@ impl SheetManager {
                 drop(cells); // Release borrow
                 for (address, adjusted_formula) in adjusted_cells {
                     let parsed = FormulaParser::parse(&adjusted_formula[1..])?;
-                    let mut new_cell =
+                    let new_cell =
                         Cell::with_formula(CellValue::String(adjusted_formula), parsed);
 
                     if let Some(sheet) = self.workbook.get_sheet(&sheet_name) {

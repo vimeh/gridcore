@@ -11,14 +11,11 @@ pub use gridcore_core::workbook::wasm::{WasmSheet, WasmSheetManager, WasmWorkboo
 // Re-export the new function-based API
 pub use gridcore_core::wasm_api::*;
 
-// Re-export controller types if available
-#[cfg(feature = "controller")]
-pub use gridcore_controller::wasm::{WasmSpreadsheetController, WasmUIState};
+// Note: Controller types are not re-exported here
+// Use gridcore-controller package directly for controller functionality
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+// Note: wee_alloc feature has been removed
+// The default allocator is used for better performance and compatibility
 
 // Note: This package is maintained for backward compatibility
 // All functionality has been moved to gridcore-core

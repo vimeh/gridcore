@@ -226,6 +226,7 @@ impl SelectionManager {
     }
 
     /// Move an address in a direction
+    #[allow(dead_code)]
     fn move_address(
         &self,
         address: &CellAddress,

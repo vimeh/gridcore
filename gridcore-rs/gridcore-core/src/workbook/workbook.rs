@@ -51,6 +51,7 @@ pub struct Workbook {
     /// Workbook metadata
     metadata: WorkbookMetadata,
     /// Shared formulas (for optimization)
+    #[allow(dead_code)]
     shared_formulas: HashMap<String, Expr>,
     /// Global named ranges (accessible from all sheets)
     global_named_ranges: HashMap<String, (String, Vec<CellAddress>)>, // name -> (sheet, addresses)

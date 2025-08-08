@@ -8,11 +8,13 @@ pub struct CellVimBehavior {
     cursor_position: usize,
     visual_anchor: Option<usize>,
     visual_mode: Option<VisualMode>,
+    #[allow(dead_code)]
     last_change: Option<CellChange>,
     registers: std::collections::HashMap<char, String>,
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct CellChange {
     action: ChangeAction,
     text: String,
@@ -20,6 +22,7 @@ struct CellChange {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 enum ChangeAction {
     Insert,
     Delete,

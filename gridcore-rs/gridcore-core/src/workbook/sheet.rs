@@ -185,7 +185,7 @@ impl Sheet {
 
     /// Clone the sheet with a new name
     pub fn clone_with_name(&self, new_name: impl Into<String>) -> Self {
-        let mut new_sheet = Self {
+        let new_sheet = Self {
             name: new_name.into(),
             cells: Rc::new(RefCell::new(self.cells.borrow().clone())),
             dependencies: Rc::new(RefCell::new(self.dependencies.borrow().clone())),

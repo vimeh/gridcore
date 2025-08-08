@@ -765,7 +765,7 @@ impl UIStateMachine {
 
     pub fn unsubscribe(&mut self, index: usize) {
         if index < self.listeners.len() {
-            self.listeners.remove(index);
+            let _ = self.listeners.remove(index);
         }
     }
 

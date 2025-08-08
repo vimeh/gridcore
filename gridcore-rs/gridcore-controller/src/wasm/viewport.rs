@@ -1,4 +1,3 @@
-use gridcore_core::types::CellAddress;
 use wasm_bindgen::prelude::*;
 
 /// WASM wrapper for ViewportManager
