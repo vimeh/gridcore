@@ -1,7 +1,6 @@
 use crate::Result;
 use crate::types::{CellAddress, CellValue};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
 pub mod adjuster;
 pub mod engine;

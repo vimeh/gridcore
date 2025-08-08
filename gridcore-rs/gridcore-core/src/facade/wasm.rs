@@ -1,6 +1,6 @@
 use crate::domain::cell::wasm_bindings::WasmCell;
 use crate::facade::spreadsheet_facade::SpreadsheetFacade;
-use crate::fill::{FillOperation, FillResult};
+use crate::fill::FillOperation;
 use crate::types::{CellAddress, CellValue};
 use js_sys::Function;
 use std::cell::RefCell;
@@ -249,7 +249,7 @@ impl WasmSpreadsheetFacade {
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize preview: {}", e)))
     }
 
-    /// Set multiple cell values in a batch
+    /// Set multiple cell values in a batch (legacy method)
     #[wasm_bindgen(js_name = "setCellValues")]
     pub fn set_cell_values(&self, updates: JsValue) -> Result<(), JsValue> {
         // Parse the JS object containing cell updates
@@ -289,6 +289,86 @@ impl WasmSpreadsheetFacade {
         self.inner
             .commit_batch(&batch_id)
             .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Execute batch operations using serde for serialization
+    #[wasm_bindgen(js_name = "executeBatchOperations")]
+    pub fn execute_batch_operations(&self, operations: JsValue) -> Result<JsValue, JsValue> {
+        use crate::facade::batch::BatchOperation;
+        
+        // Deserialize batch operations from JS
+        let operations: Vec<BatchOperation> = serde_wasm_bindgen::from_value(operations)
+            .map_err(|e| JsValue::from_str(&format!("Failed to parse batch operations: {}", e)))?;
+        
+        // Begin a batch
+        let batch_id = self.inner.begin_batch(None);
+        let mut results = Vec::new();
+        
+        // Execute each operation
+        for op in operations {
+            let result = match op {
+                BatchOperation::SetCell { address, value, formula: _ } => {
+                    // Convert value to string for set_cell_value
+                    let value_str = value.to_display_string();
+                    self.inner.set_cell_value(&address, &value_str)
+                        .map(|_| ("set_cell", address.to_a1()))
+                }
+                BatchOperation::DeleteCell { address } => {
+                    self.inner.delete_cell(&address)
+                        .map(|_| ("delete_cell", address.to_a1()))
+                }
+                BatchOperation::SetRange { start, end, values } => {
+                    // For now, set cells individually
+                    let mut count = 0;
+                    for (row_idx, row) in values.iter().enumerate() {
+                        for (col_idx, value) in row.iter().enumerate() {
+                            let addr = CellAddress::new(
+                                start.col + col_idx as u32,
+                                start.row + row_idx as u32
+                            );
+                            if addr.col <= end.col && addr.row <= end.row {
+                                let value_str = value.to_display_string();
+                                self.inner.set_cell_value(&addr, &value_str).ok();
+                                count += 1;
+                            }
+                        }
+                    }
+                    Ok(("set_range", format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count)))
+                }
+                BatchOperation::DeleteRange { start, end } => {
+                    // Delete cells in range
+                    let mut count = 0;
+                    for row in start.row..=end.row {
+                        for col in start.col..=end.col {
+                            let addr = CellAddress::new(col, row);
+                            self.inner.delete_cell(&addr).ok();
+                            count += 1;
+                        }
+                    }
+                    Ok(("delete_range", format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count)))
+                }
+            };
+            
+            match result {
+                Ok((op_type, detail)) => results.push(serde_json::json!({
+                    "success": true,
+                    "operation": op_type,
+                    "detail": detail
+                })),
+                Err(e) => results.push(serde_json::json!({
+                    "success": false,
+                    "error": e.to_string()
+                }))
+            }
+        }
+        
+        // Commit the batch
+        self.inner.commit_batch(&batch_id)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        
+        // Return results
+        serde_wasm_bindgen::to_value(&results)
+            .map_err(|e| JsValue::from_str(&format!("Failed to serialize results: {}", e)))
     }
 
     /// Insert a row at the specified index

@@ -1,9 +1,11 @@
 use crate::Result;
 use crate::types::{CellAddress, CellValue};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Represents a single operation in a batch
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum BatchOperation {
     SetCell {
         address: CellAddress,
