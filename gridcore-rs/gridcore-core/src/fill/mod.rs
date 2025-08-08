@@ -1,5 +1,6 @@
 use crate::Result;
 use crate::types::{CellAddress, CellValue};
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 pub mod adjuster;
@@ -14,7 +15,8 @@ mod tests;
 
 pub use engine::FillEngine;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum FillDirection {
     Down,
     Up,
@@ -22,17 +24,18 @@ pub enum FillDirection {
     Right,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum PatternType {
-    Linear(f64),      // slope
-    Exponential(f64), // growth rate
-    Date(Duration),   // increment
-    Text,             // copy or increment
-    Custom(String),   // formula pattern
-    Copy,             // simple copy (fallback)
+    Linear { slope: f64 },
+    Exponential { rate: f64 },
+    Date { increment_days: f64 }, // Changed from Duration for serialization
+    Text,
+    Custom { formula: String },
+    Copy,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FillOperation {
     pub source_range: CellRange,
     pub target_range: CellRange,
@@ -40,13 +43,13 @@ pub struct FillOperation {
     pub pattern: Option<PatternType>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FillResult {
     pub affected_cells: Vec<(CellAddress, CellValue)>,
     pub formulas_adjusted: Vec<(CellAddress, String)>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CellRange {
     pub start: CellAddress,
     pub end: CellAddress,

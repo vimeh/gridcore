@@ -59,7 +59,9 @@ impl PatternDetector for DatePatternDetector {
         let dates: Vec<_> = values.iter().filter_map(|v| self.parse_date(v)).collect();
 
         if let Some(duration) = self.detect_date_pattern(&dates) {
-            Some(PatternType::Date(duration))
+            Some(PatternType::Date {
+                increment_days: duration.as_secs() as f64 / 86400.0,
+            })
         } else {
             None
         }

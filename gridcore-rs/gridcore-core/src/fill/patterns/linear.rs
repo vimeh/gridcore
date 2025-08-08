@@ -46,7 +46,7 @@ impl PatternDetector for LinearPatternDetector {
         let numbers = self.extract_numbers(values);
 
         if let Some(slope) = self.detect_linear_pattern(&numbers) {
-            Some(PatternType::Linear(slope))
+            Some(PatternType::Linear { slope })
         } else {
             None
         }
@@ -81,7 +81,9 @@ mod tests {
         ];
 
         let pattern = detector.detect(&values);
-        assert!(matches!(pattern, Some(PatternType::Linear(slope)) if (slope - 1.0).abs() < 1e-10));
+        assert!(
+            matches!(pattern, Some(PatternType::Linear { slope }) if (slope - 1.0).abs() < 1e-10)
+        );
     }
 
     #[test]
@@ -94,7 +96,9 @@ mod tests {
         ];
 
         let pattern = detector.detect(&values);
-        assert!(matches!(pattern, Some(PatternType::Linear(slope)) if (slope + 2.0).abs() < 1e-10));
+        assert!(
+            matches!(pattern, Some(PatternType::Linear { slope }) if (slope + 2.0).abs() < 1e-10)
+        );
     }
 
     #[test]
@@ -108,7 +112,9 @@ mod tests {
         ];
 
         let pattern = detector.detect(&values);
-        assert!(matches!(pattern, Some(PatternType::Linear(slope)) if (slope - 5.0).abs() < 1e-10));
+        assert!(
+            matches!(pattern, Some(PatternType::Linear { slope }) if (slope - 5.0).abs() < 1e-10)
+        );
     }
 
     #[test]

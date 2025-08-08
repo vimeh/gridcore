@@ -212,16 +212,6 @@ impl CellAddress {
     }
 }
 
-// Deprecated: WasmCellAddress wrapper is no longer needed
-// CellAddress is now directly exportable with #[wasm_bindgen]
-#[cfg(feature = "wasm")]
-pub mod wasm {
-    use super::*;
-
-    #[deprecated(note = "Use CellAddress directly instead of WasmCellAddress")]
-    pub type WasmCellAddress = CellAddress;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

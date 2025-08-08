@@ -28,8 +28,5 @@ pub fn column_index_to_label(index: u32) -> String {
     label
 }
 
-#[cfg(feature = "wasm")]
-pub mod wasm {
-    pub use super::cell_address::wasm::*;
-    pub use super::cell_value::wasm::*;
-}
+// WASM types are now directly exported from their modules
+// No need for a separate wasm module

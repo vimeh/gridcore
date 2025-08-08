@@ -54,7 +54,7 @@ impl PatternDetector for ExponentialPatternDetector {
         let numbers = self.extract_numbers(values);
 
         if let Some(rate) = self.detect_exponential_pattern(&numbers) {
-            Some(PatternType::Exponential(rate))
+            Some(PatternType::Exponential { rate })
         } else {
             None
         }
@@ -94,7 +94,7 @@ mod tests {
 
         let pattern = detector.detect(&values);
         assert!(
-            matches!(pattern, Some(PatternType::Exponential(rate)) if (rate - 2.0).abs() < 1e-10)
+            matches!(pattern, Some(PatternType::Exponential { rate }) if (rate - 2.0).abs() < 1e-10)
         );
     }
 
@@ -110,7 +110,7 @@ mod tests {
 
         let pattern = detector.detect(&values);
         assert!(
-            matches!(pattern, Some(PatternType::Exponential(rate)) if (rate - 0.5).abs() < 1e-10)
+            matches!(pattern, Some(PatternType::Exponential { rate }) if (rate - 0.5).abs() < 1e-10)
         );
     }
 
@@ -126,7 +126,7 @@ mod tests {
 
         let pattern = detector.detect(&values);
         assert!(
-            matches!(pattern, Some(PatternType::Exponential(rate)) if (rate - 3.0).abs() < 1e-10)
+            matches!(pattern, Some(PatternType::Exponential { rate }) if (rate - 3.0).abs() < 1e-10)
         );
     }
 

@@ -27,5 +27,5 @@ pub mod wasm {
     pub use crate::facade::wasm::WasmSpreadsheetFacade;
     pub use crate::formula::wasm::*;
     pub use crate::repository::cell_repository::wasm_bindings::*;
-    pub use crate::types::wasm::*;
+    pub use crate::types::CellAddress;
 }

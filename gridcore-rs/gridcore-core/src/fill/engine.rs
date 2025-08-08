@@ -147,7 +147,7 @@ impl FillEngine {
         let mut result = Vec::new();
 
         match pattern {
-            PatternType::Linear(slope) => {
+            PatternType::Linear { slope } => {
                 self.generate_linear_values(
                     source_values,
                     *slope,
@@ -156,7 +156,7 @@ impl FillEngine {
                     &mut result,
                 )?;
             }
-            PatternType::Exponential(rate) => {
+            PatternType::Exponential { rate } => {
                 self.generate_exponential_values(
                     source_values,
                     *rate,
@@ -168,7 +168,7 @@ impl FillEngine {
             PatternType::Copy => {
                 self.generate_copy_values(source_values, target_range, direction, &mut result)?;
             }
-            PatternType::Text | PatternType::Date(_) | PatternType::Custom(_) => {
+            PatternType::Text | PatternType::Date { .. } | PatternType::Custom { .. } => {
                 // TODO: Implement other pattern types
                 self.generate_copy_values(source_values, target_range, direction, &mut result)?;
             }
