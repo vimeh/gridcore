@@ -13,7 +13,3 @@ serde-wasm-bindgen = { workspace = true }
 js-sys = { workspace = true }
 web-sys = { workspace = true }
 console_error_panic_hook = "0.1"
-
-[package.metadata.wasm-pack]
-wasm-opt = false
-
