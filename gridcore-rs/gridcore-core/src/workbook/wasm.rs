@@ -1,6 +1,6 @@
 use crate::domain::Cell;
 use crate::facade::wasm::WasmSpreadsheetFacade;
-use crate::types::{CellAddress, CellValue, ToJs};
+use crate::types::{CellAddress, CellValue};
 use crate::workbook::{Sheet, SheetManager, Workbook};
 use std::cell::RefCell;
 use std::rc::Rc;

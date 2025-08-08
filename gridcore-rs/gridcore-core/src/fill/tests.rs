@@ -39,7 +39,7 @@ mod fill_integration_tests {
             source_range,
             target_range,
             direction: FillDirection::Down,
-            pattern: Some(PatternType::Linear(1.0)),
+            pattern: Some(PatternType::Linear { slope: 1.0 }),
         };
 
         let result = engine.fill(&operation).unwrap();
@@ -73,7 +73,7 @@ mod fill_integration_tests {
             source_range,
             target_range,
             direction: FillDirection::Right,
-            pattern: Some(PatternType::Exponential(2.0)),
+            pattern: Some(PatternType::Exponential { rate: 2.0 }),
         };
 
         let result = engine.fill(&operation).unwrap();
@@ -206,7 +206,7 @@ mod fill_integration_tests {
             source_range,
             target_range,
             direction: FillDirection::Down,
-            pattern: Some(PatternType::Linear(1.0)),
+            pattern: Some(PatternType::Linear { slope: 1.0 }),
         };
 
         let result = engine.fill(&operation).unwrap();

@@ -7,8 +7,7 @@ pub mod adjuster;
 pub mod engine;
 pub mod patterns;
 
-#[cfg(feature = "wasm")]
-pub mod wasm;
+// WASM module no longer needed - fill operations use serde directly
 
 #[cfg(test)]
 mod tests;

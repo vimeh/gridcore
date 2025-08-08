@@ -1,7 +1,7 @@
 use crate::domain::cell::wasm_bindings::WasmCell;
 use crate::facade::spreadsheet_facade::SpreadsheetFacade;
 use crate::fill::{FillOperation, FillResult};
-use crate::types::{CellAddress, CellValue, ToJs};
+use crate::types::{CellAddress, CellValue};
 use js_sys::Function;
 use std::cell::RefCell;
 use std::rc::Rc;

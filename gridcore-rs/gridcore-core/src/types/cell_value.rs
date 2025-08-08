@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CellValue {
     Number(f64),
@@ -12,9 +15,10 @@ pub enum CellValue {
 }
 
 impl CellValue {
-    /// Convert from JavaScript value
+    /// Convert from JavaScript value using serde
     #[cfg(feature = "wasm")]
-    pub fn from_js(value: wasm_bindgen::JsValue) -> Result<Self, wasm_bindgen::JsValue> {
+    pub fn from_js(value: JsValue) -> Result<Self, JsValue> {
+        // For simple types, use direct conversion for efficiency
         if value.is_null() || value.is_undefined() {
             Ok(CellValue::Empty)
         } else if let Some(b) = value.as_bool() {
@@ -24,27 +28,17 @@ impl CellValue {
         } else if let Some(s) = value.as_string() {
             Ok(CellValue::String(s))
         } else {
-            Err(wasm_bindgen::JsValue::from_str("Unsupported value type"))
+            // For complex types, use serde
+            serde_wasm_bindgen::from_value(value)
+                .map_err(|e| JsValue::from_str(&format!("Failed to convert from JS: {}", e)))
         }
     }
 
-    /// Convert to JavaScript value
+    /// Convert to JavaScript value using serde
     #[cfg(feature = "wasm")]
-    pub fn to_js(&self) -> wasm_bindgen::JsValue {
-        match self {
-            CellValue::Number(n) => wasm_bindgen::JsValue::from_f64(*n),
-            CellValue::String(s) => wasm_bindgen::JsValue::from_str(s),
-            CellValue::Boolean(b) => wasm_bindgen::JsValue::from_bool(*b),
-            CellValue::Empty => wasm_bindgen::JsValue::NULL,
-            CellValue::Error(e) => wasm_bindgen::JsValue::from_str(e),
-            CellValue::Array(arr) => {
-                let js_array = js_sys::Array::new();
-                for val in arr {
-                    js_array.push(&val.to_js());
-                }
-                js_array.into()
-            }
-        }
+    pub fn to_js(&self) -> JsValue {
+        // Use serde for all conversions to ensure consistency
+        serde_wasm_bindgen::to_value(self).unwrap_or(JsValue::NULL)
     }
 
     /// Check if the value is numeric
@@ -133,124 +127,9 @@ impl fmt::Display for CellValue {
     }
 }
 
-#[cfg(feature = "wasm")]
-pub mod wasm {
-    use super::*;
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen]
-    pub struct WasmCellValue {
-        inner: CellValue,
-    }
-
-    #[wasm_bindgen]
-    impl WasmCellValue {
-        #[wasm_bindgen(constructor)]
-        pub fn new() -> Self {
-            WasmCellValue {
-                inner: CellValue::Empty,
-            }
-        }
-
-        #[wasm_bindgen(js_name = "fromNumber")]
-        pub fn from_number(value: f64) -> Self {
-            WasmCellValue {
-                inner: CellValue::Number(value),
-            }
-        }
-
-        #[wasm_bindgen(js_name = "fromString")]
-        pub fn from_string(value: String) -> Self {
-            WasmCellValue {
-                inner: CellValue::String(value),
-            }
-        }
-
-        #[wasm_bindgen(js_name = "fromBoolean")]
-        pub fn from_boolean(value: bool) -> Self {
-            WasmCellValue {
-                inner: CellValue::Boolean(value),
-            }
-        }
-
-        #[wasm_bindgen(js_name = "fromError")]
-        pub fn from_error(message: String) -> Self {
-            WasmCellValue {
-                inner: CellValue::Error(message),
-            }
-        }
-
-        #[wasm_bindgen(js_name = "fromJS")]
-        pub fn from_js(value: JsValue) -> Result<WasmCellValue, JsValue> {
-            let inner = if value.is_null() || value.is_undefined() {
-                CellValue::Empty
-            } else if let Some(n) = value.as_f64() {
-                CellValue::Number(n)
-            } else if let Some(b) = value.as_bool() {
-                CellValue::Boolean(b)
-            } else if let Some(s) = value.as_string() {
-                CellValue::String(s)
-            } else {
-                return Err(JsValue::from_str("Unsupported type"));
-            };
-
-            Ok(WasmCellValue { inner })
-        }
-
-        #[wasm_bindgen(js_name = "toJS")]
-        pub fn to_js(&self) -> JsValue {
-            match &self.inner {
-                CellValue::Number(n) => JsValue::from_f64(*n),
-                CellValue::String(s) => JsValue::from_str(s),
-                CellValue::Boolean(b) => JsValue::from_bool(*b),
-                CellValue::Empty => JsValue::NULL,
-                CellValue::Error(e) => {
-                    let obj = js_sys::Object::new();
-                    js_sys::Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::from_str(e))
-                        .unwrap();
-                    obj.into()
-                }
-                CellValue::Array(arr) => {
-                    let js_array = js_sys::Array::new();
-                    for val in arr {
-                        js_array.push(&val.to_js());
-                    }
-                    js_array.into()
-                }
-            }
-        }
-
-        #[wasm_bindgen(js_name = "isNumber")]
-        pub fn is_number(&self) -> bool {
-            self.inner.is_number()
-        }
-
-        #[wasm_bindgen(js_name = "isString")]
-        pub fn is_string(&self) -> bool {
-            self.inner.is_string()
-        }
-
-        #[wasm_bindgen(js_name = "isBoolean")]
-        pub fn is_boolean(&self) -> bool {
-            self.inner.is_boolean()
-        }
-
-        #[wasm_bindgen(js_name = "isEmpty")]
-        pub fn is_empty(&self) -> bool {
-            self.inner.is_empty()
-        }
-
-        #[wasm_bindgen(js_name = "isError")]
-        pub fn is_error(&self) -> bool {
-            self.inner.is_error()
-        }
-
-        #[wasm_bindgen(js_name = "toString")]
-        pub fn to_string(&self) -> String {
-            self.inner.to_display_string()
-        }
-    }
-}
+// CellValue cannot be directly exported with wasm_bindgen because it's an enum with data.
+// Use serde-wasm-bindgen for conversions between JS and Rust.
+// The from_js() and to_js() methods provide conversion utilities.
 
 #[cfg(test)]
 mod tests {
