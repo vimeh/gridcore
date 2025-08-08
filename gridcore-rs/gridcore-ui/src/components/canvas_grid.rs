@@ -581,13 +581,14 @@ pub fn CanvasGrid(
 
     view! {
         <div
-            class="canvas-grid-wrapper"
+            class="canvas-grid-wrapper grid-container"
             node_ref=wrapper_ref
             tabindex="0"
             on:keydown=on_keydown
             style="width: 100%; height: 100%; outline: none; position: relative; overflow: hidden;"
         >
             <canvas
+                class="grid-canvas"
                 node_ref=canvas_ref
                 width=move || {
                     let (width, _) = canvas_dimensions.get();

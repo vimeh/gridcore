@@ -191,6 +191,14 @@ pub fn App() -> impl IntoView {
                 <div class="toolbar-row">
                     <button class="toolbar-button">"Import"</button>
                     <button class="toolbar-button">"Export"</button>
+                    <label style="margin-left: 20px;">
+                        <input type="checkbox" />
+                        " Debug Mode"
+                    </label>
+                    <label style="margin-left: 10px;">
+                        <input type="checkbox" />
+                        " Keyboard Only"
+                    </label>
                 </div>
                 <div class="formula-bar">
                     <input
