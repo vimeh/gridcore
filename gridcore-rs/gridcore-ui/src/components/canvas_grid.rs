@@ -49,6 +49,9 @@ pub fn CanvasGrid(
     let ctrl_formula = controller.clone();
     let ctrl_keyboard = controller.clone();
 
+    // Clone viewport_rc for use in the effect
+    let viewport_effect = viewport_rc.clone();
+    
     // Set up canvas rendering after mount
     create_effect(move |_| {
         if let Some(canvas) = canvas_ref.get() {
@@ -66,19 +69,19 @@ pub fn CanvasGrid(
                     canvas_elem.set_height(height as u32);
                     set_canvas_dimensions.set((width, height));
 
-                    // Update viewport size separately to avoid borrow conflicts
-                    viewport.get().borrow_mut().set_viewport_size(width, height);
+                    // Update viewport size - use the Rc directly to avoid signal tracking
+                    viewport_effect.borrow_mut().set_viewport_size(width, height);
                 }
             }
 
-            // Render the grid - get a fresh reference to avoid borrow conflicts
+            // Render the grid - borrow immutably for rendering
             let ctrl = ctrl_render.clone();
-            let vp_for_render = viewport.get();
+            let ctrl_borrow = ctrl.borrow();
             render_grid(
                 canvas_elem,
-                &*vp_for_render.borrow(),
+                &*viewport_effect.borrow(),
                 active_cell.get(),
-                ctrl.borrow().get_facade(),
+                ctrl_borrow.get_facade(),
             );
         }
     });
@@ -113,20 +116,27 @@ pub fn CanvasGrid(
 
             // Only process clicks in the cell area (not headers)
             let vp = viewport.get();
-            let vp_borrow = vp.borrow();
-            let theme = vp_borrow.get_theme();
-            if x > theme.row_header_width && y > theme.column_header_height {
-                // Subtract header offsets to get cell coordinates
-                let cell_x = x - theme.row_header_width;
-                let cell_y = y - theme.column_header_height;
-
-                if let Some(cell) = vp_borrow.get_cell_at_position(cell_x, cell_y) {
-                    // Update active cell and move cursor in controller
-                    set_active_cell.set(cell);
-
-                    // For now, just update the UI state
-                    // TODO: Add proper selection action when available in controller
+            
+            // Use a block to ensure the borrow is dropped before setting active cell
+            let new_cell = {
+                let vp_borrow = vp.borrow();
+                let theme = vp_borrow.get_theme();
+                if x > theme.row_header_width && y > theme.column_header_height {
+                    // Subtract header offsets to get cell coordinates
+                    let cell_x = x - theme.row_header_width;
+                    let cell_y = y - theme.column_header_height;
+                    
+                    vp_borrow.get_cell_at_position(cell_x, cell_y)
+                } else {
+                    None
                 }
+            }; // vp_borrow is dropped here
+            
+            // Now update active cell if we found one
+            if let Some(cell) = new_cell {
+                set_active_cell.set(cell);
+                // For now, just update the UI state
+                // TODO: Add proper selection action when available in controller
             }
         }
     };
@@ -197,13 +207,18 @@ pub fn CanvasGrid(
     let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
         let ctrl = ctrl_keyboard.clone();
-        let mut ctrl_mut = ctrl.borrow_mut();
-        let current_mode = ctrl_mut.get_state().spreadsheet_mode();
+        
+        // Get current mode and cursor, then drop the borrow
+        let (current_mode, current_cursor) = {
+            let ctrl_borrow = ctrl.borrow();
+            let mode = ctrl_borrow.get_state().spreadsheet_mode();
+            let cursor = *ctrl_borrow.get_state().cursor();
+            (mode, cursor)
+        }; // ctrl_borrow is dropped here
 
         // For navigation, handle movement directly since controller doesn't have Move action
         let action = match current_mode {
             SpreadsheetMode::Navigation => {
-                let current_cursor = *ctrl_mut.get_state().cursor();
                 match key.as_str() {
                     "h" | "ArrowLeft" => {
                         ev.prevent_default();
@@ -248,8 +263,12 @@ pub fn CanvasGrid(
                         set_editing_mode.set(true);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let pos = vp.borrow().get_cell_position(&current_cursor);
-                        let theme = vp.borrow().get_theme().clone();
+                        let (pos, theme) = {
+                            let vp_borrow = vp.borrow();
+                            let pos = vp_borrow.get_cell_position(&current_cursor);
+                            let theme = vp_borrow.get_theme().clone();
+                            (pos, theme)
+                        }; // vp_borrow is dropped here
                         set_cell_position.set((
                             pos.x + theme.row_header_width,
                             pos.y + theme.column_header_height,
@@ -267,8 +286,12 @@ pub fn CanvasGrid(
                         set_editing_mode.set(true);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let pos = vp.borrow().get_cell_position(&current_cursor);
-                        let theme = vp.borrow().get_theme().clone();
+                        let (pos, theme) = {
+                            let vp_borrow = vp.borrow();
+                            let pos = vp_borrow.get_cell_position(&current_cursor);
+                            let theme = vp_borrow.get_theme().clone();
+                            (pos, theme)
+                        }; // vp_borrow is dropped here
                         set_cell_position.set((
                             pos.x + theme.row_header_width,
                             pos.y + theme.column_header_height,
@@ -290,8 +313,12 @@ pub fn CanvasGrid(
                         set_editing_mode.set(true);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let pos = vp.borrow().get_cell_position(&new_cursor);
-                        let theme = vp.borrow().get_theme().clone();
+                        let (pos, theme) = {
+                            let vp_borrow = vp.borrow();
+                            let pos = vp_borrow.get_cell_position(&new_cursor);
+                            let theme = vp_borrow.get_theme().clone();
+                            (pos, theme)
+                        }; // vp_borrow is dropped here
                         set_cell_position.set((
                             pos.x + theme.row_header_width,
                             pos.y + theme.column_header_height,
@@ -310,8 +337,12 @@ pub fn CanvasGrid(
                             set_editing_mode.set(true);
                             // Calculate cell position for the editor
                             let vp = viewport.get();
-                            let pos = vp.borrow().get_cell_position(&new_cursor);
-                            let theme = vp.borrow().get_theme().clone();
+                            let (pos, theme) = {
+                                let vp_borrow = vp.borrow();
+                                let pos = vp_borrow.get_cell_position(&new_cursor);
+                                let theme = vp_borrow.get_theme().clone();
+                                (pos, theme)
+                            }; // vp_borrow is dropped here
                             set_cell_position.set((
                                 pos.x + theme.row_header_width,
                                 pos.y + theme.column_header_height,
@@ -350,17 +381,21 @@ pub fn CanvasGrid(
 
         // Dispatch action if we have one
         if let Some(action) = action {
-            if let Err(e) = ctrl_mut.dispatch_action(action) {
-                leptos::logging::log!("Error dispatching action: {:?}", e);
-            }
-
-            // Update UI state
-            let new_mode = ctrl_mut.get_state().spreadsheet_mode();
+            // Dispatch action and get new state, then drop the borrow
+            let (new_mode, new_cursor) = {
+                let mut ctrl_mut = ctrl.borrow_mut();
+                if let Err(e) = ctrl_mut.dispatch_action(action) {
+                    leptos::logging::log!("Error dispatching action: {:?}", e);
+                }
+                
+                let mode = ctrl_mut.get_state().spreadsheet_mode();
+                let cursor = *ctrl_mut.get_state().cursor();
+                (mode, cursor)
+            }; // ctrl_mut is dropped here
+            
+            // Now update UI state after borrow is dropped
             set_current_mode.set(new_mode);
-
-            // Update active cell from controller state cursor
-            let cursor = *ctrl_mut.get_state().cursor();
-            set_active_cell.set(cursor);
+            set_active_cell.set(new_cursor);
         }
     };
 
