@@ -1,4 +1,4 @@
-import { CellAddress, CellRange } from "@gridcore/core";
+import { CellAddress, CellRange } from "../wasm";
 import type { Viewport } from "../components/Viewport";
 
 export interface SelectionState {

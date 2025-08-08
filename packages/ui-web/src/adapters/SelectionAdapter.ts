@@ -1,11 +1,11 @@
-import { CellAddress, CellRange } from "@gridcore/core"
+import { CellAddress, CellRange } from "../wasm"
 import type {
   Selection,
   SelectionManager as CoreSelectionManager,
   SpreadsheetVisualMode,
   UIState,
-} from "@gridcore/ui-core"
-import { isSpreadsheetVisualMode } from "@gridcore/ui-core"
+} from "../wasm"
+import { isSpreadsheetVisualMode } from "../wasm"
 
 /**
  * Adapter to bridge UIState's Selection with ui-web's rendering needs

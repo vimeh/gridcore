@@ -1,10 +1,10 @@
-import type { CellAddress } from "@gridcore/core";
+import type { CellAddress } from "../wasm";
 import type {
   ControllerEvent,
   Result,
   SpreadsheetController,
   UIState,
-} from "@gridcore/ui-core";
+} from "../wasm";
 
 // Web-specific state extensions
 export type InteractionMode = "normal" | "keyboard-only";

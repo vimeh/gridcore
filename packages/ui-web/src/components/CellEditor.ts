@@ -1,5 +1,5 @@
-import type { CellAddress } from "@gridcore/core";
-import type { SpreadsheetController } from "@gridcore/ui-core";
+import type { CellAddress } from "../wasm";
+import type { SpreadsheetController } from "../wasm";
 import { KEY_CODES } from "../constants";
 import type { Viewport } from "./Viewport";
 

@@ -29,7 +29,8 @@
       "Bash(cargo bench:*)",
       "mcp__playwright__browser_network_requests",
       "Bash(mkdir:*)",
-      "Bash(sg:*)"
+      "Bash(sg:*)",
+      "Bash(bun install:*)"
     ],
     "deny": []
   }

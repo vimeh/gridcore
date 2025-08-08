@@ -5,7 +5,7 @@ import {
   StructuralOperationFeedback,
   type StructuralUIEvent,
   WarningDialog,
-} from "@gridcore/ui-core";
+} from "../wasm";
 
 /**
  * Example integration of structural UI components with a web-based spreadsheet

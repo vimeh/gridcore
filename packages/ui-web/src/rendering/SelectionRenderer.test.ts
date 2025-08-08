@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { CellAddress, CellRange, cellAddressToString } from "@gridcore/core";
+import { CellAddress, CellRange, cellAddressToString } from "../wasm";
 import type { Viewport } from "../components/Viewport";
 import { defaultTheme } from "./GridTheme";
 import { SelectionRenderer } from "./SelectionRenderer";

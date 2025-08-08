@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress, Workbook } from "@gridcore/core";
-import { SpreadsheetController, type ViewportManager } from "@gridcore/ui-core";
+import { CellAddress, Workbook } from "../wasm";
+import { SpreadsheetController, type ViewportManager } from "../wasm";
 import { WebStateAdapter, type WebUIState } from "./WebStateAdapter";
 
 // Mock ViewportManager

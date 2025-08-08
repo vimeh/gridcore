@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress, Sheet, type SpreadsheetFacade } from "@gridcore/core";
+import { CellAddress, Sheet, type SpreadsheetFacade } from "../wasm";
 import { setupTestEnvironment } from "../test-utils/setup";
 import { CanvasGrid } from "./CanvasGrid";
 

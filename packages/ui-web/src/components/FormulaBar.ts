@@ -1,9 +1,9 @@
-import type { Cell, CellAddress } from "@gridcore/core";
+import type { Cell, CellAddress } from "../wasm";
 import {
   DEFAULT_HIGHLIGHT_COLORS,
   FormulaHighlighter,
   type HighlightSegment,
-} from "@gridcore/ui-core";
+} from "../wasm";
 
 export interface FormulaBarCallbacks {
   onValueChange: (address: CellAddress, value: string) => void;

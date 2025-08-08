@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress, Workbook } from "@gridcore/core";
-import type { ViewportManager } from "@gridcore/ui-core";
-import { SpreadsheetController } from "@gridcore/ui-core";
+import { CellAddress, Workbook } from "../wasm";
+import type { ViewportManager } from "../wasm";
+import { SpreadsheetController } from "../wasm";
 import { Window } from "happy-dom";
 import { CellEditor } from "./CellEditor";
 import type { Viewport } from "./Viewport";

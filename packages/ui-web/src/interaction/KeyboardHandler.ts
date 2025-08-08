@@ -1,5 +1,5 @@
-import type { SpreadsheetFacade } from "@gridcore/core";
-import type { SpreadsheetController } from "@gridcore/ui-core";
+import type { SpreadsheetFacade } from "../wasm";
+import type { SpreadsheetController } from "../wasm";
 import type { CanvasGrid } from "../components/CanvasGrid";
 import type { CellEditor } from "../components/CellEditor";
 import { KEY_CODES } from "../constants";

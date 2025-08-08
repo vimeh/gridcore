@@ -21,7 +21,10 @@
     "test:report": "playwright show-report",
     "clean": "rm -rf dist node_modules coverage .next out playwright-report test-results"
   },
-  "dependencies": {},
+  "dependencies": {
+    "gridcore-wasm": "file:../../gridcore-rs/gridcore-wasm/pkg",
+    "gridcore-controller": "file:../../gridcore-rs/gridcore-controller/pkg"
+  },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.9.0",
     "@playwright/test": "^1.48.0",

@@ -1,4 +1,4 @@
-import type { Sheet, Workbook } from "@gridcore/core";
+import type { Sheet, Workbook } from "../wasm";
 
 export interface TabBarOptions {
   container: HTMLElement;

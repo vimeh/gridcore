@@ -1,4 +1,4 @@
-import type { SpreadsheetController, UIState } from "@gridcore/ui-core";
+import type { SpreadsheetController, UIState } from "../wasm";
 
 export interface StatusBarCallbacks {
   onInteractionModeChange: (mode: "normal" | "keyboard-only") => void;

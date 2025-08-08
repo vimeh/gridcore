@@ -20,7 +20,7 @@ export {
   type StructuralUIEvent,
   type StructuralWarning,
   WarningDialog,
-} from "@gridcore/ui-core";
+} from "../wasm";
 export { StatusBar } from "../components/StatusBar";
 export {
   createStructuralUI,

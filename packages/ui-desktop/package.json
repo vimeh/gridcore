@@ -11,7 +11,6 @@
     "clean": "rm -rf dist node_modules coverage src-tauri/target"
   },
   "dependencies": {
-    "@gridcore/core": "workspace:*",
     "@tauri-apps/api": "^2.7.0",
     "@tauri-apps/cli": "^2.7.1",
     "@tauri-apps/plugin-dialog": "^2.3.2"

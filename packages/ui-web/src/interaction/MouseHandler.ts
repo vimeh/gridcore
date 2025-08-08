@@ -1,4 +1,4 @@
-import type { CellAddress } from "@gridcore/core";
+import type { CellAddress } from "../wasm";
 import type { Viewport } from "../components/Viewport";
 import type { WebStateAdapter } from "../state/WebStateAdapter";
 import type { SelectionManager } from "./SelectionManager";

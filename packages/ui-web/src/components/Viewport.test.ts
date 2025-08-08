@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress } from "@gridcore/core";
+import { CellAddress } from "../wasm";
 import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
 import { Viewport } from "./Viewport";
 
