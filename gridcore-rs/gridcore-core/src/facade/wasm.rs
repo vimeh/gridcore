@@ -1,8 +1,7 @@
 use crate::domain::cell::wasm_bindings::WasmCell;
 use crate::facade::spreadsheet_facade::SpreadsheetFacade;
 use crate::fill::wasm::{parse_fill_operation, convert_fill_result, JsFillOperation};
-use crate::types::CellValue;
-use crate::types::CellAddress;
+use crate::types::{CellValue, CellAddress, ToJs};
 use js_sys::Function;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -447,31 +446,3 @@ impl crate::facade::EventCallback for JsEventBridge {
     }
 }
 
-// Helper trait for converting CellValue to JS
-trait ToJs {
-    fn to_js(&self) -> JsValue;
-}
-
-impl ToJs for CellValue {
-    fn to_js(&self) -> JsValue {
-        match self {
-            CellValue::Empty => JsValue::NULL,
-            CellValue::Number(n) => JsValue::from_f64(*n),
-            CellValue::String(s) => JsValue::from_str(s),
-            CellValue::Boolean(b) => JsValue::from_bool(*b),
-            CellValue::Error(e) => {
-                let obj = js_sys::Object::new();
-                let _ =
-                    js_sys::Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::from_str(e));
-                obj.into()
-            }
-            CellValue::Array(arr) => {
-                let js_array = js_sys::Array::new();
-                for val in arr {
-                    js_array.push(&val.to_js());
-                }
-                js_array.into()
-            }
-        }
-    }
-}
