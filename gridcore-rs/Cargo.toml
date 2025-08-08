@@ -1,5 +1,10 @@
 [workspace]
-members = ["gridcore-core", "gridcore-wasm", "gridcore-controller"]
+members = [
+  "gridcore-core",
+  "gridcore-wasm",
+  "gridcore-controller",
+  "gridcore-ui",
+]
 resolver = "2"
 
 [workspace.dependencies]

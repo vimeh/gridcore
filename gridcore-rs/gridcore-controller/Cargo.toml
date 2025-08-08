@@ -73,10 +73,11 @@ version = "0.4"
 optional = true
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.7"
 wasm-bindgen-test = "0.3"
 serde_json = { workspace = true }
 
 # [[bench]]
 # name = "controller_bench"
 # harness = false
+
