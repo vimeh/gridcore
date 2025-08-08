@@ -9,10 +9,10 @@ interface Sheet {
 export interface TabBarOptions {
   container: HTMLElement;
   workbook: Workbook;
-  onTabChange?: (sheetId: string) => void;
+  onTabChange?: (sheetName: string) => void;
   onTabAdd?: () => void;
-  onTabRemove?: (sheetId: string) => void;
-  onTabRename?: (sheetId: string, newName: string) => void;
+  onTabRemove?: (sheetName: string) => void;
+  onTabRename?: (oldName: string, newName: string) => void;
   onTabReorder?: (fromIndex: number, toIndex: number) => void;
 }
 
@@ -25,10 +25,10 @@ export class TabBar {
   private draggedTab: HTMLElement | null = null;
   private draggedSheetId: string | null = null;
 
-  private onTabChange?: (sheetId: string) => void;
+  private onTabChange?: (sheetName: string) => void;
   private onTabAdd?: () => void;
-  private onTabRemove?: (sheetId: string) => void;
-  private onTabRename?: (sheetId: string, newName: string) => void;
+  private onTabRemove?: (sheetName: string) => void;
+  private onTabRename?: (oldName: string, newName: string) => void;
   private onTabReorder?: (fromIndex: number, toIndex: number) => void;
 
   constructor(options: TabBarOptions) {
@@ -62,13 +62,13 @@ export class TabBar {
   private render(): void {
     this.tabContainer.innerHTML = "";
 
-    const sheets = this.workbook.getAllSheets();
-    const activeSheet = this.workbook.getActiveSheet();
+    const sheetNames = this.workbook.getSheetNames();
+    const activeSheetName = this.workbook.getActiveSheetName();
 
-    sheets.forEach((sheet, index) => {
+    sheetNames.forEach((sheetName: string, index: number) => {
       const tab = this.createTab(
-        sheet,
-        sheet.getId() === activeSheet?.getId(),
+        sheetName,
+        sheetName === activeSheetName,
         index,
       );
       this.tabContainer.appendChild(tab);
@@ -76,19 +76,19 @@ export class TabBar {
   }
 
   private createTab(
-    sheet: Sheet,
+    sheetName: string,
     isActive: boolean,
     index: number,
   ): HTMLElement {
     const tab = document.createElement("div");
     tab.className = `tab${isActive ? " active" : ""}`;
-    tab.dataset.sheetId = sheet.getId();
+    tab.dataset.sheetName = sheetName;
     tab.dataset.index = index.toString();
     tab.draggable = true;
 
     const nameSpan = document.createElement("span");
     nameSpan.className = "tab-name";
-    nameSpan.textContent = sheet.getName();
+    nameSpan.textContent = sheetName;
     tab.appendChild(nameSpan);
 
     // Add close button if there's more than one sheet
@@ -99,7 +99,7 @@ export class TabBar {
       closeButton.title = "Close sheet";
       closeButton.onclick = (e) => {
         e.stopPropagation();
-        this.handleRemoveTab(sheet.getId());
+        this.handleRemoveTab(sheetName);
       };
       tab.appendChild(closeButton);
     }
@@ -112,9 +112,9 @@ export class TabBar {
     this.tabContainer.addEventListener("click", (e) => {
       const tab = (e.target as HTMLElement).closest(".tab") as HTMLElement;
       if (tab && !tab.classList.contains("active")) {
-        const sheetId = tab.dataset.sheetId;
-        if (sheetId) {
-          this.handleTabClick(sheetId);
+        const sheetName = tab.dataset.sheetName;
+        if (sheetName) {
+          this.handleTabClick(sheetName);
         }
       }
     });
@@ -124,9 +124,9 @@ export class TabBar {
       e.preventDefault();
       const tab = (e.target as HTMLElement).closest(".tab") as HTMLElement;
       if (tab) {
-        const sheetId = tab.dataset.sheetId;
-        if (sheetId) {
-          this.showContextMenu(sheetId, e as MouseEvent);
+        const sheetName = tab.dataset.sheetName;
+        if (sheetName) {
+          this.showContextMenu(sheetName, e as MouseEvent);
         }
       }
     });
@@ -138,9 +138,9 @@ export class TabBar {
       ) as HTMLElement;
       if (nameSpan) {
         const tab = nameSpan.closest(".tab") as HTMLElement;
-        const sheetId = tab?.dataset.sheetId;
-        if (sheetId) {
-          this.startRename(sheetId);
+        const sheetName = tab?.dataset.sheetName;
+        if (sheetName) {
+          this.startRename(sheetName);
         }
       }
     });
@@ -155,7 +155,7 @@ export class TabBar {
       const tab = (e.target as HTMLElement).closest(".tab") as HTMLElement;
       if (tab) {
         this.draggedTab = tab;
-        this.draggedSheetId = tab.dataset.sheetId || null;
+        this.draggedSheetId = tab.dataset.sheetName || null;
         tab.classList.add("dragging");
         if (e.dataTransfer) {
           e.dataTransfer.effectAllowed = "move";
@@ -230,33 +230,44 @@ export class TabBar {
     ).element;
   }
 
-  private handleTabClick(sheetId: string): void {
-    this.workbook.setActiveSheet(sheetId);
+  private handleTabClick(sheetName: string): void {
+    this.workbook.setActiveSheet(sheetName);
     this.render();
-    this.onTabChange?.(sheetId);
+    this.onTabChange?.(sheetName);
+  }
+
+  private generateNewSheetName(): string {
+    const existingNames = this.workbook.getSheetNames();
+    let counter = 1;
+    let newName = `Sheet${counter}`;
+    while (existingNames.includes(newName)) {
+      counter++;
+      newName = `Sheet${counter}`;
+    }
+    return newName;
   }
 
   private handleAddSheet(): void {
-    const newSheet = this.workbook.createSheet();
-    this.workbook.setActiveSheet(newSheet.getId());
+    const newName = this.generateNewSheetName();
+    this.workbook.createSheet(newName);
+    this.workbook.setActiveSheet(newName);
     this.render();
     this.onTabAdd?.();
 
     // Auto-start rename for new sheet
-    setTimeout(() => this.startRename(newSheet.getId()), 100);
+    setTimeout(() => this.startRename(newName), 100);
   }
 
-  private handleRemoveTab(sheetId: string): void {
+  private handleRemoveTab(sheetName: string): void {
     if (this.workbook.getSheetCount() <= 1) {
       alert("Cannot remove the last sheet");
       return;
     }
 
-    const sheet = this.workbook.getSheet(sheetId);
-    if (sheet && confirm(`Remove sheet "${sheet.getName()}"?`)) {
-      this.workbook.deleteSheet(sheetId);
+    if (confirm(`Remove sheet "${sheetName}"?`)) {
+      this.workbook.deleteSheet(sheetName);
       this.render();
-      this.onTabRemove?.(sheetId);
+      this.onTabRemove?.(sheetName);
     }
   }
 
@@ -269,30 +280,27 @@ export class TabBar {
     }
   }
 
-  private startRename(sheetId: string): void {
+  private startRename(sheetName: string): void {
     const tab = this.tabContainer.querySelector(
-      `[data-sheet-id="${sheetId}"]`,
+      `[data-sheet-name="${sheetName}"]`,
     ) as HTMLElement;
     if (!tab) return;
 
     const nameSpan = tab.querySelector(".tab-name") as HTMLElement;
     if (!nameSpan) return;
 
-    const sheet = this.workbook.getSheet(sheetId);
-    if (!sheet) return;
-
     const input = document.createElement("input");
     input.type = "text";
     input.className = "tab-rename-input";
-    input.value = sheet.getName();
+    input.value = sheetName;
     input.style.width = `${nameSpan.offsetWidth}px`;
 
     const finishRename = () => {
       const newName = input.value.trim();
-      if (newName && newName !== sheet.getName()) {
+      if (newName && newName !== sheetName) {
         try {
-          this.workbook.renameSheet(sheetId, newName);
-          this.onTabRename?.(sheetId, newName);
+          this.workbook.renameSheet(sheetName, newName);
+          this.onTabRename?.(sheetName, newName);
         } catch (error) {
           alert(
             error instanceof Error ? error.message : "Failed to rename sheet",
@@ -317,11 +325,8 @@ export class TabBar {
     input.select();
   }
 
-  private showContextMenu(sheetId: string, event: MouseEvent): void {
+  private showContextMenu(sheetName: string, event: MouseEvent): void {
     this.hideContextMenu();
-
-    const sheet = this.workbook.getSheet(sheetId);
-    if (!sheet) return;
 
     this.contextMenu = document.createElement("div");
     this.contextMenu.className = "tab-context-menu";
@@ -329,15 +334,16 @@ export class TabBar {
     const menuItems = [
       {
         label: "Rename",
-        action: () => this.startRename(sheetId),
+        action: () => this.startRename(sheetName),
       },
       {
         label: "Duplicate",
         action: () => {
           // TODO: implement duplicateSheet functionality
           console.warn("duplicateSheet not implemented yet");
-          const newSheet = this.workbook.createSheet();
-          this.workbook.setActiveSheet(newSheet.getId());
+          const newName = this.generateNewSheetName();
+          this.workbook.createSheet(newName);
+          this.workbook.setActiveSheet(newName);
           this.render();
         },
       },
@@ -345,7 +351,7 @@ export class TabBar {
         ? [
             {
               label: "Delete",
-              action: () => this.handleRemoveTab(sheetId),
+              action: () => this.handleRemoveTab(sheetName),
             },
           ]
         : []),

@@ -108,7 +108,7 @@ export class SelectionAdapter {
     // Check if we're in visual mode
     if (state.visualMode && isSpreadsheetVisualMode(state.visualMode)) {
       return {
-        selection: state.selection,
+        selection: state.selection || null,
         visualMode: this.getVisualModeForRenderer(state.visualMode as SpreadsheetVisualMode),
       }
     }

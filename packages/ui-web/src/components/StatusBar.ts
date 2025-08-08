@@ -54,7 +54,7 @@ export class StatusBar {
     this.container.appendChild(this.statusBarElement);
 
     // Subscribe to controller events
-    this.subscriptionId = this.controller.subscribe((event) => {
+    this.subscriptionId = this.controller.subscribe((event: any) => {
       if (event.type === "stateChanged") {
         this.handleModeChange(event.state);
       }

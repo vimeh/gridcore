@@ -281,7 +281,7 @@ export class CanvasGrid {
       // Subscribe to controller events directly to debug state transitions
       if (this.controller) {
         console.log("Setting up controller subscription");
-        this.controller.subscribe((event) => {
+        this.controller.subscribe((event: any) => {
           console.log("Controller event:", event);
 
           // Handle state change events
@@ -686,9 +686,9 @@ export class CanvasGrid {
   getSelectedCells(): CellAddress[] {
     const selected: CellAddress[] = [];
     for (const cellKey of this.selectionManager.getSelectedCells()) {
-      const addressResult = CellAddress.fromString(cellKey);
-      if (addressResult.ok && addressResult.value) {
-        selected.push(addressResult.value);
+      const address = (CellAddress as any).fromString(cellKey);
+      if (address) {
+        selected.push(address);
       }
     }
     return selected;

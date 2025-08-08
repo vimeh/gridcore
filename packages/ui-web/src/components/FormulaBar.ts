@@ -1,27 +1,5 @@
 import type { Cell, CellAddress } from "../wasm";
 
-// Simple FormulaHighlighter stub
-class FormulaHighlighter {
-  highlight(formula: string): string {
-    return formula; // No highlighting for now
-  }
-  
-  highlightFormula(formula: string, _colors?: any): any[] {
-    // Return empty segments for now
-    return []
-  }
-}
-
-// Default highlight colors
-const DEFAULT_HIGHLIGHT_COLORS = FORMULA_HIGHLIGHT_COLORS
-
-// Highlight segment interface
-interface HighlightSegment {
-  text: string
-  color?: string
-  bold?: boolean
-}
-
 // Formula highlight colors - using a structured format for different element types
 const FORMULA_HIGHLIGHT_COLORS = {
   references: {
@@ -38,6 +16,30 @@ const FORMULA_HIGHLIGHT_COLORS = {
     parenthesis: "#333333"   // Dark gray
   }
 };
+
+// Default highlight colors
+const DEFAULT_HIGHLIGHT_COLORS = FORMULA_HIGHLIGHT_COLORS
+
+// Highlight segment interface
+interface HighlightSegment {
+  text: string
+  color?: string
+  bold?: boolean
+  type?: string
+  referenceType?: string
+}
+
+// Simple FormulaHighlighter stub
+class FormulaHighlighter {
+  highlight(formula: string): string {
+    return formula; // No highlighting for now
+  }
+  
+  highlightFormula(formula: string, _colors?: any): any[] {
+    // Return empty segments for now
+    return []
+  }
+}
 
 export interface FormulaBarCallbacks {
   onValueChange: (address: CellAddress, value: string) => void;

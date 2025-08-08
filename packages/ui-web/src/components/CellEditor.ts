@@ -277,7 +277,8 @@ export class CellEditor {
       });
 
       // Update the controller state with the new text
-      this.controller.updateEditingValue(newText);
+      // TODO: Controller doesn't have updateEditingValue method
+      // this.controller.updateEditingValue(newText);
     }
   }
 
