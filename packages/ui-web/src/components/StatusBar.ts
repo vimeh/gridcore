@@ -1,4 +1,15 @@
-import type { SpreadsheetController, SpreadsheetState } from "../wasm";
+import type { WasmSpreadsheetController as SpreadsheetController } from "gridcore-controller";
+
+// Define SpreadsheetState locally as it may not be exported from WASM
+interface SpreadsheetState {
+  cursor: { row: number; col: number };
+  mode?: string;
+  spreadsheetMode?: string;
+  cellMode?: string;
+  vimMode?: string;
+  editingValue?: string;
+  commandValue?: string;
+}
 
 export interface StatusBarCallbacks {
   onInteractionModeChange: (mode: "normal" | "keyboard-only") => void;

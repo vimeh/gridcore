@@ -105,7 +105,7 @@ describe("Viewport", () => {
     test("should scroll to cell - center position", () => {
       const addr = CellAddress.create(20, 10);
       if (!addr.ok) throw new Error("Failed to create address");
-      viewport.scrollToCell(addr.value, "center");
+      viewport.scrollToCell(addr.value!, "center");
       const pos = viewport.getScrollPosition();
       // Cell should be centered in viewport
       expect(pos.x).toBeGreaterThan(0);
@@ -115,8 +115,8 @@ describe("Viewport", () => {
     test("should scroll to cell - top position", () => {
       const addr = CellAddress.create(20, 10);
       if (!addr.ok) throw new Error("Failed to create address");
-      viewport.scrollToCell(addr.value, "top");
-      const cellPos = viewport.getCellPosition(addr.value);
+      viewport.scrollToCell(addr.value!, "top");
+      const cellPos = viewport.getCellPosition(addr.value!);
       const _scrollPos = viewport.getScrollPosition();
       // Cell should be at top of viewport
       expect(cellPos.y).toBe(0);
@@ -125,8 +125,8 @@ describe("Viewport", () => {
     test("should scroll to cell - bottom position", () => {
       const addr = CellAddress.create(20, 10);
       if (!addr.ok) throw new Error("Failed to create address");
-      viewport.scrollToCell(addr.value, "bottom");
-      const cellPos = viewport.getCellPosition(addr.value);
+      viewport.scrollToCell(addr.value!, "bottom");
+      const cellPos = viewport.getCellPosition(addr.value!);
       // Cell should be at bottom of viewport
       expect(cellPos.y + cellPos.height).toBe(300);
     });
@@ -136,7 +136,7 @@ describe("Viewport", () => {
       viewport.setScrollPosition(1000, 0);
       const addr = CellAddress.create(0, 0);
       if (!addr.ok) throw new Error("Failed to create address");
-      viewport.scrollToCell(addr.value);
+      viewport.scrollToCell(addr.value!);
       const pos = viewport.getScrollPosition();
       expect(pos.x).toBe(0);
     });
@@ -145,8 +145,8 @@ describe("Viewport", () => {
       viewport.setScrollPosition(0, 0);
       const addr = CellAddress.create(0, 50);
       if (!addr.ok) throw new Error("Failed to create address");
-      viewport.scrollToCell(addr.value);
-      const cellPos = viewport.getCellPosition(addr.value);
+      viewport.scrollToCell(addr.value!);
+      const cellPos = viewport.getCellPosition(addr.value!);
       expect(cellPos.x).toBeLessThan(400);
       expect(cellPos.x + cellPos.width).toBeLessThanOrEqual(400);
     });
@@ -155,7 +155,7 @@ describe("Viewport", () => {
       // Try to scroll to last cell
       const addr = CellAddress.create(999, 99);
       if (!addr.ok) throw new Error("Failed to create address");
-      viewport.scrollToCell(addr.value);
+      viewport.scrollToCell(addr.value!);
       const pos = viewport.getScrollPosition();
       const totalWidth = viewport.getTotalGridWidth();
       const totalHeight = viewport.getTotalGridHeight();
@@ -259,7 +259,7 @@ describe("Viewport", () => {
     test("should get cell position at origin", () => {
       const addr = CellAddress.create(0, 0);
       if (!addr.ok) throw new Error("Failed to create address");
-      const pos = viewport.getCellPosition(addr.value);
+      const pos = viewport.getCellPosition(addr.value!);
       expect(pos.x).toBe(0);
       expect(pos.y).toBe(0);
       expect(pos.width).toBe(theme.defaultCellWidth);
@@ -270,7 +270,7 @@ describe("Viewport", () => {
       viewport.setScrollPosition(50, 100);
       const addr = CellAddress.create(0, 0);
       if (!addr.ok) throw new Error("Failed to create address");
-      const pos = viewport.getCellPosition(addr.value);
+      const pos = viewport.getCellPosition(addr.value!);
       expect(pos.x).toBe(-50);
       expect(pos.y).toBe(-100);
     });
@@ -280,7 +280,7 @@ describe("Viewport", () => {
       viewport.setRowHeight(0, 50);
       const addr1 = CellAddress.create(1, 1);
       if (!addr1.ok) throw new Error("Failed to create address");
-      const pos = viewport.getCellPosition(addr1.value);
+      const pos = viewport.getCellPosition(addr1.value!);
       expect(pos.x).toBe(150);
       expect(pos.y).toBe(50);
     });
@@ -291,7 +291,7 @@ describe("Viewport", () => {
       const cell = viewport.getCellAtPosition(50, 10);
       const expectedAddr = CellAddress.create(0, 0);
       if (!expectedAddr.ok) throw new Error("Failed to create address");
-      expect(cell).toEqual(expectedAddr.value);
+      expect(cell).toEqual(expectedAddr.value!);
     });
 
     test("should return null for out of bounds position", () => {
@@ -304,7 +304,7 @@ describe("Viewport", () => {
       const cell = viewport.getCellAtPosition(0, 0);
       const expectedAddr = CellAddress.create(0, 0);
       if (!expectedAddr.ok) throw new Error("Failed to create address");
-      expect(cell).not.toEqual(expectedAddr.value);
+      expect(cell).not.toEqual(expectedAddr.value!);
     });
 
     test("should handle custom dimensions", () => {
@@ -316,7 +316,7 @@ describe("Viewport", () => {
       const cell1 = customViewport.getCellAtPosition(150, 50);
       const expectedAddr1 = CellAddress.create(0, 0);
       if (!expectedAddr1.ok) throw new Error("Failed to create address");
-      expect(cell1).toEqual(expectedAddr1.value);
+      expect(cell1).toEqual(expectedAddr1.value!);
 
       // Position 150 with row 0 having height 100 and default height 24:
       // Row 0: 0-99 (height 100)
@@ -328,7 +328,7 @@ describe("Viewport", () => {
       const cell2 = customViewport.getCellAtPosition(250, 150);
       const expectedAddr2 = CellAddress.create(3, 1);
       if (!expectedAddr2.ok) throw new Error("Failed to create address");
-      expect(cell2).toEqual(expectedAddr2.value);
+      expect(cell2).toEqual(expectedAddr2.value!);
     });
   });
 

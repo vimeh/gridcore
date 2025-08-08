@@ -36,6 +36,16 @@ class MockViewportManager implements ViewportManager {
     return 26;
   }
   scrollTo(_row: number, _col: number): void {}
+  getViewport(): { startRow: number; endRow: number; startCol: number; endCol: number } {
+    return { startRow: 0, endRow: 100, startCol: 0, endCol: 26 };
+  }
+  setViewport(_startRow: number, _endRow: number, _startCol: number, _endCol: number): void {}
+  getScrollPosition(): { x: number; y: number } {
+    return { x: 0, y: 0 };
+  }
+  getCellAt(_x: number, _y: number): CellAddress | null {
+    return null;
+  }
 }
 
 // Mock Viewport
@@ -113,15 +123,10 @@ describe("CellEditor", () => {
     if (!addressResult.ok) throw new Error("Failed to create address");
 
     // First enter edit mode by pressing 'i' in the controller
-    controller.handleKeyPress("i", {
-      key: "i",
-      ctrl: false,
-      shift: false,
-      alt: false,
-    });
+    controller.handleKeyPress("i");
 
     // Now start the cell editor
-    cellEditor.startEditing(addressResult.value, "");
+    cellEditor.startEditing(addressResult.value!, "");
 
     // Get the editor element
     const editorDiv = container.querySelector(
@@ -185,14 +190,9 @@ describe("CellEditor", () => {
     if (!addressResult.ok) throw new Error("Failed to create address");
 
     // Enter insert mode
-    controller.handleKeyPress("i", {
-      key: "i",
-      ctrl: false,
-      shift: false,
-      alt: false,
-    });
+    controller.handleKeyPress("i");
 
-    cellEditor.startEditing(addressResult.value, "");
+    cellEditor.startEditing(addressResult.value!, "");
 
     // Get initial controller state
     const initialState = controller.getState();

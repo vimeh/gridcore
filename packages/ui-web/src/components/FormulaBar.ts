@@ -1,9 +1,4 @@
-import type { Cell, CellAddress } from "../wasm";
-import {
-  FormulaHighlighter,
-  type HighlightSegment,
-  DEFAULT_HIGHLIGHT_COLORS,
-} from "../wasm";
+import type { WasmCell as Cell, WasmCellAddress as CellAddress } from "gridcore-controller";
 
 // Formula highlight colors - using a structured format for different element types
 const FORMULA_HIGHLIGHT_COLORS = {

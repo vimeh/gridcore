@@ -1,5 +1,5 @@
-import type { CellAddress } from "../wasm";
-import type { SpreadsheetController } from "../wasm";
+import type { WasmCellAddress as CellAddress } from "gridcore-controller";
+import type { WasmSpreadsheetController as SpreadsheetController } from "gridcore-controller";
 import { KEY_CODES } from "../constants";
 import type { Viewport } from "./Viewport";
 

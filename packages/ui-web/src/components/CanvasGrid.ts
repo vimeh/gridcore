@@ -1,6 +1,5 @@
-import { CellAddress, type SpreadsheetFacade } from "../wasm";
-import type { SpreadsheetController } from "../wasm";
-import { DefaultSelectionManager } from "../wasm";
+import { WasmCellAddress as CellAddress, type WasmSpreadsheetFacade as SpreadsheetFacade } from "gridcore-controller";
+import type { WasmSpreadsheetController as SpreadsheetController } from "gridcore-controller";
 import { SelectionAdapter } from "../adapters/SelectionAdapter";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
 import { MouseHandler } from "../interaction/MouseHandler";

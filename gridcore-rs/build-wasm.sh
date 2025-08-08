@@ -20,8 +20,8 @@ rm -rf gridcore-controller/pkg gridcore-controller/pkg-node
 # Build gridcore-wasm (includes core functionality)
 echo "🔨 Building gridcore-wasm..."
 cd gridcore-wasm
-wasm-pack build --target web --out-dir pkg
-wasm-pack build --target nodejs --out-dir pkg-node
+wasm-pack build --target web --out-dir pkg --no-opt
+wasm-pack build --target nodejs --out-dir pkg-node --no-opt
 
 # Check bundle size
 WASM_SIZE=$(wc -c < pkg/*_bg.wasm | awk '{print $1/1024}')
@@ -32,8 +32,11 @@ cd ..
 # Build gridcore-controller (UI controller)
 echo "🔨 Building gridcore-controller..."
 cd gridcore-controller
-wasm-pack build --target web --out-dir pkg
-wasm-pack build --target nodejs --out-dir pkg-node
+# Build with cargo first
+cargo build --lib --release --target wasm32-unknown-unknown --features wasm
+# Then use wasm-bindgen directly
+wasm-bindgen target/wasm32-unknown-unknown/release/gridcore_controller.wasm --out-dir pkg --target web
+wasm-bindgen target/wasm32-unknown-unknown/release/gridcore_controller.wasm --out-dir pkg-node --target nodejs
 
 # Check bundle size
 CONTROLLER_SIZE=$(wc -c < pkg/*_bg.wasm | awk '{print $1/1024}')

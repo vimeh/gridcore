@@ -1,4 +1,10 @@
-import type { Sheet, Workbook } from "../wasm";
+import type { WasmWorkbook as Workbook } from "gridcore-controller";
+
+// Define Sheet interface locally as WasmSheet may have different methods
+interface Sheet {
+  getName(): string;
+  getId(): string;
+}
 
 export interface TabBarOptions {
   container: HTMLElement;

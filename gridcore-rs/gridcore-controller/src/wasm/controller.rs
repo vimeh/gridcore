@@ -50,6 +50,21 @@ impl WasmSpreadsheetController {
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
+    #[wasm_bindgen(js_name = "handleKeyPress")]
+    pub fn handle_key_press(&mut self, key: String) -> Result<(), JsValue> {
+        let event = KeyboardEvent {
+            key: key.clone(),
+            code: key,
+            shift: false,
+            ctrl: false,
+            alt: false,
+            meta: false,
+        };
+        self.inner
+            .handle_keyboard_event(event)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
     #[wasm_bindgen(js_name = "handleMouseEvent")]
     pub fn handle_mouse_event(&mut self, event_js: JsValue) -> Result<(), JsValue> {
         let event: MouseEvent =
