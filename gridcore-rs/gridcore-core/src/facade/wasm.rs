@@ -119,9 +119,7 @@ impl WasmSpreadsheetFacade {
     /// Get a cell
     #[wasm_bindgen(js_name = "getCell")]
     pub fn get_cell(&self, address: &CellAddress) -> Option<WasmCell> {
-        self.inner
-            .get_cell(address)
-            .map(WasmCell::from_cell)
+        self.inner.get_cell(address).map(WasmCell::from_cell)
     }
 
     /// Get a cell formula
@@ -291,28 +289,33 @@ impl WasmSpreadsheetFacade {
     #[wasm_bindgen(js_name = "executeBatchOperations")]
     pub fn execute_batch_operations(&self, operations: JsValue) -> Result<JsValue, JsValue> {
         use crate::facade::batch::BatchOperation;
-        
+
         // Deserialize batch operations from JS
         let operations: Vec<BatchOperation> = serde_wasm_bindgen::from_value(operations)
             .map_err(|e| JsValue::from_str(&format!("Failed to parse batch operations: {}", e)))?;
-        
+
         // Begin a batch
         let batch_id = self.inner.begin_batch(None);
         let mut results = Vec::new();
-        
+
         // Execute each operation
         for op in operations {
             let result = match op {
-                BatchOperation::SetCell { address, value, formula: _ } => {
+                BatchOperation::SetCell {
+                    address,
+                    value,
+                    formula: _,
+                } => {
                     // Convert value to string for set_cell_value
                     let value_str = value.to_display_string();
-                    self.inner.set_cell_value(&address, &value_str)
+                    self.inner
+                        .set_cell_value(&address, &value_str)
                         .map(|_| ("set_cell", address.to_a1()))
                 }
-                BatchOperation::DeleteCell { address } => {
-                    self.inner.delete_cell(&address)
-                        .map(|_| ("delete_cell", address.to_a1()))
-                }
+                BatchOperation::DeleteCell { address } => self
+                    .inner
+                    .delete_cell(&address)
+                    .map(|_| ("delete_cell", address.to_a1())),
                 BatchOperation::SetRange { start, end, values } => {
                     // For now, set cells individually
                     let mut count = 0;
@@ -320,7 +323,7 @@ impl WasmSpreadsheetFacade {
                         for (col_idx, value) in row.iter().enumerate() {
                             let addr = CellAddress::new(
                                 start.col + col_idx as u32,
-                                start.row + row_idx as u32
+                                start.row + row_idx as u32,
                             );
                             if addr.col <= end.col && addr.row <= end.row {
                                 let value_str = value.to_display_string();
@@ -329,7 +332,10 @@ impl WasmSpreadsheetFacade {
                             }
                         }
                     }
-                    Ok(("set_range", format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count)))
+                    Ok((
+                        "set_range",
+                        format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count),
+                    ))
                 }
                 BatchOperation::DeleteRange { start, end } => {
                     // Delete cells in range
@@ -341,10 +347,13 @@ impl WasmSpreadsheetFacade {
                             count += 1;
                         }
                     }
-                    Ok(("delete_range", format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count)))
+                    Ok((
+                        "delete_range",
+                        format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count),
+                    ))
                 }
             };
-            
+
             match result {
                 Ok((op_type, detail)) => results.push(serde_json::json!({
                     "success": true,
@@ -354,14 +363,15 @@ impl WasmSpreadsheetFacade {
                 Err(e) => results.push(serde_json::json!({
                     "success": false,
                     "error": e.to_string()
-                }))
+                })),
             }
         }
-        
+
         // Commit the batch
-        self.inner.commit_batch(&batch_id)
+        self.inner
+            .commit_batch(&batch_id)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+
         // Return results
         serde_wasm_bindgen::to_value(&results)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize results: {}", e)))

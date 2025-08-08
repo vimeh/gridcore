@@ -4,7 +4,9 @@ use wasm_bindgen::prelude::*;
 pub use gridcore_core::domain::cell::wasm_bindings::WasmCell;
 pub use gridcore_core::evaluator::wasm::WasmEvaluator;
 pub use gridcore_core::facade::wasm::WasmSpreadsheetFacade;
-pub use gridcore_core::formula::wasm::{parse_formula, parse_formula_to_json, validate_formula, get_formula_error};
+pub use gridcore_core::formula::wasm::{
+    get_formula_error, parse_formula, parse_formula_to_json, validate_formula,
+};
 pub use gridcore_core::types::CellAddress; // Use CellAddress directly now
 pub use gridcore_core::workbook::wasm::{WasmSheet, WasmSheetManager, WasmWorkbook};
 

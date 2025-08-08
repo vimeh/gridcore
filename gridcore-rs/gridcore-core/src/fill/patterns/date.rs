@@ -96,7 +96,9 @@ mod tests {
         ];
 
         let pattern = detector.detect(&values);
-        assert!(matches!(pattern, Some(PatternType::Date { increment_days }) if increment_days == 1.0));
+        assert!(
+            matches!(pattern, Some(PatternType::Date { increment_days }) if increment_days == 1.0)
+        );
     }
 
     #[test]
@@ -109,7 +111,9 @@ mod tests {
         ];
 
         let pattern = detector.detect(&values);
-        assert!(matches!(pattern, Some(PatternType::Date { increment_days }) if increment_days == 7.0));
+        assert!(
+            matches!(pattern, Some(PatternType::Date { increment_days }) if increment_days == 7.0)
+        );
     }
 
     #[test]

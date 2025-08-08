@@ -42,6 +42,6 @@ pub fn get_formula_error(formula: &str) -> Option<String> {
 
 // WasmFormulaParser wrapper removed - use the standalone functions instead:
 // - parseFormula(formula): Parse and return as JS object
-// - parseFormulaToJson(formula): Parse and return as JSON string  
+// - parseFormulaToJson(formula): Parse and return as JSON string
 // - validateFormula(formula): Check if formula is valid
 // - getFormulaError(formula): Get parse error message
