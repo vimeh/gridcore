@@ -1,9 +1,26 @@
 import type { Cell, CellAddress } from "../wasm";
 import {
-  DEFAULT_HIGHLIGHT_COLORS,
   FormulaHighlighter,
   type HighlightSegment,
+  DEFAULT_HIGHLIGHT_COLORS,
 } from "../wasm";
+
+// Formula highlight colors - using a structured format for different element types
+const FORMULA_HIGHLIGHT_COLORS = {
+  references: {
+    relative: "#4285F4",    // Blue
+    absolute: "#EA4335",    // Red
+    "mixed-column": "#34A853", // Green
+    "mixed-row": "#FBBC04"    // Yellow
+  },
+  elements: {
+    operator: "#666666",     // Gray
+    function: "#9333EA",     // Purple
+    number: "#0D7377",       // Teal
+    string: "#EC4899",       // Pink
+    parenthesis: "#333333"   // Dark gray
+  }
+};
 
 export interface FormulaBarCallbacks {
   onValueChange: (address: CellAddress, value: string) => void;
@@ -270,44 +287,44 @@ export class FormulaBar {
       }
       
       .ref-relative {
-        color: ${DEFAULT_HIGHLIGHT_COLORS.references.relative};
+        color: ${FORMULA_HIGHLIGHT_COLORS.references.relative};
         font-weight: 500;
       }
       
       .ref-absolute {
-        color: ${DEFAULT_HIGHLIGHT_COLORS.references.absolute};
+        color: ${FORMULA_HIGHLIGHT_COLORS.references.absolute};
         font-weight: bold;
       }
       
       .ref-mixed-column {
-        color: ${DEFAULT_HIGHLIGHT_COLORS.references["mixed-column"]};
+        color: ${FORMULA_HIGHLIGHT_COLORS.references["mixed-column"]};
         font-weight: 500;
       }
       
       .ref-mixed-row {
-        color: ${DEFAULT_HIGHLIGHT_COLORS.references["mixed-row"]};
+        color: ${FORMULA_HIGHLIGHT_COLORS.references["mixed-row"]};
         font-weight: 500;
       }
       
       .ref-operator {
-        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.operator};
+        color: ${FORMULA_HIGHLIGHT_COLORS.elements.operator};
       }
       
       .ref-function {
-        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.function};
+        color: ${FORMULA_HIGHLIGHT_COLORS.elements.function};
         font-weight: 500;
       }
       
       .ref-number {
-        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.number};
+        color: ${FORMULA_HIGHLIGHT_COLORS.elements.number};
       }
       
       .ref-string {
-        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.string};
+        color: ${FORMULA_HIGHLIGHT_COLORS.elements.string};
       }
       
       .ref-parenthesis {
-        color: ${DEFAULT_HIGHLIGHT_COLORS.elements.parenthesis};
+        color: ${FORMULA_HIGHLIGHT_COLORS.elements.parenthesis};
       }
       
       .formula-bar-input:focus {
@@ -351,7 +368,7 @@ export class FormulaBar {
     }
 
     // Apply syntax highlighting
-    const segments = this.highlighter.highlightFormula(value);
+    const segments = this.highlighter.highlightFormula(value, DEFAULT_HIGHLIGHT_COLORS);
     this.renderHighlightedSegments(segments, value);
   }
 
@@ -372,7 +389,7 @@ export class FormulaBar {
       if (segment.type === "reference" && segment.referenceType) {
         span.className = `ref-${segment.referenceType}`;
         span.title = this.getReferenceTooltip(segment.referenceType);
-      } else if (segment.type !== "normal") {
+      } else if (segment.type) {
         span.className = `ref-${segment.type}`;
       }
 
@@ -475,7 +492,7 @@ export class FormulaBar {
       // Debounce highlighting for performance
       clearTimeout(this.highlightingTimeout);
       this.highlightingTimeout = setTimeout(() => {
-        const segments = this.highlighter.highlightFormula(value);
+        const segments = this.highlighter.highlightFormula(value, DEFAULT_HIGHLIGHT_COLORS);
         this.renderHighlightedSegments(segments, value);
       }, 100);
     }
