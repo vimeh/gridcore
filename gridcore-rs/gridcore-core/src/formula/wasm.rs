@@ -1,50 +1,47 @@
 use crate::formula::FormulaParser;
-use serde_wasm_bindgen;
 use wasm_bindgen::prelude::*;
 
-/// WASM wrapper for formula parsing
-#[wasm_bindgen]
-pub struct WasmFormulaParser;
+// Formula parsing is exposed through simple functions rather than a wrapper class.
+// All formula types (Expr, CellRange, etc.) have serde derives and are automatically
+// serialized to JavaScript objects.
 
-#[wasm_bindgen]
-impl WasmFormulaParser {
-    /// Create a new formula parser
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        WasmFormulaParser
-    }
-
-    /// Parse a formula string into an AST
-    /// Returns a JavaScript object representing the AST
-    #[wasm_bindgen(js_name = "parse")]
-    pub fn parse(&self, formula: &str) -> std::result::Result<JsValue, JsValue> {
-        match FormulaParser::parse(formula) {
-            Ok(expr) => {
-                // Convert the Expr to a JsValue using serde
-                serde_wasm_bindgen::to_value(&expr)
-                    .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
-            }
-            Err(e) => Err(JsValue::from_str(&e.to_string())),
-        }
-    }
-
-    /// Parse a formula and return it as a JSON string
-    #[wasm_bindgen(js_name = "parseToJson")]
-    pub fn parse_to_json(&self, formula: &str) -> std::result::Result<String, JsValue> {
-        match FormulaParser::parse(formula) {
-            Ok(expr) => serde_json::to_string(&expr)
-                .map_err(|e| JsValue::from_str(&format!("JSON serialization error: {}", e))),
-            Err(e) => Err(JsValue::from_str(&e.to_string())),
-        }
-    }
-}
-
-/// Parse a formula directly (convenience function)
+/// Parse a formula string into an AST
+/// Returns a JavaScript object representing the AST
 #[wasm_bindgen(js_name = "parseFormula")]
-pub fn parse_formula(formula: &str) -> std::result::Result<JsValue, JsValue> {
-    match FormulaParser::parse(formula) {
-        Ok(expr) => serde_wasm_bindgen::to_value(&expr)
-            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e))),
-        Err(e) => Err(JsValue::from_str(&e.to_string())),
-    }
+pub fn parse_formula(formula: &str) -> Result<JsValue, JsValue> {
+    FormulaParser::parse(formula)
+        .map_err(|e| JsValue::from_str(&e.to_string()))
+        .and_then(|expr| {
+            serde_wasm_bindgen::to_value(&expr)
+                .map_err(|e| JsValue::from_str(&format!("Failed to serialize formula: {}", e)))
+        })
 }
+
+/// Parse a formula and return it as a JSON string
+#[wasm_bindgen(js_name = "parseFormulaToJson")]
+pub fn parse_formula_to_json(formula: &str) -> Result<String, JsValue> {
+    FormulaParser::parse(formula)
+        .map_err(|e| JsValue::from_str(&e.to_string()))
+        .and_then(|expr| {
+            serde_json::to_string(&expr)
+                .map_err(|e| JsValue::from_str(&format!("Failed to serialize to JSON: {}", e)))
+        })
+}
+
+/// Validate a formula without returning the AST
+#[wasm_bindgen(js_name = "validateFormula")]
+pub fn validate_formula(formula: &str) -> bool {
+    FormulaParser::parse(formula).is_ok()
+}
+
+/// Get error message for invalid formula
+#[wasm_bindgen(js_name = "getFormulaError")]
+pub fn get_formula_error(formula: &str) -> Option<String> {
+    FormulaParser::parse(formula).err().map(|e| e.to_string())
+}
+
+// WasmFormulaParser wrapper removed - use the standalone functions instead:
+// - parseFormula(formula): Parse and return as JS object
+// - parseFormulaToJson(formula): Parse and return as JSON string  
+// - validateFormula(formula): Check if formula is valid
+// - getFormulaError(formula): Get parse error message
