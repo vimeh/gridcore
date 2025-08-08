@@ -252,7 +252,14 @@ impl UIState {
         match self {
             UIState::Navigation { .. } => SpreadsheetMode::Navigation,
             UIState::Visual { .. } => SpreadsheetMode::Visual,
-            UIState::Editing { .. } => SpreadsheetMode::Editing,
+            UIState::Editing { cell_mode, .. } => {
+                // Return different modes based on the cell editing mode
+                match cell_mode {
+                    CellMode::Insert => SpreadsheetMode::Insert,
+                    CellMode::Normal => SpreadsheetMode::Editing,  // Shows as "EDIT" in status bar
+                    CellMode::Visual => SpreadsheetMode::Visual,
+                }
+            }
             UIState::Command { .. } => SpreadsheetMode::Command,
             UIState::Resize { .. } => SpreadsheetMode::Resize,
             UIState::Insert { .. } => SpreadsheetMode::Insert,

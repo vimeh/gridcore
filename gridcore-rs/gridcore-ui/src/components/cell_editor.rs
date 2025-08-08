@@ -36,38 +36,63 @@ pub fn CellEditor(
             let ctrl = ctrl_value.clone();
             let ctrl_borrow = ctrl.borrow();
             
-            // Check if there's an initial value from the state (e.g., from direct typing)
-            let initial_value = match ctrl_borrow.get_state() {
-                gridcore_controller::state::UIState::Editing { editing_value, .. } => {
+            // Check the current editing state to get initial value and edit mode
+            let (initial_value, edit_variant) = match ctrl_borrow.get_state() {
+                gridcore_controller::state::UIState::Editing { 
+                    editing_value, 
+                    edit_variant,
+                    .. 
+                } => {
+                    // If there's an initial value (from direct typing), use it
+                    // Direct typing should replace existing content entirely
                     if !editing_value.is_empty() {
-                        Some(editing_value.clone())
+                        (Some(editing_value.clone()), edit_variant.clone())
                     } else {
-                        None
+                        (None, edit_variant.clone())
                     }
                 }
-                _ => None,
+                _ => (None, None),
             };
             
             if let Some(val) = initial_value {
-                // Use the initial value from direct typing
+                // For direct typing - replace entire content
                 set_editor_value.set(val);
             } else {
-                // Get existing cell value
+                // Check the edit variant to determine behavior
                 let facade = ctrl_borrow.get_facade();
-                if let Some(cell_obj) = facade.get_cell(&cell) {
+                let existing_value = if let Some(cell_obj) = facade.get_cell(&cell) {
                     if cell_obj.has_formula() {
-                        set_editor_value.set(cell_obj.raw_value.to_string());
+                        cell_obj.raw_value.to_string()
                     } else {
-                        set_editor_value.set(cell_obj.get_display_value().to_string());
+                        cell_obj.get_display_value().to_string()
                     }
                 } else {
-                    set_editor_value.set(String::new());
-                }
+                    String::new()
+                };
+                
+                // For Enter key or 'i' mode, preserve existing content
+                // For 'a' append mode, also preserve existing content (cursor positioning handled elsewhere)
+                set_editor_value.set(existing_value);
             }
 
             // Focus the input
             if let Some(input) = input_ref.get() {
                 let _ = input.focus();
+                
+                // Set cursor position based on edit mode
+                if let Some(variant) = edit_variant {
+                    match variant {
+                        gridcore_controller::state::InsertMode::A => {
+                            // Append mode - cursor at end
+                            let len = editor_value.get().len();
+                            let _ = input.set_selection_start(Some(len as u32));
+                            let _ = input.set_selection_end(Some(len as u32));
+                        }
+                        _ => {
+                            // Other modes - cursor at beginning or specified position
+                        }
+                    }
+                }
             }
         }
     });

@@ -406,12 +406,27 @@ pub fn CanvasGrid(
                             pos.width,
                             pos.height,
                         ));
-                        // Enter key preserves existing content
+                        // Enter key replaces existing content
                         Some(Action::StartEditing {
                             edit_mode: Some(InsertMode::I),
-                            initial_value: None,
-                            cursor_position: None,
+                            initial_value: Some(String::new()), // Empty string to replace content
+                            cursor_position: Some(0),
                         })
+                    }
+                    "Delete" | "Backspace" => {
+                        ev.prevent_default();
+                        // Clear the current cell
+                        let ctrl = controller.clone();
+                        {
+                            let ctrl_borrow = ctrl.borrow();
+                            let facade = ctrl_borrow.get_facade();
+                            if let Err(e) = facade.set_cell_value(&current_cursor, "") {
+                                leptos::logging::log!("Error clearing cell: {:?}", e);
+                            }
+                        }
+                        // Update formula bar
+                        set_formula_value.set(String::new());
+                        None
                     }
                     "v" => {
                         ev.prevent_default();

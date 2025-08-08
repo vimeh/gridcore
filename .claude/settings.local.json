@@ -30,7 +30,8 @@
       "mcp__playwright__browser_network_requests",
       "Bash(mkdir:*)",
       "Bash(sg:*)",
-      "Bash(bun install:*)"
+      "Bash(bun install:*)",
+      "WebFetch(domain:book.leptos.dev)"
     ],
     "deny": []
   }
