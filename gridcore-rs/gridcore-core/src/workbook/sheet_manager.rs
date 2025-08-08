@@ -146,8 +146,7 @@ impl SheetManager {
                 drop(cells); // Release borrow
                 for (address, adjusted_formula) in adjusted_cells {
                     let parsed = FormulaParser::parse(&adjusted_formula[1..])?;
-                    let new_cell =
-                        Cell::with_formula(CellValue::String(adjusted_formula), parsed);
+                    let new_cell = Cell::with_formula(CellValue::String(adjusted_formula), parsed);
 
                     if let Some(sheet) = self.workbook.get_sheet(&sheet_name) {
                         sheet.set_cell(&address, new_cell)?;

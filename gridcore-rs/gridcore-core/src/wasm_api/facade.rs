@@ -29,36 +29,40 @@ pub(super) struct EventCallbacks {
 pub fn create_facade() -> u32 {
     let facade = Rc::new(SpreadsheetFacade::new());
     let id = NEXT_FACADE_ID.fetch_add(1, Ordering::SeqCst);
-    
+
     // Store the facade
     FACADE_STORAGE.with(|storage| {
         storage.borrow_mut().insert(id, facade.clone());
     });
-    
+
     // Initialize empty callbacks
     EVENT_CALLBACKS.with(|callbacks| {
-        callbacks.borrow_mut().insert(id, EventCallbacks {
-            on_cell_update: None,
-            on_batch_complete: None,
-            on_calculation_complete: None,
-        });
+        callbacks.borrow_mut().insert(
+            id,
+            EventCallbacks {
+                on_cell_update: None,
+                on_batch_complete: None,
+                on_calculation_complete: None,
+            },
+        );
     });
-    
+
     // Set up event bridge
     let facade_id = id;
-    
+
     struct JsEventBridge {
         facade_id: u32,
     }
-    
+
     impl crate::facade::EventCallback for JsEventBridge {
         fn on_event(&self, event: &crate::facade::SpreadsheetEvent) {
             EVENT_CALLBACKS.with(|callbacks| {
                 if let Some(cbs) = callbacks.borrow().get(&self.facade_id) {
                     let js_event = serde_wasm_bindgen::to_value(event).unwrap_or(JsValue::NULL);
-                    
+
                     match event.event_type {
-                        crate::facade::EventType::CellUpdated | crate::facade::EventType::CellsUpdated => {
+                        crate::facade::EventType::CellUpdated
+                        | crate::facade::EventType::CellsUpdated => {
                             if let Some(ref callback) = cbs.on_cell_update {
                                 let _ = callback.call1(&JsValue::NULL, &js_event);
                             }
@@ -83,9 +87,9 @@ pub fn create_facade() -> u32 {
             });
         }
     }
-    
+
     facade.add_event_callback(Box::new(JsEventBridge { facade_id }));
-    
+
     id
 }
 
@@ -132,15 +136,21 @@ pub fn facade_set_on_calculation_complete(facade_id: u32, callback: Function) {
 
 /// Set a cell value
 #[wasm_bindgen(js_name = "facadeSetCellValue")]
-pub fn facade_set_cell_value(facade_id: u32, address: &CellAddress, value: &str) -> Result<JsValue, JsValue> {
+pub fn facade_set_cell_value(
+    facade_id: u32,
+    address: &CellAddress,
+    value: &str,
+) -> Result<JsValue, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        let cell = facade.set_cell_value(address, value)
+
+        let cell = facade
+            .set_cell_value(address, value)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+
         // Convert cell to JS using serde
         serde_wasm_bindgen::to_value(&cell)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize cell: {}", e)))
@@ -152,12 +162,14 @@ pub fn facade_set_cell_value(facade_id: u32, address: &CellAddress, value: &str)
 pub fn facade_get_cell_value(facade_id: u32, address: &CellAddress) -> Result<JsValue, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        let value = facade.get_cell_value(address)
+
+        let value = facade
+            .get_cell_value(address)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+
         Ok(value.to_js())
     })
 }
@@ -167,9 +179,10 @@ pub fn facade_get_cell_value(facade_id: u32, address: &CellAddress) -> Result<Js
 pub fn facade_get_cell(facade_id: u32, address: &CellAddress) -> Result<JsValue, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         match facade.get_cell(address) {
             Some(cell) => serde_wasm_bindgen::to_value(&cell)
                 .map_err(|e| JsValue::from_str(&format!("Failed to serialize cell: {}", e))),
@@ -183,9 +196,10 @@ pub fn facade_get_cell(facade_id: u32, address: &CellAddress) -> Result<JsValue,
 pub fn facade_get_cell_formula(facade_id: u32, address: &CellAddress) -> Result<JsValue, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         let formula = facade.get_cell(address).and_then(|cell| {
             if let CellValue::String(s) = &cell.raw_value {
                 if s.starts_with('=') {
@@ -194,7 +208,7 @@ pub fn facade_get_cell_formula(facade_id: u32, address: &CellAddress) -> Result<
             }
             None
         });
-        
+
         match formula {
             Some(f) => Ok(JsValue::from_str(&f)),
             None => Ok(JsValue::NULL),
@@ -207,10 +221,12 @@ pub fn facade_get_cell_formula(facade_id: u32, address: &CellAddress) -> Result<
 pub fn facade_delete_cell(facade_id: u32, address: &CellAddress) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.delete_cell(address)
+
+        facade
+            .delete_cell(address)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
@@ -220,10 +236,12 @@ pub fn facade_delete_cell(facade_id: u32, address: &CellAddress) -> Result<(), J
 pub fn facade_clear_cell(facade_id: u32, address: &CellAddress) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.set_cell_value(address, "")
+
+        facade
+            .set_cell_value(address, "")
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
         Ok(())
     })
@@ -234,10 +252,12 @@ pub fn facade_clear_cell(facade_id: u32, address: &CellAddress) -> Result<(), Js
 pub fn facade_recalculate(facade_id: u32) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.recalculate()
+
+        facade
+            .recalculate()
             .map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
@@ -247,12 +267,14 @@ pub fn facade_recalculate(facade_id: u32) -> Result<(), JsValue> {
 pub fn facade_recalculate_cell(facade_id: u32, address: &CellAddress) -> Result<JsValue, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        let cell = facade.recalculate_cell(address)
+
+        let cell = facade
+            .recalculate_cell(address)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+
         serde_wasm_bindgen::to_value(&cell)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize cell: {}", e)))
     })
@@ -263,9 +285,10 @@ pub fn facade_recalculate_cell(facade_id: u32, address: &CellAddress) -> Result<
 pub fn facade_begin_batch(facade_id: u32, batch_id: Option<String>) -> Result<String, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         Ok(facade.begin_batch(batch_id))
     })
 }
@@ -275,10 +298,12 @@ pub fn facade_begin_batch(facade_id: u32, batch_id: Option<String>) -> Result<St
 pub fn facade_commit_batch(facade_id: u32, batch_id: &str) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.commit_batch(batch_id)
+
+        facade
+            .commit_batch(batch_id)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
@@ -288,10 +313,12 @@ pub fn facade_commit_batch(facade_id: u32, batch_id: &str) -> Result<(), JsValue
 pub fn facade_rollback_batch(facade_id: u32, batch_id: &str) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.rollback_batch(batch_id)
+
+        facade
+            .rollback_batch(batch_id)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
@@ -301,9 +328,10 @@ pub fn facade_rollback_batch(facade_id: u32, batch_id: &str) -> Result<(), JsVal
 pub fn facade_clear(facade_id: u32) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         facade.clear();
         Ok(())
     })
@@ -314,9 +342,10 @@ pub fn facade_clear(facade_id: u32) -> Result<(), JsValue> {
 pub fn facade_get_cell_count(facade_id: u32) -> Result<usize, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         Ok(facade.get_cell_count())
     })
 }
@@ -326,17 +355,19 @@ pub fn facade_get_cell_count(facade_id: u32) -> Result<usize, JsValue> {
 pub fn facade_fill(facade_id: u32, operation_js: JsValue) -> Result<JsValue, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         // Parse the fill operation from JS
         let fill_operation: FillOperation = serde_wasm_bindgen::from_value(operation_js)
             .map_err(|e| JsValue::from_str(&format!("Failed to parse fill operation: {}", e)))?;
-        
+
         // Perform the fill
-        let result = facade.fill(&fill_operation)
+        let result = facade
+            .fill(&fill_operation)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+
         // Convert result to JS
         serde_wasm_bindgen::to_value(&result)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize result: {}", e)))
@@ -348,17 +379,19 @@ pub fn facade_fill(facade_id: u32, operation_js: JsValue) -> Result<JsValue, JsV
 pub fn facade_preview_fill(facade_id: u32, operation_js: JsValue) -> Result<JsValue, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         // Parse the fill operation from JS
         let fill_operation: FillOperation = serde_wasm_bindgen::from_value(operation_js)
             .map_err(|e| JsValue::from_str(&format!("Failed to parse fill operation: {}", e)))?;
-        
+
         // Preview the fill
-        let preview = facade.preview_fill(&fill_operation)
+        let preview = facade
+            .preview_fill(&fill_operation)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+
         // Convert preview to JS
         serde_wasm_bindgen::to_value(&preview)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize preview: {}", e)))
@@ -367,32 +400,40 @@ pub fn facade_preview_fill(facade_id: u32, operation_js: JsValue) -> Result<JsVa
 
 /// Execute batch operations
 #[wasm_bindgen(js_name = "facadeExecuteBatchOperations")]
-pub fn facade_execute_batch_operations(facade_id: u32, operations: JsValue) -> Result<JsValue, JsValue> {
+pub fn facade_execute_batch_operations(
+    facade_id: u32,
+    operations: JsValue,
+) -> Result<JsValue, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         // Deserialize batch operations from JS
         let operations: Vec<BatchOperation> = serde_wasm_bindgen::from_value(operations)
             .map_err(|e| JsValue::from_str(&format!("Failed to parse batch operations: {}", e)))?;
-        
+
         // Begin a batch
         let batch_id = facade.begin_batch(None);
         let mut results = Vec::new();
-        
+
         // Execute each operation
         for op in operations {
             let result = match op {
-                BatchOperation::SetCell { address, value, formula: _ } => {
+                BatchOperation::SetCell {
+                    address,
+                    value,
+                    formula: _,
+                } => {
                     let value_str = value.to_display_string();
-                    facade.set_cell_value(&address, &value_str)
+                    facade
+                        .set_cell_value(&address, &value_str)
                         .map(|_| ("set_cell", address.to_a1()))
                 }
-                BatchOperation::DeleteCell { address } => {
-                    facade.delete_cell(&address)
-                        .map(|_| ("delete_cell", address.to_a1()))
-                }
+                BatchOperation::DeleteCell { address } => facade
+                    .delete_cell(&address)
+                    .map(|_| ("delete_cell", address.to_a1())),
                 BatchOperation::SetRange { start, end, values } => {
                     let mut count = 0;
                     for (row_idx, row) in values.iter().enumerate() {
@@ -408,7 +449,10 @@ pub fn facade_execute_batch_operations(facade_id: u32, operations: JsValue) -> R
                             }
                         }
                     }
-                    Ok(("set_range", format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count)))
+                    Ok((
+                        "set_range",
+                        format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count),
+                    ))
                 }
                 BatchOperation::DeleteRange { start, end } => {
                     let mut count = 0;
@@ -419,10 +463,13 @@ pub fn facade_execute_batch_operations(facade_id: u32, operations: JsValue) -> R
                             count += 1;
                         }
                     }
-                    Ok(("delete_range", format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count)))
+                    Ok((
+                        "delete_range",
+                        format!("{}:{} ({} cells)", start.to_a1(), end.to_a1(), count),
+                    ))
                 }
             };
-            
+
             match result {
                 Ok((op_type, detail)) => results.push(serde_json::json!({
                     "success": true,
@@ -435,11 +482,12 @@ pub fn facade_execute_batch_operations(facade_id: u32, operations: JsValue) -> R
                 })),
             }
         }
-        
+
         // Commit the batch
-        facade.commit_batch(&batch_id)
+        facade
+            .commit_batch(&batch_id)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+
         // Return results
         serde_wasm_bindgen::to_value(&results)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize results: {}", e)))
@@ -451,10 +499,12 @@ pub fn facade_execute_batch_operations(facade_id: u32, operations: JsValue) -> R
 pub fn facade_insert_row(facade_id: u32, row_index: u32) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.insert_row(row_index)
+
+        facade
+            .insert_row(row_index)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
@@ -463,10 +513,12 @@ pub fn facade_insert_row(facade_id: u32, row_index: u32) -> Result<(), JsValue> 
 pub fn facade_delete_row(facade_id: u32, row_index: u32) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.delete_row(row_index)
+
+        facade
+            .delete_row(row_index)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
@@ -475,10 +527,12 @@ pub fn facade_delete_row(facade_id: u32, row_index: u32) -> Result<(), JsValue> 
 pub fn facade_insert_column(facade_id: u32, col_index: u32) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.insert_column(col_index)
+
+        facade
+            .insert_column(col_index)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
@@ -487,10 +541,12 @@ pub fn facade_insert_column(facade_id: u32, col_index: u32) -> Result<(), JsValu
 pub fn facade_delete_column(facade_id: u32, col_index: u32) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.delete_column(col_index)
+
+        facade
+            .delete_column(col_index)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
@@ -500,11 +556,11 @@ pub fn facade_delete_column(facade_id: u32, col_index: u32) -> Result<(), JsValu
 pub fn facade_undo(facade_id: u32) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.undo()
-            .map_err(|e| JsValue::from_str(&e.to_string()))
+
+        facade.undo().map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
 
@@ -512,11 +568,11 @@ pub fn facade_undo(facade_id: u32) -> Result<(), JsValue> {
 pub fn facade_redo(facade_id: u32) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
-        facade.redo()
-            .map_err(|e| JsValue::from_str(&e.to_string()))
+
+        facade.redo().map_err(|e| JsValue::from_str(&e.to_string()))
     })
 }
 
@@ -524,9 +580,10 @@ pub fn facade_redo(facade_id: u32) -> Result<(), JsValue> {
 pub fn facade_can_undo(facade_id: u32) -> Result<bool, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         Ok(facade.can_undo())
     })
 }
@@ -535,9 +592,10 @@ pub fn facade_can_undo(facade_id: u32) -> Result<bool, JsValue> {
 pub fn facade_can_redo(facade_id: u32) -> Result<bool, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         Ok(facade.can_redo())
     })
 }
@@ -546,9 +604,10 @@ pub fn facade_can_redo(facade_id: u32) -> Result<bool, JsValue> {
 pub fn facade_get_undo_history(facade_id: u32) -> Result<js_sys::Array, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         let history = facade.get_undo_history();
         let array = js_sys::Array::new();
         for desc in history {
@@ -562,9 +621,10 @@ pub fn facade_get_undo_history(facade_id: u32) -> Result<js_sys::Array, JsValue>
 pub fn facade_get_redo_history(facade_id: u32) -> Result<js_sys::Array, JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         let history = facade.get_redo_history();
         let array = js_sys::Array::new();
         for desc in history {
@@ -578,9 +638,10 @@ pub fn facade_get_redo_history(facade_id: u32) -> Result<js_sys::Array, JsValue>
 pub fn facade_clear_history(facade_id: u32) -> Result<(), JsValue> {
     FACADE_STORAGE.with(|storage| {
         let facades = storage.borrow();
-        let facade = facades.get(&facade_id)
+        let facade = facades
+            .get(&facade_id)
             .ok_or_else(|| JsValue::from_str("Invalid facade ID"))?;
-        
+
         facade.clear_history();
         Ok(())
     })
