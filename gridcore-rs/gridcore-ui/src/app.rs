@@ -49,7 +49,7 @@ pub fn App() -> impl IntoView {
     let initial_mode = controller.borrow().get_state().spreadsheet_mode();
     
     // Update formula bar when active cell changes
-    let ctrl_for_effect = controller.clone();
+    let _ctrl_for_effect = controller.clone();
     // Removed duplicate create_effect - we have the better one below
     let (current_mode, set_current_mode) = create_signal(initial_mode);
 
@@ -74,9 +74,10 @@ pub fn App() -> impl IntoView {
     let (selection_stats, _set_selection_stats) = create_signal(SelectionStats::default());
 
     // Update formula bar when active cell changes (but not during editing)
+    let controller_for_effect = controller.clone();
     create_effect(move |_| {
         let cell = active_cell.get();
-        let ctrl = controller.clone();
+        let ctrl = controller_for_effect.clone();
         
         // Check if we're in editing mode
         let is_editing = matches!(
@@ -86,7 +87,8 @@ pub fn App() -> impl IntoView {
         
         // Only update formula bar if not editing
         if !is_editing {
-            let facade = ctrl.borrow().get_facade();
+            let ctrl_borrowed = ctrl.borrow();
+            let facade = ctrl_borrowed.get_facade();
             
             // Get the value of the active cell
             if let Some(cell_obj) = facade.get_cell(&cell) {
@@ -104,6 +106,7 @@ pub fn App() -> impl IntoView {
     });
 
     // Handle formula bar Enter key
+    let controller_for_submit = controller.clone();
     let on_formula_submit = move |ev: web_sys::KeyboardEvent| {
         if ev.key() == "Enter" {
             ev.prevent_default();
@@ -111,7 +114,7 @@ pub fn App() -> impl IntoView {
             let cell = active_cell.get();
 
             // Set cell value through controller
-            let ctrl = controller.clone();
+            let ctrl = controller_for_submit.clone();
             if !value.is_empty() {
                 if let Err(e) = ctrl.borrow().get_facade().set_cell_value(&cell, &value) {
                     leptos::logging::log!("Error setting cell value: {:?}", e);

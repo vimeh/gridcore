@@ -313,7 +313,7 @@ pub fn CanvasGrid(
                         ));
                         // Get existing cell value for 'i' key
                         let existing_value = {
-                            let ctrl = controller.get();
+                            let ctrl = controller.clone();
                             let ctrl_borrow = ctrl.borrow();
                             let facade = ctrl_borrow.get_facade();
                             if let Some(cell_obj) = facade.get_cell(&current_cursor) {
@@ -353,7 +353,7 @@ pub fn CanvasGrid(
                         ));
                         // Get existing cell value for 'a' key
                         let existing_value = {
-                            let ctrl = controller.get();
+                            let ctrl = controller.clone();
                             let ctrl_borrow = ctrl.borrow();
                             let facade = ctrl_borrow.get_facade();
                             if let Some(cell_obj) = facade.get_cell(&current_cursor) {

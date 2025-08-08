@@ -42,7 +42,7 @@ pub fn CellEditor(
             let (should_set_cursor_pos, cursor_pos_to_set) = match editing_state {
                 gridcore_controller::state::UIState::Editing { 
                     editing_value, 
-                    edit_variant,
+                    
                     cursor_position,
                     .. 
                 } => {
