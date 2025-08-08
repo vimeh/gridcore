@@ -572,7 +572,7 @@ export class CanvasGrid {
         for (let row = bounds.startRow; row <= bounds.endRow; row++) {
           for (let col = bounds.startCol; col <= bounds.endCol; col++) {
             const addrResult = CellAddress.create(row, col);
-            if (!addrResult.ok) continue;
+            if (!addrResult.ok || !addrResult.value) continue;
             const pos = this.viewport.getCellPosition(addrResult.value);
             minX = Math.min(minX, pos.x);
             minY = Math.min(minY, pos.y);
@@ -690,7 +690,7 @@ export class CanvasGrid {
     const selected: CellAddress[] = [];
     for (const cellKey of this.selectionManager.getSelectedCells()) {
       const addressResult = CellAddress.fromString(cellKey);
-      if (addressResult.ok) {
+      if (addressResult.ok && addressResult.value) {
         selected.push(addressResult.value);
       }
     }

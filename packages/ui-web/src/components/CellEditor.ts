@@ -193,20 +193,16 @@ export class CellEditor {
       // Get the state before handling the key
       const _prevState = this.controller.getState();
 
-      const result = this.controller.handleKeyPress(event.key, {
-        key: event.key,
-        ctrl: event.ctrlKey,
-        alt: event.altKey,
-        shift: event.shiftKey,
-      });
+      this.controller.handleKeyPress(event.key);
+      
+      // Get the current state after handling the key
+      const state = this.controller.getState();
 
-      if (result.ok) {
-        event.preventDefault(); // Always prevent default when controller handles the key
-        event.stopPropagation(); // Stop the event from bubbling up to KeyboardHandler
-        const state = result.value;
+      event.preventDefault(); // Always prevent default when controller handles the key
+      event.stopPropagation(); // Stop the event from bubbling up to KeyboardHandler
 
-        // Check if we should exit editing
-        if (state.spreadsheetMode !== "editing") {
+      // Check if we should exit editing
+      if (state.spreadsheetMode !== "editing") {
           // Always commit the edit when exiting from editing mode
           // The controller handles saving the value when needed
           this.commitEdit();
