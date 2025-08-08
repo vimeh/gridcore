@@ -248,7 +248,7 @@ export class TabBar {
 
     const sheet = this.workbook.getSheet(sheetId);
     if (sheet && confirm(`Remove sheet "${sheet.getName()}"?`)) {
-      this.workbook.removeSheet(sheetId);
+      this.workbook.deleteSheet(sheetId);
       this.render();
       this.onTabRemove?.(sheetId);
     }

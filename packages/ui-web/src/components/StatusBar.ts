@@ -1,4 +1,4 @@
-import type { SpreadsheetController, UIState } from "../wasm";
+import type { SpreadsheetController, SpreadsheetState } from "../wasm";
 
 export interface StatusBarCallbacks {
   onInteractionModeChange: (mode: "normal" | "keyboard-only") => void;
@@ -10,10 +10,10 @@ export class StatusBar {
   private modeElement: HTMLDivElement;
   private modeText: HTMLSpanElement;
   private detailText: HTMLSpanElement;
-  private keyboardOnlyToggle: HTMLInputElement;
+  private keyboardOnlyToggle!: HTMLInputElement;
   private controller: SpreadsheetController;
   private callbacks: StatusBarCallbacks;
-  private unsubscribe: (() => void) | null = null;
+  private subscriptionId: number | null = null;
 
   constructor(
     container: HTMLElement,
@@ -43,7 +43,7 @@ export class StatusBar {
     this.container.appendChild(this.statusBarElement);
 
     // Subscribe to controller events
-    this.unsubscribe = this.controller.subscribe((event) => {
+    this.subscriptionId = this.controller.subscribe((event) => {
       if (event.type === "stateChanged") {
         this.handleModeChange(event.state);
       }
@@ -151,11 +151,11 @@ export class StatusBar {
     return toggleContainer;
   }
 
-  private handleModeChange(state: UIState): void {
+  private handleModeChange(state: SpreadsheetState): void {
     this.updateDisplay(state);
   }
 
-  private updateDisplay(state: UIState): void {
+  private updateDisplay(state: SpreadsheetState): void {
     const colors = {
       navigation: { bg: "#2c5282", text: "#bee3f8" },
       normal: { bg: "#38a169", text: "#c6f6d5" },
@@ -285,9 +285,9 @@ export class StatusBar {
 
   destroy(): void {
     // Clean up subscription
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
+    if (this.subscriptionId !== null) {
+      this.controller.unsubscribe(this.subscriptionId);
+      this.subscriptionId = null;
     }
 
     // Remove element from DOM
