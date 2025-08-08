@@ -104,8 +104,8 @@ impl Sheet {
     }
 
     /// Set the protection status of the sheet
-    pub fn set_protected(&mut self, protected: bool) {
-        self.properties.protected = protected;
+    pub fn set_protected(&mut self, is_protected: bool) {
+        self.properties.protected = is_protected;
     }
 
     /// Get a cell from the sheet

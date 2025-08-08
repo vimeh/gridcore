@@ -37,8 +37,8 @@ impl WasmSheet {
 
     /// Set protection
     #[wasm_bindgen(js_name = "setProtected")]
-    pub fn set_protected(&mut self, protected: bool) {
-        self.inner.borrow_mut().set_protected(protected);
+    pub fn set_protected(&mut self, is_protected: bool) {
+        self.inner.borrow_mut().set_protected(is_protected);
     }
 
     /// Get column width
