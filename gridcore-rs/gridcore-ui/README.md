@@ -65,22 +65,21 @@ trunk build --release
 - Mouse click selection
 - Keyboard navigation (arrows + vim)
 
+✅ **Phase 3: Controller Integration Complete**
+- Real SpreadsheetController connected
+- SpreadsheetFacade integrated for data management
+- Cell values rendered from facade
+- SelectionManager integrated
+- Formula bar connected for cell editing
+- UI modes displayed in status bar
+- Keyboard events handled through controller
+
 ### 🚧 Next Steps
 
-#### Phase 3: Controller Integration
-- [ ] Connect real SpreadsheetController
-- [ ] Integrate with SpreadsheetFacade
-- [ ] Wire up data persistence
-
-#### Phase 4: Cell Editing
-- [ ] Implement cell editor overlay
-- [ ] Formula bar integration
-- [ ] Vim mode support (normal/insert)
-
-#### Phase 4: Editing
-- [ ] Cell editor component
-- [ ] Formula bar
-- [ ] Vim mode support
+#### Phase 4: Cell Editing Enhancement
+- [ ] Implement inline cell editor overlay
+- [ ] Add formula autocomplete
+- [ ] Enhanced vim mode support
 
 #### Phase 5: Advanced Features
 - [ ] Column/row resizing

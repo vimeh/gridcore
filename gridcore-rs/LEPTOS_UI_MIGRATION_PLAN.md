@@ -22,6 +22,18 @@ Create a new Rust crate `gridcore-ui` at `gridcore-rs/gridcore-ui/` that will be
 - Keyboard navigation (arrows + vim hjkl)
 - Viewport management for scrolling
 
+## 3. Controller Integration
+
+✅ Done - Full controller integration with:
+- SpreadsheetController initialization
+- SpreadsheetFacade for data management
+- Cell values rendered from facade
+- SelectionManager for cursor/selection state
+- Formula bar connected to facade.set_cell_value()
+- UI mode tracking (Normal/Insert/Visual/Command)
+- Keyboard events dispatched through controller
+- State synchronization between UI and controller
+
 ## 2. Core Component Structure
 
 ### Main Components to Create
