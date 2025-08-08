@@ -34,6 +34,9 @@ export {
   WasmViewportManager,
   WasmViewportManager as ViewportManager,
   WasmUIStateMachine,
+  WasmSelectionManager,
+  WasmSelectionManager as SelectionManager,
+  Direction,
   initController,
   controllerVersion,
   ActionBuilder,
@@ -47,6 +50,13 @@ export {
 export interface CellRange {
   start: CellAddressType
   end: CellAddressType
+}
+
+// CellRange factory object  
+export const CellRange = {
+  create(start: CellAddressType, end: CellAddressType): CellRange {
+    return { start, end }
+  }
 }
 
 // Selection types  
@@ -173,6 +183,28 @@ export function createCellAddress(col: number, row: number): CellAddressType {
 // This must be done after the initial setup
 setTimeout(() => {
   ;(CellAddress as any).create = function(col: number, row: number): CellAddressType {
+    return new CellAddress(col, row)
+  }
+  
+  ;(CellAddress as any).fromString = function(str: string): CellAddressType {
+    // Parse column letters and row number
+    const match = str.match(/^([A-Z]+)(\d+)$/)
+    if (!match) {
+      throw new Error(`Invalid cell address: ${str}`)
+    }
+    
+    const colStr = match[1]
+    const rowStr = match[2]
+    
+    // Convert column letters to number (A=0, B=1, AA=26, etc.)
+    let col = 0
+    for (let i = 0; i < colStr.length; i++) {
+      col = col * 26 + (colStr.charCodeAt(i) - 65) + 1
+    }
+    col -= 1 // Convert to 0-based
+    
+    const row = parseInt(rowStr) - 1 // Convert to 0-based
+    
     return new CellAddress(col, row)
   }
 }, 0)

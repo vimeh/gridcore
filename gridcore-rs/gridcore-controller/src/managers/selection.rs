@@ -1,8 +1,15 @@
 use crate::state::{Selection, SelectionType};
 use gridcore_core::{types::CellAddress, Result};
 use std::collections::HashSet;
+use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+#[cfg(feature = "wasm")]
+use serde_wasm_bindgen;
 
 /// Manages spreadsheet selections and multi-cursor operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SelectionManager {
     primary_selection: Selection,
     secondary_selections: Vec<Selection>,
@@ -11,14 +18,14 @@ pub struct SelectionManager {
     clipboard: Option<ClipboardContent>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClipboardContent {
     pub cells: Vec<CellContent>,
     pub source_selection: Selection,
     pub is_cut: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CellContent {
     pub address: CellAddress,
     pub value: String,
@@ -440,7 +447,8 @@ impl SelectionManager {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub enum Direction {
     Up,
     Down,
@@ -462,6 +470,142 @@ impl Direction {
 impl Default for SelectionManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// WASM wrapper for SelectionManager
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+pub struct WasmSelectionManager {
+    inner: SelectionManager,
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+impl WasmSelectionManager {
+    /// Create a new SelectionManager (WASM constructor)
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self {
+            inner: SelectionManager::new(),
+        }
+    }
+
+    /// Get the primary selection as JSON
+    #[wasm_bindgen(js_name = "getPrimary")]
+    pub fn get_primary(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.inner.primary_selection).unwrap_or(JsValue::NULL)
+    }
+
+    /// Set the primary selection from JSON
+    #[wasm_bindgen(js_name = "setPrimary")]
+    pub fn set_primary(&mut self, selection_js: JsValue) -> std::result::Result<(), JsValue> {
+        let selection: Selection = serde_wasm_bindgen::from_value(selection_js)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        self.inner.set_primary(selection);
+        Ok(())
+    }
+
+    /// Get all secondary selections as JSON array
+    #[wasm_bindgen(js_name = "getSecondary")]
+    pub fn get_secondary(&self) -> JsValue {
+        serde_wasm_bindgen::to_value(&self.inner.secondary_selections).unwrap_or(JsValue::NULL)
+    }
+
+    /// Add a secondary selection from JSON
+    #[wasm_bindgen(js_name = "addSecondary")]
+    pub fn add_secondary(&mut self, selection_js: JsValue) -> std::result::Result<(), JsValue> {
+        let selection: Selection = serde_wasm_bindgen::from_value(selection_js)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        self.inner.add_secondary(selection);
+        Ok(())
+    }
+
+    /// Clear all secondary selections
+    #[wasm_bindgen(js_name = "clearSecondary")]
+    pub fn clear_secondary(&mut self) {
+        self.inner.clear_secondary();
+    }
+
+    /// Check if a cell is selected
+    #[wasm_bindgen(js_name = "isSelected")]
+    pub fn is_selected(&self, col: u32, row: u32) -> bool {
+        let address = CellAddress::new(col, row);
+        self.inner.is_selected(&address)
+    }
+
+    /// Expand selection in a direction
+    #[wasm_bindgen(js_name = "expandSelection")]
+    pub fn expand_selection(&mut self, direction: Direction, amount: u32) -> std::result::Result<(), JsValue> {
+        self.inner.expand_selection(direction, amount)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Contract selection in a direction
+    #[wasm_bindgen(js_name = "contractSelection")]
+    pub fn contract_selection(&mut self, direction: Direction, amount: u32) -> std::result::Result<(), JsValue> {
+        self.inner.contract_selection(direction, amount)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Select a range of cells
+    #[wasm_bindgen(js_name = "selectRange")]
+    pub fn select_range(&mut self, start_col: u32, start_row: u32, end_col: u32, end_row: u32) {
+        let start = CellAddress::new(start_col, start_row);
+        let end = CellAddress::new(end_col, end_row);
+        self.inner.select_range(start, end);
+    }
+
+    /// Select entire rows
+    #[wasm_bindgen(js_name = "selectRows")]
+    pub fn select_rows(&mut self, rows: Vec<u32>) {
+        self.inner.select_rows(rows);
+    }
+
+    /// Select entire columns  
+    #[wasm_bindgen(js_name = "selectColumns")]
+    pub fn select_columns(&mut self, columns: Vec<u32>) {
+        self.inner.select_columns(columns);
+    }
+
+    /// Select all cells
+    #[wasm_bindgen(js_name = "selectAll")]
+    pub fn select_all(&mut self) {
+        self.inner.select_all();
+    }
+
+    /// Clear all selections
+    #[wasm_bindgen(js_name = "clearAll")]
+    pub fn clear_all(&mut self) {
+        self.inner.clear_all();
+    }
+
+    /// Get all selected cells as an array of [col, row] pairs
+    #[wasm_bindgen(js_name = "getSelectedCells")]
+    pub fn get_selected_cells(&self) -> js_sys::Array {
+        let arr = js_sys::Array::new();
+        for addr in self.inner.get_selected_cells() {
+            let cell_arr = js_sys::Array::new();
+            cell_arr.push(&JsValue::from(addr.col));
+            cell_arr.push(&JsValue::from(addr.row));
+            arr.push(&cell_arr);
+        }
+        arr
+    }
+
+    /// Get clipboard content as JSON
+    #[wasm_bindgen(js_name = "getClipboard")]
+    pub fn get_clipboard(&self) -> JsValue {
+        match &self.inner.clipboard {
+            Some(content) => serde_wasm_bindgen::to_value(content).unwrap_or(JsValue::NULL),
+            None => JsValue::NULL,
+        }
+    }
+
+    /// Clear clipboard
+    #[wasm_bindgen(js_name = "clearClipboard")]  
+    pub fn clear_clipboard(&mut self) {
+        self.inner.clear_clipboard();
     }
 }
 
