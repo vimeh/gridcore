@@ -34,6 +34,18 @@ Create a new Rust crate `gridcore-ui` at `gridcore-rs/gridcore-ui/` that will be
 - Keyboard events dispatched through controller
 - State synchronization between UI and controller
 
+## 4. Cell Editing Enhancement
+
+✅ Done - Advanced editing features with:
+- Inline cell editor overlay component
+- Positioned dynamically based on active cell
+- Formula autocomplete with common functions
+- Keyboard navigation through suggestions (arrows, Tab)
+- Click-to-apply suggestions
+- Enhanced vim mode support (i, a, o, O)
+- Integration with controller actions
+- Real-time value updates from facade
+
 ## 2. Core Component Structure
 
 ### Main Components to Create

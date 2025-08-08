@@ -74,12 +74,18 @@ trunk build --release
 - UI modes displayed in status bar
 - Keyboard events handled through controller
 
-### 🚧 Next Steps
+✅ **Phase 4: Cell Editing Enhancement Complete**
+- Inline cell editor overlay with position tracking
+- Formula autocomplete for common functions (SUM, AVERAGE, COUNT, etc.)
+- Enhanced vim mode support:
+  - `i` - Insert mode (edit current cell)
+  - `a` - Append mode (edit current cell)
+  - `o` - Open line below (move down and edit)
+  - `O` - Open line above (move up and edit)
+- Autocomplete navigation with arrows and Tab
+- Click-to-select autocomplete suggestions
 
-#### Phase 4: Cell Editing Enhancement
-- [ ] Implement inline cell editor overlay
-- [ ] Add formula autocomplete
-- [ ] Enhanced vim mode support
+### 🚧 Next Steps
 
 #### Phase 5: Advanced Features
 - [ ] Column/row resizing
@@ -110,11 +116,11 @@ The migration preserves the architecture while leveraging Rust's strengths:
 
 | TypeScript Component | Rust/Leptos Component | Status |
 |---------------------|----------------------|---------|
-| CanvasGrid.ts | canvas_grid.rs | Scaffold created |
-| Viewport.ts | viewport.rs | Basic implementation |
-| CellEditor.ts | cell_editor.rs | Scaffold created |
-| SelectionManager.ts | Uses Rust SelectionManager | Direct integration |
-| WebStateAdapter.ts | Direct UIStateMachine | No adapter needed |
+| CanvasGrid.ts | canvas_grid.rs | ✅ Fully implemented |
+| Viewport.ts | viewport.rs | ✅ Fully implemented |
+| CellEditor.ts | cell_editor.rs | ✅ Fully implemented |
+| SelectionManager.ts | Uses Rust SelectionManager | ✅ Direct integration |
+| WebStateAdapter.ts | Direct UIStateMachine | ✅ No adapter needed |
 
 ## Testing
 

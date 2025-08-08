@@ -1,5 +1,5 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{Action, Direction, SpreadsheetMode};
+use gridcore_controller::state::{Action, InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Canvas;
 use leptos::*;
@@ -8,8 +8,9 @@ use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent, MouseEvent};
 
+use crate::components::cell_editor::CellEditor;
 use crate::components::viewport::Viewport;
-use crate::rendering::{default_theme, GridTheme};
+use crate::rendering::default_theme;
 
 #[component]
 pub fn CanvasGrid(
@@ -27,13 +28,21 @@ pub fn CanvasGrid(
     let theme = default_theme();
 
     // State
-    let (viewport, set_viewport) = create_signal(Viewport::new(theme.clone(), Some(100), Some(26)));
+    let (viewport, _set_viewport) =
+        create_signal(Viewport::new(theme.clone(), Some(100), Some(26)));
+    let (editing_mode, set_editing_mode) = create_signal(false);
+    let (cell_position, set_cell_position) = create_signal((0.0, 0.0, 100.0, 25.0));
+
+    // Clone controller references for closures
+    let ctrl_render = controller.clone();
+    let ctrl_formula = controller.clone();
+    let ctrl_keyboard = controller.clone();
 
     // Set up canvas rendering after mount
     create_effect(move |_| {
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
-            let ctrl = controller.clone();
+            let ctrl = ctrl_render.clone();
             render_grid(
                 canvas_elem,
                 &viewport.get(),
@@ -46,15 +55,19 @@ pub fn CanvasGrid(
     // Update formula bar when cell changes
     create_effect(move |_| {
         let cell = active_cell.get();
-        let ctrl = controller.clone();
-        let facade = ctrl.borrow().get_facade();
+        let ctrl = ctrl_formula.clone();
+        let ctrl_borrow = ctrl.borrow();
+        let facade = ctrl_borrow.get_facade();
 
         // Get cell value for formula bar
         if let Some(cell_obj) = facade.get_cell(&cell) {
-            if let Some(formula) = cell_obj.get_formula() {
-                set_formula_value.set(formula.to_string());
+            // Check if cell has a formula
+            if cell_obj.has_formula() {
+                // If it has a formula, show the raw value (which contains the formula)
+                set_formula_value.set(cell_obj.raw_value.to_string());
             } else {
-                set_formula_value.set(cell_obj.get_value().to_string());
+                // Otherwise show the display value
+                set_formula_value.set(cell_obj.get_display_value().to_string());
             }
         } else {
             set_formula_value.set(String::new());
@@ -63,7 +76,7 @@ pub fn CanvasGrid(
 
     // Handle canvas click
     let on_click = move |ev: MouseEvent| {
-        if let Some(canvas) = canvas_ref.get() {
+        if let Some(_canvas) = canvas_ref.get() {
             let x = ev.offset_x() as f64;
             let y = ev.offset_y() as f64;
 
@@ -71,12 +84,8 @@ pub fn CanvasGrid(
                 // Update active cell and move cursor in controller
                 set_active_cell.set(cell);
 
-                let ctrl = controller.clone();
-                let mut ctrl_mut = ctrl.borrow_mut();
-                // Dispatch a select action to update controller state
-                if let Err(e) = ctrl_mut.dispatch_action(Action::Select(cell)) {
-                    leptos::logging::log!("Error selecting cell: {:?}", e);
-                }
+                // For now, just update the UI state
+                // TODO: Add proper selection action when available in controller
             }
         }
     };
@@ -84,46 +93,154 @@ pub fn CanvasGrid(
     // Handle keyboard events through controller
     let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
-        let ctrl = controller.clone();
+        let ctrl = ctrl_keyboard.clone();
         let mut ctrl_mut = ctrl.borrow_mut();
         let current_mode = ctrl_mut.get_state().spreadsheet_mode();
 
-        // Map key to action based on mode
+        // For navigation, handle movement directly since controller doesn't have Move action
         let action = match current_mode {
-            SpreadsheetMode::Navigation => match key.as_str() {
-                "h" | "ArrowLeft" => {
-                    ev.prevent_default();
-                    Some(Action::Move(Direction::Left))
+            SpreadsheetMode::Navigation => {
+                let current_cursor = *ctrl_mut.get_state().cursor();
+                match key.as_str() {
+                    "h" | "ArrowLeft" => {
+                        ev.prevent_default();
+                        if current_cursor.col > 0 {
+                            Some(Action::UpdateCursor {
+                                cursor: CellAddress::new(
+                                    current_cursor.col - 1,
+                                    current_cursor.row,
+                                ),
+                            })
+                        } else {
+                            None
+                        }
+                    }
+                    "j" | "ArrowDown" => {
+                        ev.prevent_default();
+                        Some(Action::UpdateCursor {
+                            cursor: CellAddress::new(current_cursor.col, current_cursor.row + 1),
+                        })
+                    }
+                    "k" | "ArrowUp" => {
+                        ev.prevent_default();
+                        if current_cursor.row > 0 {
+                            Some(Action::UpdateCursor {
+                                cursor: CellAddress::new(
+                                    current_cursor.col,
+                                    current_cursor.row - 1,
+                                ),
+                            })
+                        } else {
+                            None
+                        }
+                    }
+                    "l" | "ArrowRight" => {
+                        ev.prevent_default();
+                        Some(Action::UpdateCursor {
+                            cursor: CellAddress::new(current_cursor.col + 1, current_cursor.row),
+                        })
+                    }
+                    "i" => {
+                        ev.prevent_default();
+                        set_editing_mode.set(true);
+                        // Calculate cell position for the editor
+                        let vp = viewport.get();
+                        let pos = vp.get_cell_position(&current_cursor);
+                        let theme = vp.get_theme();
+                        set_cell_position.set((
+                            pos.x + theme.row_header_width,
+                            pos.y + theme.column_header_height,
+                            pos.width,
+                            pos.height,
+                        ));
+                        Some(Action::StartEditing {
+                            edit_mode: Some(InsertMode::I),
+                            initial_value: None,
+                            cursor_position: None,
+                        })
+                    }
+                    "a" => {
+                        ev.prevent_default();
+                        set_editing_mode.set(true);
+                        // Calculate cell position for the editor
+                        let vp = viewport.get();
+                        let pos = vp.get_cell_position(&current_cursor);
+                        let theme = vp.get_theme();
+                        set_cell_position.set((
+                            pos.x + theme.row_header_width,
+                            pos.y + theme.column_header_height,
+                            pos.width,
+                            pos.height,
+                        ));
+                        Some(Action::StartEditing {
+                            edit_mode: Some(InsertMode::A),
+                            initial_value: None,
+                            cursor_position: None,
+                        })
+                    }
+                    "o" => {
+                        ev.prevent_default();
+                        // Move to next row and start editing
+                        let new_cursor =
+                            CellAddress::new(current_cursor.col, current_cursor.row + 1);
+                        set_active_cell.set(new_cursor);
+                        set_editing_mode.set(true);
+                        // Calculate cell position for the editor
+                        let vp = viewport.get();
+                        let pos = vp.get_cell_position(&new_cursor);
+                        let theme = vp.get_theme();
+                        set_cell_position.set((
+                            pos.x + theme.row_header_width,
+                            pos.y + theme.column_header_height,
+                            pos.width,
+                            pos.height,
+                        ));
+                        Some(Action::UpdateCursor { cursor: new_cursor })
+                    }
+                    "O" => {
+                        ev.prevent_default();
+                        // Move to previous row and start editing
+                        if current_cursor.row > 0 {
+                            let new_cursor =
+                                CellAddress::new(current_cursor.col, current_cursor.row - 1);
+                            set_active_cell.set(new_cursor);
+                            set_editing_mode.set(true);
+                            // Calculate cell position for the editor
+                            let vp = viewport.get();
+                            let pos = vp.get_cell_position(&new_cursor);
+                            let theme = vp.get_theme();
+                            set_cell_position.set((
+                                pos.x + theme.row_header_width,
+                                pos.y + theme.column_header_height,
+                                pos.width,
+                                pos.height,
+                            ));
+                            Some(Action::UpdateCursor { cursor: new_cursor })
+                        } else {
+                            None
+                        }
+                    }
+                    "v" => {
+                        ev.prevent_default();
+                        use gridcore_controller::state::{
+                            Selection, SelectionType, SpreadsheetVisualMode,
+                        };
+                        Some(Action::EnterSpreadsheetVisualMode {
+                            visual_mode: SpreadsheetVisualMode::Char,
+                            selection: Selection {
+                                selection_type: SelectionType::Cell {
+                                    address: current_cursor,
+                                },
+                                anchor: Some(current_cursor),
+                            },
+                        })
+                    }
+                    _ => None,
                 }
-                "j" | "ArrowDown" => {
-                    ev.prevent_default();
-                    Some(Action::Move(Direction::Down))
-                }
-                "k" | "ArrowUp" => {
-                    ev.prevent_default();
-                    Some(Action::Move(Direction::Up))
-                }
-                "l" | "ArrowRight" => {
-                    ev.prevent_default();
-                    Some(Action::Move(Direction::Right))
-                }
-                "i" => {
-                    ev.prevent_default();
-                    Some(Action::EnterEditingMode)
-                }
-                "v" => {
-                    ev.prevent_default();
-                    Some(Action::EnterVisualMode)
-                }
-                _ => None,
-            },
+            }
             SpreadsheetMode::Editing | SpreadsheetMode::Insert => {
-                if key == "Escape" {
-                    ev.prevent_default();
-                    Some(Action::EnterNavigationMode)
-                } else {
-                    None
-                }
+                // Editing is handled by CellEditor component
+                None
             }
             _ => None,
         };
@@ -157,6 +274,12 @@ pub fn CanvasGrid(
                 height="600"
                 on:click=on_click
                 style="border: 1px solid #e0e0e0; background: white; cursor: cell;"
+            />
+            <CellEditor
+                active_cell=active_cell
+                editing_mode=editing_mode
+                set_editing_mode=set_editing_mode
+                cell_position=cell_position
             />
         </div>
     }
@@ -272,7 +395,7 @@ fn render_grid(
 
             // Get cell value from facade
             if let Some(cell) = facade.get_cell(&cell_address) {
-                let value_str = cell.get_value().to_string();
+                let value_str = cell.get_display_value().to_string();
 
                 let x = viewport.get_column_x(col) - viewport.get_scroll_position().x
                     + theme.row_header_width;
