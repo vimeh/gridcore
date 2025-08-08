@@ -12,7 +12,7 @@ pub mod viewport;
 
 // Re-export WASM types from managers
 #[cfg(feature = "wasm")]
-pub use crate::managers::{WasmSelectionManager, Direction};
+pub use crate::managers::{Direction, WasmSelectionManager};
 
 #[cfg(feature = "wasm")]
 #[wasm_bindgen(js_name = "initController")]

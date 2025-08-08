@@ -1,12 +1,12 @@
 use crate::state::{Selection, SelectionType};
 use gridcore_core::{types::CellAddress, Result};
-use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 #[cfg(feature = "wasm")]
-use wasm_bindgen::prelude::*;
-#[cfg(feature = "wasm")]
 use serde_wasm_bindgen;
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
 
 /// Manages spreadsheet selections and multi-cursor operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -536,15 +536,25 @@ impl WasmSelectionManager {
 
     /// Expand selection in a direction
     #[wasm_bindgen(js_name = "expandSelection")]
-    pub fn expand_selection(&mut self, direction: Direction, amount: u32) -> std::result::Result<(), JsValue> {
-        self.inner.expand_selection(direction, amount)
+    pub fn expand_selection(
+        &mut self,
+        direction: Direction,
+        amount: u32,
+    ) -> std::result::Result<(), JsValue> {
+        self.inner
+            .expand_selection(direction, amount)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     /// Contract selection in a direction
     #[wasm_bindgen(js_name = "contractSelection")]
-    pub fn contract_selection(&mut self, direction: Direction, amount: u32) -> std::result::Result<(), JsValue> {
-        self.inner.contract_selection(direction, amount)
+    pub fn contract_selection(
+        &mut self,
+        direction: Direction,
+        amount: u32,
+    ) -> std::result::Result<(), JsValue> {
+        self.inner
+            .contract_selection(direction, amount)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
@@ -603,7 +613,7 @@ impl WasmSelectionManager {
     }
 
     /// Clear clipboard
-    #[wasm_bindgen(js_name = "clearClipboard")]  
+    #[wasm_bindgen(js_name = "clearClipboard")]
     pub fn clear_clipboard(&mut self) {
         self.inner.clear_clipboard();
     }

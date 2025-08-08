@@ -11,6 +11,14 @@ A Rust-based spreadsheet UI built with Leptos framework, migrating from the Type
 - CSS styling framework
 - Successful WASM compilation
 
+✅ **Phase 2: Working Canvas Grid**
+- Functional canvas rendering with grid lines
+- Row and column headers (A, B, C... and 1, 2, 3...)
+- Active cell highlighting
+- Mouse click cell selection
+- Keyboard navigation (arrow keys and vim hjkl)
+- Responsive canvas with proper sizing
+
 ## Architecture
 
 The Leptos UI provides direct integration with Rust controllers, eliminating WASM wrapper overhead:
@@ -52,18 +60,22 @@ trunk build --release
 - Basic Leptos app structure
 - Trunk build system
 - CSS framework
+- Canvas grid rendering with headers
+- Viewport management
+- Mouse click selection
+- Keyboard navigation (arrows + vim)
 
 ### 🚧 Next Steps
 
-#### Phase 2: Core Components
-- [ ] Implement working CanvasGrid with web-sys
-- [ ] Port Viewport calculations
-- [ ] Basic grid rendering
+#### Phase 3: Controller Integration
+- [ ] Connect real SpreadsheetController
+- [ ] Integrate with SpreadsheetFacade
+- [ ] Wire up data persistence
 
-#### Phase 3: Interaction
-- [ ] Mouse event handling
-- [ ] Keyboard navigation
-- [ ] Cell selection
+#### Phase 4: Cell Editing
+- [ ] Implement cell editor overlay
+- [ ] Formula bar integration
+- [ ] Vim mode support (normal/insert)
 
 #### Phase 4: Editing
 - [ ] Cell editor component

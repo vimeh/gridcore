@@ -8,7 +8,7 @@ pub mod wasm;
 
 // Re-export key types
 pub use controller::SpreadsheetController;
-pub use managers::{SelectionManager, Direction, ClipboardContent, CellContent};
+pub use managers::{CellContent, ClipboardContent, Direction, SelectionManager};
 pub use state::{
     Action, CellMode, Selection, SelectionType, SpreadsheetMode, UIState, UIStateMachine,
     ViewportInfo,

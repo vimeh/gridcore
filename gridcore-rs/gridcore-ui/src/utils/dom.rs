@@ -1,5 +1,5 @@
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlElement};
+use web_sys::HtmlElement;
 
 pub fn get_window() -> web_sys::Window {
     web_sys::window().expect("no global window exists")

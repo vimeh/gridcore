@@ -10,7 +10,17 @@ Create a new Rust crate `gridcore-ui` at `gridcore-rs/gridcore-ui/` that will be
 
 ## 1. Set up Leptos Project
 
-Done.
+✅ Done - Basic Leptos app with Trunk build configuration
+
+## 2. Canvas Rendering Implementation
+
+✅ Done - Working grid with:
+- Grid lines and cell boundaries
+- Row/column headers with labels
+- Active cell highlighting
+- Mouse click selection
+- Keyboard navigation (arrows + vim hjkl)
+- Viewport management for scrolling
 
 ## 2. Core Component Structure
 
