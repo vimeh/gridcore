@@ -12,16 +12,16 @@ pub fn App() -> impl IntoView {
     // Create the SpreadsheetController
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
     
-    // Initialize with test data
+    // Initialize with test data (fixed to avoid circular reference)
     {
         let ctrl_borrow = controller.borrow();
         let facade = ctrl_borrow.get_facade();
         let _ = facade.set_cell_value(&CellAddress::new(0, 0), "Hello");   // A1
         let _ = facade.set_cell_value(&CellAddress::new(1, 0), "World");   // B1
         let _ = facade.set_cell_value(&CellAddress::new(0, 1), "123");     // A2
-        let _ = facade.set_cell_value(&CellAddress::new(1, 1), "=A2+B2");  // B2 (formula)
-        let _ = facade.set_cell_value(&CellAddress::new(1, 2), "456");     // B3
-        
+        let _ = facade.set_cell_value(&CellAddress::new(1, 1), "456");     // B2
+        let _ = facade.set_cell_value(&CellAddress::new(0, 2), "=A2+B2");  // A3 (formula that adds A2+B2)
+        let _ = facade.set_cell_value(&CellAddress::new(1, 2), "789");     // B3
     }
     
     provide_context(controller.clone());

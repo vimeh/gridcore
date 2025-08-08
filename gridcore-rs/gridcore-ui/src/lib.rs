@@ -9,7 +9,7 @@ use leptos::*;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
-pub fn start() {
+pub fn run_app() {
     // Set panic hook for better error messages in browser console (debug builds only)
     #[cfg(feature = "debug")]
     console_error_panic_hook::set_once();
