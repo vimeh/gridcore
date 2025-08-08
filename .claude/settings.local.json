@@ -31,7 +31,8 @@
       "Bash(mkdir:*)",
       "Bash(sg:*)",
       "Bash(bun install:*)",
-      "WebFetch(domain:book.leptos.dev)"
+      "WebFetch(domain:book.leptos.dev)",
+      "Bash(trunk build:*)"
     ],
     "deny": []
   }

@@ -41,5 +41,3 @@ optional = true
 default = []
 debug = ["console_error_panic_hook"]
 
-[profile.dev]
-opt-level = 0
