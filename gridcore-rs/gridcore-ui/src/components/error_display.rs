@@ -104,7 +104,7 @@ pub fn ErrorDisplay() -> impl IntoView {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct ErrorContext {
     pub add_error: Callback<(String, ErrorSeverity)>,
     pub clear_errors: Callback<()>,

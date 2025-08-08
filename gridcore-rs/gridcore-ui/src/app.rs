@@ -2,7 +2,6 @@ use crate::components::canvas_grid::CanvasGrid;
 use crate::components::error_display::{ErrorDisplay, use_error_context};
 use crate::components::status_bar::{SelectionStats, StatusBar};
 use crate::components::tab_bar::{Sheet, TabBar};
-use gridcore_controller::controller::events::ErrorSeverity;
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_core::types::CellAddress;
 use leptos::*;
@@ -116,17 +115,17 @@ pub fn App() -> impl IntoView {
                         set_formula_value.set(String::new());
                     }
                     Err(e) => {
-                        // Emit error event through controller
-                        ctrl.borrow_mut().emit_error(
-                            format!("Failed to set cell value: {}", e),
-                            ErrorSeverity::Error,
-                        );
+                        // Display error directly through error context
+                        if let Some(error_ctx) = use_error_context() {
+                            error_ctx.show_error(format!("Failed to set cell value: {}", e));
+                        }
                     }
                 }
             }
         }
     };
 
+    
     // Initialize test data with error handling after ErrorDisplay is mounted
     let controller_for_init = controller.clone();
     create_effect(move |_| {

@@ -130,3 +130,102 @@ export async function waitForMode(page: Page, expectedMode: string, timeout = 10
     { timeout }
   )
 }
+
+/**
+ * Wait for an error message to appear
+ */
+export async function waitForError(page: Page, expectedMessage?: string, timeout = 5000): Promise<void> {
+  await page.waitForSelector(selectors.errorMessage, { state: "visible", timeout })
+  
+  if (expectedMessage) {
+    await page.waitForFunction(
+      (expectedMsg) => {
+        const errorTexts = Array.from(document.querySelectorAll(".error-text"))
+        return errorTexts.some(el => el.textContent?.includes(expectedMsg))
+      },
+      expectedMessage,
+      { timeout }
+    )
+  }
+}
+
+/**
+ * Check if an error is currently displayed
+ */
+export async function hasError(page: Page, severity?: "error" | "warning" | "info"): Promise<boolean> {
+  const selector = severity 
+    ? `.error-message.${severity}`
+    : selectors.errorMessage
+  
+  const errorElement = page.locator(selector)
+  return await errorElement.isVisible().catch(() => false)
+}
+
+/**
+ * Get all current error messages
+ */
+export async function getErrorMessages(page: Page): Promise<string[]> {
+  const errorTexts = await page.locator(selectors.errorText).all()
+  const messages: string[] = []
+  
+  for (const element of errorTexts) {
+    const text = await element.textContent()
+    if (text) messages.push(text.trim())
+  }
+  
+  return messages
+}
+
+/**
+ * Dismiss a specific error or all errors
+ */
+export async function dismissError(page: Page, messageText?: string): Promise<void> {
+  if (messageText) {
+    // Find the specific error message and dismiss it
+    const errorMessages = await page.locator(selectors.errorMessage).all()
+    for (const msg of errorMessages) {
+      const text = await msg.locator(selectors.errorText).textContent()
+      if (text?.includes(messageText)) {
+        await msg.locator(selectors.errorDismissButton).click()
+        break
+      }
+    }
+  } else {
+    // Dismiss all errors
+    const dismissButtons = await page.locator(selectors.errorDismissButton).all()
+    for (const button of dismissButtons) {
+      await button.click()
+    }
+  }
+}
+
+/**
+ * Enter a formula and wait for processing
+ */
+export async function enterFormula(page: Page, formula: string): Promise<void> {
+  // Start editing mode
+  await page.keyboard.press("i")
+  await page.waitForSelector(selectors.cellEditor, { state: "visible", timeout: 1000 })
+  
+  // Clear existing content and type formula
+  await page.keyboard.press("Control+a")
+  await page.keyboard.type(formula)
+  
+  // Exit and save (double Escape in vim mode)
+  await page.keyboard.press("Escape")
+  await page.keyboard.press("Escape")
+  
+  // Wait for editor to disappear
+  await page.waitForSelector(selectors.cellEditor, { state: "hidden", timeout: 1000 })
+  
+  // Give formula time to process
+  await page.waitForTimeout(100)
+}
+
+/**
+ * Check if a cell displays an error value
+ */
+export async function cellHasErrorValue(page: Page, expectedError: string): Promise<boolean> {
+  const formulaValue = await getCurrentCellValue(page)
+  return formulaValue.includes(expectedError)
+}

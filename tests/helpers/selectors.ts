@@ -35,6 +35,16 @@ export const selectors = {
   keyboardModeCheckbox: 'input[type="checkbox"]:nth-of-type(2)',
   importButton: 'button:has-text("Import")',
   exportButton: 'button:has-text("Export")',
+  
+  // Error display elements
+  errorDisplay: ".error-display-container",
+  errorMessage: ".error-message",
+  errorMessageError: ".error-message.error",
+  errorMessageWarning: ".error-message.warning",
+  errorMessageInfo: ".error-message.info",
+  errorDismissButton: ".error-dismiss",
+  errorText: ".error-text",
+  cellWithError: ".cell-error", // For future: cells with error styling
 }
 
 export const waitForApp = async (page: any) => {
