@@ -4,11 +4,7 @@
 [build]
 target = "index.html"
 dist = "dist"
-# Use the optimized wasm-release profile for release builds
-release = true
-# Specify cargo profile for release builds
-cargo_profile = "wasm-release"
-# Minify HTML/CSS/JS on release builds
+# Minify HTML/CSS/JS only on release builds
 minify = "on_release"
 
 [watch]

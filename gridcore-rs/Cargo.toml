@@ -25,6 +25,11 @@ regex = { version = "1.11", default-features = false, features = [
 ] }
 chrono = { version = "0.4", default-features = false }
 
+[profile.dev]
+# Use minimal optimizations to work around Leptos compilation issues
+opt-level = 1
+overflow-checks = true
+
 [profile.release]
 opt-level = "z"
 lto = true

@@ -9,9 +9,17 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== WASM Build Optimization ===${NC}"
+# Check if this is a release build
+# Trunk sets TRUNK_PROFILE environment variable
+if [ "$TRUNK_PROFILE" != "release" ]; then
+    echo -e "${BLUE}Debug build detected - skipping optimization${NC}"
+    exit 0
+fi
+
+echo -e "${GREEN}=== WASM Build Optimization (Release) ===${NC}"
 
 # Find the WASM file - Trunk sets TRUNK_STAGING_DIR
 if [ -n "$TRUNK_STAGING_DIR" ]; then
