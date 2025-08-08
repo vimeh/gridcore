@@ -1,5 +1,5 @@
 use crate::components::canvas_grid::CanvasGrid;
-use crate::components::error_display::{ErrorDisplay, use_error_context};
+use crate::components::error_display::{ErrorDisplay, ErrorMessage, ErrorSeverity};
 use crate::components::status_bar::{SelectionStats, StatusBar};
 use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
@@ -17,6 +17,37 @@ pub fn App() -> impl IntoView {
     let init_data = create_rw_signal(false);
     
     provide_context(controller.clone());
+    
+    // Create error handling signals
+    let (errors, set_errors) = create_signal::<Vec<ErrorMessage>>(Vec::new());
+    let error_counter = create_rw_signal(0usize);
+    
+    // Set up controller event listener for errors
+    {
+        let set_errors = set_errors.clone();
+        let error_counter = error_counter.clone();
+        let callback = Box::new(move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
+            if let gridcore_controller::controller::events::SpreadsheetEvent::ErrorOccurred { message, severity } = event {
+                let id = error_counter.get();
+                error_counter.set(id + 1);
+                
+                let sev = match severity {
+                    gridcore_controller::controller::events::ErrorSeverity::Error => ErrorSeverity::Error,
+                    gridcore_controller::controller::events::ErrorSeverity::Warning => ErrorSeverity::Warning,
+                    gridcore_controller::controller::events::ErrorSeverity::Info => ErrorSeverity::Info,
+                };
+                
+                let error_msg = ErrorMessage {
+                    message: message.clone(),
+                    severity: sev,
+                    id,
+                };
+                
+                set_errors.update(|errs| errs.push(error_msg));
+            }
+        });
+        controller.borrow_mut().subscribe_to_events(callback);
+    }
 
     // Create reactive signals for UI state
     let (active_cell, set_active_cell) = create_signal(CellAddress::new(0, 0));
@@ -115,10 +146,8 @@ pub fn App() -> impl IntoView {
                         set_formula_value.set(String::new());
                     }
                     Err(e) => {
-                        // Display error directly through error context
-                        if let Some(error_ctx) = use_error_context() {
-                            error_ctx.show_error(format!("Failed to set cell value: {}", e));
-                        }
+                        // Error will be displayed through controller events
+                        leptos::logging::log!("Error setting cell value: {}", e);
                     }
                 }
             }
@@ -132,7 +161,6 @@ pub fn App() -> impl IntoView {
         if !init_data.get() {
             init_data.set(true);
             
-            let error_ctx = use_error_context();
             let ctrl = controller_for_init.borrow();
             let facade = ctrl.get_facade();
             
@@ -148,9 +176,8 @@ pub fn App() -> impl IntoView {
             
             for (address, value) in test_data {
                 if let Err(e) = facade.set_cell_value(&address, value) {
-                    if let Some(ctx) = &error_ctx {
-                        ctx.show_warning(format!("Failed to initialize cell: {}", e));
-                    }
+                    // Error will be displayed through controller events
+                    leptos::logging::log!("Failed to initialize cell: {}", e);
                 }
             }
         }
@@ -158,7 +185,6 @@ pub fn App() -> impl IntoView {
 
     view! {
         <div class="spreadsheet-app">
-            <ErrorDisplay/>
             <div class="top-toolbar">
                 <div class="formula-bar">
                     <div class="cell-indicator">
@@ -209,6 +235,9 @@ pub fn App() -> impl IntoView {
                     selection_stats=selection_stats
                 />
             </div>
+            
+            // Add error display overlay
+            <ErrorDisplay errors=errors set_errors=set_errors />
         </div>
     }
 }

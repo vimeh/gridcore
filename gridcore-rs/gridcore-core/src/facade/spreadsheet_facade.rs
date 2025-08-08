@@ -139,7 +139,11 @@ impl SpreadsheetFacade {
             // Evaluate the formula
             let mut context = RepositoryContext::new(&self.repository);
             let mut evaluator = Evaluator::new(&mut context);
-            let computed_value = evaluator.evaluate(&ast)?;
+            // Try to evaluate the formula, but store error values if evaluation fails
+            let computed_value = match evaluator.evaluate(&ast) {
+                Ok(val) => val,
+                Err(e) => CellValue::Error(e.to_string()),
+            };
             cell.set_computed_value(computed_value.clone());
 
             cell
@@ -239,7 +243,11 @@ impl SpreadsheetFacade {
                 if let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
                     let mut evaluator = Evaluator::new(&mut context);
-                    let result = evaluator.evaluate(ast)?;
+                    // Try to evaluate, but store error values if evaluation fails
+                    let result = match evaluator.evaluate(ast) {
+                        Ok(val) => val,
+                        Err(e) => CellValue::Error(e.to_string()),
+                    };
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(address, cell);
                 }
@@ -542,7 +550,11 @@ impl SpreadsheetFacade {
             let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
             let mut context = RepositoryContext::new(&self.repository);
             let mut evaluator = Evaluator::new(&mut context);
-            let computed_value = evaluator.evaluate(&ast)?;
+            // Try to evaluate the formula, but store error values if evaluation fails
+            let computed_value = match evaluator.evaluate(&ast) {
+                Ok(val) => val,
+                Err(e) => CellValue::Error(e.to_string()),
+            };
             cell.set_computed_value(computed_value);
             cell
         } else {
@@ -573,7 +585,11 @@ impl SpreadsheetFacade {
                 if let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
                     let mut evaluator = Evaluator::new(&mut context);
-                    let result = evaluator.evaluate(ast)?;
+                    // Try to evaluate, but store error values if evaluation fails
+                    let result = match evaluator.evaluate(ast) {
+                        Ok(val) => val,
+                        Err(e) => CellValue::Error(e.to_string()),
+                    };
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(&dependent, cell);
 
@@ -608,7 +624,11 @@ impl SpreadsheetFacade {
                 if let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
                     let mut evaluator = Evaluator::new(&mut context);
-                    let result = evaluator.evaluate(ast)?;
+                    // Try to evaluate, but store error values if evaluation fails
+                    let result = match evaluator.evaluate(ast) {
+                        Ok(val) => val,
+                        Err(e) => CellValue::Error(e.to_string()),
+                    };
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(&address, cell);
                 }

@@ -206,11 +206,8 @@ pub fn CellEditor(
 
                     if !value.is_empty() {
                         if let Err(e) = ctrl.borrow().get_facade().set_cell_value(&cell, &value) {
+                            // Error will be displayed through controller events
                             leptos::logging::log!("Error setting cell value: {:?}", e);
-                            // Show error to user through the error display
-                            if let Some(error_ctx) = crate::components::error_display::use_error_context() {
-                                error_ctx.show_error(format!("Failed to set cell value: {}", e));
-                            }
                         }
                     }
 
@@ -256,11 +253,8 @@ pub fn CellEditor(
                         let ctrl_borrow = ctrl.borrow();
                         let facade = ctrl_borrow.get_facade();
                         if let Err(e) = facade.set_cell_value(&cell, &value) {
+                            // Error will be displayed through controller events
                             leptos::logging::log!("Error setting cell value: {:?}", e);
-                            // Show error to user through the error display
-                            if let Some(error_ctx) = crate::components::error_display::use_error_context() {
-                                error_ctx.show_error(format!("Failed to set cell value: {}", e));
-                            }
                         }
                     }
                     

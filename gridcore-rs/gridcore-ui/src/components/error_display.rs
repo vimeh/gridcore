@@ -16,12 +16,21 @@ pub struct ErrorMessage {
     pub id: usize,
 }
 
-#[component]
-pub fn ErrorDisplay() -> impl IntoView {
-    let (errors, set_errors) = create_signal::<Vec<ErrorMessage>>(Vec::new());
-    let error_counter = create_rw_signal(0usize);
+#[derive(Clone)]
+pub struct ErrorContext {
+    pub add_error: Callback<(String, ErrorSeverity)>,
+    pub clear_errors: Callback<()>,
+}
 
-    // Provide context for other components to add errors
+#[component]
+pub fn ErrorDisplay(
+    errors: ReadSignal<Vec<ErrorMessage>>,
+    set_errors: WriteSignal<Vec<ErrorMessage>>,
+) -> impl IntoView {
+    // Don't need to create signals here, they're passed in
+    
+    // Provide context for other components to add errors (if needed)
+    let error_counter = create_rw_signal(0usize);
     provide_context(ErrorContext {
         add_error: Callback::new(move |(message, severity): (String, ErrorSeverity)| {
             let id = error_counter.get();
@@ -102,12 +111,6 @@ pub fn ErrorDisplay() -> impl IntoView {
             />
         </div>
     }
-}
-
-#[derive(Clone)]
-pub struct ErrorContext {
-    pub add_error: Callback<(String, ErrorSeverity)>,
-    pub clear_errors: Callback<()>,
 }
 
 impl ErrorContext {

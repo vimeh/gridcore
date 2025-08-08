@@ -135,6 +135,20 @@ impl SpreadsheetController {
             "ArrowDown" | "j" => self.move_cursor(0, 1),
             "ArrowLeft" | "h" => self.move_cursor(-1, 0),
             "ArrowRight" | "l" => self.move_cursor(1, 0),
+            "Delete" => {
+                // Clear the current cell
+                let state = self.state_machine.get_state();
+                if let UIState::Navigation { cursor, .. } = state {
+                    let address = cursor.clone();
+                    // Delete the cell (actually removes it from repository)
+                    self.facade.delete_cell(&address)?;
+                    self.event_dispatcher.dispatch(&SpreadsheetEvent::CellEditCompleted {
+                        address: address.clone(),
+                        value: String::new(),
+                    });
+                }
+                Ok(())
+            }
             _ => Ok(()),
         }
     }
@@ -276,11 +290,25 @@ impl SpreadsheetController {
             // Update the cell value in the facade and handle errors
             match self.facade.set_cell_value(&address, &value) {
                 Ok(_) => {
+                    // Check if the cell now contains an error value (e.g., from formula evaluation)
+                    if let Ok(cell_value) = self.facade.get_cell_value(&address) {
+                        if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
+                            // Emit error event for formula evaluation errors
+                            self.event_dispatcher.dispatch(&SpreadsheetEvent::ErrorOccurred {
+                                message: format!("Formula error: {}", error_msg),
+                                severity: crate::controller::events::ErrorSeverity::Error,
+                            });
+                        }
+                    }
+                    
                     self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CellEditCompleted { address, value });
+                        .dispatch(&SpreadsheetEvent::CellEditCompleted { 
+                            address: address.clone(), 
+                            value 
+                        });
                 }
                 Err(e) => {
-                    // Emit error event
+                    // Emit error event for setting errors
                     self.event_dispatcher.dispatch(&SpreadsheetEvent::ErrorOccurred {
                         message: format!("Failed to set cell value: {}", e),
                         severity: crate::controller::events::ErrorSeverity::Error,
