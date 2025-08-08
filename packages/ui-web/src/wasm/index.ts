@@ -90,39 +90,6 @@ export interface Result<T> {
   error?: string;
 }
 
-// Structural UI types (mock for now)
-export interface StructuralOperation {
-  type: string;
-  parameters: any;
-}
-
-export interface StructuralOperationState {
-  operation: StructuralOperation;
-  status: string;
-}
-
-export interface StructuralUIConfig {
-  enableAnimations: boolean;
-  showProgress: boolean;
-}
-
-export interface StructuralUIEvent {
-  type: string;
-  data: any;
-}
-
-export interface StructuralWarning {
-  message: string;
-  level: string;
-}
-
-export type StructuralHighlightType = "inserted" | "deleted" | "modified";
-
-export interface CellHighlight {
-  address: CellAddressType;
-  type: StructuralHighlightType;
-}
-
 // SpreadsheetVisualMode enum
 export enum SpreadsheetVisualMode {
   CharacterWise = "CharacterWise",
