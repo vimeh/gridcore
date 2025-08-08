@@ -296,21 +296,6 @@ pub fn CanvasGrid(
                     }
                     "i" => {
                         ev.prevent_default();
-                        set_editing_mode.set(true);
-                        // Calculate cell position for the editor
-                        let vp = viewport.get();
-                        let (pos, theme) = {
-                            let vp_borrow = vp.borrow();
-                            let pos = vp_borrow.get_cell_position(&current_cursor);
-                            let theme = vp_borrow.get_theme().clone();
-                            (pos, theme)
-                        }; // vp_borrow is dropped here
-                        set_cell_position.set((
-                            pos.x + theme.row_header_width,
-                            pos.y + theme.column_header_height,
-                            pos.width,
-                            pos.height,
-                        ));
                         // Get existing cell value for 'i' key
                         let existing_value = {
                             let ctrl = controller.clone();
@@ -336,7 +321,6 @@ pub fn CanvasGrid(
                     }
                     "a" => {
                         ev.prevent_default();
-                        set_editing_mode.set(true);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
                         let (pos, theme) = {
@@ -381,7 +365,6 @@ pub fn CanvasGrid(
                         let new_cursor =
                             CellAddress::new(current_cursor.col, current_cursor.row + 1);
                         set_active_cell.set(new_cursor);
-                        set_editing_mode.set(true);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
                         let (pos, theme) = {
@@ -405,7 +388,6 @@ pub fn CanvasGrid(
                             let new_cursor =
                                 CellAddress::new(current_cursor.col, current_cursor.row - 1);
                             set_active_cell.set(new_cursor);
-                            set_editing_mode.set(true);
                             // Calculate cell position for the editor
                             let vp = viewport.get();
                             let (pos, theme) = {
@@ -427,7 +409,6 @@ pub fn CanvasGrid(
                     }
                     "Enter" => {
                         ev.prevent_default();
-                        set_editing_mode.set(true);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
                         let (pos, theme) = {
@@ -516,7 +497,6 @@ pub fn CanvasGrid(
                             let ch = key.chars().next().unwrap();
                             if ch.is_alphanumeric() || "!@#$%^&*()_+-=[]{}|;':\",./<>?`~".contains(ch) {
                                 ev.prevent_default();
-                                set_editing_mode.set(true);
                                 // Calculate cell position for the editor
                                 let vp = viewport.get();
                                 let (pos, theme) = {
@@ -556,21 +536,46 @@ pub fn CanvasGrid(
         // Dispatch action if we have one
         if let Some(action) = action {
             // Dispatch action and get new state, then drop the borrow
-            let (new_mode, new_cursor) = {
+            let (new_mode, new_cursor, is_editing) = {
                 let mut ctrl_mut = ctrl.borrow_mut();
-                if let Err(e) = ctrl_mut.dispatch_action(action) {
+                if let Err(e) = ctrl_mut.dispatch_action(action.clone()) {
                     leptos::logging::log!("Error dispatching action: {:?}", e);
                 }
 
-                let mode = ctrl_mut.get_state().spreadsheet_mode();
-                let cursor = *ctrl_mut.get_state().cursor();
-                (mode, cursor)
+                let state = ctrl_mut.get_state();
+                let mode = state.spreadsheet_mode();
+                let cursor = *state.cursor();
+                let is_editing = matches!(state, gridcore_controller::state::UIState::Editing { .. });
+                (mode, cursor, is_editing)
             }; // ctrl_mut is dropped here
 
             // Now update UI state after borrow is dropped
             set_current_mode.set(new_mode);
             set_active_cell.set(new_cursor);
-            leptos::logging::log!("Updated active cell to: col={}, row={}", new_cursor.col, new_cursor.row);
+            
+            // If we just started editing, show the editor and calculate position
+            if is_editing && !editing_mode.get() {
+                set_editing_mode.set(true);
+                // Calculate cell position for the editor
+                let vp = viewport.get();
+                let (pos, theme) = {
+                    let vp_borrow = vp.borrow();
+                    let pos = vp_borrow.get_cell_position(&new_cursor);
+                    let theme = vp_borrow.get_theme().clone();
+                    (pos, theme)
+                };
+                set_cell_position.set((
+                    pos.x + theme.row_header_width,
+                    pos.y + theme.column_header_height,
+                    pos.width,
+                    pos.height,
+                ));
+            } else if !is_editing && editing_mode.get() {
+                // We exited editing mode
+                set_editing_mode.set(false);
+            }
+            
+            leptos::logging::log!("Updated active cell to: col={}, row={}, editing={}", new_cursor.col, new_cursor.row, is_editing);
         }
     };
 

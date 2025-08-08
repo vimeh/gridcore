@@ -27,7 +27,9 @@ pub fn App() -> impl IntoView {
         let set_errors = set_errors.clone();
         let error_counter = error_counter.clone();
         let callback = Box::new(move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
+            leptos::logging::log!("Controller event received: {:?}", event);
             if let gridcore_controller::controller::events::SpreadsheetEvent::ErrorOccurred { message, severity } = event {
+                leptos::logging::log!("Error event: message={}, severity={:?}", message, severity);
                 let id = error_counter.get();
                 error_counter.set(id + 1);
                 
@@ -43,6 +45,7 @@ pub fn App() -> impl IntoView {
                     id,
                 };
                 
+                leptos::logging::log!("Adding error to display: id={}, message={}", id, message);
                 set_errors.update(|errs| errs.push(error_msg));
             }
         });

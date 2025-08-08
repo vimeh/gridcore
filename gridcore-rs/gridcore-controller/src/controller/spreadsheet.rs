@@ -292,6 +292,7 @@ impl SpreadsheetController {
                 Ok(_) => {
                     // Check if the cell now contains an error value (e.g., from formula evaluation)
                     if let Ok(cell_value) = self.facade.get_cell_value(&address) {
+                        // Check if the cell value is an error
                         if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
                             // Emit error event for formula evaluation errors
                             self.event_dispatcher.dispatch(&SpreadsheetEvent::ErrorOccurred {
