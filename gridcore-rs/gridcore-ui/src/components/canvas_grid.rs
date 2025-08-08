@@ -40,6 +40,11 @@ pub fn CanvasGrid(
     let (cell_position, set_cell_position) = create_signal((0.0, 0.0, 100.0, 25.0));
     let (cursor_style, set_cursor_style) = create_signal("cell");
     let (canvas_dimensions, set_canvas_dimensions) = create_signal((0.0, 0.0));
+    
+    // Get device pixel ratio once
+    let device_pixel_ratio = web_sys::window()
+        .and_then(|w| Some(w.device_pixel_ratio()))
+        .unwrap_or(1.0);
 
     // Create resize handler
     let resize_handler = ResizeHandler::new(viewport_rc.clone());
@@ -83,10 +88,7 @@ pub fn CanvasGrid(
                     canvas_elem.set_width((width * device_pixel_ratio) as u32);
                     canvas_elem.set_height((height * device_pixel_ratio) as u32);
                     
-                    // Set CSS size (logical pixels) - this maintains the correct display size
-                    canvas_elem.style().set_property("width", &format!("{}px", width)).ok();
-                    canvas_elem.style().set_property("height", &format!("{}px", height)).ok();
-                    
+                    // Update the signal which will trigger the view to update
                     set_canvas_dimensions.set((width, height));
 
                     // Update viewport size - use the Rc directly to avoid signal tracking
@@ -500,8 +502,14 @@ pub fn CanvasGrid(
         >
             <canvas
                 node_ref=canvas_ref
-                width=move || canvas_dimensions.get().0 as u32
-                height=move || canvas_dimensions.get().1 as u32
+                width=move || {
+                    let (width, _) = canvas_dimensions.get();
+                    (width * device_pixel_ratio) as u32
+                }
+                height=move || {
+                    let (_, height) = canvas_dimensions.get();
+                    (height * device_pixel_ratio) as u32
+                }
                 on:click=on_click
                 on:mousedown=on_mouse_down
                 on:mousemove=on_mouse_move
