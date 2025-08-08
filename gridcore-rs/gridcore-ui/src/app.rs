@@ -21,6 +21,13 @@ pub fn App() -> impl IntoView {
         let _ = facade.set_cell_value(&CellAddress::new(0, 1), "123");     // A2
         let _ = facade.set_cell_value(&CellAddress::new(1, 1), "=A2+B2");  // B2 (formula)
         let _ = facade.set_cell_value(&CellAddress::new(1, 2), "456");     // B3
+        
+        // Debug: verify data was set
+        if let Some(cell) = facade.get_cell(&CellAddress::new(1, 0)) {
+            leptos::logging::log!("B1 cell value: {:?}", cell.get_display_value().to_string());
+        } else {
+            leptos::logging::log!("B1 cell not found!");
+        }
     }
     
     provide_context(controller.clone());

@@ -32,7 +32,7 @@ pub fn CellEditor(
     // Initialize editor value when entering edit mode
     create_effect(move |_| {
         if editing_mode.get() {
-            let cell = active_cell.get();
+            let _cell = active_cell.get();
             let ctrl = ctrl_value.clone();
             let ctrl_borrow = ctrl.borrow();
             
@@ -160,46 +160,62 @@ pub fn CellEditor(
 
         match key.as_str() {
             "Enter" => {
-                ev.prevent_default();
-
-                // Check if we should apply a suggestion
-                if !suggestions_list.is_empty() {
-                    if let Some(idx) = selected_suggestion.get() {
-                        // Apply the selected suggestion
-                        let suggestion = &suggestions_list[idx];
-                        let current_value = editor_value.get();
-
-                        // Replace the partial function name with the full suggestion
-                        let parts: Vec<&str> = current_value
-                            .rsplitn(2, |c: char| !c.is_alphanumeric() && c != '_')
-                            .collect();
-                        if parts.len() == 2 {
-                            let new_value = format!("{}{}(", parts[1], suggestion);
-                            set_editor_value.set(new_value);
-                        }
-
-                        set_suggestions.set(Vec::new());
-                        set_selected_suggestion.set(None);
-                        return;
-                    }
-                }
-
-                // Submit the value
-                let value = editor_value.get();
-                let cell = active_cell.get();
+                // Check current editing mode
                 let ctrl = ctrl_submit.clone();
+                let is_insert_mode = {
+                    let ctrl_borrow = ctrl.borrow();
+                    matches!(
+                        ctrl_borrow.get_state(),
+                        UIState::Editing { cell_mode: CellMode::Insert, .. }
+                    )
+                };
+                
+                if is_insert_mode && !ev.shift_key() && !ev.ctrl_key() {
+                    // In insert mode, Enter adds a newline (unless Shift or Ctrl is held)
+                    // Let the default behavior happen - don't prevent default
+                    // The input element will handle adding the newline
+                } else {
+                    // In normal mode, or with modifier keys, Enter saves
+                    ev.prevent_default();
 
-                if !value.is_empty() {
-                    if let Err(e) = ctrl.borrow().get_facade().set_cell_value(&cell, &value) {
-                        leptos::logging::log!("Error setting cell value: {:?}", e);
+                    // Check if we should apply a suggestion
+                    if !suggestions_list.is_empty() {
+                        if let Some(idx) = selected_suggestion.get() {
+                            // Apply the selected suggestion
+                            let suggestion = &suggestions_list[idx];
+                            let current_value = editor_value.get();
+
+                            // Replace the partial function name with the full suggestion
+                            let parts: Vec<&str> = current_value
+                                .rsplitn(2, |c: char| !c.is_alphanumeric() && c != '_')
+                                .collect();
+                            if parts.len() == 2 {
+                                let new_value = format!("{}{}(", parts[1], suggestion);
+                                set_editor_value.set(new_value);
+                            }
+
+                            set_suggestions.set(Vec::new());
+                            set_selected_suggestion.set(None);
+                            return;
+                        }
                     }
-                }
 
-                // Exit editing mode
-                set_editing_mode.set(false);
-                let mut ctrl_mut = ctrl.borrow_mut();
-                if let Err(e) = ctrl_mut.dispatch_action(Action::ExitToNavigation) {
-                    leptos::logging::log!("Error exiting edit mode: {:?}", e);
+                    // Submit the value
+                    let value = editor_value.get();
+                    let cell = active_cell.get();
+
+                    if !value.is_empty() {
+                        if let Err(e) = ctrl.borrow().get_facade().set_cell_value(&cell, &value) {
+                            leptos::logging::log!("Error setting cell value: {:?}", e);
+                        }
+                    }
+
+                    // Exit editing mode
+                    set_editing_mode.set(false);
+                    let mut ctrl_mut = ctrl.borrow_mut();
+                    if let Err(e) = ctrl_mut.dispatch_action(Action::ExitToNavigation) {
+                        leptos::logging::log!("Error exiting edit mode: {:?}", e);
+                    }
                 }
             }
             "Escape" => {
