@@ -66,7 +66,7 @@ export class CanvasGrid {
     if (this.controller) {
       this.adapter = new WebStateAdapter(this.controller);
       // Create selection adapter using the core selection manager
-      const coreSelectionManager = new DefaultSelectionManager(this.facade);
+      const coreSelectionManager = new DefaultSelectionManager();
       this.selectionAdapter = new SelectionAdapter(coreSelectionManager);
     }
 
@@ -151,7 +151,7 @@ export class CanvasGrid {
     this.setupModeChangeSubscription();
 
     const initialCell = CellAddress.create(0, 0);
-    if (initialCell.ok) {
+    if (initialCell.ok && initialCell.value) {
       this.selectionManager.setActiveCell(initialCell.value);
     }
 
@@ -290,7 +290,7 @@ export class CanvasGrid {
           // Handle state change events
           if (
             event.type === "stateChanged" &&
-            event.state.spreadsheetMode === "editing"
+            event.state?.spreadsheetMode === "editing"
           ) {
             console.log("Controller says we should be editing!", {
               state: event.state,
@@ -308,8 +308,8 @@ export class CanvasGrid {
         console.log("Initial state is editing mode, starting editor");
         this.cellEditor.startEditing(
           initialState.cursor,
-          initialState.editingValue,
-          initialState.cursorPosition,
+          initialState.editingValue || "",
+          0, // Default cursor position
         );
       }
 
@@ -353,7 +353,7 @@ export class CanvasGrid {
             cellMode: coreState.cellMode,
           });
 
-          this.cellEditor.startEditing(cursor, editingValue, cursorPosition);
+          this.cellEditor.startEditing(cursor, editingValue || "", 0);
         }
         // Check for transition from editing to navigation mode
         else if (previousMode === "editing" && currentMode === "navigation") {
@@ -375,8 +375,8 @@ export class CanvasGrid {
         else if (currentMode === "editing" && previousMode === "editing") {
           // Update the editor content with the latest state
           this.cellEditor.updateContent(
-            coreState.editingValue,
-            coreState.cursorPosition,
+            coreState.editingValue || "",
+            0, // Default cursor position
           );
         }
 
@@ -431,17 +431,12 @@ export class CanvasGrid {
       this.selectionManager.setActiveCell(cell);
 
       // Start editing through the controller
-      this.controller.handleKeyPress("Enter", {
-        key: "Enter",
-        ctrl: false,
-        alt: false,
-        shift: false,
-      });
+      this.controller.handleKeyPress("Enter");
     } else {
       // Fallback to direct cell editor control
       const cellResult = this.facade.getCell(cell);
       let initialValue = "";
-      if (cellResult.ok) {
+      if (cellResult.ok && cellResult.value) {
         const cellData = cellResult.value;
         initialValue =
           cellData.formula?.toString() || String(cellData.value || "");

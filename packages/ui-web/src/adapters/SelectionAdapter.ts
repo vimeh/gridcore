@@ -97,10 +97,10 @@ export class SelectionAdapter {
     visualMode: "character" | "line" | "block" | null
   } {
     // Check if we're in visual mode
-    if (isSpreadsheetVisualMode(state)) {
+    if (state.visualMode && isSpreadsheetVisualMode(state.visualMode)) {
       return {
         selection: state.selection,
-        visualMode: this.getVisualModeForRenderer(state.visualMode),
+        visualMode: this.getVisualModeForRenderer(state.visualMode as SpreadsheetVisualMode),
       }
     }
     
@@ -115,8 +115,12 @@ export class SelectionAdapter {
     // No selection, just the cursor
     return {
       selection: {
-        type: { type: "cell", address: state.cursor },
-        anchor: state.cursor,
+        primary: state.cursor,
+        ranges: [{
+          start: state.cursor,
+          end: state.cursor
+        }],
+        type: "single"
       },
       visualMode: null,
     }
@@ -126,6 +130,7 @@ export class SelectionAdapter {
    * Check if a cell is selected in the given selection
    */
   isCellSelected(address: CellAddress, selection: Selection): boolean {
-    return this.coreSelectionManager.isCellSelected(address, selection)
+    this.coreSelectionManager.setSelection(selection)
+    return this.coreSelectionManager.isCellSelected(address)
   }
 }

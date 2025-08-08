@@ -251,7 +251,7 @@ describe("CanvasGrid Scrolling", () => {
     for (let row = 0; row < 100; row++) {
       for (let col = 0; col < 50; col++) {
         const addrResult = CellAddress.create(row, col);
-        if (addrResult.ok) {
+        if (addrResult.ok && addrResult.value) {
           facade.setCellValue(addrResult.value, `R${row}C${col}`);
         }
       }
