@@ -87,13 +87,15 @@ pub fn CanvasGrid(
 
             // Render the grid - borrow immutably for rendering
             let ctrl = ctrl_render.clone();
-            let ctrl_borrow = ctrl.borrow();
-            render_grid(
-                canvas_elem,
-                &*viewport_effect.borrow(),
-                active_cell.get(),
-                ctrl_borrow.get_facade(),
-            );
+            {
+                let ctrl_borrow = ctrl.borrow();
+                render_grid(
+                    canvas_elem,
+                    &*viewport_effect.borrow(),
+                    active_cell.get(),
+                    ctrl_borrow.get_facade(),
+                );
+            } // ctrl_borrow is dropped here
         }
     });
 
@@ -101,22 +103,28 @@ pub fn CanvasGrid(
     create_effect(move |_| {
         let cell = active_cell.get();
         let ctrl = ctrl_formula.clone();
-        let ctrl_borrow = ctrl.borrow();
-        let facade = ctrl_borrow.get_facade();
-
-        // Get cell value for formula bar
-        if let Some(cell_obj) = facade.get_cell(&cell) {
-            // Check if cell has a formula
-            if cell_obj.has_formula() {
-                // If it has a formula, show the raw value (which contains the formula)
-                set_formula_value.set(cell_obj.raw_value.to_string());
+        
+        // Get cell value and drop the borrow immediately
+        let cell_value = {
+            let ctrl_borrow = ctrl.borrow();
+            let facade = ctrl_borrow.get_facade();
+            
+            if let Some(cell_obj) = facade.get_cell(&cell) {
+                // Check if cell has a formula
+                if cell_obj.has_formula() {
+                    // If it has a formula, show the raw value (which contains the formula)
+                    Some(cell_obj.raw_value.to_string())
+                } else {
+                    // Otherwise show the display value
+                    Some(cell_obj.get_display_value().to_string())
+                }
             } else {
-                // Otherwise show the display value
-                set_formula_value.set(cell_obj.get_display_value().to_string());
+                None
             }
-        } else {
-            set_formula_value.set(String::new());
-        }
+        }; // ctrl_borrow is dropped here
+        
+        // Now update the formula value signal
+        set_formula_value.set(cell_value.unwrap_or_default());
     });
 
     // Handle canvas click
@@ -266,6 +274,7 @@ pub fn CanvasGrid(
                     }
                     "l" | "ArrowRight" => {
                         ev.prevent_default();
+                        leptos::logging::log!("Moving right from col={} to col={}", current_cursor.col, current_cursor.col + 1);
                         Some(Action::UpdateCursor {
                             cursor: CellAddress::new(current_cursor.col + 1, current_cursor.row),
                         })

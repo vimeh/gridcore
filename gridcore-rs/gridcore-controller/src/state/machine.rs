@@ -778,13 +778,19 @@ impl UIStateMachine {
     }
 
     fn add_to_history(&mut self, state: UIState, action: Action) {
+        #[cfg(not(target_arch = "wasm32"))]
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        
+        #[cfg(target_arch = "wasm32")]
+        let timestamp = 0u64; // Placeholder for WASM
+        
         let entry = HistoryEntry {
             state,
             action,
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
+            timestamp,
         };
 
         self.history.push_back(entry);

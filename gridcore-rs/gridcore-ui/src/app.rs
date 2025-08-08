@@ -67,8 +67,16 @@ pub fn App() -> impl IntoView {
                     <div class="cell-indicator">
                         {move || {
                             let cell = active_cell.get();
-                            let col = ((cell.col as u8 + b'A') as char).to_string();
+                            // Fix column calculation for multi-character columns
+                            let col = if cell.col < 26 {
+                                ((cell.col as u8 + b'A') as char).to_string()
+                            } else {
+                                let first = ((cell.col / 26 - 1) as u8 + b'A') as char;
+                                let second = ((cell.col % 26) as u8 + b'A') as char;
+                                format!("{}{}", first, second)
+                            };
                             let row = (cell.row + 1).to_string();
+                            leptos::logging::log!("Cell indicator: col={}, row={}, display={}{}", cell.col, cell.row, col, row);
                             format!("{}{}", col, row)
                         }}
                     </div>
