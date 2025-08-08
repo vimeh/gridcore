@@ -21,15 +21,24 @@ pub fn App() -> impl IntoView {
     // Get initial mode from controller
     let initial_mode = controller.borrow().get_state().spreadsheet_mode();
     let (current_mode, set_current_mode) = create_signal(initial_mode);
-    
+
     // Sheet management
     let initial_sheets = vec![
-        Sheet { id: 0, name: "Sheet1".to_string() },
-        Sheet { id: 1, name: "Sheet2".to_string() },
-        Sheet { id: 2, name: "Sheet3".to_string() },
+        Sheet {
+            id: 0,
+            name: "Sheet1".to_string(),
+        },
+        Sheet {
+            id: 1,
+            name: "Sheet2".to_string(),
+        },
+        Sheet {
+            id: 2,
+            name: "Sheet3".to_string(),
+        },
     ];
     let (sheets, _set_sheets) = create_signal(initial_sheets);
-    
+
     // Selection statistics (will be calculated from selection)
     let (selection_stats, _set_selection_stats) = create_signal(SelectionStats::default());
 

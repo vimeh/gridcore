@@ -18,14 +18,14 @@ pub fn TabBar(
     let (context_menu_pos, set_context_menu_pos) = create_signal((0.0, 0.0));
     let (editing_sheet, set_editing_sheet) = create_signal(None::<usize>);
     let (edit_name, set_edit_name) = create_signal(String::new());
-    
+
     // Add new sheet
     let add_sheet = move |_| {
         // This would normally dispatch an action to the controller
         // For now, just log
         leptos::logging::log!("Add new sheet");
     };
-    
+
     // Handle right-click on tab
     let on_context_menu = move |ev: MouseEvent, sheet_id: usize| {
         ev.prevent_default();
@@ -33,10 +33,11 @@ pub fn TabBar(
         set_context_menu_pos.set((ev.client_x() as f64, ev.client_y() as f64));
         set_show_context_menu.set(true);
     };
-    
+
     // Start renaming
     let start_rename = move |sheet_id: usize| {
-        let sheet_name = sheets.get()
+        let sheet_name = sheets
+            .get()
             .iter()
             .find(|s| s.id == sheet_id)
             .map(|s| s.name.clone())
@@ -45,7 +46,7 @@ pub fn TabBar(
         set_editing_sheet.set(Some(sheet_id));
         set_show_context_menu.set(false);
     };
-    
+
     // Finish renaming
     let finish_rename = move |sheet_id: usize| {
         let new_name = edit_name.get();
@@ -55,29 +56,29 @@ pub fn TabBar(
         }
         set_editing_sheet.set(None);
     };
-    
+
     // Delete sheet
     let delete_sheet = move |sheet_id: usize| {
         // This would normally dispatch an action to delete the sheet
         leptos::logging::log!("Delete sheet {}", sheet_id);
         set_show_context_menu.set(false);
     };
-    
+
     // Duplicate sheet
     let duplicate_sheet = move |sheet_id: usize| {
         // This would normally dispatch an action to duplicate the sheet
         leptos::logging::log!("Duplicate sheet {}", sheet_id);
         set_show_context_menu.set(false);
     };
-    
+
     // Close context menu when clicking elsewhere
     let close_context_menu = move |_| {
         set_show_context_menu.set(false);
     };
-    
+
     view! {
-        <div 
-            class="tab-bar" 
+        <div
+            class="tab-bar"
             style="display: flex; align-items: center; height: 32px; padding: 0 8px; background: #f5f5f5; border-top: 1px solid #e0e0e0; position: relative;"
             on:click=close_context_menu
         >
@@ -87,7 +88,7 @@ pub fn TabBar(
                     let sheet_name = sheet.name.clone();
                     let is_active = move || active_sheet.get() == sheet_id;
                     let is_editing = move || editing_sheet.get() == Some(sheet_id);
-                    
+
                     view! {
                         <div
                             class="tab"
@@ -130,15 +131,15 @@ pub fn TabBar(
                     }
                 }).collect::<Vec<_>>()}
             </div>
-            
-            <button 
+
+            <button
                 on:click=add_sheet
                 style="margin-left: 8px; padding: 2px 8px; cursor: pointer; background: transparent; border: 1px solid #e0e0e0; border-radius: 3px;"
                 title="Add new sheet"
             >
                 "+"
             </button>
-            
+
             // Context menu
             {move || if show_context_menu.get() {
                 let (x, y) = context_menu_pos.get();

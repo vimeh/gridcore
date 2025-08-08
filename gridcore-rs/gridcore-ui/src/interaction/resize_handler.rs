@@ -52,23 +52,28 @@ impl ResizeHandler {
         self.state.clone()
     }
 
-    pub fn check_resize_hover(&self, x: f64, y: f64, is_header: bool) -> Option<(ResizeType, usize)> {
+    pub fn check_resize_hover(
+        &self,
+        x: f64,
+        y: f64,
+        is_header: bool,
+    ) -> Option<(ResizeType, usize)> {
         let viewport = self.viewport.borrow();
-        
+
         if is_header {
             // Check column header for resize
             let mut current_x = 0.0;
             let scroll_x = viewport.get_scroll_position().x;
-            
+
             for col in 0..viewport.get_total_cols() {
                 let width = viewport.get_column_width(col);
                 let edge_x = current_x + width - scroll_x;
-                
+
                 // Check if mouse is near column edge
                 if (x - edge_x).abs() < self.resize_threshold && x > 0.0 {
                     return Some((ResizeType::Column, col));
                 }
-                
+
                 current_x += width;
                 if current_x - scroll_x > x + self.resize_threshold {
                     break;
@@ -78,34 +83,34 @@ impl ResizeHandler {
             // Check row header for resize
             let mut current_y = 0.0;
             let scroll_y = viewport.get_scroll_position().y;
-            
+
             for row in 0..viewport.get_total_rows() {
                 let height = viewport.get_row_height(row);
                 let edge_y = current_y + height - scroll_y;
-                
+
                 // Check if mouse is near row edge
                 if (y - edge_y).abs() < self.resize_threshold && y > 0.0 {
                     return Some((ResizeType::Row, row));
                 }
-                
+
                 current_y += height;
                 if current_y - scroll_y > y + self.resize_threshold {
                     break;
                 }
             }
         }
-        
+
         None
     }
 
     pub fn start_resize(&self, event: &MouseEvent, resize_type: ResizeType, index: usize) {
         let mut state = self.state.borrow_mut();
         let viewport = self.viewport.borrow();
-        
+
         state.is_resizing = true;
         state.resize_type = resize_type;
         state.resize_index = index;
-        
+
         match resize_type {
             ResizeType::Column => {
                 state.start_position = event.client_x() as f64;
@@ -124,9 +129,9 @@ impl ResizeHandler {
         if !state.is_resizing {
             return;
         }
-        
+
         let mut viewport = self.viewport.borrow_mut();
-        
+
         match state.resize_type {
             ResizeType::Column => {
                 let delta = event.client_x() as f64 - state.start_position;

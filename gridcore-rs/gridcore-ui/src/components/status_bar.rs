@@ -34,7 +34,7 @@ pub fn StatusBar(
         let cell = active_cell.get();
         format!("{}{}", get_column_label(cell.col as usize), cell.row + 1)
     };
-    
+
     // Format mode display with color
     let mode_display = move || {
         let (text, color) = match current_mode.get() {
@@ -49,13 +49,13 @@ pub fn StatusBar(
         };
         (text, color)
     };
-    
+
     // Format selection statistics
     let stats_display = move || {
         let stats = selection_stats.get();
         if stats.count > 1 {
             let mut parts = vec![format!("Count: {}", stats.count)];
-            
+
             if let Some(sum) = stats.sum {
                 parts.push(format!("Sum: {:.2}", sum));
             }
@@ -68,16 +68,16 @@ pub fn StatusBar(
             if let Some(max) = stats.max {
                 parts.push(format!("Max: {:.2}", max));
             }
-            
+
             parts.join(" | ")
         } else {
             String::new()
         }
     };
-    
+
     view! {
-        <div 
-            class="status-bar" 
+        <div
+            class="status-bar"
             style="display: flex; align-items: center; justify-content: space-between; height: 24px; padding: 0 12px; background: #f5f5f5; border-top: 1px solid #e0e0e0; font-size: 12px; font-family: monospace;"
         >
             // Left section: Cell address
@@ -85,7 +85,7 @@ pub fn StatusBar(
                 <span style="font-weight: 600;">
                     {cell_address}
                 </span>
-                
+
                 // Selection statistics
                 {move || if !stats_display().is_empty() {
                     view! {
@@ -97,13 +97,13 @@ pub fn StatusBar(
                     view! { }.into_view()
                 }}
             </div>
-            
+
             // Right section: Mode indicator
             <div style="display: flex; align-items: center; gap: 8px;">
                 {move || {
                     let (mode_text, mode_color) = mode_display();
                     view! {
-                        <span 
+                        <span
                             style=format!(
                                 "padding: 2px 8px; background: {}; color: white; border-radius: 3px; font-weight: 600; font-size: 11px;",
                                 mode_color
@@ -122,7 +122,7 @@ pub fn StatusBar(
 fn get_column_label(col: usize) -> String {
     let mut label = String::new();
     let mut n = col;
-    
+
     loop {
         label.insert(0, ((n % 26) as u8 + b'A') as char);
         if n < 26 {
@@ -130,6 +130,6 @@ fn get_column_label(col: usize) -> String {
         }
         n = n / 26 - 1;
     }
-    
+
     label
 }

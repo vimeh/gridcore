@@ -29,12 +29,17 @@ pub fn CanvasGrid(
     let theme = default_theme();
 
     // State
-    let viewport_rc = Rc::new(RefCell::new(Viewport::new(theme.clone(), Some(100), Some(26))));
+    let viewport_rc = Rc::new(RefCell::new(Viewport::new(
+        theme.clone(),
+        Some(100),
+        Some(26),
+    )));
     let (viewport, set_viewport) = create_signal(viewport_rc.clone());
     let (editing_mode, set_editing_mode) = create_signal(false);
     let (cell_position, set_cell_position) = create_signal((0.0, 0.0, 100.0, 25.0));
     let (cursor_style, set_cursor_style) = create_signal("cell");
-    
+    let (canvas_dimensions, set_canvas_dimensions) = create_signal((1200.0, 800.0));
+
     // Create resize handler
     let resize_handler = ResizeHandler::new(viewport_rc.clone());
     let _resize_state = resize_handler.get_state();
@@ -48,6 +53,24 @@ pub fn CanvasGrid(
     create_effect(move |_| {
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
+
+            // Update canvas dimensions based on parent container
+            if let Some(parent) = canvas_elem.parent_element() {
+                let rect = parent.get_bounding_client_rect();
+                let width = rect.width();
+                let height = rect.height();
+
+                // Update canvas dimensions if they've changed
+                if width > 0.0 && height > 0.0 {
+                    canvas_elem.set_width(width as u32);
+                    canvas_elem.set_height(height as u32);
+                    set_canvas_dimensions.set((width, height));
+
+                    // Update viewport size
+                    viewport.get().borrow_mut().set_viewport_size(width, height);
+                }
+            }
+
             let ctrl = ctrl_render.clone();
             let vp = viewport.get();
             render_grid(
@@ -87,22 +110,32 @@ pub fn CanvasGrid(
             let x = ev.offset_x() as f64;
             let y = ev.offset_y() as f64;
 
-            if let Some(cell) = viewport.get().borrow().get_cell_at_position(x, y) {
-                // Update active cell and move cursor in controller
-                set_active_cell.set(cell);
+            // Only process clicks in the cell area (not headers)
+            let vp = viewport.get();
+            let vp_borrow = vp.borrow();
+            let theme = vp_borrow.get_theme();
+            if x > theme.row_header_width && y > theme.column_header_height {
+                // Subtract header offsets to get cell coordinates
+                let cell_x = x - theme.row_header_width;
+                let cell_y = y - theme.column_header_height;
 
-                // For now, just update the UI state
-                // TODO: Add proper selection action when available in controller
+                if let Some(cell) = vp_borrow.get_cell_at_position(cell_x, cell_y) {
+                    // Update active cell and move cursor in controller
+                    set_active_cell.set(cell);
+
+                    // For now, just update the UI state
+                    // TODO: Add proper selection action when available in controller
+                }
             }
         }
     };
-    
+
     // Handle mouse move for resize cursor
     let resize_handler_move = resize_handler.clone();
     let on_mouse_move = move |ev: MouseEvent| {
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
-        
+
         // Check if we're resizing
         if resize_handler_move.is_resizing() {
             resize_handler_move.handle_resize(&ev);
@@ -113,12 +146,12 @@ pub fn CanvasGrid(
             let theme = default_theme();
             let is_col_header = y < theme.column_header_height;
             let is_row_header = x < theme.row_header_width;
-            
+
             if is_col_header || is_row_header {
                 let cursor = resize_handler_move.get_cursor_style(
                     if is_col_header { x } else { 0.0 },
                     if is_row_header { y } else { 0.0 },
-                    is_col_header
+                    is_col_header,
                 );
                 set_cursor_style.set(cursor);
             } else {
@@ -126,29 +159,29 @@ pub fn CanvasGrid(
             }
         }
     };
-    
+
     // Handle mouse down for starting resize
     let resize_handler_down = resize_handler.clone();
     let on_mouse_down = move |ev: MouseEvent| {
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
         let theme = default_theme();
-        
+
         let is_col_header = y < theme.column_header_height;
         let is_row_header = x < theme.row_header_width;
-        
+
         if is_col_header || is_row_header {
             if let Some((resize_type, index)) = resize_handler_down.check_resize_hover(
                 if is_col_header { x } else { 0.0 },
                 if is_row_header { y } else { 0.0 },
-                is_col_header
+                is_col_header,
             ) {
                 ev.prevent_default();
                 resize_handler_down.start_resize(&ev, resize_type, index);
             }
         }
     };
-    
+
     // Handle mouse up for ending resize
     let resize_handler_up = resize_handler.clone();
     let on_mouse_up = move |_ev: MouseEvent| {
@@ -339,13 +372,13 @@ pub fn CanvasGrid(
         >
             <canvas
                 node_ref=canvas_ref
-                width="800"
-                height="600"
+                width=move || canvas_dimensions.get().0 as u32
+                height=move || canvas_dimensions.get().1 as u32
                 on:click=on_click
                 on:mousedown=on_mouse_down
                 on:mousemove=on_mouse_move
                 on:mouseup=on_mouse_up
-                style=move || format!("border: 1px solid #e0e0e0; background: white; cursor: {};", cursor_style.get())
+                style=move || format!("width: 100%; height: 100%; border: 1px solid #e0e0e0; background: white; cursor: {};", cursor_style.get())
             />
             <CellEditor
                 active_cell=active_cell
@@ -391,18 +424,20 @@ fn render_grid(
     ctx.set_line_width(1.0);
 
     for col in bounds.start_col..=bounds.end_col {
-        let x = viewport.get_column_x(col) - viewport.get_scroll_position().x;
+        let x =
+            viewport.get_column_x(col) - viewport.get_scroll_position().x + theme.row_header_width;
         ctx.begin_path();
-        ctx.move_to(x, 0.0);
+        ctx.move_to(x, theme.column_header_height);
         ctx.line_to(x, canvas.height() as f64);
         ctx.stroke();
     }
 
     // Draw horizontal lines
     for row in bounds.start_row..=bounds.end_row {
-        let y = viewport.get_row_y(row) - viewport.get_scroll_position().y;
+        let y =
+            viewport.get_row_y(row) - viewport.get_scroll_position().y + theme.column_header_height;
         ctx.begin_path();
-        ctx.move_to(0.0, y);
+        ctx.move_to(theme.row_header_width, y);
         ctx.line_to(canvas.width() as f64, y);
         ctx.stroke();
     }
@@ -418,7 +453,8 @@ fn render_grid(
     ));
 
     for col in bounds.start_col..=bounds.end_col {
-        let x = viewport.get_column_x(col) - viewport.get_scroll_position().x;
+        let x =
+            viewport.get_column_x(col) - viewport.get_scroll_position().x + theme.row_header_width;
         let width = viewport.get_column_width(col);
 
         // Draw header background
@@ -435,7 +471,8 @@ fn render_grid(
 
     // Draw row headers
     for row in bounds.start_row..=bounds.end_row {
-        let y = viewport.get_row_y(row) - viewport.get_scroll_position().y;
+        let y =
+            viewport.get_row_y(row) - viewport.get_scroll_position().y + theme.column_header_height;
         let height = viewport.get_row_height(row);
 
         // Draw header background
