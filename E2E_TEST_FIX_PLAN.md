@@ -2,9 +2,10 @@
 
 ## Current Status
 - **Total Tests**: 68
-- **Passing**: 11  
-- **Failing**: 57
-- **Main Issue**: The new Leptos UI is missing many features that the TypeScript UI had, causing test failures
+- **Passing**: 24 (35%)
+- **Failing**: 42 (62%)
+- **Skipped**: 2
+- **Progress**: Major improvements in cell editing and navigation
 
 ## Test Failure Categories
 
