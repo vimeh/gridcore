@@ -51,7 +51,7 @@ pub fn CanvasGrid(
 
     // Clone viewport_rc for use in the effect
     let viewport_effect = viewport_rc.clone();
-    
+
     // Set up canvas rendering after mount
     create_effect(move |_| {
         if let Some(canvas) = canvas_ref.get() {
@@ -70,7 +70,9 @@ pub fn CanvasGrid(
                     set_canvas_dimensions.set((width, height));
 
                     // Update viewport size - use the Rc directly to avoid signal tracking
-                    viewport_effect.borrow_mut().set_viewport_size(width, height);
+                    viewport_effect
+                        .borrow_mut()
+                        .set_viewport_size(width, height);
                 }
             }
 
@@ -116,7 +118,7 @@ pub fn CanvasGrid(
 
             // Only process clicks in the cell area (not headers)
             let vp = viewport.get();
-            
+
             // Use a block to ensure the borrow is dropped before setting active cell
             let new_cell = {
                 let vp_borrow = vp.borrow();
@@ -125,13 +127,13 @@ pub fn CanvasGrid(
                     // Subtract header offsets to get cell coordinates
                     let cell_x = x - theme.row_header_width;
                     let cell_y = y - theme.column_header_height;
-                    
+
                     vp_borrow.get_cell_at_position(cell_x, cell_y)
                 } else {
                     None
                 }
             }; // vp_borrow is dropped here
-            
+
             // Now update active cell if we found one
             if let Some(cell) = new_cell {
                 set_active_cell.set(cell);
@@ -207,7 +209,7 @@ pub fn CanvasGrid(
     let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
         let ctrl = ctrl_keyboard.clone();
-        
+
         // Get current mode and cursor, then drop the borrow
         let (current_mode, current_cursor) = {
             let ctrl_borrow = ctrl.borrow();
@@ -387,12 +389,12 @@ pub fn CanvasGrid(
                 if let Err(e) = ctrl_mut.dispatch_action(action) {
                     leptos::logging::log!("Error dispatching action: {:?}", e);
                 }
-                
+
                 let mode = ctrl_mut.get_state().spreadsheet_mode();
                 let cursor = *ctrl_mut.get_state().cursor();
                 (mode, cursor)
             }; // ctrl_mut is dropped here
-            
+
             // Now update UI state after borrow is dropped
             set_current_mode.set(new_mode);
             set_active_cell.set(new_cursor);
