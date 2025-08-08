@@ -34,6 +34,9 @@
       "WebFetch(domain:book.leptos.dev)",
       "Bash(trunk build:*)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "/Users/vinay/v/code/gridcore/main/"
+    ]
   }
 }

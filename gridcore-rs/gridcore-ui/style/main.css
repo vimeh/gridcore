@@ -131,3 +131,83 @@
 .grid-scroll-container::-webkit-scrollbar-corner {
     background: #f1f1f1;
 }
+
+/* Error Display Styles */
+.error-display-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.error-message {
+    padding: 12px 40px 12px 16px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+    word-wrap: break-word;
+}
+
+.error-message.error {
+    background-color: #ff4444;
+    color: white;
+    border-left: 4px solid #cc0000;
+}
+
+.error-message.warning {
+    background-color: #ff9800;
+    color: white;
+    border-left: 4px solid #e68900;
+}
+
+.error-message.info {
+    background-color: #2196f3;
+    color: white;
+    border-left: 4px solid #0d7fc4;
+}
+
+.error-text {
+    display: block;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.error-dismiss {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.error-dismiss:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

@@ -97,6 +97,20 @@ pub enum SpreadsheetEvent {
     FileLoaded {
         path: String,
     },
+    
+    // Error events
+    ErrorOccurred {
+        message: String,
+        severity: ErrorSeverity,
+    },
+}
+
+/// Error severity levels
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ErrorSeverity {
+    Error,
+    Warning,
+    Info,
 }
 
 /// Keyboard event representation

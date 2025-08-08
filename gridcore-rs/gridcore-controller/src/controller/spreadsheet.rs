@@ -74,6 +74,14 @@ impl SpreadsheetController {
     pub fn get_facade_mut(&mut self) -> &mut SpreadsheetFacade {
         &mut self.facade
     }
+    
+    /// Emit an error event
+    pub fn emit_error(&mut self, message: String, severity: crate::controller::events::ErrorSeverity) {
+        self.event_dispatcher.dispatch(&SpreadsheetEvent::ErrorOccurred {
+            message,
+            severity,
+        });
+    }
 
     pub fn get_viewport_manager(&self) -> &dyn ViewportManager {
         self.viewport_manager.as_ref()
@@ -265,11 +273,21 @@ impl SpreadsheetController {
             let address = cursor.clone();
             let value = editing_value.clone();
 
-            // Update the cell value in the facade
-            let _ = self.facade.set_cell_value(&address, &value);
-
-            self.event_dispatcher
-                .dispatch(&SpreadsheetEvent::CellEditCompleted { address, value });
+            // Update the cell value in the facade and handle errors
+            match self.facade.set_cell_value(&address, &value) {
+                Ok(_) => {
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::CellEditCompleted { address, value });
+                }
+                Err(e) => {
+                    // Emit error event
+                    self.event_dispatcher.dispatch(&SpreadsheetEvent::ErrorOccurred {
+                        message: format!("Failed to set cell value: {}", e),
+                        severity: crate::controller::events::ErrorSeverity::Error,
+                    });
+                    // Still exit editing mode even if the value couldn't be set
+                }
+            }
 
             self.dispatch_action(Action::ExitToNavigation)
         } else {

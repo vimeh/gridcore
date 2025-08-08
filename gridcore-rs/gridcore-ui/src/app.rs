@@ -1,6 +1,8 @@
 use crate::components::canvas_grid::CanvasGrid;
+use crate::components::error_display::{ErrorDisplay, use_error_context};
 use crate::components::status_bar::{SelectionStats, StatusBar};
 use crate::components::tab_bar::{Sheet, TabBar};
+use gridcore_controller::controller::events::ErrorSeverity;
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_core::types::CellAddress;
 use leptos::*;
@@ -12,17 +14,8 @@ pub fn App() -> impl IntoView {
     // Create the SpreadsheetController
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
     
-    // Initialize with test data (fixed to avoid circular reference)
-    {
-        let ctrl_borrow = controller.borrow();
-        let facade = ctrl_borrow.get_facade();
-        let _ = facade.set_cell_value(&CellAddress::new(0, 0), "Hello");   // A1
-        let _ = facade.set_cell_value(&CellAddress::new(1, 0), "World");   // B1
-        let _ = facade.set_cell_value(&CellAddress::new(0, 1), "123");     // A2
-        let _ = facade.set_cell_value(&CellAddress::new(1, 1), "456");     // B2
-        let _ = facade.set_cell_value(&CellAddress::new(0, 2), "=A2+B2");  // A3 (formula that adds A2+B2)
-        let _ = facade.set_cell_value(&CellAddress::new(1, 2), "789");     // B3
-    }
+    // We'll initialize test data after ErrorDisplay is available
+    let init_data = create_rw_signal(false);
     
     provide_context(controller.clone());
 
@@ -117,16 +110,56 @@ pub fn App() -> impl IntoView {
             // Set cell value through controller
             let ctrl = controller_for_submit.clone();
             if !value.is_empty() {
-                if let Err(e) = ctrl.borrow().get_facade().set_cell_value(&cell, &value) {
-                    leptos::logging::log!("Error setting cell value: {:?}", e);
+                let result = ctrl.borrow().get_facade().set_cell_value(&cell, &value);
+                match result {
+                    Ok(_) => {
+                        set_formula_value.set(String::new());
+                    }
+                    Err(e) => {
+                        // Emit error event through controller
+                        ctrl.borrow_mut().emit_error(
+                            format!("Failed to set cell value: {}", e),
+                            ErrorSeverity::Error,
+                        );
+                    }
                 }
-                set_formula_value.set(String::new());
             }
         }
     };
 
+    // Initialize test data with error handling after ErrorDisplay is mounted
+    let controller_for_init = controller.clone();
+    create_effect(move |_| {
+        if !init_data.get() {
+            init_data.set(true);
+            
+            let error_ctx = use_error_context();
+            let ctrl = controller_for_init.borrow();
+            let facade = ctrl.get_facade();
+            
+            // Initialize test data with proper error handling
+            let test_data = vec![
+                (CellAddress::new(0, 0), "Hello"),
+                (CellAddress::new(1, 0), "World"),
+                (CellAddress::new(0, 1), "123"),
+                (CellAddress::new(1, 1), "456"),
+                (CellAddress::new(0, 2), "=A2+B2"),
+                (CellAddress::new(1, 2), "789"),
+            ];
+            
+            for (address, value) in test_data {
+                if let Err(e) = facade.set_cell_value(&address, value) {
+                    if let Some(ctx) = &error_ctx {
+                        ctx.show_warning(format!("Failed to initialize cell: {}", e));
+                    }
+                }
+            }
+        }
+    });
+
     view! {
         <div class="spreadsheet-app">
+            <ErrorDisplay/>
             <div class="top-toolbar">
                 <div class="formula-bar">
                     <div class="cell-indicator">
