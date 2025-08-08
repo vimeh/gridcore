@@ -20,13 +20,15 @@ export class SelectionAdapter {
     const cells = new Set<string>()
     
     // Check if selection is valid
-    if (!selection || !selection.type) {
+    if (!selection) {
       return cells
     }
     
     // Use the core SelectionManager to get all cells in the selection
     try {
-      for (const address of this.coreSelectionManager.getCellsInSelection(selection)) {
+      // Set the selection first, then get cells
+      this.coreSelectionManager.setSelection(selection)
+      for (const address of this.coreSelectionManager.getCellsInSelection()) {
         cells.add(address.toString())
       }
     } catch (error) {
@@ -41,24 +43,21 @@ export class SelectionAdapter {
    */
   getSelectionRange(selection: Selection): CellRange | null {
     // Check if selection is valid
-    if (!selection || !selection.type) {
+    if (!selection) {
       return null
     }
     
-    if (selection.type.type === "range") {
-      const result = CellRange.create(selection.type.start, selection.type.end)
-      return result.ok ? result.value : null
+    // If selection has ranges, use the first one
+    if (selection.ranges && selection.ranges.length > 0) {
+      return selection.ranges[0]
     }
     
     // For other selection types, calculate bounds and create a range
     try {
-      const bounds = this.coreSelectionManager.getSelectionBounds(selection)
-      const startResult = CellAddress.create(bounds.minRow, bounds.minCol)
-      const endResult = CellAddress.create(bounds.maxRow, bounds.maxCol)
-      
-      if (startResult.ok && endResult.ok) {
-        const rangeResult = CellRange.create(startResult.value, endResult.value)
-        return rangeResult.ok ? rangeResult.value : null
+      this.coreSelectionManager.setSelection(selection)
+      const bounds = this.coreSelectionManager.getSelectionBounds()
+      if (bounds) {
+        return CellRange.create(bounds.start, bounds.end)
       }
     } catch (error) {
       console.warn("Error getting selection range:", error)
