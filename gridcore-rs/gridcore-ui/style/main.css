@@ -1,0 +1,97 @@
+.spreadsheet-app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+}
+
+.top-toolbar {
+    flex-shrink: 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.main-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.bottom-toolbar {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #e0e0e0;
+}
+
+.canvas-grid-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    outline: none;
+}
+
+.grid-scroll-container {
+    position: absolute;
+    top: 24px;
+    left: 50px;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+}
+
+.grid-canvas {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.grid-corner-canvas,
+.grid-col-header-canvas,
+.grid-row-header-canvas {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.cell-editor {
+    min-width: 100px;
+    min-height: 24px;
+}
+
+.formula-bar {
+    background: #fafafa;
+    min-height: 32px;
+}
+
+.status-bar {
+    min-height: 24px;
+    font-size: 12px;
+}
+
+.tab-bar {
+    min-height: 28px;
+}
+
+/* Scrollbar styling */
+.grid-scroll-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.grid-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.grid-scroll-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 6px;
+}
+
+.grid-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.grid-scroll-container::-webkit-scrollbar-corner {
+    background: #f1f1f1;
+}

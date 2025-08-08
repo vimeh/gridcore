@@ -1,0 +1,18 @@
+# Trunk build configuration
+# https://trunkrs.dev/configuration/
+
+[build]
+target = "index.html"
+dist = "dist"
+
+[watch]
+watch = ["src", "Cargo.toml", "index.html", "style"]
+
+[serve]
+address = "127.0.0.1"
+port = 8080
+open = true
+
+[[proxy]]
+# Proxy for any backend API if needed
+backend = "http://localhost:3000/"
