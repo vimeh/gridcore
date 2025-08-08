@@ -317,7 +317,12 @@ pub fn CanvasGrid(
                             let ctrl_borrow = ctrl.borrow();
                             let facade = ctrl_borrow.get_facade();
                             if let Some(cell_obj) = facade.get_cell(&current_cursor) {
-                                cell_obj.display_value.clone()
+                                // Get the display value - use raw_value if it's a formula, otherwise computed_value
+                                if cell_obj.has_formula() {
+                                    cell_obj.raw_value.to_string()
+                                } else {
+                                    cell_obj.get_display_value().to_string()
+                                }
                             } else {
                                 String::new()
                             }
@@ -352,7 +357,12 @@ pub fn CanvasGrid(
                             let ctrl_borrow = ctrl.borrow();
                             let facade = ctrl_borrow.get_facade();
                             if let Some(cell_obj) = facade.get_cell(&current_cursor) {
-                                cell_obj.display_value.clone()
+                                // Get the display value - use raw_value if it's a formula, otherwise computed_value
+                                if cell_obj.has_formula() {
+                                    cell_obj.raw_value.to_string()
+                                } else {
+                                    cell_obj.get_display_value().to_string()
+                                }
                             } else {
                                 String::new()
                             }

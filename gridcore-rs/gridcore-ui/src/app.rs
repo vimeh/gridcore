@@ -50,23 +50,7 @@ pub fn App() -> impl IntoView {
     
     // Update formula bar when active cell changes
     let ctrl_for_effect = controller.clone();
-    create_effect(move |_| {
-        let cell = active_cell.get();
-        let ctrl = ctrl_for_effect.clone();
-        let ctrl_borrow = ctrl.borrow();
-        let facade = ctrl_borrow.get_facade();
-        
-        // Get cell value for formula bar
-        if let Some(cell_obj) = facade.get_cell(&cell) {
-            if cell_obj.has_formula() {
-                set_formula_value.set(cell_obj.raw_value.to_string());
-            } else {
-                set_formula_value.set(cell_obj.get_display_value().to_string());
-            }
-        } else {
-            set_formula_value.set(String::new());
-        }
-    });
+    // Removed duplicate create_effect - we have the better one below
     let (current_mode, set_current_mode) = create_signal(initial_mode);
 
     // Sheet management
