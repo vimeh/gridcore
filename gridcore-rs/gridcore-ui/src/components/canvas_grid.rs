@@ -10,6 +10,7 @@ use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent, MouseE
 
 use crate::components::cell_editor::CellEditor;
 use crate::components::viewport::Viewport;
+use crate::interaction::resize_handler::ResizeHandler;
 use crate::rendering::default_theme;
 
 #[component]
@@ -28,10 +29,15 @@ pub fn CanvasGrid(
     let theme = default_theme();
 
     // State
-    let (viewport, _set_viewport) =
-        create_signal(Viewport::new(theme.clone(), Some(100), Some(26)));
+    let viewport_rc = Rc::new(RefCell::new(Viewport::new(theme.clone(), Some(100), Some(26))));
+    let (viewport, set_viewport) = create_signal(viewport_rc.clone());
     let (editing_mode, set_editing_mode) = create_signal(false);
     let (cell_position, set_cell_position) = create_signal((0.0, 0.0, 100.0, 25.0));
+    let (cursor_style, set_cursor_style) = create_signal("cell");
+    
+    // Create resize handler
+    let resize_handler = ResizeHandler::new(viewport_rc.clone());
+    let resize_state = resize_handler.get_state();
 
     // Clone controller references for closures
     let ctrl_render = controller.clone();
@@ -43,9 +49,10 @@ pub fn CanvasGrid(
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
             let ctrl = ctrl_render.clone();
+            let vp = viewport.get();
             render_grid(
                 canvas_elem,
-                &viewport.get(),
+                &*vp.borrow(),
                 active_cell.get(),
                 ctrl.borrow().get_facade(),
             );
@@ -80,13 +87,75 @@ pub fn CanvasGrid(
             let x = ev.offset_x() as f64;
             let y = ev.offset_y() as f64;
 
-            if let Some(cell) = viewport.get().get_cell_at_position(x, y) {
+            if let Some(cell) = viewport.get().borrow().get_cell_at_position(x, y) {
                 // Update active cell and move cursor in controller
                 set_active_cell.set(cell);
 
                 // For now, just update the UI state
                 // TODO: Add proper selection action when available in controller
             }
+        }
+    };
+    
+    // Handle mouse move for resize cursor
+    let resize_handler_move = resize_handler.clone();
+    let on_mouse_move = move |ev: MouseEvent| {
+        let x = ev.offset_x() as f64;
+        let y = ev.offset_y() as f64;
+        
+        // Check if we're resizing
+        if resize_handler_move.is_resizing() {
+            resize_handler_move.handle_resize(&ev);
+            // Trigger re-render
+            set_viewport.update(|_| {});
+        } else {
+            // Check if we're hovering over a resize handle
+            let theme = default_theme();
+            let is_col_header = y < theme.column_header_height;
+            let is_row_header = x < theme.row_header_width;
+            
+            if is_col_header || is_row_header {
+                let cursor = resize_handler_move.get_cursor_style(
+                    if is_col_header { x } else { 0.0 },
+                    if is_row_header { y } else { 0.0 },
+                    is_col_header
+                );
+                set_cursor_style.set(cursor);
+            } else {
+                set_cursor_style.set("cell");
+            }
+        }
+    };
+    
+    // Handle mouse down for starting resize
+    let resize_handler_down = resize_handler.clone();
+    let on_mouse_down = move |ev: MouseEvent| {
+        let x = ev.offset_x() as f64;
+        let y = ev.offset_y() as f64;
+        let theme = default_theme();
+        
+        let is_col_header = y < theme.column_header_height;
+        let is_row_header = x < theme.row_header_width;
+        
+        if is_col_header || is_row_header {
+            if let Some((resize_type, index)) = resize_handler_down.check_resize_hover(
+                if is_col_header { x } else { 0.0 },
+                if is_row_header { y } else { 0.0 },
+                is_col_header
+            ) {
+                ev.prevent_default();
+                resize_handler_down.start_resize(&ev, resize_type, index);
+            }
+        }
+    };
+    
+    // Handle mouse up for ending resize
+    let resize_handler_up = resize_handler.clone();
+    let on_mouse_up = move |_ev: MouseEvent| {
+        if resize_handler_up.is_resizing() {
+            resize_handler_up.end_resize();
+            // Trigger final re-render
+            set_viewport.update(|_| {});
         }
     };
 
@@ -145,8 +214,8 @@ pub fn CanvasGrid(
                         set_editing_mode.set(true);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let pos = vp.get_cell_position(&current_cursor);
-                        let theme = vp.get_theme();
+                        let pos = vp.borrow().get_cell_position(&current_cursor);
+                        let theme = vp.borrow().get_theme().clone();
                         set_cell_position.set((
                             pos.x + theme.row_header_width,
                             pos.y + theme.column_header_height,
@@ -164,8 +233,8 @@ pub fn CanvasGrid(
                         set_editing_mode.set(true);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let pos = vp.get_cell_position(&current_cursor);
-                        let theme = vp.get_theme();
+                        let pos = vp.borrow().get_cell_position(&current_cursor);
+                        let theme = vp.borrow().get_theme().clone();
                         set_cell_position.set((
                             pos.x + theme.row_header_width,
                             pos.y + theme.column_header_height,
@@ -187,8 +256,8 @@ pub fn CanvasGrid(
                         set_editing_mode.set(true);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let pos = vp.get_cell_position(&new_cursor);
-                        let theme = vp.get_theme();
+                        let pos = vp.borrow().get_cell_position(&new_cursor);
+                        let theme = vp.borrow().get_theme().clone();
                         set_cell_position.set((
                             pos.x + theme.row_header_width,
                             pos.y + theme.column_header_height,
@@ -207,8 +276,8 @@ pub fn CanvasGrid(
                             set_editing_mode.set(true);
                             // Calculate cell position for the editor
                             let vp = viewport.get();
-                            let pos = vp.get_cell_position(&new_cursor);
-                            let theme = vp.get_theme();
+                            let pos = vp.borrow().get_cell_position(&new_cursor);
+                            let theme = vp.borrow().get_theme().clone();
                             set_cell_position.set((
                                 pos.x + theme.row_header_width,
                                 pos.y + theme.column_header_height,
@@ -273,7 +342,10 @@ pub fn CanvasGrid(
                 width="800"
                 height="600"
                 on:click=on_click
-                style="border: 1px solid #e0e0e0; background: white; cursor: cell;"
+                on:mousedown=on_mouse_down
+                on:mousemove=on_mouse_move
+                on:mouseup=on_mouse_up
+                style=move || format!("border: 1px solid #e0e0e0; background: white; cursor: {};", cursor_style.get())
             />
             <CellEditor
                 active_cell=active_cell

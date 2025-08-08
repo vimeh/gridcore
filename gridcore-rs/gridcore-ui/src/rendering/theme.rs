@@ -9,6 +9,7 @@ pub struct GridTheme {
     pub selection_background_color: String,
     pub selection_border_color: String,
     pub active_cell_border_color: String,
+    pub resize_guide_color: String,
 
     // Dimensions
     pub default_cell_width: f64,
@@ -41,6 +42,7 @@ impl Default for GridTheme {
             selection_background_color: "rgba(0, 102, 204, 0.1)".to_string(),
             selection_border_color: "#0066cc".to_string(),
             active_cell_border_color: "#0066cc".to_string(),
+            resize_guide_color: "#4285f4".to_string(),
 
             // Dimensions
             default_cell_width: 100.0,

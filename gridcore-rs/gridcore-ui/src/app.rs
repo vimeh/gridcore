@@ -1,6 +1,7 @@
 use crate::components::canvas_grid::CanvasGrid;
+use crate::components::status_bar::{SelectionStats, StatusBar};
+use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::SpreadsheetMode;
 use gridcore_core::types::CellAddress;
 use leptos::*;
 use std::cell::RefCell;
@@ -20,21 +21,17 @@ pub fn App() -> impl IntoView {
     // Get initial mode from controller
     let initial_mode = controller.borrow().get_state().spreadsheet_mode();
     let (current_mode, set_current_mode) = create_signal(initial_mode);
-
-    // Status message based on mode
-    let status_message = move || {
-        let mode = current_mode.get();
-        match mode {
-            SpreadsheetMode::Navigation => "NORMAL".to_string(),
-            SpreadsheetMode::Insert => "INSERT".to_string(),
-            SpreadsheetMode::Visual => "VISUAL".to_string(),
-            SpreadsheetMode::Command => "COMMAND".to_string(),
-            SpreadsheetMode::Editing => "EDIT".to_string(),
-            SpreadsheetMode::Resize => "RESIZE".to_string(),
-            SpreadsheetMode::Delete => "DELETE".to_string(),
-            SpreadsheetMode::BulkOperation => "BULK".to_string(),
-        }
-    };
+    
+    // Sheet management
+    let initial_sheets = vec![
+        Sheet { id: 0, name: "Sheet1".to_string() },
+        Sheet { id: 1, name: "Sheet2".to_string() },
+        Sheet { id: 2, name: "Sheet3".to_string() },
+    ];
+    let (sheets, _set_sheets) = create_signal(initial_sheets);
+    
+    // Selection statistics (will be calculated from selection)
+    let (selection_stats, _set_selection_stats) = create_signal(SelectionStats::default());
 
     // Handle formula bar Enter key
     let on_formula_submit = move |ev: web_sys::KeyboardEvent| {
@@ -79,26 +76,17 @@ pub fn App() -> impl IntoView {
                 />
             </div>
 
-            <div class="bottom-toolbar">
-                <div class="tab-bar" style="display: flex; align-items: center;">
-                    <button
-                        class:active=move || active_sheet.get() == 0
-                        on:click=move |_| set_active_sheet.set(0)
-                        style="padding: 4px 12px; margin-right: 4px; cursor: pointer;"
-                    >
-                        "Sheet1"
-                    </button>
-                    <button
-                        style="padding: 4px 8px; cursor: pointer;"
-                        title="Add new sheet"
-                    >
-                        "+"
-                    </button>
-                </div>
-                <div class="status-bar" style="padding: 4px 8px; display: flex; justify-content: space-between;">
-                    <span>{move || format!("Cell: {}", active_cell.get())}</span>
-                    <span style="font-weight: bold;">{move || status_message()}</span>
-                </div>
+            <div class="bottom-toolbar" style="display: flex; flex-direction: column;">
+                <TabBar
+                    sheets=sheets
+                    active_sheet=active_sheet
+                    set_active_sheet=set_active_sheet
+                />
+                <StatusBar
+                    current_mode=current_mode
+                    active_cell=active_cell
+                    selection_stats=selection_stats
+                />
             </div>
         </div>
     }

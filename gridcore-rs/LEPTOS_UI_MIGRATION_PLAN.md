@@ -46,6 +46,32 @@ Create a new Rust crate `gridcore-ui` at `gridcore-rs/gridcore-ui/` that will be
 - Integration with controller actions
 - Real-time value updates from facade
 
+## 5. Advanced Features
+
+✅ Done - Phase 5 complete with:
+- **Column/Row Resizing**:
+  - ResizeHandler component for managing resize operations
+  - Mouse hover detection on column/row boundaries
+  - Dynamic cursor changes (col-resize, row-resize)
+  - Real-time resize feedback during drag
+  - Minimum/maximum size constraints
+  - Persistent size storage in Viewport
+  
+- **Sheet Tabs**:
+  - TabBar component with multiple sheet support
+  - Active sheet highlighting
+  - Context menu for sheet operations
+  - Inline renaming with double-click
+  - Add new sheet functionality
+  - Sheet reordering preparation
+  
+- **Enhanced Status Bar**:
+  - Real-time cell position display
+  - Selection statistics calculation
+  - Mode indicators with color coding
+  - Support for all SpreadsheetMode variants
+  - Clean, minimal design
+
 ## 2. Core Component Structure
 
 ### Main Components to Create

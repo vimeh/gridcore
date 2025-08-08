@@ -85,12 +85,27 @@ trunk build --release
 - Autocomplete navigation with arrows and Tab
 - Click-to-select autocomplete suggestions
 
+✅ **Phase 5: Advanced Features Complete**
+- Column/row resizing with mouse drag
+  - Hover detection on column/row edges
+  - Visual cursor feedback (resize cursor)
+  - Real-time resize with minimum size constraints
+  - Persistent size storage in viewport
+- Enhanced sheet tabs with:
+  - Multiple sheet support
+  - Active sheet highlighting
+  - Right-click context menu (rename, duplicate, delete)
+  - Double-click to rename inline
+  - Add new sheet button
+- Advanced status bar showing:
+  - Current cell address (e.g., "A1")
+  - Selection statistics (count, sum, average, min, max)
+  - Mode indicator with color coding
+  - Support for all spreadsheet modes
+
 ### 🚧 Next Steps
 
-#### Phase 5: Advanced Features
-- [ ] Column/row resizing
-- [ ] Sheet tabs
-- [ ] Status bar with modes
+#### Phase 6: Performance & Polish
 
 ## Key Benefits Over TypeScript Version
 
