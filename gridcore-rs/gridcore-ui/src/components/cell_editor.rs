@@ -1,5 +1,5 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::Action;
+use gridcore_controller::state::{Action, UIState};
 use gridcore_core::types::CellAddress;
 use leptos::html::Input;
 use leptos::*;
@@ -34,17 +34,34 @@ pub fn CellEditor(
             let cell = active_cell.get();
             let ctrl = ctrl_value.clone();
             let ctrl_borrow = ctrl.borrow();
-            let facade = ctrl_borrow.get_facade();
-
-            // Get initial value
-            if let Some(cell_obj) = facade.get_cell(&cell) {
-                if cell_obj.has_formula() {
-                    set_editor_value.set(cell_obj.raw_value.to_string());
-                } else {
-                    set_editor_value.set(cell_obj.get_display_value().to_string());
+            
+            // Check if there's an initial value from the state (e.g., from direct typing)
+            let initial_value = match ctrl_borrow.get_state() {
+                gridcore_controller::state::UIState::Editing { editing_value, .. } => {
+                    if !editing_value.is_empty() {
+                        Some(editing_value.clone())
+                    } else {
+                        None
+                    }
                 }
+                _ => None,
+            };
+            
+            if let Some(val) = initial_value {
+                // Use the initial value from direct typing
+                set_editor_value.set(val);
             } else {
-                set_editor_value.set(String::new());
+                // Get existing cell value
+                let facade = ctrl_borrow.get_facade();
+                if let Some(cell_obj) = facade.get_cell(&cell) {
+                    if cell_obj.has_formula() {
+                        set_editor_value.set(cell_obj.raw_value.to_string());
+                    } else {
+                        set_editor_value.set(cell_obj.get_display_value().to_string());
+                    }
+                } else {
+                    set_editor_value.set(String::new());
+                }
             }
 
             // Focus the input

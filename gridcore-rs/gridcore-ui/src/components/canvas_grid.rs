@@ -375,6 +375,30 @@ pub fn CanvasGrid(
                             None
                         }
                     }
+                    "Enter" => {
+                        ev.prevent_default();
+                        set_editing_mode.set(true);
+                        // Calculate cell position for the editor
+                        let vp = viewport.get();
+                        let (pos, theme) = {
+                            let vp_borrow = vp.borrow();
+                            let pos = vp_borrow.get_cell_position(&current_cursor);
+                            let theme = vp_borrow.get_theme().clone();
+                            (pos, theme)
+                        }; // vp_borrow is dropped here
+                        set_cell_position.set((
+                            pos.x + theme.row_header_width,
+                            pos.y + theme.column_header_height,
+                            pos.width,
+                            pos.height,
+                        ));
+                        // Enter key preserves existing content
+                        Some(Action::StartEditing {
+                            edit_mode: Some(InsertMode::I),
+                            initial_value: None,
+                            cursor_position: None,
+                        })
+                    }
                     "v" => {
                         ev.prevent_default();
                         use gridcore_controller::state::{
@@ -390,7 +414,40 @@ pub fn CanvasGrid(
                             },
                         })
                     }
-                    _ => None,
+                    _ => {
+                        // Check if it's an alphanumeric character or special character to start editing
+                        if key.len() == 1 {
+                            let ch = key.chars().next().unwrap();
+                            if ch.is_alphanumeric() || "!@#$%^&*()_+-=[]{}|;':\",./<>?`~".contains(ch) {
+                                ev.prevent_default();
+                                set_editing_mode.set(true);
+                                // Calculate cell position for the editor
+                                let vp = viewport.get();
+                                let (pos, theme) = {
+                                    let vp_borrow = vp.borrow();
+                                    let pos = vp_borrow.get_cell_position(&current_cursor);
+                                    let theme = vp_borrow.get_theme().clone();
+                                    (pos, theme)
+                                }; // vp_borrow is dropped here
+                                set_cell_position.set((
+                                    pos.x + theme.row_header_width,
+                                    pos.y + theme.column_header_height,
+                                    pos.width,
+                                    pos.height,
+                                ));
+                                // Start editing with the typed character
+                                Some(Action::StartEditing {
+                                    edit_mode: Some(InsertMode::I),
+                                    initial_value: Some(key.clone()),
+                                    cursor_position: Some(1), // Position cursor after the typed character
+                                })
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
                 }
             }
             SpreadsheetMode::Editing | SpreadsheetMode::Insert => {

@@ -14,7 +14,8 @@ pub fn App() -> impl IntoView {
     
     // Initialize with test data
     {
-        let facade = controller.borrow().get_facade();
+        let ctrl_borrow = controller.borrow();
+        let facade = ctrl_borrow.get_facade();
         let _ = facade.set_cell_value(&CellAddress::new(0, 0), "Hello");   // A1
         let _ = facade.set_cell_value(&CellAddress::new(1, 0), "World");   // B1
         let _ = facade.set_cell_value(&CellAddress::new(0, 1), "123");     // A2
@@ -30,7 +31,8 @@ pub fn App() -> impl IntoView {
     
     // Initialize formula value with A1's content
     let initial_formula_value = {
-        let facade = controller.borrow().get_facade();
+        let ctrl_borrow = controller.borrow();
+        let facade = ctrl_borrow.get_facade();
         if let Some(cell_obj) = facade.get_cell(&CellAddress::new(0, 0)) {
             if cell_obj.has_formula() {
                 cell_obj.raw_value.to_string()
