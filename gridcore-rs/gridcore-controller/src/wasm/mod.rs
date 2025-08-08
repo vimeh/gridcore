@@ -11,8 +11,8 @@ pub mod state;
 pub mod viewport;
 
 #[cfg(feature = "wasm")]
-#[wasm_bindgen(start)]
-pub fn init() {
+#[wasm_bindgen(js_name = "initController")]
+pub fn init_controller() {
     // Initialize panic hook for better error messages in browser
     #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
@@ -23,7 +23,7 @@ pub fn init() {
 }
 
 #[cfg(feature = "wasm")]
-#[wasm_bindgen]
-pub fn version() -> String {
+#[wasm_bindgen(js_name = "controllerVersion")]
+pub fn controller_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }

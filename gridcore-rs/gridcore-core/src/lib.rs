@@ -47,6 +47,12 @@ pub mod wasm {
         #[cfg(feature = "console_error_panic_hook")]
         console_error_panic_hook::set_once();
     }
+    
+    /// Legacy init function for compatibility
+    #[wasm_bindgen(js_name = "initGridCore")]
+    pub fn init_gridcore() {
+        init();
+    }
 
     /// Get the version of the library
     #[wasm_bindgen]

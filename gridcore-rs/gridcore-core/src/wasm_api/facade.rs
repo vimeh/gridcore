@@ -46,36 +46,45 @@ pub fn create_facade() -> u32 {
     
     // Set up event bridge
     let facade_id = id;
-    facade.add_event_callback(Box::new(move |event: &crate::facade::SpreadsheetEvent| {
-        EVENT_CALLBACKS.with(|callbacks| {
-            if let Some(cbs) = callbacks.borrow().get(&facade_id) {
-                let js_event = serde_wasm_bindgen::to_value(event).unwrap_or(JsValue::NULL);
-                
-                match event.event_type {
-                    crate::facade::EventType::CellUpdated | crate::facade::EventType::CellsUpdated => {
-                        if let Some(ref callback) = cbs.on_cell_update {
-                            let _ = callback.call1(&JsValue::NULL, &js_event);
+    
+    struct JsEventBridge {
+        facade_id: u32,
+    }
+    
+    impl crate::facade::EventCallback for JsEventBridge {
+        fn on_event(&self, event: &crate::facade::SpreadsheetEvent) {
+            EVENT_CALLBACKS.with(|callbacks| {
+                if let Some(cbs) = callbacks.borrow().get(&self.facade_id) {
+                    let js_event = serde_wasm_bindgen::to_value(event).unwrap_or(JsValue::NULL);
+                    
+                    match event.event_type {
+                        crate::facade::EventType::CellUpdated | crate::facade::EventType::CellsUpdated => {
+                            if let Some(ref callback) = cbs.on_cell_update {
+                                let _ = callback.call1(&JsValue::NULL, &js_event);
+                            }
                         }
-                    }
-                    crate::facade::EventType::BatchCompleted => {
-                        if let Some(ref callback) = cbs.on_batch_complete {
-                            let _ = callback.call1(&JsValue::NULL, &js_event);
+                        crate::facade::EventType::BatchCompleted => {
+                            if let Some(ref callback) = cbs.on_batch_complete {
+                                let _ = callback.call1(&JsValue::NULL, &js_event);
+                            }
                         }
-                    }
-                    crate::facade::EventType::CalculationCompleted => {
-                        if let Some(ref callback) = cbs.on_calculation_complete {
-                            let _ = callback.call1(&JsValue::NULL, &js_event);
+                        crate::facade::EventType::CalculationCompleted => {
+                            if let Some(ref callback) = cbs.on_calculation_complete {
+                                let _ = callback.call1(&JsValue::NULL, &js_event);
+                            }
                         }
-                    }
-                    _ => {
-                        if let Some(ref callback) = cbs.on_cell_update {
-                            let _ = callback.call1(&JsValue::NULL, &js_event);
+                        _ => {
+                            if let Some(ref callback) = cbs.on_cell_update {
+                                let _ = callback.call1(&JsValue::NULL, &js_event);
+                            }
                         }
                     }
                 }
-            }
-        });
-    }));
+            });
+        }
+    }
+    
+    facade.add_event_callback(Box::new(JsEventBridge { facade_id }));
     
     id
 }
