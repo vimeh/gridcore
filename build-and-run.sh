@@ -27,13 +27,9 @@ echo "🧹 Cleaning lock files..."
 cd "$ROOT_DIR"
 rm -f bun.lock packages/*/bun.lock
 
-echo "🦀 Building Rust WASM module..."
-cd "$ROOT_DIR/gridcore-rs/gridcore-wasm"
-wasm-pack build --target web --out-dir pkg --no-opt || handle_error "WASM build failed"
-
-echo "📦 Copying WASM files to ui-web..."
-mkdir -p "$ROOT_DIR/packages/ui-web/src/wasm"
-cp -r pkg/* "$ROOT_DIR/packages/ui-web/src/wasm/" || handle_error "Failed to copy WASM files"
+echo "🦀 Building Rust WASM modules..."
+cd "$ROOT_DIR/gridcore-rs"
+./build-wasm.sh || handle_error "WASM build failed"
 
 echo "🔨 Building ui-core package..."
 cd "$ROOT_DIR/packages/ui-core"
@@ -45,5 +41,5 @@ cd "$ROOT_DIR/packages/ui-web"
 bun install --force || handle_error "ui-web install failed"
 
 echo -e "${GREEN}✅ Build complete! Starting dev server...${NC}"
-echo -e "${YELLOW}📝 To test Rust core, visit: http://localhost:3000/?rust=true${NC}"
+echo -e "${YELLOW}📝 Server will start at: http://localhost:5173${NC}"
 bun run dev
