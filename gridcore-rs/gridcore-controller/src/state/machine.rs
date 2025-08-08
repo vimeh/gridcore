@@ -200,6 +200,9 @@ impl UIStateMachine {
                     ..
                 } = &mut new_state
                 {
+                    // Handle initial_value:
+                    // - Some(value): Use the provided value (even if empty - for Enter key or direct typing)
+                    // - None: Keep the default empty string (cell_editor will load existing content)
                     if let Some(val) = initial_value {
                         *editing_value = val.clone();
                     }

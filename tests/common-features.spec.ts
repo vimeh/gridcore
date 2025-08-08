@@ -40,9 +40,9 @@ test.describe("Common Features", () => {
       .locator(".mode-indicator")
       .filter({ hasText: "hjkl to move" });
 
-    // Should start in navigation mode
+    // Should start in navigation mode (shown as NORMAL in vim style)
     await expect(modeIndicator).toBeVisible();
-    await expect(modeIndicator).toContainText("NAVIGATION");
+    await expect(modeIndicator).toContainText("NORMAL");
 
     // Should show helpful hints
     await expect(modeIndicator).toContainText("hjkl to move");

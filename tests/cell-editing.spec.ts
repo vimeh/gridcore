@@ -121,7 +121,7 @@ test.describe("Cell Editing", () => {
     await page.waitForTimeout(100);
 
     // The vim mode indicator shows just the mode (not the instruction text)
-    await expect(page.locator(".mode-indicator")).toContainText(
+    await expect(page.locator(".mode-text")).toContainText(
       "NORMAL",
     );
 

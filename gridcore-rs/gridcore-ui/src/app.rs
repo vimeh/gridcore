@@ -19,8 +19,8 @@ pub fn App() -> impl IntoView {
         let _ = facade.set_cell_value(&CellAddress::new(0, 0), "Hello");   // A1
         let _ = facade.set_cell_value(&CellAddress::new(1, 0), "World");   // B1
         let _ = facade.set_cell_value(&CellAddress::new(0, 1), "123");     // A2
-        let _ = facade.set_cell_value(&CellAddress::new(1, 1), "123");     // B2
-        let _ = facade.set_cell_value(&CellAddress::new(1, 2), "=A2+B2");  // B3
+        let _ = facade.set_cell_value(&CellAddress::new(1, 1), "=A2+B2");  // B2 (formula)
+        let _ = facade.set_cell_value(&CellAddress::new(1, 2), "456");     // B3
     }
     
     provide_context(controller.clone());

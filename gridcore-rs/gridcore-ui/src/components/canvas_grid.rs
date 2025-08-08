@@ -310,9 +310,10 @@ pub fn CanvasGrid(
                             pos.width,
                             pos.height,
                         ));
+                        // 'i' key preserves existing content - don't pass initial_value
                         Some(Action::StartEditing {
                             edit_mode: Some(InsertMode::I),
-                            initial_value: None,
+                            initial_value: None,  // None means preserve existing content
                             cursor_position: None,
                         })
                     }
@@ -407,10 +408,9 @@ pub fn CanvasGrid(
                             pos.height,
                         ));
                         // Enter key replaces existing content
-                        // Use a special marker that cell_editor can detect
                         Some(Action::StartEditing {
                             edit_mode: Some(InsertMode::I),
-                            initial_value: Some("\x00REPLACE\x00".to_string()), // Special marker for replace mode
+                            initial_value: Some(String::new()), // Empty string to signal replace
                             cursor_position: Some(0),
                         })
                     }

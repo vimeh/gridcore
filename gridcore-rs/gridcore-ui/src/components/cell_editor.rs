@@ -46,29 +46,23 @@ pub fn CellEditor(
                     cursor_position,
                     .. 
                 } => {
-                    // Check for special replace marker from Enter key
-                    if editing_value == "\x00REPLACE\x00" {
-                        // Enter key wants to replace content - start with empty
-                        set_editor_value.set(String::new());
-                        (false, 0)
-                    } else if !editing_value.is_empty() {
+                    // Check if we have an initial value from the state
+                    // This handles both direct typing (non-empty) and Enter key (empty but Some)
+                    // vs 'i' key which passes None and results in empty editing_value
+                    
+                    if !editing_value.is_empty() {
                         // Direct typing - use the typed character(s)
                         set_editor_value.set(editing_value.clone());
-                        // Set cursor position from state (for direct typing, this should be after the character)
+                        // Set cursor position after the typed character
                         (true, *cursor_position)
                     } else {
-                        // 'i' or 'a' key - preserve existing content
-                        let facade = ctrl_borrow.get_facade();
-                        let existing_value = if let Some(cell_obj) = facade.get_cell(&cell) {
-                            if cell_obj.has_formula() {
-                                cell_obj.raw_value.to_string()
-                            } else {
-                                cell_obj.get_display_value().to_string()
-                            }
-                        } else {
-                            String::new()
-                        };
-                        set_editor_value.set(existing_value);
+                        // Empty editing_value - could be Enter key or 'i' key
+                        // For now, check edit_variant to decide
+                        // TODO: This is a workaround - better to track whether initial_value was Some or None
+                        
+                        // Simplified: always use editing_value from state
+                        // If it's empty, that's what we want (Enter key clears content)
+                        set_editor_value.set(editing_value.clone());
                         (false, 0)
                     }
                 }
