@@ -37,7 +37,7 @@ pub fn CanvasGrid(
     
     // Create resize handler
     let resize_handler = ResizeHandler::new(viewport_rc.clone());
-    let resize_state = resize_handler.get_state();
+    let _resize_state = resize_handler.get_state();
 
     // Clone controller references for closures
     let ctrl_render = controller.clone();
@@ -380,14 +380,14 @@ fn render_grid(
     ctx.clear_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
 
     // Draw background
-    ctx.set_fill_style(&theme.background_color.as_str().into());
+    ctx.set_fill_style_str(&theme.background_color);
     ctx.fill_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
 
     // Draw grid lines and cells
     let bounds = viewport.get_visible_bounds();
 
     // Draw vertical lines
-    ctx.set_stroke_style(&theme.grid_line_color.as_str().into());
+    ctx.set_stroke_style_str(&theme.grid_line_color);
     ctx.set_line_width(1.0);
 
     for col in bounds.start_col..=bounds.end_col {
@@ -408,10 +408,10 @@ fn render_grid(
     }
 
     // Draw column headers
-    ctx.set_fill_style(&theme.header_background_color.as_str().into());
+    ctx.set_fill_style_str(&theme.header_background_color);
     ctx.fill_rect(0.0, 0.0, canvas.width() as f64, theme.column_header_height);
 
-    ctx.set_fill_style(&theme.header_text_color.as_str().into());
+    ctx.set_fill_style_str(&theme.header_text_color);
     ctx.set_font(&format!(
         "{}px {}",
         theme.header_font_size, theme.header_font_family
@@ -422,11 +422,11 @@ fn render_grid(
         let width = viewport.get_column_width(col);
 
         // Draw header background
-        ctx.set_fill_style(&theme.header_background_color.as_str().into());
+        ctx.set_fill_style_str(&theme.header_background_color);
         ctx.fill_rect(x, 0.0, width, theme.column_header_height);
 
         // Draw column label
-        ctx.set_fill_style(&theme.header_text_color.as_str().into());
+        ctx.set_fill_style_str(&theme.header_text_color);
         let label = get_column_label(col);
         let text_x = x + width / 2.0 - 8.0;
         let text_y = theme.column_header_height / 2.0 + 4.0;
@@ -439,11 +439,11 @@ fn render_grid(
         let height = viewport.get_row_height(row);
 
         // Draw header background
-        ctx.set_fill_style(&theme.header_background_color.as_str().into());
+        ctx.set_fill_style_str(&theme.header_background_color);
         ctx.fill_rect(0.0, y, theme.row_header_width, height);
 
         // Draw row number
-        ctx.set_fill_style(&theme.header_text_color.as_str().into());
+        ctx.set_fill_style_str(&theme.header_text_color);
         let label = (row + 1).to_string();
         let text_x = theme.row_header_width / 2.0 - 8.0;
         let text_y = y + height / 2.0 + 4.0;
@@ -451,11 +451,11 @@ fn render_grid(
     }
 
     // Draw corner
-    ctx.set_fill_style(&theme.header_background_color.as_str().into());
+    ctx.set_fill_style_str(&theme.header_background_color);
     ctx.fill_rect(0.0, 0.0, theme.row_header_width, theme.column_header_height);
 
     // Draw cell values
-    ctx.set_fill_style(&theme.cell_text_color.as_str().into());
+    ctx.set_fill_style_str(&theme.cell_text_color);
     ctx.set_font(&format!(
         "{}px {}",
         theme.cell_font_size, theme.cell_font_family
@@ -492,7 +492,7 @@ fn render_grid(
         let cell_y = pos.y + theme.column_header_height;
 
         // Draw active cell border
-        ctx.set_stroke_style(&theme.active_cell_border_color.as_str().into());
+        ctx.set_stroke_style_str(&theme.active_cell_border_color);
         ctx.set_line_width(2.0);
         ctx.stroke_rect(cell_x, cell_y, pos.width, pos.height);
     }

@@ -9,10 +9,11 @@ dist = "dist"
 watch = ["src", "Cargo.toml", "index.html", "style"]
 
 [serve]
-address = "127.0.0.1"
+addresses = ["127.0.0.1"]
 port = 8080
-open = true
+open = false
 
-[[proxy]]
-# Proxy for any backend API if needed
-backend = "http://localhost:3000/"
+# Remove proxy configuration as we don't need it for now
+# [[proxy]]
+# rewrite = "/api"
+# backend = "http://localhost:3000/"

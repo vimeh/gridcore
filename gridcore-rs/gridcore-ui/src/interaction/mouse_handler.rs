@@ -3,13 +3,13 @@ use gridcore_core::types::CellAddress;
 use crate::components::viewport::Viewport;
 
 pub struct MouseHandler {
-    canvas: HtmlCanvasElement,
+    _canvas: HtmlCanvasElement,
     viewport: Viewport,
 }
 
 impl MouseHandler {
     pub fn new(canvas: HtmlCanvasElement, viewport: Viewport) -> Self {
-        Self { canvas, viewport }
+        Self { _canvas: canvas, viewport }
     }
     
     pub fn handle_click(&mut self, event: MouseEvent) -> Option<CellAddress> {
