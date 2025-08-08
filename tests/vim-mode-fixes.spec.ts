@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test.describe("Vim Mode - Text Saving Fixes", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector(".grid-container");
+    await page.waitForSelector("canvas");
   });
 
   test("should save text when pressing Escape twice", async ({ page }) => {
@@ -25,7 +25,7 @@ test.describe("Vim Mode - Text Saving Fixes", () => {
     await page.keyboard.press("ArrowUp");
 
     // The formula bar should show the saved text
-    await expect(page.locator(".formula-bar-input")).toHaveText(
+    await expect(page.locator(".formula-input")).toHaveText(
       "Test content",
     );
   });
@@ -52,7 +52,7 @@ test.describe("Vim Mode - Text Saving Fixes", () => {
 
     // The formula bar should show the multi-line text
     const formulaBarValue = await page
-      .locator(".formula-bar-input")
+      .locator(".formula-input")
       .textContent();
     expect(formulaBarValue).toContain("Line 1");
   });
@@ -61,7 +61,7 @@ test.describe("Vim Mode - Text Saving Fixes", () => {
 test.describe("Vim Mode - Cursor Positioning Fixes", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector(".grid-container");
+    await page.waitForSelector("canvas");
 
     // Put some text in a cell A1
     await page.keyboard.press("Enter");
@@ -86,7 +86,7 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
 
-    await expect(page.locator(".formula-bar-input")).toHaveText(
+    await expect(page.locator(".formula-input")).toHaveText(
       "Start Hello World",
     );
   });
@@ -107,7 +107,7 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
     await page.keyboard.press("Escape");
 
     // Text should be appended at the end
-    await expect(page.locator(".formula-bar-input")).toHaveText(
+    await expect(page.locator(".formula-input")).toHaveText(
       "Hello World123",
     );
   });

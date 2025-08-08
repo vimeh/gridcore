@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test.describe("Cell Editing", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector(".grid-container");
+    await page.waitForSelector("canvas");
   });
 
   test("should edit cell with Enter key", async ({ page }) => {
@@ -11,7 +11,7 @@ test.describe("Cell Editing", () => {
     // but current implementation uses "replace" mode which clears content.
     // The vim-style editing behavior differs from traditional spreadsheet behavior.
     await page.keyboard.press("Enter");
-    await expect(page.locator(".cell-editor")).toBeVisible();
+    await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
     // Type new content
     await page.keyboard.type("New Value");
@@ -22,7 +22,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Escape");
 
     // Check value was saved
-    await expect(page.locator(".formula-bar-input")).toHaveText("New Value");
+    await expect(page.locator(".formula-input")).toHaveText("New Value");
   });
 
   test("should edit cell by typing", async ({ page }) => {
@@ -30,14 +30,14 @@ test.describe("Cell Editing", () => {
     await page.keyboard.type("Quick entry");
 
     // Should open editor
-    await expect(page.locator(".cell-editor")).toBeVisible();
+    await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
     // Commit with Escape twice (vim mode behavior)
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
 
     // Check value
-    await expect(page.locator(".formula-bar-input")).toHaveText("Quick entry");
+    await expect(page.locator(".formula-input")).toHaveText("Quick entry");
   });
 
   test("should cancel edit with Escape", async ({ page }) => {
@@ -61,7 +61,7 @@ test.describe("Cell Editing", () => {
 
     // Current implementation saves, cursor correctly positioned at beginning with 'i'
     // When pressing 'i', cursor is at the beginning, so "Changed" appears before "World"
-    await expect(page.locator(".formula-bar-input")).toHaveText(
+    await expect(page.locator(".formula-input")).toHaveText(
       "ChangedWorld",
     );
   });
@@ -80,7 +80,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Escape");
 
     // Formula should be in formula bar
-    await expect(page.locator(".formula-bar-input")).toHaveText("=A2+B2");
+    await expect(page.locator(".formula-input")).toHaveText("=A2+B2");
   });
 
   test("should delete cell content with Delete key", async ({ page }) => {
@@ -91,7 +91,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Delete");
 
     // Cell should be empty
-    await expect(page.locator(".formula-bar-input")).toHaveText("");
+    await expect(page.locator(".formula-input")).toHaveText("");
   });
 
   test("should delete cell content with Backspace key", async ({ page }) => {
@@ -101,7 +101,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Backspace");
 
     // Cell should be empty
-    await expect(page.locator(".formula-bar-input")).toHaveText("");
+    await expect(page.locator(".formula-input")).toHaveText("");
   });
 
   test("should handle multi-line edit with proper cursor", async ({ page }) => {
@@ -112,7 +112,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.type("Line one");
 
     // Should show cursor/caret
-    await expect(page.locator(".cell-editor")).toBeVisible();
+    await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
     // Exit to normal mode
     await page.keyboard.press("Escape");
@@ -126,7 +126,7 @@ test.describe("Cell Editing", () => {
     );
 
     // Check if cell editor is still visible (it should be)
-    await expect(page.locator(".cell-editor")).toBeVisible();
+    await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
     // For now, let's pass this test as the block cursor feature appears not to be fully implemented
     // TODO: Fix block cursor visibility in vim normal mode
@@ -154,7 +154,7 @@ test.describe("Cell Editing", () => {
     await page.keyboard.press("Escape");
 
     // Check that text was inserted at the beginning
-    await expect(page.locator(".formula-bar-input")).toHaveText("!World");
+    await expect(page.locator(".formula-input")).toHaveText("!World");
   });
 
 });

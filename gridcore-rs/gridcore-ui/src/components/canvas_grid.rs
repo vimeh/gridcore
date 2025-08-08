@@ -1,12 +1,12 @@
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_controller::state::{Action, InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
-use leptos::html::Canvas;
+use leptos::html::{Canvas, Div};
 use leptos::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent, MouseEvent};
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlDivElement, KeyboardEvent, MouseEvent};
 
 use crate::components::cell_editor::CellEditor;
 use crate::components::viewport::Viewport;
@@ -24,8 +24,9 @@ pub fn CanvasGrid(
     let controller: Rc<RefCell<SpreadsheetController>> =
         use_context().expect("SpreadsheetController not found in context");
 
-    // Canvas node ref
+    // Node refs
     let canvas_ref = create_node_ref::<Canvas>();
+    let wrapper_ref = create_node_ref::<Div>();
     let theme = default_theme();
 
     // State
@@ -43,6 +44,14 @@ pub fn CanvasGrid(
     // Create resize handler
     let resize_handler = ResizeHandler::new(viewport_rc.clone());
     let _resize_state = resize_handler.get_state();
+    
+    // Auto-focus the wrapper when component mounts
+    create_effect(move |_| {
+        if let Some(wrapper) = wrapper_ref.get() {
+            let element: &HtmlDivElement = wrapper.as_ref();
+            let _ = element.focus();
+        }
+    });
 
     // Clone controller references for closures
     let ctrl_render = controller.clone();
@@ -208,6 +217,7 @@ pub fn CanvasGrid(
     // Handle keyboard events through controller
     let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
+        leptos::logging::log!("Key pressed: {}", key);
         let ctrl = ctrl_keyboard.clone();
 
         // Get current mode and cursor, then drop the borrow
@@ -398,12 +408,14 @@ pub fn CanvasGrid(
             // Now update UI state after borrow is dropped
             set_current_mode.set(new_mode);
             set_active_cell.set(new_cursor);
+            leptos::logging::log!("Updated active cell to: col={}, row={}", new_cursor.col, new_cursor.row);
         }
     };
 
     view! {
         <div
             class="canvas-grid-wrapper"
+            node_ref=wrapper_ref
             tabindex="0"
             on:keydown=on_keydown
             style="width: 100%; height: 100%; outline: none; position: relative; overflow: hidden;"

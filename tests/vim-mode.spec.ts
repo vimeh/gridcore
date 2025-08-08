@@ -4,7 +4,7 @@ test.describe("Vim Mode", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     // Wait for the app to load
-    await page.waitForSelector(".grid-container");
+    await page.waitForSelector("canvas");
   });
 
   test("should transition from navigation to edit mode with 'i' key", async ({
@@ -24,7 +24,7 @@ test.describe("Vim Mode", () => {
     ).toContainText("INSERT");
 
     // Should show cell editor
-    await expect(page.locator(".cell-editor")).toBeVisible();
+    await expect(page.locator(".cell-editor-overlay")).toBeVisible();
   });
 
   test("should allow text input in insert mode", async ({ page }) => {
@@ -43,7 +43,7 @@ test.describe("Vim Mode", () => {
     await page.keyboard.press("Escape"); // Exit editor and save
 
     // Check that text was saved
-    await expect(page.locator(".formula-bar-input")).toHaveText("Hello Vim");
+    await expect(page.locator(".formula-input")).toHaveText("Hello Vim");
   });
 
   test("should transition between vim modes correctly", async ({ page }) => {
@@ -115,7 +115,7 @@ test.describe("Vim Mode", () => {
     await page.keyboard.press("Escape"); // Exit editor and save
 
     // Check the result
-    await expect(page.locator(".formula-bar-input")).toHaveText("World!");
+    await expect(page.locator(".formula-input")).toHaveText("World!");
   });
 
   test("should show visual mode", async ({ page }) => {

@@ -22,7 +22,7 @@ function getModeDetail(page: Page) {
 test.describe("Mode Integration", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector(".grid-container");
+    await page.waitForSelector("canvas");
 
     // Ensure we start in a clean state
     await page.keyboard.press("Escape");
@@ -37,7 +37,7 @@ test.describe("Mode Integration", () => {
       await expect(getModeDetail(page)).toContainText("hjkl to move");
 
       // Cell editor should not be visible
-      await expect(page.locator(".cell-editor")).not.toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).not.toBeVisible();
 
       // Grid should be focusable for navigation
       await expect(page.locator(".grid-container")).toBeFocused();
@@ -59,7 +59,7 @@ test.describe("Mode Integration", () => {
       await expect(getModeDetail(page)).toContainText("ESC to normal");
 
       // Cell editor should be visible
-      await expect(page.locator(".cell-editor")).toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).toBeVisible();
     });
 
     test("should transition from navigation to editing with 'a' key (append)", async ({
@@ -73,7 +73,7 @@ test.describe("Mode Integration", () => {
 
       // Should be in insert mode (append variant shows as INSERT)
       await expect(getModeText(page)).toContainText("INSERT");
-      await expect(page.locator(".cell-editor")).toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
       // Type additional text
       await page.keyboard.type("!");
@@ -83,7 +83,7 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("Escape"); // To navigation
 
       // Verify text was appended
-      await expect(page.locator(".formula-bar-input")).toHaveText("World!");
+      await expect(page.locator(".formula-input")).toHaveText("World!");
     });
 
     test("should transition from navigation to editing with Enter key", async ({
@@ -93,7 +93,7 @@ test.describe("Mode Integration", () => {
 
       // Should be in insert mode (Enter uses replace mode but shows as INSERT)
       await expect(getModeText(page)).toContainText("INSERT");
-      await expect(page.locator(".cell-editor")).toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).toBeVisible();
     });
 
     test("should transition from navigation to editing by typing", async ({
@@ -104,12 +104,12 @@ test.describe("Mode Integration", () => {
 
       // Should automatically enter insert mode (direct typing uses insert mode)
       await expect(getModeText(page)).toContainText("INSERT");
-      await expect(page.locator(".cell-editor")).toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
       // Exit and verify content
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await expect(page.locator(".formula-bar-input")).toHaveText(
+      await expect(page.locator(".formula-input")).toHaveText(
         "Direct entry",
       );
     });
@@ -130,7 +130,7 @@ test.describe("Mode Integration", () => {
       await expect(getModeDetail(page)).toContainText("i/a to insert");
 
       // Cell editor should still be visible in normal mode
-      await expect(page.locator(".cell-editor")).toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
       // Back to insert mode
       await page.keyboard.press("i");
@@ -204,7 +204,7 @@ test.describe("Mode Integration", () => {
       // Exit and check result
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await expect(page.locator(".formula-bar-input")).toHaveText("NewWorld");
+      await expect(page.locator(".formula-input")).toHaveText("NewWorld");
     });
 
     test("should handle append mode correctly", async ({ page }) => {
@@ -221,7 +221,7 @@ test.describe("Mode Integration", () => {
       // Exit and check result
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await expect(page.locator(".formula-bar-input")).toHaveText("World!");
+      await expect(page.locator(".formula-input")).toHaveText("World!");
     });
 
     test("should switch between edit modes within insert mode", async ({
@@ -300,7 +300,7 @@ test.describe("Mode Integration", () => {
       await expect(getModeText(page)).toContainText("NORMAL");
 
       // Cell editor should still be visible
-      await expect(page.locator(".cell-editor")).toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).toBeVisible();
     });
 
     test("should handle double escape from insert mode", async ({ page }) => {
@@ -313,7 +313,7 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("Escape"); // To navigation
 
       await expect(getModeText(page)).toContainText("NAVIGATION");
-      await expect(page.locator(".cell-editor")).not.toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).not.toBeVisible();
     });
 
     test("should handle escape from visual mode", async ({ page }) => {
@@ -424,7 +424,7 @@ test.describe("Mode Integration", () => {
       await expect(getModeText(page)).toContainText("NAVIGATION");
 
       // Verify content was saved
-      await expect(page.locator(".formula-bar-input")).toHaveText("modified");
+      await expect(page.locator(".formula-input")).toHaveText("modified");
     });
   });
 
@@ -436,28 +436,28 @@ test.describe("Mode Integration", () => {
 
       // Navigation state
       await expect(getModeText(page)).toContainText("NAVIGATION");
-      await expect(page.locator(".cell-editor")).not.toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).not.toBeVisible();
 
       // Enter insert
       await page.keyboard.press("i");
       await expect(getModeText(page)).toContainText("INSERT");
-      await expect(page.locator(".cell-editor")).toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
       // Go to normal
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NORMAL");
-      await expect(page.locator(".cell-editor")).toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
       // Visual mode
       await page.keyboard.press("v");
       await expect(getModeText(page)).toContainText("VISUAL");
-      await expect(page.locator(".cell-editor")).toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
       // Back to navigation
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NAVIGATION");
-      await expect(page.locator(".cell-editor")).not.toBeVisible();
+      await expect(page.locator(".cell-editor-overlay")).not.toBeVisible();
     });
 
     test("should handle formula bar updates during mode transitions", async ({
@@ -465,7 +465,7 @@ test.describe("Mode Integration", () => {
     }) => {
       // Move to cell with content
       await page.keyboard.press("l"); // B1 has "World"
-      await expect(page.locator(".formula-bar-input")).toHaveText("World");
+      await expect(page.locator(".formula-input")).toHaveText("World");
 
       // Enter editing
       await page.keyboard.press("i");
@@ -479,7 +479,7 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("Escape");
 
       // Formula bar should reflect final state
-      await expect(page.locator(".formula-bar-input")).toHaveText(
+      await expect(page.locator(".formula-input")).toHaveText(
         " editWorld",
       );
     });
@@ -492,11 +492,11 @@ test.describe("Mode Integration", () => {
 
       // Enter editing - cell editor should become the active element
       await page.keyboard.press("i");
-      await expect(page.locator(".cell-editor")).toBeFocused();
+      await expect(page.locator(".cell-editor-overlay")).toBeFocused();
 
       // Mode transitions should maintain focus on cell editor
       await page.keyboard.press("Escape"); // To normal
-      await expect(page.locator(".cell-editor")).toBeFocused();
+      await expect(page.locator(".cell-editor-overlay")).toBeFocused();
 
       // Exit editing - focus should return to grid
       await page.keyboard.press("Escape"); // To navigation
@@ -539,7 +539,7 @@ test.describe("Mode Integration", () => {
 
       // Check initial value
       const initialValue = await page
-        .locator(".formula-bar-input")
+        .locator(".formula-input")
         .textContent();
       // console.log("Initial value:", initialValue);
 
@@ -562,7 +562,7 @@ test.describe("Mode Integration", () => {
       // console.log("Switched to navigation mode");
 
       // Check final value
-      const finalValue = await page.locator(".formula-bar-input").textContent();
+      const finalValue = await page.locator(".formula-input").textContent();
       // console.log("Final value:", finalValue);
 
       // For now, just pass the test - we're debugging
