@@ -66,16 +66,17 @@ pub fn CanvasGrid(
                     canvas_elem.set_height(height as u32);
                     set_canvas_dimensions.set((width, height));
 
-                    // Update viewport size
+                    // Update viewport size separately to avoid borrow conflicts
                     viewport.get().borrow_mut().set_viewport_size(width, height);
                 }
             }
 
+            // Render the grid - get a fresh reference to avoid borrow conflicts
             let ctrl = ctrl_render.clone();
-            let vp = viewport.get();
+            let vp_for_render = viewport.get();
             render_grid(
                 canvas_elem,
-                &*vp.borrow(),
+                &*vp_for_render.borrow(),
                 active_cell.get(),
                 ctrl.borrow().get_facade(),
             );
@@ -368,7 +369,7 @@ pub fn CanvasGrid(
             class="canvas-grid-wrapper"
             tabindex="0"
             on:keydown=on_keydown
-            style="width: 100%; height: 100%; outline: none; position: relative;"
+            style="width: 100%; height: 100%; outline: none; position: relative; overflow: hidden;"
         >
             <canvas
                 node_ref=canvas_ref
@@ -378,7 +379,7 @@ pub fn CanvasGrid(
                 on:mousedown=on_mouse_down
                 on:mousemove=on_mouse_move
                 on:mouseup=on_mouse_up
-                style=move || format!("width: 100%; height: 100%; border: 1px solid #e0e0e0; background: white; cursor: {};", cursor_style.get())
+                style=move || format!("display: block; border: 1px solid #e0e0e0; background: white; cursor: {};", cursor_style.get())
             />
             <CellEditor
                 active_cell=active_cell

@@ -23,11 +23,15 @@
     flex-direction: column;
 }
 
-.canvas-grid-container {
+.canvas-grid-wrapper {
     width: 100%;
     height: 100%;
     position: relative;
     outline: none;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
 }
 
 .grid-scroll-container {
