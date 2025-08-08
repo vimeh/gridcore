@@ -1,4 +1,4 @@
-import { CellAddress } from "../wasm";
+import { WasmCellAddress as CellAddress } from "gridcore-controller";
 import { DEFAULT_TOTAL_COLS, DEFAULT_TOTAL_ROWS } from "../constants";
 import type { GridTheme } from "../rendering/GridTheme";
 
