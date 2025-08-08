@@ -66,6 +66,11 @@ pub fn CanvasGrid(
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
 
+            // Get device pixel ratio for high-DPI support
+            let device_pixel_ratio = web_sys::window()
+                .and_then(|w| Some(w.device_pixel_ratio()))
+                .unwrap_or(1.0);
+
             // Update canvas dimensions based on parent container
             if let Some(parent) = canvas_elem.parent_element() {
                 let rect = parent.get_bounding_client_rect();
@@ -74,8 +79,14 @@ pub fn CanvasGrid(
 
                 // Update canvas dimensions if they've changed
                 if width > 0.0 && height > 0.0 {
-                    canvas_elem.set_width(width as u32);
-                    canvas_elem.set_height(height as u32);
+                    // Set physical canvas size (actual pixels)
+                    canvas_elem.set_width((width * device_pixel_ratio) as u32);
+                    canvas_elem.set_height((height * device_pixel_ratio) as u32);
+                    
+                    // Set CSS size (logical pixels) - this maintains the correct display size
+                    canvas_elem.style().set_property("width", &format!("{}px", width)).ok();
+                    canvas_elem.style().set_property("height", &format!("{}px", height)).ok();
+                    
                     set_canvas_dimensions.set((width, height));
 
                     // Update viewport size - use the Rc directly to avoid signal tracking
@@ -94,6 +105,7 @@ pub fn CanvasGrid(
                     &*viewport_effect.borrow(),
                     active_cell.get(),
                     ctrl_borrow.get_facade(),
+                    device_pixel_ratio,
                 );
             } // ctrl_borrow is dropped here
         }
@@ -512,6 +524,7 @@ fn render_grid(
     viewport: &Viewport,
     active_cell: CellAddress,
     facade: &gridcore_core::SpreadsheetFacade,
+    device_pixel_ratio: f64,
 ) {
     // Get 2D context
     let ctx = match canvas.get_context("2d") {
@@ -526,12 +539,18 @@ fn render_grid(
 
     let theme = viewport.get_theme();
 
-    // Clear canvas
-    ctx.clear_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
+    // Apply scaling for high-DPI displays
+    ctx.save();
+    ctx.scale(device_pixel_ratio, device_pixel_ratio).ok();
+
+    // Clear canvas (use logical dimensions, not physical)
+    let logical_width = (canvas.width() as f64) / device_pixel_ratio;
+    let logical_height = (canvas.height() as f64) / device_pixel_ratio;
+    ctx.clear_rect(0.0, 0.0, logical_width, logical_height);
 
     // Draw background
     ctx.set_fill_style_str(&theme.background_color);
-    ctx.fill_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
+    ctx.fill_rect(0.0, 0.0, logical_width, logical_height);
 
     // Draw grid lines and cells
     let bounds = viewport.get_visible_bounds();
@@ -545,7 +564,7 @@ fn render_grid(
             viewport.get_column_x(col) - viewport.get_scroll_position().x + theme.row_header_width;
         ctx.begin_path();
         ctx.move_to(x, theme.column_header_height);
-        ctx.line_to(x, canvas.height() as f64);
+        ctx.line_to(x, logical_height);
         ctx.stroke();
     }
 
@@ -555,13 +574,13 @@ fn render_grid(
             viewport.get_row_y(row) - viewport.get_scroll_position().y + theme.column_header_height;
         ctx.begin_path();
         ctx.move_to(theme.row_header_width, y);
-        ctx.line_to(canvas.width() as f64, y);
+        ctx.line_to(logical_width, y);
         ctx.stroke();
     }
 
     // Draw column headers
     ctx.set_fill_style_str(&theme.header_background_color);
-    ctx.fill_rect(0.0, 0.0, canvas.width() as f64, theme.column_header_height);
+    ctx.fill_rect(0.0, 0.0, logical_width, theme.column_header_height);
 
     ctx.set_fill_style_str(&theme.header_text_color);
     ctx.set_font(&format!(
@@ -650,6 +669,9 @@ fn render_grid(
         ctx.set_line_width(2.0);
         ctx.stroke_rect(cell_x, cell_y, pos.width, pos.height);
     }
+
+    // Restore context state (removes the scaling transform)
+    ctx.restore();
 }
 
 fn get_column_label(col: usize) -> String {
