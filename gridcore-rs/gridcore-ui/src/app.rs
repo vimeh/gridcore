@@ -91,10 +91,10 @@ pub fn App() -> impl IntoView {
             // Get the value of the active cell
             if let Some(cell_obj) = facade.get_cell(&cell) {
                 // Show the formula if it exists, otherwise show the display value
-                let value = if !cell_obj.formula.is_empty() {
-                    cell_obj.formula.clone()
+                let value = if cell_obj.has_formula() {
+                    cell_obj.raw_value.to_string()
                 } else {
-                    cell_obj.display_value.clone()
+                    cell_obj.get_display_value().to_string()
                 };
                 set_formula_value.set(value);
             } else {
