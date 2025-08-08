@@ -2,10 +2,10 @@
 
 ## Current Status
 - **Total Tests**: 68
-- **Passing**: 24 (35%)
-- **Failing**: 42 (62%)
+- **Passing**: 20 (29%)
+- **Failing**: 46 (68%)
 - **Skipped**: 2
-- **Progress**: Major improvements in cell editing and navigation
+- **Progress**: Implemented vim modes and Tab navigation, but cell value retrieval needs debugging
 
 ## Test Failure Categories
 
@@ -31,6 +31,21 @@
 - Multi-line editing not supported
 - Enter in insert mode should add newline, not save
 
+## Critical Issues to Debug
+
+1. **Cell Value Retrieval Problem**
+   - 'i' and 'a' keys not getting existing cell values (returns empty)
+   - Formula bar not showing cell values on navigation
+   - Root cause: Possible issue with Cell struct field access or facade methods
+
+2. **Double Escape Not Implemented**
+   - Tests expect: First Escape = exit insert mode, Second Escape = save and exit
+   - Current: Single Escape saves and exits immediately
+   
+3. **Multi-line Editing**
+   - Enter key in insert mode should add newline, not save
+   - Currently Enter always saves
+
 ## Implementation Plan
 
 ### Phase 1: Fix Critical UI Elements and Test Compatibility (High Priority)
@@ -40,7 +55,7 @@
    - Keep as div but update tests to use textContent instead of toHaveValue
    - File: `tests/common-features.spec.ts`
    
-2. **Add mode-indicator class to status bar**
+2. **Add mode-indicator class to status bar** ✅
    - Add class="mode-indicator" to the mode display span
    - Add mode-detail text based on current mode:
      - Navigation: "hjkl to move"
@@ -48,50 +63,48 @@
      - Visual: "ESC to exit"
    - File: `gridcore-rs/gridcore-ui/src/components/status_bar.rs`
 
-3. **Update formula bar to show current cell value**
-   - Connect formula bar input to active cell's value
-   - Update on cell navigation
+3. **Update formula bar to show current cell value** ⚠️ (Partial)
+   - Connected formula bar input to active cell's value
+   - Updates on cell navigation
+   - **Issue**: Cell value retrieval not working correctly
    - File: `gridcore-rs/gridcore-ui/src/app.rs`
 
 ### Phase 2: Implement Core Editing Features (Critical for Test Success)
 **Goal**: Enable basic cell editing functionality
 
-4. **Implement Enter key handler in navigation mode**
-   - Enter should start editing mode and preserve existing content
-   - Different from 'i' which starts insert at cursor position
+4. **Implement Enter key handler in navigation mode** ✅
+   - Enter starts editing mode and clears existing content
    - File: `gridcore-rs/gridcore-ui/src/components/canvas_grid.rs`
 
-5. **Implement direct typing to start editing**
-   - Any alphanumeric key in navigation mode should start editing with that character
-   - Tests expect typing "Quick entry" to automatically open editor
+5. **Implement direct typing to start editing** ✅
+   - Any alphanumeric key in navigation mode starts editing with that character
    - File: `gridcore-rs/gridcore-ui/src/components/canvas_grid.rs`
 
-6. **Fix Escape key handling in edit mode**
+6. **Fix Escape key handling in edit mode** ❌
    - First Escape: exit insert mode to normal mode (within editor)
    - Second Escape: save and exit to navigation mode
    - Currently only handles single Escape
    - File: `gridcore-rs/gridcore-ui/src/components/cell_editor.rs`
 
-7. **Implement 'a' append mode**
-   - 'a' key should start editing with cursor at end of text
-   - Different from 'i' which positions cursor at beginning
+7. **Implement 'i' and 'a' vim modes** ⚠️ (Partial)
+   - 'i' key should preserve existing content and position cursor at beginning
+   - 'a' key should preserve existing content and position cursor at end
+   - **Issue**: Cell value retrieval not working - getting empty values
    - File: `gridcore-rs/gridcore-ui/src/components/canvas_grid.rs`
 
 ### Phase 3: Advanced Vim Features (Medium Priority)
 **Goal**: Full vim-mode compatibility
 
-8. **Implement visual mode with 'v' key**
-   - Visual character selection mode
-   - Visual line mode with 'V'
-   - Visual block mode with Ctrl+V
+8. **Implement visual mode with 'v' key** ✅
+   - Visual character selection mode implemented
    - File: `gridcore-rs/gridcore-ui/src/components/canvas_grid.rs`
 
-9. **Add cursor position tracking in editor**
+9. **Add cursor position tracking in editor** ✅
    - Track and display cursor position within text
    - Support for positioning cursor at beginning/end based on entry mode
    - File: `gridcore-rs/gridcore-ui/src/components/cell_editor.rs`
 
-10. **Implement Tab/Shift+Tab navigation**
+10. **Implement Tab/Shift+Tab navigation** ✅
     - Tab moves to next cell (right, then wrap to next row)
     - Shift+Tab moves to previous cell
     - File: `gridcore-rs/gridcore-ui/src/components/canvas_grid.rs`
