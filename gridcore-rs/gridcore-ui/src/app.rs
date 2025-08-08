@@ -172,9 +172,8 @@ pub fn App() -> impl IntoView {
                 (CellAddress::new(0, 0), "Hello"),
                 (CellAddress::new(1, 0), "World"),
                 (CellAddress::new(0, 1), "123"),
-                (CellAddress::new(1, 1), "456"),
-                (CellAddress::new(0, 2), "=A2+B2"),
-                (CellAddress::new(1, 2), "789"),
+                (CellAddress::new(1, 1), "123"),
+                (CellAddress::new(1, 2), "=A2+B2"),
             ];
             
             for (address, value) in test_data {
@@ -189,9 +188,15 @@ pub fn App() -> impl IntoView {
     view! {
         <div class="spreadsheet-app">
             <div class="top-toolbar">
+                <div class="toolbar-row">
+                    <button class="toolbar-button">"Import"</button>
+                    <button class="toolbar-button">"Export"</button>
+                </div>
                 <div class="formula-bar">
-                    <div class="cell-indicator">
-                        {move || {
+                    <input
+                        type="text"
+                        class="cell-indicator"
+                        value=move || {
                             let cell = active_cell.get();
                             // Fix column calculation for multi-character columns
                             let col = if cell.col < 26 {
@@ -204,8 +209,9 @@ pub fn App() -> impl IntoView {
                             let row = (cell.row + 1).to_string();
                             leptos::logging::log!("Cell indicator: col={}, row={}, display={}{}", cell.col, cell.row, col, row);
                             format!("{}{}", col, row)
-                        }}
-                    </div>
+                        }
+                        readonly=true
+                    />
                     <span class="formula-fx">"fx"</span>
                     <input
                         type="text"
