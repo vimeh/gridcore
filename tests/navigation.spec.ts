@@ -42,45 +42,43 @@ test.describe("Grid Navigation", () => {
 
   test("should navigate with arrow keys", async ({ page }) => {
     // Start at A1
-    await expect(page.locator(".cell-indicator")).toHaveValue("A1");
+    expect(await getCurrentCellAddress(page)).toBe("A1");
 
     // Test arrow navigation
     await page.keyboard.press("ArrowRight");
-    await expect(page.locator(".cell-indicator")).toHaveValue("B1");
+    expect(await getCurrentCellAddress(page)).toBe("B1");
 
     await page.keyboard.press("ArrowDown");
-    await expect(page.locator(".cell-indicator")).toHaveValue("B2");
+    expect(await getCurrentCellAddress(page)).toBe("B2");
 
     await page.keyboard.press("ArrowLeft");
-    await expect(page.locator(".cell-indicator")).toHaveValue("A2");
+    expect(await getCurrentCellAddress(page)).toBe("A2");
 
     await page.keyboard.press("ArrowUp");
-    await expect(page.locator(".cell-indicator")).toHaveValue("A1");
+    expect(await getCurrentCellAddress(page)).toBe("A1");
   });
 
   test("should show navigation cursor", async ({ page }) => {
-    // The active cell should have a visible cursor
-    const activeCell = page.locator("canvas.grid-canvas");
-
-    // Take screenshot to verify cursor is visible
-    await expect(activeCell).toBeVisible();
+    // The canvas should be visible
+    const canvas = page.locator("canvas");
+    await expect(canvas).toBeVisible();
 
     // Move and verify cursor moves
     await page.keyboard.press("l");
     await page.keyboard.press("j");
 
     // Formula bar should update
-    await expect(page.locator(".cell-indicator")).toHaveValue("B2");
+    expect(await getCurrentCellAddress(page)).toBe("B2");
   });
 
   test("should handle Tab navigation", async ({ page }) => {
     // Tab should move right
     await page.keyboard.press("Tab");
-    await expect(page.locator(".cell-indicator")).toHaveValue("B1");
+    expect(await getCurrentCellAddress(page)).toBe("B1");
 
     // Shift+Tab should move left
     await page.keyboard.press("Shift+Tab");
-    await expect(page.locator(".cell-indicator")).toHaveValue("A1");
+    expect(await getCurrentCellAddress(page)).toBe("A1");
   });
 
   test("should not navigate when editing", async ({ page }) => {
@@ -96,15 +94,15 @@ test.describe("Grid Navigation", () => {
     // Should still be at A1
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
-    await expect(page.locator(".cell-indicator")).toHaveValue("A1");
+    expect(await getCurrentCellAddress(page)).toBe("A1");
   });
 
   test("should handle boundary navigation", async ({ page }) => {
     // Try to move beyond grid boundaries
     await page.keyboard.press("h"); // Can't go left from A1
-    await expect(page.locator(".cell-indicator")).toHaveValue("A1");
+    expect(await getCurrentCellAddress(page)).toBe("A1");
 
     await page.keyboard.press("k"); // Can't go up from A1
-    await expect(page.locator(".cell-indicator")).toHaveValue("A1");
+    expect(await getCurrentCellAddress(page)).toBe("A1");
   });
 });
