@@ -2,26 +2,18 @@
   "name": "gridcore",
   "version": "0.0.1",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "bun run dev:web",
-    "dev:web": "bun run --filter '@gridcore/ui-web' dev",
-    "dev:desktop": "bun run --filter '@gridcore/ui-desktop' dev",
-    "build": "bun run build:wasm && bun run build:web",
-    "build:web": "bun run --filter '@gridcore/ui-web' build",
-    "build:tui": "bun run --filter '@gridcore/ui-tui' build",
-    "build:desktop": "bun run --filter '@gridcore/ui-desktop' build",
-    "build:wasm": "cd gridcore-rs && ./build-wasm.sh",
-    "test": "bun test packages/ui-web/src",
-    "test:all": "bun test packages/ui-web/src && bun run --cwd packages/ui-web test:e2e",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
     "typecheck": "bun run --filter '*' typecheck",
     "check": "biome check --write .",
     "clean": "rm -rf node_modules && bun run --filter '*' clean"
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.3",
+    "@playwright/test": "^1.48.0",
     "@types/bun": "latest",
     "biome": "^0.3.3",
     "typescript": "^5.3.3"
