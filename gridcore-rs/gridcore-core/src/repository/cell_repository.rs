@@ -137,9 +137,8 @@ pub mod wasm_bindings {
 
         #[wasm_bindgen(js_name = "set")]
         pub fn set(&mut self, address: &CellAddress, cell: &WasmCell) -> Result<(), JsValue> {
-            // Convert WasmCell to Cell
-            // For now, we'll use JSON serialization as a bridge
-            let json = cell.to_json()?;
+            // Convert WasmCell to Cell using serde
+            let json = cell.to_object()?;
             let cell: Cell = serde_wasm_bindgen::from_value(json)
                 .map_err(|e| JsValue::from_str(&e.to_string()))?;
             self.inner.set(address, cell);

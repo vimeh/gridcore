@@ -97,18 +97,45 @@ impl Cell {
     }
 }
 
+// Cell cannot be directly exported with wasm_bindgen because it contains non-Copy fields.
+// However, since Cell has serde derives, we can use serde-wasm-bindgen for all conversions.
+// The WasmCell wrapper below provides a thin layer for JavaScript interop.
+
 #[cfg(feature = "wasm")]
 pub mod wasm_bindings {
     use super::*;
     use wasm_bindgen::prelude::*;
 
+    /// Thin wrapper for Cell to expose to WASM
+    /// Uses serde for all conversions
     #[wasm_bindgen]
     pub struct WasmCell {
         inner: Cell,
     }
 
+    impl WasmCell {
+        /// Create from an existing Cell
+        pub fn from_cell(cell: Cell) -> Self {
+            WasmCell { inner: cell }
+        }
+
+        /// Get the inner Cell
+        pub fn into_inner(self) -> Cell {
+            self.inner
+        }
+    }
+
     #[wasm_bindgen]
     impl WasmCell {
+        /// Create from a JavaScript object using serde
+        #[wasm_bindgen(js_name = "fromObject")]
+        pub fn from_object(obj: JsValue) -> Result<WasmCell, JsValue> {
+            let cell: Cell = serde_wasm_bindgen::from_value(obj)
+                .map_err(|e| JsValue::from_str(&format!("Failed to deserialize Cell: {}", e)))?;
+            Ok(WasmCell { inner: cell })
+        }
+
+        /// Create from a value
         #[wasm_bindgen(constructor)]
         pub fn new(value: JsValue) -> Result<WasmCell, JsValue> {
             let cell_value = CellValue::from_js(value)?;
@@ -117,6 +144,7 @@ pub mod wasm_bindings {
             })
         }
 
+        /// Create an empty cell
         #[wasm_bindgen(js_name = "empty")]
         pub fn empty() -> WasmCell {
             WasmCell {
@@ -124,39 +152,47 @@ pub mod wasm_bindings {
             }
         }
 
+        /// Convert to JavaScript object using serde
+        #[wasm_bindgen(js_name = "toObject")]
+        pub fn to_object(&self) -> Result<JsValue, JsValue> {
+            serde_wasm_bindgen::to_value(&self.inner)
+                .map_err(|e| JsValue::from_str(&format!("Failed to serialize Cell: {}", e)))
+        }
+
+        /// Check if the cell has a formula
         #[wasm_bindgen(js_name = "hasFormula")]
         pub fn has_formula(&self) -> bool {
             self.inner.has_formula()
         }
 
+        /// Check if the cell has an error
         #[wasm_bindgen(js_name = "hasError")]
         pub fn has_error(&self) -> bool {
             self.inner.has_error()
         }
 
+        /// Check if the cell is empty
         #[wasm_bindgen(js_name = "isEmpty")]
         pub fn is_empty(&self) -> bool {
             self.inner.is_empty()
         }
 
-        #[wasm_bindgen(js_name = "getRawValue")]
-        pub fn get_raw_value(&self) -> JsValue {
-            self.inner.raw_value.to_js()
-        }
-
+        /// Get the computed value as a JavaScript value
         #[wasm_bindgen(js_name = "getComputedValue")]
         pub fn get_computed_value(&self) -> JsValue {
             self.inner.computed_value.to_js()
         }
 
+        /// Get the raw value as a JavaScript value
+        #[wasm_bindgen(js_name = "getRawValue")]
+        pub fn get_raw_value(&self) -> JsValue {
+            self.inner.raw_value.to_js()
+        }
+
+        /// Get the error message if any
         #[wasm_bindgen(js_name = "getError")]
         pub fn get_error(&self) -> Option<String> {
             self.inner.error.clone()
-        }
-
-        #[wasm_bindgen(js_name = "toJson")]
-        pub fn to_json(&self) -> Result<JsValue, JsValue> {
-            serde_wasm_bindgen::to_value(&self.inner).map_err(|e| JsValue::from_str(&e.to_string()))
         }
     }
 }

@@ -101,11 +101,8 @@ impl WasmSpreadsheetFacade {
             .set_cell_value(address, value)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
-        // Convert to WasmCell
-        let wasm_cell = WasmCell::new(cell.get_computed_value().to_js())
-            .map_err(|_| JsValue::from_str("Failed to create WasmCell"))?;
-
-        Ok(wasm_cell)
+        // Convert to WasmCell using from_cell
+        Ok(WasmCell::from_cell(cell))
     }
 
     /// Get a cell value
@@ -124,7 +121,7 @@ impl WasmSpreadsheetFacade {
     pub fn get_cell(&self, address: &CellAddress) -> Option<WasmCell> {
         self.inner
             .get_cell(address)
-            .and_then(|cell| WasmCell::new(cell.get_computed_value().to_js()).ok())
+            .map(WasmCell::from_cell)
     }
 
     /// Get a cell formula
@@ -175,8 +172,7 @@ impl WasmSpreadsheetFacade {
             .recalculate_cell(address)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
-        WasmCell::new(cell.get_computed_value().to_js())
-            .map_err(|_| JsValue::from_str("Failed to create WasmCell"))
+        Ok(WasmCell::from_cell(cell))
     }
 
     /// Begin a batch operation
