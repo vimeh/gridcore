@@ -89,6 +89,26 @@ pub fn App() -> impl IntoView {
     // Selection statistics (will be calculated from selection)
     let (selection_stats, _set_selection_stats) = create_signal(SelectionStats::default());
 
+    // Update formula bar when active cell changes
+    create_effect(move |_| {
+        let cell = active_cell.get();
+        let ctrl = controller.clone();
+        let facade = ctrl.borrow().get_facade();
+        
+        // Get the value of the active cell
+        if let Some(cell_obj) = facade.get_cell(&cell) {
+            // Show the formula if it exists, otherwise show the display value
+            let value = if !cell_obj.formula.is_empty() {
+                cell_obj.formula.clone()
+            } else {
+                cell_obj.display_value.clone()
+            };
+            set_formula_value.set(value);
+        } else {
+            set_formula_value.set(String::new());
+        }
+    });
+
     // Handle formula bar Enter key
     let on_formula_submit = move |ev: web_sys::KeyboardEvent| {
         if ev.key() == "Enter" {

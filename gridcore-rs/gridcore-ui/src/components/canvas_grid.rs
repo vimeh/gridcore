@@ -239,7 +239,8 @@ pub fn CanvasGrid(
     // Handle keyboard events through controller
     let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
-        leptos::logging::log!("Key pressed: {}", key);
+        let shift_pressed = ev.shift_key();
+        leptos::logging::log!("Key pressed: {}, shift: {}", key, shift_pressed);
         let ctrl = ctrl_keyboard.clone();
 
         // Get current mode and cursor, then drop the borrow
@@ -310,11 +311,22 @@ pub fn CanvasGrid(
                             pos.width,
                             pos.height,
                         ));
-                        // 'i' key preserves existing content - don't pass initial_value
+                        // Get existing cell value for 'i' key
+                        let existing_value = {
+                            let ctrl = controller.get();
+                            let ctrl_borrow = ctrl.borrow();
+                            let facade = ctrl_borrow.get_facade();
+                            if let Some(cell_obj) = facade.get_cell(&current_cursor) {
+                                cell_obj.display_value.clone()
+                            } else {
+                                String::new()
+                            }
+                        };
+                        // 'i' key preserves existing content and positions cursor at beginning
                         Some(Action::StartEditing {
                             edit_mode: Some(InsertMode::I),
-                            initial_value: None,  // None means preserve existing content
-                            cursor_position: None,
+                            initial_value: Some(existing_value),
+                            cursor_position: Some(0), // Cursor at beginning for 'i'
                         })
                     }
                     "a" => {
@@ -334,10 +346,23 @@ pub fn CanvasGrid(
                             pos.width,
                             pos.height,
                         ));
+                        // Get existing cell value for 'a' key
+                        let existing_value = {
+                            let ctrl = controller.get();
+                            let ctrl_borrow = ctrl.borrow();
+                            let facade = ctrl_borrow.get_facade();
+                            if let Some(cell_obj) = facade.get_cell(&current_cursor) {
+                                cell_obj.display_value.clone()
+                            } else {
+                                String::new()
+                            }
+                        };
+                        let cursor_pos = existing_value.len();
+                        // 'a' key preserves existing content and positions cursor at end
                         Some(Action::StartEditing {
                             edit_mode: Some(InsertMode::A),
-                            initial_value: None,
-                            cursor_position: None,
+                            initial_value: Some(existing_value),
+                            cursor_position: Some(cursor_pos), // Cursor at end for 'a'
                         })
                     }
                     "o" => {
@@ -443,6 +468,37 @@ pub fn CanvasGrid(
                                 anchor: Some(current_cursor),
                             },
                         })
+                    }
+                    "Tab" => {
+                        ev.prevent_default();
+                        if shift_pressed {
+                            // Shift+Tab moves to previous cell (left, then wrap to previous row)
+                            if current_cursor.col > 0 {
+                                Some(Action::UpdateCursor {
+                                    cursor: CellAddress::new(current_cursor.col - 1, current_cursor.row),
+                                })
+                            } else if current_cursor.row > 0 {
+                                // Wrap to previous row, last column
+                                Some(Action::UpdateCursor {
+                                    cursor: CellAddress::new(99, current_cursor.row - 1), // Go to column 99 (reasonable limit)
+                                })
+                            } else {
+                                None // Can't go further back
+                            }
+                        } else {
+                            // Tab moves to next cell (right, then wrap to next row)
+                            let next_col = current_cursor.col + 1;
+                            if next_col < 100 { // Reasonable column limit
+                                Some(Action::UpdateCursor {
+                                    cursor: CellAddress::new(next_col, current_cursor.row),
+                                })
+                            } else {
+                                // Wrap to next row
+                                Some(Action::UpdateCursor {
+                                    cursor: CellAddress::new(0, current_cursor.row + 1),
+                                })
+                            }
+                        }
                     }
                     _ => {
                         // Check if it's an alphanumeric character or special character to start editing
