@@ -566,7 +566,10 @@ impl SpreadsheetFacade {
         let dependents = self.dependency_graph.borrow().get_dependents(address);
 
         for dependent in dependents {
-            if let Some(mut cell) = self.repository.borrow().get(&dependent).cloned() {
+            // Get cell and immediately drop the borrow
+            let cell = self.repository.borrow().get(&dependent).cloned();
+            
+            if let Some(mut cell) = cell {
                 if let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
                     let mut evaluator = Evaluator::new(&mut context);
