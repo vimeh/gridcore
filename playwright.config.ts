@@ -1,23 +1,24 @@
-import { defineConfig, devices } from "@playwright/test"
+import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Base URL Configuration
- * 
+ *
  * The base URL can be configured in two ways:
  * 1. Environment variable: BASE_URL=http://localhost:3000 bun run test:e2e
  * 2. Default: http://localhost:8080 (Leptos Trunk server)
- * 
+ *
  * All tests use relative URLs (e.g., await page.goto("/")) so changing
  * the base URL will automatically update all test targets.
  */
-const BASE_URL = process.env.BASE_URL || "http://localhost:8080"
+const BASE_URL = process.env.BASE_URL || "http://localhost:8080";
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
+  timeout: 5 * 1000, // shorter timeout for test actions
   expect: {
-    timeout: 1000, // shorter timeout for expect assertions
+    timeout: 1 * 1000, // shorter timeout for expect assertions
   },
   testDir: "./tests",
   /* Run tests in files in parallel */
@@ -67,4 +68,5 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
-})
+});
+
