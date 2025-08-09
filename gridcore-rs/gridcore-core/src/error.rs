@@ -1,7 +1,6 @@
 use thiserror::Error;
 
 #[derive(Debug, Error, Clone)]
-#[cfg_attr(feature = "wasm", derive(serde::Serialize))]
 pub enum SpreadsheetError {
     #[error("Parse error: {0}")]
     Parse(String),

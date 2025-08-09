@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[cfg(feature = "wasm")]
-use wasm_bindgen::prelude::*;
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CellValue {
     Number(f64),
@@ -15,31 +12,6 @@ pub enum CellValue {
 }
 
 impl CellValue {
-    /// Convert from JavaScript value using serde
-    #[cfg(feature = "wasm")]
-    pub fn from_js(value: JsValue) -> Result<Self, JsValue> {
-        // For simple types, use direct conversion for efficiency
-        if value.is_null() || value.is_undefined() {
-            Ok(CellValue::Empty)
-        } else if let Some(b) = value.as_bool() {
-            Ok(CellValue::Boolean(b))
-        } else if let Some(n) = value.as_f64() {
-            Ok(CellValue::Number(n))
-        } else if let Some(s) = value.as_string() {
-            Ok(CellValue::String(s))
-        } else {
-            // For complex types, use serde
-            serde_wasm_bindgen::from_value(value)
-                .map_err(|e| JsValue::from_str(&format!("Failed to convert from JS: {}", e)))
-        }
-    }
-
-    /// Convert to JavaScript value using serde
-    #[cfg(feature = "wasm")]
-    pub fn to_js(&self) -> JsValue {
-        // Use serde for all conversions to ensure consistency
-        serde_wasm_bindgen::to_value(self).unwrap_or(JsValue::NULL)
-    }
 
     /// Check if the value is numeric
     pub fn is_number(&self) -> bool {

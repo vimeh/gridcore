@@ -184,14 +184,7 @@ impl SpreadsheetEvent {
 }
 
 /// Trait for handling spreadsheet events
-#[cfg(not(feature = "wasm"))]
 pub trait EventCallback: Send + Sync {
-    fn on_event(&self, event: &SpreadsheetEvent);
-}
-
-/// Trait for handling spreadsheet events (WASM version without Send+Sync)
-#[cfg(feature = "wasm")]
-pub trait EventCallback {
     fn on_event(&self, event: &SpreadsheetEvent);
 }
 

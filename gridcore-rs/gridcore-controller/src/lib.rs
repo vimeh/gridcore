@@ -4,9 +4,6 @@ pub mod managers;
 pub mod state;
 pub mod utils;
 
-#[cfg(feature = "wasm")]
-pub mod wasm;
-
 // Re-export key types
 pub use controller::SpreadsheetController;
 pub use managers::{CellContent, ClipboardContent, Direction, SelectionManager};

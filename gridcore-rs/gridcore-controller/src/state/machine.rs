@@ -8,21 +8,6 @@ use gridcore_core::{types::CellAddress, Result, SpreadsheetError};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
-#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-use web_sys;
-
-// Debug mode flag - can be set via environment or at runtime
-#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-fn is_debug_enabled() -> bool {
-    // Enable debug mode for testing
-    true
-}
-
-#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
-fn is_debug_enabled() -> bool {
-    std::env::var("DEBUG_MODE").unwrap_or_default() == "true"
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Action {
     StartEditing {
@@ -171,32 +156,7 @@ impl UIStateMachine {
     }
 
     pub fn transition(&mut self, action: Action) -> Result<()> {
-        // Log the incoming action and current state
-        #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-        if is_debug_enabled() {
-            web_sys::console::log_1(
-                &format!(
-                    "[STATE MACHINE] Transition requested - action: {:?}, current_mode: {:?}",
-                    action,
-                    self.state.spreadsheet_mode()
-                )
-                .into(),
-            );
-        }
-
         let new_state = self.apply_transition(&self.state.clone(), &action)?;
-
-        // Log the resulting state
-        #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-        if is_debug_enabled() {
-            web_sys::console::log_1(
-                &format!(
-                    "[STATE MACHINE] Transition completed - new_mode: {:?}",
-                    new_state.spreadsheet_mode()
-                )
-                .into(),
-            );
-        }
 
         // Add to history
         self.add_to_history(self.state.clone(), action.clone());
@@ -223,15 +183,6 @@ impl UIStateMachine {
                     cursor_position,
                 },
             ) => {
-                #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-                if is_debug_enabled() {
-                    web_sys::console::log_1(&format!(
-                        "[STATE MACHINE] Navigation->StartEditing matched! cursor: {:?}, edit_mode: {:?}",
-                        cursor,
-                        edit_mode
-                    ).into());
-                }
-
                 let mut new_state = create_editing_state(
                     cursor.clone(),
                     viewport.clone(),
@@ -259,17 +210,6 @@ impl UIStateMachine {
                         *pos = *cp;
                     }
                     *edit_variant = edit_mode.clone();
-                }
-
-                #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-                if is_debug_enabled() {
-                    web_sys::console::log_1(
-                        &format!(
-                            "[STATE MACHINE] Created editing state with mode: {:?}",
-                            new_state.spreadsheet_mode()
-                        )
-                        .into(),
-                    );
                 }
 
                 Ok(new_state)
@@ -746,16 +686,6 @@ impl UIStateMachine {
             (_, Action::Escape) => self.handle_escape(state),
 
             _ => {
-                #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-                if is_debug_enabled() {
-                    web_sys::console::error_1(
-                        &format!(
-                            "[STATE MACHINE] INVALID TRANSITION - state: {:?}, action: {:?}",
-                            state, action
-                        )
-                        .into(),
-                    );
-                }
                 Err(SpreadsheetError::InvalidOperation(format!(
                     "Invalid transition from {:?} with action {:?}",
                     state.spreadsheet_mode(),
@@ -853,14 +783,10 @@ impl UIStateMachine {
     }
 
     fn add_to_history(&mut self, state: UIState, action: Action) {
-        #[cfg(not(target_arch = "wasm32"))]
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-
-        #[cfg(target_arch = "wasm32")]
-        let timestamp = 0u64; // Placeholder for WASM
 
         let entry = HistoryEntry {
             state,

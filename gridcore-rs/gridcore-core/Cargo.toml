@@ -3,11 +3,8 @@ name = "gridcore-core"
 version = "0.1.0"
 edition = "2024"
 
-[package.metadata.wasm-pack]
-wasm-opt = false
-
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [dependencies]
 chumsky = { workspace = true }
@@ -16,42 +13,6 @@ serde = { workspace = true, features = ["derive", "std"] }
 petgraph = { workspace = true }
 regex = { workspace = true, default-features = false, features = ["std", "perf"] }
 chrono = { workspace = true, default-features = false, features = ["clock", "std"] }
-
-[features]
-default = []
-wasm = [
-  "dep:wasm-bindgen",
-  "dep:js-sys",
-  "dep:web-sys",
-  "dep:serde-wasm-bindgen",
-  "dep:serde_json",
-  "dep:console_error_panic_hook",
-  "chrono/wasmbind",
-]
-
-[dependencies.wasm-bindgen]
-workspace = true
-optional = true
-
-[dependencies.js-sys]
-workspace = true
-optional = true
-
-[dependencies.web-sys]
-workspace = true
-optional = true
-
-[dependencies.serde-wasm-bindgen]
-workspace = true
-optional = true
-
-[dependencies.serde_json]
-workspace = true
-optional = true
-
-[dependencies.console_error_panic_hook]
-version = "0.1"
-optional = true
 
 [dev-dependencies]
 criterion = "0.5"
