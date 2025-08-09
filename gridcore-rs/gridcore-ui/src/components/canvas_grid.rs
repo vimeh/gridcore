@@ -75,7 +75,7 @@ pub fn CanvasGrid(
     create_effect(move |_| {
         // Track active_cell to trigger re-render when it changes
         let current_cell = active_cell.get();
-        
+
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
 
@@ -193,7 +193,7 @@ pub fn CanvasGrid(
             if let Some(cell) = new_cell {
                 leptos::logging::log!("Setting active cell to {:?} from click", cell);
                 set_active_cell.set(cell);
-                
+
                 // Ensure grid container maintains focus
                 if let Some(wrapper) = wrapper_ref.get() {
                     let element: &HtmlDivElement = wrapper.as_ref();
@@ -207,7 +207,11 @@ pub fn CanvasGrid(
     // Handle double-click to edit
     let ctrl_dblclick = controller.clone();
     let on_dblclick = move |ev: MouseEvent| {
-        leptos::logging::log!("Canvas double-click at ({}, {})", ev.offset_x(), ev.offset_y());
+        leptos::logging::log!(
+            "Canvas double-click at ({}, {})",
+            ev.offset_x(),
+            ev.offset_y()
+        );
         if let Some(_canvas) = canvas_ref.get() {
             let x = ev.offset_x() as f64;
             let y = ev.offset_y() as f64;
@@ -395,15 +399,22 @@ pub fn CanvasGrid(
         let alt_pressed = ev.alt_key();
         let meta_pressed = ev.meta_key();
 
-        leptos::logging::log!("Canvas grid keydown: key='{}', shift={}", key, shift_pressed);
-        
+        leptos::logging::log!(
+            "Canvas grid keydown: key='{}', shift={}",
+            key,
+            shift_pressed
+        );
+
         // Check if we're already in editing mode
         let is_editing = {
             let ctrl_borrow = ctrl_keydown.borrow();
             let state = ctrl_borrow.get_state();
-            matches!(state.spreadsheet_mode(), SpreadsheetMode::Editing | SpreadsheetMode::Insert)
+            matches!(
+                state.spreadsheet_mode(),
+                SpreadsheetMode::Editing | SpreadsheetMode::Insert
+            )
         };
-        
+
         // If we're in editing mode, let the cell editor handle the key
         if is_editing {
             leptos::logging::log!("Already in editing mode, letting cell editor handle key");
@@ -456,7 +467,11 @@ pub fn CanvasGrid(
             let state = ctrl_borrow.get_state();
             let mode = state.spreadsheet_mode();
             let cursor = *state.cursor();
-            leptos::logging::log!("Controller state after event: mode={:?}, cursor={:?}", mode, cursor);
+            leptos::logging::log!(
+                "Controller state after event: mode={:?}, cursor={:?}",
+                mode,
+                cursor
+            );
             (mode, cursor)
         };
 
@@ -474,18 +489,29 @@ pub fn CanvasGrid(
         }
 
         if new_cursor != old_cursor {
-            leptos::logging::log!("Cursor changed from {:?} to {:?}, updating active_cell signal", old_cursor, new_cursor);
+            leptos::logging::log!(
+                "Cursor changed from {:?} to {:?}, updating active_cell signal",
+                old_cursor,
+                new_cursor
+            );
             set_active_cell.set(new_cursor);
         } else {
             leptos::logging::log!("Cursor did not change, still at {:?}", new_cursor);
         }
 
         // Update cell position for editor if we're in editing mode (including visual mode within editing)
-        leptos::logging::log!("Checking if should show editor: new_mode = {:?}, matches Editing/Insert/Visual = {}", 
-            new_mode, 
-            matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual)
+        leptos::logging::log!(
+            "Checking if should show editor: new_mode = {:?}, matches Editing/Insert/Visual = {}",
+            new_mode,
+            matches!(
+                new_mode,
+                SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
+            )
         );
-        if matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual) {
+        if matches!(
+            new_mode,
+            SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
+        ) {
             let vp = viewport.get();
             let (pos, config) = {
                 let vp_borrow = vp.borrow();
@@ -508,7 +534,10 @@ pub fn CanvasGrid(
                 leptos::logging::log!("editing_mode already true");
             }
         } else if editing_mode.get()
-            && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual)
+            && !matches!(
+                new_mode,
+                SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
+            )
         {
             // Hide editor if leaving editing mode (but keep visible for visual mode within editing)
             set_editing_mode.set(false);
@@ -542,7 +571,10 @@ pub fn CanvasGrid(
 
         // Auto-scroll to keep the active cell visible if cursor moved
         if new_cursor != old_cursor
-            && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual)
+            && !matches!(
+                new_mode,
+                SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
+            )
         {
             let vp = viewport.get();
             let mut vp_borrow = vp.borrow_mut();

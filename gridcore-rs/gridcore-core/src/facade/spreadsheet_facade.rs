@@ -48,7 +48,9 @@ impl SpreadsheetFacade {
             SpreadsheetError::CircularDependency => "#CIRC!".to_string(),
             SpreadsheetError::Parse(msg) if msg.contains("#REF!") => "#REF!".to_string(),
             SpreadsheetError::Parse(msg) if msg.contains("#NAME?") => "#NAME?".to_string(),
-            SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => "#NAME?".to_string(),
+            SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => {
+                "#NAME?".to_string()
+            }
             _ => format!("#{}", error),
         }
     }
@@ -603,7 +605,7 @@ impl SpreadsheetFacade {
 
                     let mut graph = self.dependency_graph.borrow_mut();
                     graph.remove_dependencies_for(address);
-                    
+
                     // Check for circular dependencies
                     let mut has_circular = false;
                     for dep in &dependencies {
@@ -622,7 +624,8 @@ impl SpreadsheetFacade {
                         cell
                     } else {
                         // Normal formula evaluation
-                        let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
+                        let mut cell =
+                            Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
                         let mut context = RepositoryContext::new(&self.repository);
                         // Push the current cell to the evaluation stack for circular reference detection
                         context.push_evaluation(address);
@@ -643,10 +646,18 @@ impl SpreadsheetFacade {
                     let mut cell = Cell::new(CellValue::String(value.to_string()));
                     // Convert parse error to Excel-compatible error code
                     let error_code = match &parse_error {
-                        SpreadsheetError::Parse(msg) if msg.contains("#REF!") => "#REF!".to_string(),
-                        SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => "#NAME?".to_string(),
-                        SpreadsheetError::InvalidRef(_) | SpreadsheetError::RefError => "#REF!".to_string(),
-                        SpreadsheetError::UnknownFunction(_) | SpreadsheetError::NameError => "#NAME?".to_string(),
+                        SpreadsheetError::Parse(msg) if msg.contains("#REF!") => {
+                            "#REF!".to_string()
+                        }
+                        SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => {
+                            "#NAME?".to_string()
+                        }
+                        SpreadsheetError::InvalidRef(_) | SpreadsheetError::RefError => {
+                            "#REF!".to_string()
+                        }
+                        SpreadsheetError::UnknownFunction(_) | SpreadsheetError::NameError => {
+                            "#NAME?".to_string()
+                        }
                         _ => Self::error_to_excel_format(&parse_error),
                     };
                     // Store the Excel error code in CellValue::Error for UI display

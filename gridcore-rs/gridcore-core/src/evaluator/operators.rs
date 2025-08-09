@@ -8,7 +8,7 @@ pub fn apply_unary(op: &UnaryOperator, value: CellValue) -> Result<CellValue> {
     if let CellValue::Error(e) = value {
         return Ok(CellValue::Error(e));
     }
-    
+
     match op {
         UnaryOperator::Negate => match coerce_to_number(&value) {
             Ok(n) => Ok(CellValue::Number(-n)),
@@ -179,7 +179,7 @@ fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         Ok(n) => n,
         Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
     };
-    
+
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
         Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),

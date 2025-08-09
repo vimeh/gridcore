@@ -83,7 +83,7 @@ impl CellAddress {
         // Excel limits: 16,384 columns (XFD) and 1,048,576 rows
         const MAX_COLUMNS: u32 = 16384;
         const MAX_ROWS: u32 = 1048576;
-        
+
         let mut col_part = String::new();
         let mut row_part = String::new();
         let mut in_row = false;
@@ -119,12 +119,12 @@ impl CellAddress {
                 "Row number must be greater than 0".to_string(),
             ));
         }
-        
+
         // Check bounds - Excel-compatible limits
         if col >= MAX_COLUMNS {
             return Err(SpreadsheetError::RefError); // Return RefError for invalid references
         }
-        
+
         if row > MAX_ROWS {
             return Err(SpreadsheetError::RefError); // Return RefError for invalid references
         }

@@ -156,7 +156,10 @@ impl UIStateMachine {
     }
 
     pub fn transition(&mut self, action: Action) -> Result<()> {
-        log::debug!("UIStateMachine::transition called with action: {:?}", action);
+        log::debug!(
+            "UIStateMachine::transition called with action: {:?}",
+            action
+        );
         let new_state = self.apply_transition(&self.state.clone(), &action)?;
         log::debug!("UIStateMachine::transition - apply_transition succeeded");
 
@@ -180,7 +183,11 @@ impl UIStateMachine {
     }
 
     fn apply_transition(&self, state: &UIState, action: &Action) -> Result<UIState> {
-        log::debug!("apply_transition: state={:?}, action={:?}", state.spreadsheet_mode(), action);
+        log::debug!(
+            "apply_transition: state={:?}, action={:?}",
+            state.spreadsheet_mode(),
+            action
+        );
         match (state, action) {
             // Navigation mode transitions
             (
@@ -328,7 +335,9 @@ impl UIStateMachine {
                 },
                 Action::ExitVisualMode,
             ) => {
-                log::debug!("State machine: ExitVisualMode from CellMode::Visual to CellMode::Normal");
+                log::debug!(
+                    "State machine: ExitVisualMode from CellMode::Visual to CellMode::Normal"
+                );
                 let mut new_state = state.clone();
                 if let UIState::Editing {
                     cell_mode,
@@ -633,11 +642,18 @@ impl UIStateMachine {
                     | UIState::Insert { cursor: c, .. }
                     | UIState::Delete { cursor: c, .. }
                     | UIState::BulkOperation { cursor: c, .. } => {
-                        log::debug!("State machine: Updating cursor from {:?} to {:?}", c, cursor);
+                        log::debug!(
+                            "State machine: Updating cursor from {:?} to {:?}",
+                            c,
+                            cursor
+                        );
                         *c = *cursor;
                     }
                 }
-                log::debug!("State machine: New state after UpdateCursor: {:?}", new_state);
+                log::debug!(
+                    "State machine: New state after UpdateCursor: {:?}",
+                    new_state
+                );
                 Ok(new_state)
             }
 
@@ -757,7 +773,7 @@ impl UIStateMachine {
             // This is non-critical for the app functionality
             0u64
         };
-        
+
         #[cfg(not(target_arch = "wasm32"))]
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

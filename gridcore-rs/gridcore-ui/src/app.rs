@@ -12,11 +12,11 @@ use std::rc::Rc;
 pub fn App() -> impl IntoView {
     // Initialize wasm-logger once for the entire application
     _ = wasm_logger::init(wasm_logger::Config::default());
-    
+
     // Set panic hook for better error messages
     #[cfg(feature = "debug")]
     console_error_panic_hook::set_once();
-    
+
     // Create the SpreadsheetController
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
 
@@ -126,7 +126,7 @@ pub fn App() -> impl IntoView {
 
     // Selection statistics (will be calculated from selection)
     let (selection_stats, _set_selection_stats) = create_signal(SelectionStats::default());
-    
+
     // Keyboard-only mode state
     let (keyboard_only_mode, set_keyboard_only_mode) = create_signal(false);
 
@@ -264,7 +264,7 @@ pub fn App() -> impl IntoView {
                         " Debug Mode"
                     </label>
                     <label style="margin-left: 10px;">
-                        <input 
+                        <input
                             type="checkbox"
                             prop:checked=move || keyboard_only_mode.get()
                             on:change=move |ev| {

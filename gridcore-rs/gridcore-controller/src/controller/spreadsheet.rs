@@ -93,11 +93,18 @@ impl SpreadsheetController {
 
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
         let old_mode = self.state_machine.get_state().spreadsheet_mode();
-        log::debug!("dispatch_action: about to transition with action {:?}", action);
+        log::debug!(
+            "dispatch_action: about to transition with action {:?}",
+            action
+        );
         self.state_machine.transition(action)?;
         log::debug!("dispatch_action: transition succeeded");
         let new_mode = self.state_machine.get_state().spreadsheet_mode();
-        log::debug!("dispatch_action: old_mode={:?}, new_mode={:?}", old_mode, new_mode);
+        log::debug!(
+            "dispatch_action: old_mode={:?}, new_mode={:?}",
+            old_mode,
+            new_mode
+        );
 
         if old_mode != new_mode {
             log::debug!("dispatch_action: mode changed, dispatching event");
@@ -166,7 +173,11 @@ impl SpreadsheetController {
     pub fn handle_keyboard_event(&mut self, event: KeyboardEvent) -> Result<()> {
         // Clone the mode to avoid borrowing issues
         let mode = self.state_machine.get_state().spreadsheet_mode();
-        log::debug!("Handling keyboard event: key='{}', mode={:?}", event.key, mode);
+        log::debug!(
+            "Handling keyboard event: key='{}', mode={:?}",
+            event.key,
+            mode
+        );
 
         match mode {
             SpreadsheetMode::Navigation => self.handle_navigation_key(event),
@@ -180,7 +191,11 @@ impl SpreadsheetController {
 
     fn handle_navigation_key(&mut self, event: KeyboardEvent) -> Result<()> {
         let current_cursor = *self.state_machine.get_state().cursor();
-        log::debug!("Navigation mode key: '{}', current cursor: {:?}", event.key, current_cursor);
+        log::debug!(
+            "Navigation mode key: '{}', current cursor: {:?}",
+            event.key,
+            current_cursor
+        );
 
         match event.key.as_str() {
             // Edit mode triggers
@@ -196,7 +211,10 @@ impl SpreadsheetController {
                     }
                     None => String::new(),
                 };
-                log::debug!("'i' key pressed, starting insert mode with existing value: '{}', cursor at 0", existing_value);
+                log::debug!(
+                    "'i' key pressed, starting insert mode with existing value: '{}', cursor at 0",
+                    existing_value
+                );
                 let result = self.dispatch_action(Action::StartEditing {
                     edit_mode: Some(InsertMode::I),
                     initial_value: Some(existing_value),
@@ -220,7 +238,11 @@ impl SpreadsheetController {
                     None => String::new(),
                 };
                 let cursor_pos = existing_value.len();
-                log::debug!("'a' key pressed, starting append mode with existing value: '{}', cursor at {}", existing_value, cursor_pos);
+                log::debug!(
+                    "'a' key pressed, starting append mode with existing value: '{}', cursor at {}",
+                    existing_value,
+                    cursor_pos
+                );
                 let result = self.dispatch_action(Action::StartEditing {
                     edit_mode: Some(InsertMode::A),
                     initial_value: Some(existing_value),
@@ -234,15 +256,15 @@ impl SpreadsheetController {
             "Enter" => {
                 // Enter key starts editing with empty content (replace mode)
                 log::debug!("Enter key pressed, starting edit with empty value");
-                
+
                 let action = Action::StartEditing {
-                    edit_mode: Some(InsertMode::I), // Use insert mode
+                    edit_mode: Some(InsertMode::I),     // Use insert mode
                     initial_value: Some(String::new()), // Start with empty value to replace content
                     cursor_position: Some(0),
                 };
-                
+
                 let result = self.dispatch_action(action);
-                
+
                 if let Err(ref e) = result {
                     log::error!("Failed to start editing with Enter key: {:?}", e);
                 }
@@ -320,7 +342,11 @@ impl SpreadsheetController {
             // Cell operations
             "Delete" | "Backspace" => {
                 // Clear the current cell
-                log::debug!("{} key pressed, clearing cell at {:?}", event.key, current_cursor);
+                log::debug!(
+                    "{} key pressed, clearing cell at {:?}",
+                    event.key,
+                    current_cursor
+                );
                 self.facade.set_cell_value(&current_cursor, "")?;
                 self.event_dispatcher
                     .dispatch(&SpreadsheetEvent::CellEditCompleted {
@@ -477,10 +503,15 @@ impl SpreadsheetController {
         let new_col = (current.col as i32 + delta_col).max(0) as u32;
         let new_row = (current.row as i32 + delta_row).max(0) as u32;
         let new_cursor = CellAddress::new(new_col, new_row);
-        
+
         log::debug!(
             "move_cursor: delta=({}, {}), current=({}, {}), new=({}, {})",
-            delta_col, delta_row, current.col, current.row, new_col, new_row
+            delta_col,
+            delta_row,
+            current.col,
+            current.row,
+            new_col,
+            new_row
         );
 
         self.viewport_manager.ensure_visible(&new_cursor);

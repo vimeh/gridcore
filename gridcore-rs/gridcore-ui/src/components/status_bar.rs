@@ -129,13 +129,13 @@ pub fn StatusBar(
                 let (mode_text, mode_color, mode_detail) = mode_display();
                 leptos::logging::log!("Mode indicator update: text={}, detail={}", mode_text, mode_detail);
                 leptos::logging::log!("Status bar: Rendering single mode indicator (duplicate removed for e2e test compatibility)");
-                
+
                 // Single mode indicator containing both mode text and detail
                 // Tests can filter by text content within this container
                 view! {
                     <>
-                        <div 
-                            class="mode-indicator" 
+                        <div
+                            class="mode-indicator"
                             style="display: flex; align-items: center; gap: 8px;"
                         >
                             <span
