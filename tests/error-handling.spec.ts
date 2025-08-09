@@ -179,9 +179,7 @@ test.describe("Error Handling", () => {
       }
     });
 
-    test("should auto-dismiss info messages after 5 seconds", async ({
-      page,
-    }) => {
+    test("should auto-dismiss info messages after 5 seconds", async () => {
       // This test would require triggering an info-level message
       // Since we don't have a direct way to trigger info messages yet,
       // we'll skip this for now but include it as a placeholder

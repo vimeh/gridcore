@@ -119,6 +119,9 @@ pub fn App() -> impl IntoView {
 
     // Selection statistics (will be calculated from selection)
     let (selection_stats, _set_selection_stats) = create_signal(SelectionStats::default());
+    
+    // Keyboard-only mode state
+    let (keyboard_only_mode, set_keyboard_only_mode) = create_signal(false);
 
     // Update formula bar when active cell changes (but not during editing)
     let controller_for_effect = controller.clone();
@@ -254,7 +257,15 @@ pub fn App() -> impl IntoView {
                         " Debug Mode"
                     </label>
                     <label style="margin-left: 10px;">
-                        <input type="checkbox" />
+                        <input 
+                            type="checkbox"
+                            prop:checked=move || keyboard_only_mode.get()
+                            on:change=move |ev| {
+                                let checked = event_target_checked(&ev);
+                                set_keyboard_only_mode.set(checked);
+                                leptos::logging::log!("Keyboard-only mode toggled: {}", checked);
+                            }
+                        />
                         " Keyboard Only"
                     </label>
                 </div>
@@ -262,7 +273,7 @@ pub fn App() -> impl IntoView {
                     <input
                         type="text"
                         class="cell-indicator"
-                        prop:value=move || {
+                        value=move || {
                             let cell = active_cell.get();
                             // Fix column calculation for multi-character columns
                             let col = if cell.col < 26 {
@@ -273,8 +284,9 @@ pub fn App() -> impl IntoView {
                                 format!("{}{}", first, second)
                             };
                             let row = (cell.row + 1).to_string();
-                            leptos::logging::log!("Cell indicator: col={}, row={}, display={}{}", cell.col, cell.row, col, row);
-                            format!("{}{}", col, row)
+                            let result = format!("{}{}", col, row);
+                            leptos::logging::log!("Cell indicator update: col={}, row={}, display={}", cell.col, cell.row, result);
+                            result
                         }
                         readonly=true
                     />
@@ -283,8 +295,16 @@ pub fn App() -> impl IntoView {
                         type="text"
                         class="formula-input"
                         placeholder="Enter formula or value"
-                        prop:value=move || formula_value.get()
-                        on:input=move |ev| set_formula_value.set(event_target_value(&ev))
+                        value=move || {
+                            let value = formula_value.get();
+                            leptos::logging::log!("Formula bar value update: {}", value);
+                            value
+                        }
+                        on:input=move |ev| {
+                            let new_value = event_target_value(&ev);
+                            leptos::logging::log!("Formula bar input change: {}", new_value);
+                            set_formula_value.set(new_value);
+                        }
                         on:keydown=on_formula_submit
                     />
                 </div>

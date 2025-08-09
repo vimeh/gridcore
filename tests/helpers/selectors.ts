@@ -47,7 +47,7 @@ export const selectors = {
   cellWithError: ".cell-error", // For future: cells with error styling
 };
 
-export const waitForApp = async (page: any) => {
+export const waitForApp = async (page: import("@playwright/test").Page) => {
   // Wait for canvas to be ready
   await page.waitForSelector("canvas");
   // Wait for status bar

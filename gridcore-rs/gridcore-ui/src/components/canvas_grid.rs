@@ -58,7 +58,8 @@ pub fn CanvasGrid(
     create_effect(move |_| {
         if let Some(wrapper) = wrapper_ref.get() {
             let element: &HtmlDivElement = wrapper.as_ref();
-            let _ = element.focus();
+            let result = element.focus();
+            leptos::logging::log!("Grid container auto-focus on mount: {:?}", result);
         }
     });
 
@@ -159,6 +160,7 @@ pub fn CanvasGrid(
     // Handle canvas click
     let ctrl_click = controller.clone();
     let on_click = move |ev: MouseEvent| {
+        leptos::logging::log!("Canvas click at ({}, {})", ev.offset_x(), ev.offset_y());
         if let Some(_canvas) = canvas_ref.get() {
             let x = ev.offset_x() as f64;
             let y = ev.offset_y() as f64;
@@ -185,9 +187,15 @@ pub fn CanvasGrid(
 
             // Now update active cell if we found one
             if let Some(cell) = new_cell {
+                leptos::logging::log!("Setting active cell to {:?} from click", cell);
                 set_active_cell.set(cell);
-                // For now, just update the UI state
-                // TODO: Add proper selection action when available in controller
+                
+                // Ensure grid container maintains focus
+                if let Some(wrapper) = wrapper_ref.get() {
+                    let element: &HtmlDivElement = wrapper.as_ref();
+                    let _ = element.focus();
+                    leptos::logging::log!("Refocused grid container after click");
+                }
             }
         }
     };
@@ -195,6 +203,7 @@ pub fn CanvasGrid(
     // Handle double-click to edit
     let ctrl_dblclick = controller.clone();
     let on_dblclick = move |ev: MouseEvent| {
+        leptos::logging::log!("Canvas double-click at ({}, {})", ev.offset_x(), ev.offset_y());
         if let Some(_canvas) = canvas_ref.get() {
             let x = ev.offset_x() as f64;
             let y = ev.offset_y() as f64;
