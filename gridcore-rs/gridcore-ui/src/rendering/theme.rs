@@ -11,14 +11,6 @@ pub struct GridTheme {
     pub active_cell_border_color: String,
     pub resize_guide_color: String,
 
-    // Dimensions
-    pub default_cell_width: f64,
-    pub default_cell_height: f64,
-    pub min_cell_width: f64,
-    pub max_cell_width: f64,
-    pub row_header_width: f64,
-    pub column_header_height: f64,
-
     // Fonts
     pub cell_font_family: String,
     pub cell_font_size: f64,
@@ -43,14 +35,6 @@ impl Default for GridTheme {
             selection_border_color: "#0066cc".to_string(),
             active_cell_border_color: "#0066cc".to_string(),
             resize_guide_color: "#4285f4".to_string(),
-
-            // Dimensions
-            default_cell_width: 100.0,
-            default_cell_height: 24.0,
-            min_cell_width: 40.0,
-            max_cell_width: 500.0,
-            row_header_width: 50.0,
-            column_header_height: 24.0,
 
             // Fonts
             cell_font_family: "sans-serif".to_string(),

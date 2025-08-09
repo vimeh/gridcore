@@ -2,6 +2,7 @@ pub mod behaviors;
 pub mod controller;
 pub mod managers;
 pub mod state;
+pub mod utils;
 
 #[cfg(feature = "wasm")]
 pub mod wasm;
