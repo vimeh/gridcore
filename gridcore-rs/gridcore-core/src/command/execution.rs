@@ -1,4 +1,4 @@
-use super::command::CommandExecutor as CommandExecutorTrait;
+use super::types::CommandExecutor as CommandExecutorTrait;
 use crate::SpreadsheetError;
 use crate::domain::Cell;
 use crate::facade::SpreadsheetFacade;

@@ -1,4 +1,4 @@
-use super::command::{Command, CommandMetadata, SpreadsheetCommand};
+use super::types::{Command, CommandExecutor, CommandMetadata, SpreadsheetCommand};
 use crate::SpreadsheetError;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -72,7 +72,7 @@ impl UndoRedoManager {
     pub fn execute_command(
         &mut self,
         command: SpreadsheetCommand,
-        executor: &mut dyn super::command::CommandExecutor,
+        executor: &mut dyn CommandExecutor,
     ) -> Result<(), SpreadsheetError> {
         // If we're in a batch, just collect the command
         if self.in_batch {
@@ -102,7 +102,7 @@ impl UndoRedoManager {
     /// Commit a batch operation
     pub fn commit_batch(
         &mut self,
-        executor: &mut dyn super::command::CommandExecutor,
+        executor: &mut dyn CommandExecutor,
     ) -> Result<(), SpreadsheetError> {
         if !self.in_batch {
             return Ok(());
@@ -145,7 +145,7 @@ impl UndoRedoManager {
     /// Undo the last command
     pub fn undo(
         &mut self,
-        executor: &mut dyn super::command::CommandExecutor,
+        executor: &mut dyn CommandExecutor,
     ) -> Result<Option<String>, SpreadsheetError> {
         if let Some(entry) = self.undo_stack.pop_back() {
             // Undo the command
@@ -170,7 +170,7 @@ impl UndoRedoManager {
     /// Redo the last undone command
     pub fn redo(
         &mut self,
-        executor: &mut dyn super::command::CommandExecutor,
+        executor: &mut dyn CommandExecutor,
     ) -> Result<Option<String>, SpreadsheetError> {
         if let Some(entry) = self.redo_stack.pop_back() {
             // Execute the command again
