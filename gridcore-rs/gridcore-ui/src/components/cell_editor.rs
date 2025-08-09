@@ -489,6 +489,7 @@ pub fn CellEditor(
         <Show when=move || editing_mode.get()>
             <div
                 class="cell-editor-overlay"
+                tabindex="-1"
                 style=move || {
                     let (x, y, width, height) = cell_position.get();
                     format!(

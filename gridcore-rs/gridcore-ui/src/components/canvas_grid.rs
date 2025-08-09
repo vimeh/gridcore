@@ -392,11 +392,25 @@ pub fn CanvasGrid(
                     }
                     "i" => {
                         ev.prevent_default();
+                        // Get the current cursor from the controller, not the UI signal
+                        // This ensures we're using the controller's actual state
+                        let actual_cursor = {
+                            let ctrl = controller.clone();
+                            let ctrl_borrow = ctrl.borrow();
+                            *ctrl_borrow.get_state().cursor()
+                        };
+                        
+                        leptos::logging::log!(
+                            "Starting edit mode at cursor: col={}, row={}",
+                            actual_cursor.col,
+                            actual_cursor.row
+                        );
+                        
                         // Calculate cell position for the editor
                         let vp = viewport.get();
                         let (pos, theme) = {
                             let vp_borrow = vp.borrow();
-                            let pos = vp_borrow.get_cell_position(&current_cursor);
+                            let pos = vp_borrow.get_cell_position(&actual_cursor);
                             let theme = vp_borrow.get_theme().clone();
                             (pos, theme)
                         }; // vp_borrow is dropped here
@@ -411,7 +425,7 @@ pub fn CanvasGrid(
                             let ctrl = controller.clone();
                             let ctrl_borrow = ctrl.borrow();
                             let facade = ctrl_borrow.get_facade();
-                            if let Some(cell_obj) = facade.get_cell(&current_cursor) {
+                            if let Some(cell_obj) = facade.get_cell(&actual_cursor) {
                                 // Get the display value - use raw_value if it's a formula, otherwise computed_value
                                 if cell_obj.has_formula() {
                                     cell_obj.raw_value.to_string()
@@ -431,11 +445,18 @@ pub fn CanvasGrid(
                     }
                     "a" => {
                         ev.prevent_default();
+                        // Get the current cursor from the controller, not the UI signal
+                        // This ensures we're using the controller's actual state
+                        let actual_cursor = {
+                            let ctrl = controller.clone();
+                            let ctrl_borrow = ctrl.borrow();
+                            *ctrl_borrow.get_state().cursor()
+                        };
                         // Calculate cell position for the editor
                         let vp = viewport.get();
                         let (pos, theme) = {
                             let vp_borrow = vp.borrow();
-                            let pos = vp_borrow.get_cell_position(&current_cursor);
+                            let pos = vp_borrow.get_cell_position(&actual_cursor);
                             let theme = vp_borrow.get_theme().clone();
                             (pos, theme)
                         }; // vp_borrow is dropped here
@@ -450,7 +471,7 @@ pub fn CanvasGrid(
                             let ctrl = controller.clone();
                             let ctrl_borrow = ctrl.borrow();
                             let facade = ctrl_borrow.get_facade();
-                            if let Some(cell_obj) = facade.get_cell(&current_cursor) {
+                            if let Some(cell_obj) = facade.get_cell(&actual_cursor) {
                                 // Get the display value - use raw_value if it's a formula, otherwise computed_value
                                 if cell_obj.has_formula() {
                                     cell_obj.raw_value.to_string()
@@ -519,11 +540,18 @@ pub fn CanvasGrid(
                     }
                     "Enter" => {
                         ev.prevent_default();
+                        // Get the current cursor from the controller, not the UI signal
+                        // This ensures we're using the controller's actual state
+                        let actual_cursor = {
+                            let ctrl = controller.clone();
+                            let ctrl_borrow = ctrl.borrow();
+                            *ctrl_borrow.get_state().cursor()
+                        };
                         // Calculate cell position for the editor
                         let vp = viewport.get();
                         let (pos, theme) = {
                             let vp_borrow = vp.borrow();
-                            let pos = vp_borrow.get_cell_position(&current_cursor);
+                            let pos = vp_borrow.get_cell_position(&actual_cursor);
                             let theme = vp_borrow.get_theme().clone();
                             (pos, theme)
                         }; // vp_borrow is dropped here
@@ -617,11 +645,18 @@ pub fn CanvasGrid(
                                     "Direct typing: key='{}', starting edit mode",
                                     key
                                 );
+                                // Get the current cursor from the controller, not the UI signal
+                                // This ensures we're using the controller's actual state
+                                let actual_cursor = {
+                                    let ctrl = controller.clone();
+                                    let ctrl_borrow = ctrl.borrow();
+                                    *ctrl_borrow.get_state().cursor()
+                                };
                                 // Calculate cell position for the editor
                                 let vp = viewport.get();
                                 let (pos, theme) = {
                                     let vp_borrow = vp.borrow();
-                                    let pos = vp_borrow.get_cell_position(&current_cursor);
+                                    let pos = vp_borrow.get_cell_position(&actual_cursor);
                                     let theme = vp_borrow.get_theme().clone();
                                     (pos, theme)
                                 }; // vp_borrow is dropped here
@@ -655,6 +690,7 @@ pub fn CanvasGrid(
 
         // Dispatch action if we have one
         if let Some(action) = action {
+            leptos::logging::log!("Dispatching action: {:?}", action);
             // Dispatch action and get new state, then drop the borrow
             let (new_mode, new_cursor, is_editing) = {
                 let mut ctrl_mut = ctrl.borrow_mut();
@@ -667,6 +703,10 @@ pub fn CanvasGrid(
                 let cursor = *state.cursor();
                 let is_editing =
                     matches!(state, gridcore_controller::state::UIState::Editing { .. });
+                leptos::logging::log!(
+                    "After action dispatch - Mode: {:?}, Cursor: col={}, row={}, Is editing: {}",
+                    mode, cursor.col, cursor.row, is_editing
+                );
                 (mode, cursor, is_editing)
             }; // ctrl_mut is dropped here
 
@@ -694,6 +734,16 @@ pub fn CanvasGrid(
             } else if !is_editing && editing_mode.get() {
                 // We exited editing mode
                 set_editing_mode.set(false);
+                // Return focus to the grid container after a brief delay
+                let wrapper_clone = wrapper_ref.clone();
+                set_timeout(
+                    move || {
+                        if let Some(wrapper) = wrapper_clone.get() {
+                            let _ = wrapper.focus();
+                        }
+                    },
+                    std::time::Duration::from_millis(10),
+                );
             }
 
             leptos::logging::log!(

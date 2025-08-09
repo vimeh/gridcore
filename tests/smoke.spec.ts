@@ -19,7 +19,7 @@ test.describe("Smoke Tests", () => {
     const statusBar = page.locator(".status-bar");
     await expect(statusBar).toBeVisible();
     // Check for mode indicator
-    await expect(statusBar).toContainText("NORMAL");
+    await expect(statusBar).toContainText("NAVIGATION");
   });
 
   test("should have grid canvas visible", async ({ page }) => {

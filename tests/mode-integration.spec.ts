@@ -492,11 +492,11 @@ test.describe("Mode Integration", () => {
 
       // Enter editing - cell editor should become the active element
       await page.keyboard.press("i");
-      await expect(page.locator(".cell-editor-overlay")).toBeFocused();
+      await expect(page.locator(".cell-editor-overlay textarea")).toBeFocused();
 
       // Mode transitions should maintain focus on cell editor
       await page.keyboard.press("Escape"); // To normal
-      await expect(page.locator(".cell-editor-overlay")).toBeFocused();
+      await expect(page.locator(".cell-editor-overlay textarea")).toBeFocused();
 
       // Exit editing - focus should return to grid
       await page.keyboard.press("Escape"); // To navigation
