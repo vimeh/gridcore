@@ -1,6 +1,6 @@
-import type { CellAddress } from "../wasm";
 import type { Viewport } from "../components/Viewport";
 import type { WebStateAdapter } from "../state/WebStateAdapter";
+import type { CellAddress } from "../wasm";
 import type { SelectionManager } from "./SelectionManager";
 
 export type MouseEventHandler = (cell: CellAddress) => void;
@@ -136,7 +136,7 @@ export class MouseHandler {
 
   private handleMouseUp(_event: MouseEvent): void {
     this.isDragging = false;
-    
+
     if (this.adapter) {
       // Let adapter know drag ended
       const rect = this.canvas.getBoundingClientRect();

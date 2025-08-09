@@ -1,5 +1,5 @@
-import type { CellAddress } from "../wasm";
 import type {
+  CellAddress,
   ControllerEvent,
   Result,
   SpreadsheetController,
@@ -185,7 +185,7 @@ export class WebStateAdapter {
    * Navigate to a cell using relative movement
    */
   private navigateToCell(deltaRow: number, deltaCol: number): Result<UIState> {
-    let result: Result<UIState> = {
+    const result: Result<UIState> = {
       ok: true,
       value: this.controller.getState(),
     };

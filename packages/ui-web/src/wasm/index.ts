@@ -144,4 +144,3 @@ setTimeout(() => {
     return new CellAddress(col, row);
   };
 }, 0);
-

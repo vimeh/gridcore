@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { CellAddress, CellRange, cellAddressToString } from "../wasm";
 import type { Viewport } from "../components/Viewport";
+import { CellAddress, CellRange, cellAddressToString } from "../wasm";
 import { defaultTheme } from "./GridTheme";
 import { SelectionRenderer } from "./SelectionRenderer";
 

@@ -1,5 +1,5 @@
-import { CellAddress, type CellRange } from "../wasm";
 import type { Viewport as GridViewport } from "../components/Viewport";
+import { CellAddress, type CellRange } from "../wasm";
 import type { GridTheme } from "./GridTheme";
 
 export interface SelectionBounds {

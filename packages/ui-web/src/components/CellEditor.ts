@@ -1,5 +1,5 @@
-import type { CellAddress, SpreadsheetController } from "../wasm";
 import { KEY_CODES } from "../constants";
+import type { CellAddress, SpreadsheetController } from "../wasm";
 import type { Viewport } from "./Viewport";
 
 export interface CellEditorCallbacks {
@@ -193,7 +193,7 @@ export class CellEditor {
       const _prevState = this.controller.getState();
 
       this.controller.handleKeyPress(event.key);
-      
+
       // Get the current state after handling the key
       const state = this.controller.getState();
 
@@ -210,7 +210,7 @@ export class CellEditor {
 
       // Update editor content if it changed
       if (state.editingValue !== this.editorDiv.textContent) {
-        this.editorDiv.textContent = state.editingValue || '';
+        this.editorDiv.textContent = state.editingValue || "";
         if (state.editingCursorPosition !== undefined) {
           this.setCursorPosition(state.editingCursorPosition);
         }

@@ -1,6 +1,6 @@
-import { CellAddress } from "../wasm";
 import { DEFAULT_TOTAL_COLS, DEFAULT_TOTAL_ROWS } from "../constants";
 import type { GridTheme } from "../rendering/GridTheme";
+import { CellAddress } from "../wasm";
 
 export interface ViewportBounds {
   startRow: number;

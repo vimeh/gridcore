@@ -1,6 +1,6 @@
-import { type Cell, CellAddress } from "../wasm";
 import type { Viewport, ViewportBounds } from "../components/Viewport";
 import { PIXEL_PERFECT_OFFSET } from "../constants";
+import { type Cell, CellAddress } from "../wasm";
 import type { GridTheme } from "./GridTheme";
 
 export class CanvasRenderer {

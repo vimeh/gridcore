@@ -1,5 +1,5 @@
-import { CellAddress, CellRange } from "../wasm";
 import type { Viewport } from "../components/Viewport";
+import { CellAddress, CellRange } from "../wasm";
 
 export interface SelectionState {
   activeCell: CellAddress | null;
@@ -70,7 +70,10 @@ export class SelectionManager {
 
     if (!startResult.ok || !endResult.ok) return;
 
-    const rangeResult = (CellRange as any).create(startResult.value, endResult.value);
+    const rangeResult = (CellRange as any).create(
+      startResult.value,
+      endResult.value,
+    );
     if (!rangeResult.ok) return;
 
     this.state.selectionRange = rangeResult.value;

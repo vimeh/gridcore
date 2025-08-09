@@ -4,13 +4,13 @@
  */
 
 import type {
-  UIState,
   Action,
-  SpreadsheetMode,
   CellAddress,
-  ViewportInfo,
   Selection,
-} from './types';
+  SpreadsheetMode,
+  UIState,
+  ViewportInfo,
+} from "./types";
 
 let wasmModule: any = null;
 let initialized = false;
@@ -23,12 +23,12 @@ export async function initializeWasm(): Promise<void> {
 
   try {
     // Dynamic import based on environment
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // Browser environment
-      wasmModule = await import('../pkg/gridcore_controller');
+      wasmModule = await import("../pkg/gridcore_controller");
     } else {
       // Node.js environment
-      wasmModule = await import('../pkg-node/gridcore_controller');
+      wasmModule = await import("../pkg-node/gridcore_controller");
     }
 
     // Initialize WASM module
@@ -37,9 +37,9 @@ export async function initializeWasm(): Promise<void> {
     }
 
     initialized = true;
-    console.log('WASM controller initialized successfully');
+    console.log("WASM controller initialized successfully");
   } catch (error) {
-    console.error('Failed to initialize WASM controller:', error);
+    console.error("Failed to initialize WASM controller:", error);
     throw error;
   }
 }
@@ -52,7 +52,7 @@ export class UIStateMachine {
 
   constructor(initialState?: UIState) {
     if (!initialized) {
-      throw new Error('WASM not initialized. Call initializeWasm() first.');
+      throw new Error("WASM not initialized. Call initializeWasm() first.");
     }
 
     if (initialState) {
@@ -116,7 +116,7 @@ export class SpreadsheetController {
 
   constructor() {
     if (!initialized) {
-      throw new Error('WASM not initialized. Call initializeWasm() first.');
+      throw new Error("WASM not initialized. Call initializeWasm() first.");
     }
 
     this.inner = new wasmModule.WasmSpreadsheetController();
@@ -131,7 +131,7 @@ export class SpreadsheetController {
     shift: boolean = false,
     ctrl: boolean = false,
     alt: boolean = false,
-    meta: boolean = false
+    meta: boolean = false,
   ): void {
     this.inner.processKey(key, shift, ctrl, alt, meta);
   }
@@ -139,8 +139,8 @@ export class SpreadsheetController {
   processMouse(
     x: number,
     y: number,
-    button: 'left' | 'middle' | 'right' | 'none',
-    eventType: 'down' | 'up' | 'move' | 'click' | 'doubleclick' | 'wheel'
+    button: "left" | "middle" | "right" | "none",
+    eventType: "down" | "up" | "move" | "click" | "doubleclick" | "wheel",
   ): void {
     this.inner.processMouse(x, y, button, eventType);
   }
@@ -172,35 +172,35 @@ export class SpreadsheetController {
 export class ActionBuilder {
   static startEditing(initialValue?: string): Action {
     if (!initialized) {
-      throw new Error('WASM not initialized. Call initializeWasm() first.');
+      throw new Error("WASM not initialized. Call initializeWasm() first.");
     }
     return wasmModule.ActionBuilder.startEditing(initialValue);
   }
 
   static enterCommandMode(): Action {
     if (!initialized) {
-      throw new Error('WASM not initialized. Call initializeWasm() first.');
+      throw new Error("WASM not initialized. Call initializeWasm() first.");
     }
     return wasmModule.ActionBuilder.enterCommandMode();
   }
 
   static escape(): Action {
     if (!initialized) {
-      throw new Error('WASM not initialized. Call initializeWasm() first.');
+      throw new Error("WASM not initialized. Call initializeWasm() first.");
     }
     return wasmModule.ActionBuilder.escape();
   }
 
   static updateCursor(col: number, row: number): Action {
     if (!initialized) {
-      throw new Error('WASM not initialized. Call initializeWasm() first.');
+      throw new Error("WASM not initialized. Call initializeWasm() first.");
     }
     return wasmModule.ActionBuilder.updateCursor(col, row);
   }
 
   static updateCommandValue(value: string): Action {
     if (!initialized) {
-      throw new Error('WASM not initialized. Call initializeWasm() first.');
+      throw new Error("WASM not initialized. Call initializeWasm() first.");
     }
     return wasmModule.ActionBuilder.updateCommandValue(value);
   }
@@ -209,11 +209,11 @@ export class ActionBuilder {
 /**
  * Feature flag to enable/disable Rust controller
  */
-export const USE_RUST_CONTROLLER = 
-  process.env.USE_RUST_CONTROLLER === 'true' ||
-  process.env.REACT_APP_USE_RUST_CONTROLLER === 'true' ||
-  (typeof window !== 'undefined' && 
-   new URLSearchParams(window.location.search).get('rust') === 'true');
+export const USE_RUST_CONTROLLER =
+  process.env.USE_RUST_CONTROLLER === "true" ||
+  process.env.REACT_APP_USE_RUST_CONTROLLER === "true" ||
+  (typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("rust") === "true");
 
 /**
  * Export everything needed for drop-in replacement

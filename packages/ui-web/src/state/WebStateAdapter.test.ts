@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress, Workbook } from "../wasm";
-import { SpreadsheetController, type ViewportManager } from "../wasm";
+import {
+  CellAddress,
+  SpreadsheetController,
+  type ViewportManager,
+  Workbook,
+} from "../wasm";
 import { WebStateAdapter, type WebUIState } from "./WebStateAdapter";
 
 // Mock ViewportManager

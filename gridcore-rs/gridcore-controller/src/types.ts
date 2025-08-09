@@ -15,38 +15,38 @@ export interface ViewportInfo {
   cols: number;
 }
 
-export type SpreadsheetMode = 
-  | 'Navigation'
-  | 'Editing'
-  | 'Command'
-  | 'Visual'
-  | 'Resize'
-  | 'Insert'
-  | 'Delete'
-  | 'BulkOperation';
+export type SpreadsheetMode =
+  | "Navigation"
+  | "Editing"
+  | "Command"
+  | "Visual"
+  | "Resize"
+  | "Insert"
+  | "Delete"
+  | "BulkOperation";
 
-export type CellMode = 'Normal' | 'Insert' | 'Visual';
+export type CellMode = "Normal" | "Insert" | "Visual";
 
-export type VisualMode = 'Character' | 'Line' | 'Block';
+export type VisualMode = "Character" | "Line" | "Block";
 
-export type SpreadsheetVisualMode = 'Char' | 'Line' | 'Block';
+export type SpreadsheetVisualMode = "Char" | "Line" | "Block";
 
-export type InsertMode = 
-  | 'I'  // Insert at cursor
-  | 'A'  // Append after cursor
-  | 'O'  // Open line below
-  | 'ShiftO'  // Open line above
-  | 'S'  // Substitute line
-  | 'C'  // Change to end of line
-  | 'ShiftA'  // Append at end of line
-  | 'ShiftI'; // Insert at beginning of line
+export type InsertMode =
+  | "I" // Insert at cursor
+  | "A" // Append after cursor
+  | "O" // Open line below
+  | "ShiftO" // Open line above
+  | "S" // Substitute line
+  | "C" // Change to end of line
+  | "ShiftA" // Append at end of line
+  | "ShiftI"; // Insert at beginning of line
 
-export type SelectionType = 
-  | { type: 'Cell'; address: CellAddress }
-  | { type: 'Range'; start: CellAddress; end: CellAddress }
-  | { type: 'Row'; rows: number[] }
-  | { type: 'Column'; columns: number[] }
-  | { type: 'All' };
+export type SelectionType =
+  | { type: "Cell"; address: CellAddress }
+  | { type: "Range"; start: CellAddress; end: CellAddress }
+  | { type: "Row"; rows: number[] }
+  | { type: "Column"; columns: number[] }
+  | { type: "All" };
 
 export interface Selection {
   selection_type: SelectionType;
@@ -60,34 +60,34 @@ export interface ParsedBulkCommand {
   parameters: string[];
 }
 
-export type ResizeTarget = 
-  | { type: 'Column'; index: number }
-  | { type: 'Row'; index: number };
+export type ResizeTarget =
+  | { type: "Column"; index: number }
+  | { type: "Row"; index: number };
 
-export type ResizeMoveDirection = 'Previous' | 'Next';
+export type ResizeMoveDirection = "Previous" | "Next";
 
-export type InsertType = 'Row' | 'Column';
+export type InsertType = "Row" | "Column";
 
-export type InsertPosition = 'Before' | 'After';
+export type InsertPosition = "Before" | "After";
 
-export type DeleteType = 'Row' | 'Column' | 'Cell';
+export type DeleteType = "Row" | "Column" | "Cell";
 
-export type BulkOperationStatus = 
-  | 'Preparing'
-  | 'Previewing'
-  | 'Executing'
-  | 'Completed'
-  | 'Failed';
+export type BulkOperationStatus =
+  | "Preparing"
+  | "Previewing"
+  | "Executing"
+  | "Completed"
+  | "Failed";
 
-export type UIState = 
+export type UIState =
   | {
-      type: 'Navigation';
+      type: "Navigation";
       cursor: CellAddress;
       viewport: ViewportInfo;
       last_command: string | null;
     }
   | {
-      type: 'Visual';
+      type: "Visual";
       cursor: CellAddress;
       viewport: ViewportInfo;
       visual_mode: SpreadsheetVisualMode;
@@ -95,7 +95,7 @@ export type UIState =
       selection: Selection;
     }
   | {
-      type: 'Editing';
+      type: "Editing";
       cursor: CellAddress;
       viewport: ViewportInfo;
       cell_mode: CellMode;
@@ -106,13 +106,13 @@ export type UIState =
       edit_variant: InsertMode | null;
     }
   | {
-      type: 'Command';
+      type: "Command";
       cursor: CellAddress;
       viewport: ViewportInfo;
       command_value: string;
     }
   | {
-      type: 'Resize';
+      type: "Resize";
       cursor: CellAddress;
       viewport: ViewportInfo;
       target: ResizeTarget;
@@ -124,7 +124,7 @@ export type UIState =
       current_position: number;
     }
   | {
-      type: 'Insert';
+      type: "Insert";
       cursor: CellAddress;
       viewport: ViewportInfo;
       insert_type: InsertType;
@@ -135,7 +135,7 @@ export type UIState =
       target_index: number;
     }
   | {
-      type: 'Delete';
+      type: "Delete";
       cursor: CellAddress;
       viewport: ViewportInfo;
       delete_type: DeleteType;
@@ -144,7 +144,7 @@ export type UIState =
       confirmation_pending: boolean;
     }
   | {
-      type: 'BulkOperation';
+      type: "BulkOperation";
       cursor: CellAddress;
       viewport: ViewportInfo;
       parsed_command: ParsedBulkCommand;
@@ -171,8 +171,8 @@ export interface KeyboardEvent {
 export interface MouseEvent {
   x: number;
   y: number;
-  button: 'left' | 'middle' | 'right' | 'none';
-  event_type: 'down' | 'up' | 'move' | 'click' | 'doubleclick' | 'wheel';
+  button: "left" | "middle" | "right" | "none";
+  event_type: "down" | "up" | "move" | "click" | "doubleclick" | "wheel";
 }
 
 export interface SpreadsheetEvent {

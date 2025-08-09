@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress, Workbook } from "../wasm";
-import type { ViewportManager } from "../wasm";
-import { SpreadsheetController } from "../wasm";
 import { Window } from "happy-dom";
+import type { ViewportManager } from "../wasm";
+import { CellAddress, SpreadsheetController, Workbook } from "../wasm";
 import { CellEditor } from "./CellEditor";
 import type { Viewport } from "./Viewport";
 
@@ -36,10 +35,20 @@ class MockViewportManager implements ViewportManager {
     return 26;
   }
   scrollTo(_row: number, _col: number): void {}
-  getViewport(): { startRow: number; endRow: number; startCol: number; endCol: number } {
+  getViewport(): {
+    startRow: number;
+    endRow: number;
+    startCol: number;
+    endCol: number;
+  } {
     return { startRow: 0, endRow: 100, startCol: 0, endCol: 26 };
   }
-  setViewport(_startRow: number, _endRow: number, _startCol: number, _endCol: number): void {}
+  setViewport(
+    _startRow: number,
+    _endRow: number,
+    _startCol: number,
+    _endCol: number,
+  ): void {}
   getScrollPosition(): { x: number; y: number } {
     return { x: 0, y: 0 };
   }

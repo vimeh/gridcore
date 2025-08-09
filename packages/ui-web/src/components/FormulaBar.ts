@@ -3,30 +3,30 @@ import type { Cell, CellAddress } from "../wasm";
 // Formula highlight colors - using a structured format for different element types
 const FORMULA_HIGHLIGHT_COLORS = {
   references: {
-    relative: "#4285F4",    // Blue
-    absolute: "#EA4335",    // Red
+    relative: "#4285F4", // Blue
+    absolute: "#EA4335", // Red
     "mixed-column": "#34A853", // Green
-    "mixed-row": "#FBBC04"    // Yellow
+    "mixed-row": "#FBBC04", // Yellow
   },
   elements: {
-    operator: "#666666",     // Gray
-    function: "#9333EA",     // Purple
-    number: "#0D7377",       // Teal
-    string: "#EC4899",       // Pink
-    parenthesis: "#333333"   // Dark gray
-  }
+    operator: "#666666", // Gray
+    function: "#9333EA", // Purple
+    number: "#0D7377", // Teal
+    string: "#EC4899", // Pink
+    parenthesis: "#333333", // Dark gray
+  },
 };
 
 // Default highlight colors
-const DEFAULT_HIGHLIGHT_COLORS = FORMULA_HIGHLIGHT_COLORS
+const DEFAULT_HIGHLIGHT_COLORS = FORMULA_HIGHLIGHT_COLORS;
 
 // Highlight segment interface
 interface HighlightSegment {
-  text: string
-  color?: string
-  bold?: boolean
-  type?: string
-  referenceType?: string
+  text: string;
+  color?: string;
+  bold?: boolean;
+  type?: string;
+  referenceType?: string;
 }
 
 // Simple FormulaHighlighter stub
@@ -34,10 +34,10 @@ class FormulaHighlighter {
   highlight(formula: string): string {
     return formula; // No highlighting for now
   }
-  
+
   highlightFormula(formula: string, _colors?: any): any[] {
     // Return empty segments for now
-    return []
+    return [];
   }
 }
 
@@ -389,7 +389,10 @@ export class FormulaBar {
     }
 
     // Apply syntax highlighting
-    const segments = this.highlighter.highlightFormula(value, DEFAULT_HIGHLIGHT_COLORS);
+    const segments = this.highlighter.highlightFormula(
+      value,
+      DEFAULT_HIGHLIGHT_COLORS,
+    );
     this.renderHighlightedSegments(segments, value);
   }
 
@@ -513,7 +516,10 @@ export class FormulaBar {
       // Debounce highlighting for performance
       clearTimeout(this.highlightingTimeout);
       this.highlightingTimeout = setTimeout(() => {
-        const segments = this.highlighter.highlightFormula(value, DEFAULT_HIGHLIGHT_COLORS);
+        const segments = this.highlighter.highlightFormula(
+          value,
+          DEFAULT_HIGHLIGHT_COLORS,
+        );
         this.renderHighlightedSegments(segments, value);
       }, 100);
     }

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress, Sheet, type SpreadsheetFacade } from "../wasm";
 import { setupTestEnvironment } from "../test-utils/setup";
+import { CellAddress, type Sheet, type SpreadsheetFacade } from "../wasm";
 import { CanvasGrid } from "./CanvasGrid";
 
 describe("CanvasGrid Initial Load", () => {

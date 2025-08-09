@@ -1,8 +1,7 @@
-import type { SpreadsheetFacade } from "../wasm";
-import type { SpreadsheetController } from "../wasm";
 import type { CanvasGrid } from "../components/CanvasGrid";
 import type { CellEditor } from "../components/CellEditor";
 import { KEY_CODES } from "../constants";
+import type { SpreadsheetController, SpreadsheetFacade } from "../wasm";
 import type { SelectionManager } from "./SelectionManager";
 
 export interface SheetNavigationCallbacks {

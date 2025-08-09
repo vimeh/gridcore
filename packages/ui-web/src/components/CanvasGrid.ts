@@ -1,5 +1,4 @@
-import { CellAddress, type SpreadsheetFacade, type SpreadsheetController } from "../wasm";
-import { SelectionAdapter } from "../adapters/SelectionAdapter";
+import type { SelectionAdapter } from "../adapters/SelectionAdapter";
 import { KeyboardHandler } from "../interaction/KeyboardHandler";
 import { MouseHandler } from "../interaction/MouseHandler";
 import { ResizeHandler } from "../interaction/ResizeHandler";
@@ -13,6 +12,11 @@ import {
   type InteractionMode,
   WebStateAdapter,
 } from "../state/WebStateAdapter";
+import {
+  CellAddress,
+  type SpreadsheetController,
+  type SpreadsheetFacade,
+} from "../wasm";
 import { CellEditor } from "./CellEditor";
 import { Viewport } from "./Viewport";
 
@@ -112,7 +116,7 @@ export class CanvasGrid {
       this.handleCellClick.bind(this),
       this.handleCellDoubleClick.bind(this),
     );
-    
+
     // Set adapter if available
     if (this.adapter) {
       this.mouseHandler.setAdapter(this.adapter);
@@ -313,7 +317,7 @@ export class CanvasGrid {
       let previousMode: string | undefined = initialState.spreadsheetMode;
 
       let previousCursor = initialState.cursor;
-      
+
       this.stateChangeUnsubscribe = this.adapter.subscribe((newState) => {
         const coreState = newState.coreState;
         const currentMode = coreState.spreadsheetMode;
@@ -596,7 +600,7 @@ export class CanvasGrid {
       const activeCell = this.adapter
         ? this.adapter.getCoreState().cursor
         : this.selectionManager.getActiveCell();
-        
+
       const cellsRendered = this.renderer.renderGrid(
         (address) => {
           const result = this.facade.getCell(address);
@@ -612,11 +616,14 @@ export class CanvasGrid {
       if (this.selectionAdapter && this.adapter) {
         // Use selection from UIState when controller is available
         const state = this.adapter.getCoreState();
-        const { selection, visualMode } = this.selectionAdapter.getSelectionFromState(state);
-        
+        const { selection, visualMode } =
+          this.selectionAdapter.getSelectionFromState(state);
+
         if (selection) {
-          const selectedCells = this.selectionAdapter.getSelectedCells(selection);
-          const selectionRange = this.selectionAdapter.getSelectionRange(selection);
+          const selectedCells =
+            this.selectionAdapter.getSelectedCells(selection);
+          const selectionRange =
+            this.selectionAdapter.getSelectionRange(selection);
           this.selectionRenderer.renderSelection(
             selectedCells,
             selectionRange,

@@ -150,4 +150,3 @@ export class SelectionAdapter {
     return this.coreSelectionManager.isCellSelected(address);
   }
 }
-

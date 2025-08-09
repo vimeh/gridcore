@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { CellAddress } from "../wasm";
 import { defaultTheme, type GridTheme } from "../rendering/GridTheme";
+import { CellAddress } from "../wasm";
 import { Viewport } from "./Viewport";
 
 describe("Viewport", () => {
