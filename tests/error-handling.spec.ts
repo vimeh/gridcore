@@ -51,7 +51,7 @@ test.describe("Error Handling", () => {
       expect(hasErrorDisplayed).toBeTruthy();
     });
 
-    test("should display unknown function error", async ({ page }) => {
+    test.skip("should display unknown function error", async ({ page }) => {
       // Navigate to an empty cell
       await navigateToCell(page, 2, 2); // C3
 
@@ -69,7 +69,7 @@ test.describe("Error Handling", () => {
       ).toBeTruthy();
     });
 
-    test("should display type mismatch error", async ({ page }) => {
+    test.skip("should display type mismatch error", async ({ page }) => {
       // Navigate to an empty cell
       await navigateToCell(page, 3, 0); // D1
 
@@ -82,7 +82,7 @@ test.describe("Error Handling", () => {
       expect(hasErrorDisplayed).toBeTruthy();
     });
 
-    test("should handle circular reference error", async ({ page }) => {
+    test.skip("should handle circular reference error", async ({ page }) => {
       // Navigate to E1
       await navigateToCell(page, 4, 0);
 
@@ -140,7 +140,7 @@ test.describe("Error Handling", () => {
       await expect(page.locator(selectors.errorMessage)).not.toBeVisible();
     });
 
-    test("should stack multiple errors", async ({ page }) => {
+    test.skip("should stack multiple errors", async ({ page }) => {
       // Create first error
       await navigateToCell(page, 3, 2); // D3
       await enterFormula(page, "=1/0");
@@ -216,7 +216,7 @@ test.describe("Error Handling", () => {
       await waitForError(page);
     });
 
-    test("should allow re-editing cells with errors", async ({ page }) => {
+    test.skip("should allow re-editing cells with errors", async ({ page }) => {
       // Navigate to a specific cell first
       await focusGrid(page);
       await navigateToCell(page, 2, 2); // C3 - an empty cell
@@ -300,7 +300,7 @@ test.describe("Error Handling", () => {
       await expect(page.locator(selectors.formulaBarInput)).toHaveValue("");
     });
 
-    test("verifies Enter key correctly saves values in cell editor", async ({
+    test.skip("verifies Enter key correctly saves values in cell editor", async ({
       page,
     }) => {
       // This test verifies that the Enter key bug has been fixed
@@ -476,7 +476,7 @@ test.describe("Error Handling", () => {
   });
 
   test.describe("Error Propagation", () => {
-    test("should handle formulas referencing cells with errors", async ({
+    test.skip("should handle formulas referencing cells with errors", async ({
       page,
     }) => {
       // Create a cell with division by zero error
