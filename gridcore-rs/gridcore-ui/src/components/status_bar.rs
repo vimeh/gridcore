@@ -31,10 +31,10 @@ pub fn StatusBar(
     // Format mode display with color and detail text
     let mode_display = move || {
         let (text, color, detail) = match current_mode.get() {
-            SpreadsheetMode::Navigation => ("NORMAL", "#4caf50", "hjkl to move"),
+            SpreadsheetMode::Navigation => ("NAVIGATION", "#4caf50", "hjkl to move"),
             SpreadsheetMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
             SpreadsheetMode::Editing => ("NORMAL", "#ff9800", "i/a to insert"),  // Normal mode within editing
-            SpreadsheetMode::Visual => ("VISUAL", "#9c27b0", "ESC to exit"),
+            SpreadsheetMode::Visual => ("VISUAL", "#9c27b0", "hjkl to select"),
             SpreadsheetMode::Command => ("COMMAND", "#f44336", "Enter to execute"),
             SpreadsheetMode::Resize => ("RESIZE", "#795548", ""),
             SpreadsheetMode::Delete => ("DELETE", "#e91e63", ""),

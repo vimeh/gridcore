@@ -1,7 +1,7 @@
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_controller::state::{Action, UIState, CellMode, InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
-use leptos::html::Input;
+use leptos::html::Textarea;
 use leptos::*;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -20,7 +20,7 @@ pub fn CellEditor(
     let controller: Rc<RefCell<SpreadsheetController>> =
         use_context().expect("SpreadsheetController not found in context");
 
-    let input_ref = create_node_ref::<Input>();
+    let input_ref = create_node_ref::<Textarea>();
     let (editor_value, set_editor_value) = create_signal(String::new());
     let (suggestions, set_suggestions) = create_signal::<Vec<String>>(Vec::new());
     let (selected_suggestion, set_selected_suggestion) = create_signal::<Option<usize>>(None);
@@ -172,9 +172,13 @@ pub fn CellEditor(
                 };
                 
                 if is_insert_mode && !ev.shift_key() && !ev.ctrl_key() {
-                    // In insert mode, Enter adds a newline (unless Shift or Ctrl is held)
-                    // Let the default behavior happen - don't prevent default
-                    // The input element will handle adding the newline
+                    // In insert mode, Enter adds a newline
+                    // We need to manually handle this since we're using controlled input
+                    let current_value = editor_value.get();
+                    let new_value = format!("{}\n", current_value);
+                    set_editor_value.set(new_value);
+                    ev.prevent_default(); // Prevent form submission
+                    return; // Don't save, just add newline
                 } else {
                     // In normal mode, or with modifier keys, Enter saves
                     ev.prevent_default();
@@ -324,7 +328,59 @@ pub fn CellEditor(
                     set_selected_suggestion.set(None);
                 }
             }
-            _ => {}
+            _ => {
+                // Check if we're in Normal mode within editing
+                let ctrl = controller.clone();
+                let is_normal_mode = {
+                    let ctrl_borrow = ctrl.borrow();
+                    matches!(
+                        ctrl_borrow.get_state(),
+                        UIState::Editing { cell_mode: CellMode::Normal, .. }
+                    )
+                };
+                
+                if is_normal_mode {
+                    match key.as_str() {
+                        "i" => {
+                            // Enter insert mode at current position
+                            ev.prevent_default();
+                            let mut ctrl_mut = ctrl.borrow_mut();
+                            if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                mode: Some(InsertMode::I),
+                            }) {
+                                leptos::logging::log!("Error entering insert mode: {:?}", e);
+                            }
+                            set_current_mode.set(SpreadsheetMode::Insert);
+                        }
+                        "a" => {
+                            // Enter insert mode after current position
+                            ev.prevent_default();
+                            let mut ctrl_mut = ctrl.borrow_mut();
+                            if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                mode: Some(InsertMode::A),
+                            }) {
+                                leptos::logging::log!("Error entering insert mode: {:?}", e);
+                            }
+                            set_current_mode.set(SpreadsheetMode::Insert);
+                        }
+                        "v" => {
+                            // Enter visual mode
+                            ev.prevent_default();
+                            use gridcore_controller::state::VisualMode;
+                            let mut ctrl_mut = ctrl.borrow_mut();
+                            if let Err(e) = ctrl_mut.dispatch_action(Action::EnterVisualMode {
+                                visual_type: VisualMode::Character,
+                                anchor: Some(0), // Start selection at current cursor position
+                            }) {
+                                leptos::logging::log!("Error entering visual mode: {:?}", e);
+                            }
+                            // Visual mode within editing still shows as normal in UI
+                            // but with visual selection active
+                        }
+                        _ => {}
+                    }
+                }
+            }
         }
     });
 
@@ -340,13 +396,12 @@ pub fn CellEditor(
                     )
                 }
             >
-                <input
+                <textarea
                     node_ref=input_ref
-                    type="text"
                     value=move || editor_value.get()
                     on:input=move |ev| set_editor_value.set(event_target_value(&ev))
                     on:keydown={let on_keydown = on_keydown.clone(); move |ev| on_keydown(ev)}
-                    style="width: 100%; height: 100%; border: 2px solid #4285f4; padding: 2px 4px; font-family: monospace; font-size: 13px; outline: none;"
+                    style="width: 100%; height: 100%; border: 2px solid #4285f4; padding: 2px 4px; font-family: monospace; font-size: 13px; outline: none; resize: none; overflow: hidden;"
                 />
 
                 <Show when=move || !suggestions.get().is_empty()>
