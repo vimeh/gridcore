@@ -617,9 +617,8 @@ impl SpreadsheetFacade {
                     if has_circular {
                         // Store as error cell with circular reference error
                         let mut cell = Cell::new(CellValue::String(value.to_string()));
-                        let error_msg = "Circular reference detected".to_string();
-                        cell.set_computed_value(CellValue::Error(error_msg.clone()));
-                        cell.set_error(error_msg);
+                        cell.set_computed_value(CellValue::Error("#CIRC!".to_string()));
+                        cell.set_error("#CIRC!".to_string());
                         cell
                     } else {
                         // Normal formula evaluation
@@ -631,16 +630,7 @@ impl SpreadsheetFacade {
                         // Try to evaluate the formula, but store error values if evaluation fails
                         let computed_value = match evaluator.evaluate(&ast) {
                             Ok(val) => val,
-                            Err(e) => {
-                                // Create descriptive error message for evaluation errors
-                                let error_msg = match &e {
-                                    SpreadsheetError::UnknownFunction(name) => format!("Unknown function: {}", name),
-                                    SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => "Division by zero".to_string(),
-                                    SpreadsheetError::CircularDependency => "Circular reference detected".to_string(),
-                                    _ => Self::error_to_excel_format(&e),
-                                };
-                                CellValue::Error(error_msg)
-                            },
+                            Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
                         };
                         // Pop the current cell from the evaluation stack
                         context.pop_evaluation(address);
@@ -651,19 +641,17 @@ impl SpreadsheetFacade {
                 Err(parse_error) => {
                     // Parse error - store the formula with an error value
                     let mut cell = Cell::new(CellValue::String(value.to_string()));
-                    // Create a descriptive error message for display
-                    let display_error = match &parse_error {
-                        SpreadsheetError::Parse(msg) if msg.contains("#REF!") => "Invalid cell reference".to_string(),
-                        SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => {
-                            // Extract function name from the formula
-                            let func_name = formula.split('(').next().unwrap_or("").trim();
-                            format!("Unknown function: {}", func_name)
-                        },
-                        _ => format!("{}", parse_error),
+                    // Convert parse error to Excel-compatible error code
+                    let error_code = match &parse_error {
+                        SpreadsheetError::Parse(msg) if msg.contains("#REF!") => "#REF!".to_string(),
+                        SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => "#NAME?".to_string(),
+                        SpreadsheetError::InvalidRef(_) | SpreadsheetError::RefError => "#REF!".to_string(),
+                        SpreadsheetError::UnknownFunction(_) | SpreadsheetError::NameError => "#NAME?".to_string(),
+                        _ => Self::error_to_excel_format(&parse_error),
                     };
-                    // Store the descriptive message in CellValue::Error for UI display
-                    cell.set_computed_value(CellValue::Error(display_error.clone()));
-                    cell.set_error(display_error);
+                    // Store the Excel error code in CellValue::Error for UI display
+                    cell.set_computed_value(CellValue::Error(error_code.clone()));
+                    cell.set_error(error_code);
                     cell
                 }
             }
