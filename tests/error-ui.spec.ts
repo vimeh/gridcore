@@ -139,7 +139,7 @@ test.describe("Error UI Display", () => {
     test("should display warnings with orange styling", async ({ page }) => {
       // This test requires a way to trigger warnings
       // For now, we'll check the CSS class exists
-      const warningSelector = selectors.errorMessageWarning;
+      const _warningSelector = selectors.errorMessageWarning;
 
       // If we had a warning, it would have orange background
       // This is a placeholder test for when warnings are implemented
@@ -149,7 +149,7 @@ test.describe("Error UI Display", () => {
     test("should display info messages with blue styling", async ({ page }) => {
       // This test requires a way to trigger info messages
       // For now, we'll check the CSS class exists
-      const infoSelector = selectors.errorMessageInfo;
+      const _infoSelector = selectors.errorMessageInfo;
 
       // If we had an info message, it would have blue background
       // This is a placeholder test for when info messages are implemented

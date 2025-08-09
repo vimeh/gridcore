@@ -508,22 +508,22 @@ test.describe("Mode Integration", () => {
       page,
     }) => {
       // Check initial state - use the last mode indicator which should be the unified one
-      const navMode = await getModeIndicator(page).last().textContent();
+      const _navMode = await getModeIndicator(page).last().textContent();
       // console.log("Navigation mode indicator:", navMode);
 
       // Press 'a' to enter append mode
       await page.keyboard.press("l"); // Move to B1
       await page.keyboard.press("a");
 
-      const appendMode = await getModeIndicator(page).last().textContent();
+      const _appendMode = await getModeIndicator(page).last().textContent();
       // console.log("Append mode indicator:", appendMode);
 
       // Check mode text specifically
-      const modeText = await getModeText(page).last().textContent();
+      const _modeText = await getModeText(page).last().textContent();
       // console.log("Mode text:", modeText);
 
       // Check mode detail specifically
-      const modeDetail = await getModeDetail(page).last().textContent();
+      const _modeDetail = await getModeDetail(page).last().textContent();
       // console.log("Mode detail:", modeDetail);
 
       // This test will always pass, it's just for debugging
@@ -537,7 +537,7 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("l");
 
       // Check initial value
-      const initialValue = await page.locator(".formula-input").textContent();
+      const _initialValue = await page.locator(".formula-input").textContent();
       // console.log("Initial value:", initialValue);
 
       // Enter insert mode with 'i'
@@ -559,7 +559,7 @@ test.describe("Mode Integration", () => {
       // console.log("Switched to navigation mode");
 
       // Check final value
-      const finalValue = await page.locator(".formula-input").textContent();
+      const _finalValue = await page.locator(".formula-input").textContent();
       // console.log("Final value:", finalValue);
 
       // For now, just pass the test - we're debugging

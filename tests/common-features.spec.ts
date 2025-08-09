@@ -104,7 +104,7 @@ test.describe("Common Features", () => {
 
   test("should maintain focus on grid", async ({ page }) => {
     // Grid container should be focusable
-    const gridContainer = page.locator(".grid-container");
+    const _gridContainer = page.locator(".grid-container");
 
     // Start from a known position - click on A1 area
     const canvas = page.locator("canvas.grid-canvas");
