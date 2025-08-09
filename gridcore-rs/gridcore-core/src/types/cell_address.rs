@@ -162,7 +162,6 @@ impl FromStr for CellAddress {
     }
 }
 
-// WASM-specific methods
 
 #[cfg(test)]
 mod tests {

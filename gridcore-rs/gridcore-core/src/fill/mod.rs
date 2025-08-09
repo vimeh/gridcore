@@ -6,7 +6,6 @@ pub mod adjuster;
 pub mod engine;
 pub mod patterns;
 
-// WASM module no longer needed - fill operations use serde directly
 
 #[cfg(test)]
 mod tests;

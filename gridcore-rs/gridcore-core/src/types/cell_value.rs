@@ -106,8 +106,6 @@ impl fmt::Display for CellValue {
     }
 }
 
-// CellValue cannot be directly exported with wasm_bindgen because it's an enum with data.
-// Use serde-wasm-bindgen for conversions between JS and Rust.
 // The from_js() and to_js() methods provide conversion utilities.
 
 #[cfg(test)]

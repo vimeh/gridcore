@@ -97,9 +97,6 @@ impl Cell {
     }
 }
 
-// Cell cannot be directly exported with wasm_bindgen because it contains non-Copy fields.
-// However, since Cell has serde derives, we can use serde-wasm-bindgen for all conversions.
-// The WasmCell wrapper below provides a thin layer for JavaScript interop.
 
 
 #[cfg(test)]

@@ -22,5 +22,3 @@ pub fn column_index_to_label(index: u32) -> String {
     label
 }
 
-// WASM types are now directly exported from their modules
-// No need for a separate wasm module
