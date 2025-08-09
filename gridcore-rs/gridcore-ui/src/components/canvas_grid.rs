@@ -382,6 +382,20 @@ pub fn CanvasGrid(
                     }
                     "i" => {
                         ev.prevent_default();
+                        // Calculate cell position for the editor
+                        let vp = viewport.get();
+                        let (pos, theme) = {
+                            let vp_borrow = vp.borrow();
+                            let pos = vp_borrow.get_cell_position(&current_cursor);
+                            let theme = vp_borrow.get_theme().clone();
+                            (pos, theme)
+                        }; // vp_borrow is dropped here
+                        set_cell_position.set((
+                            pos.x + theme.row_header_width,
+                            pos.y + theme.column_header_height,
+                            pos.width,
+                            pos.height,
+                        ));
                         // Get existing cell value for 'i' key
                         let existing_value = {
                             let ctrl = controller.clone();
@@ -583,6 +597,7 @@ pub fn CanvasGrid(
                             let ch = key.chars().next().unwrap();
                             if ch.is_alphanumeric() || "!@#$%^&*()_+-=[]{}|;':\",./<>?`~".contains(ch) {
                                 ev.prevent_default();
+                                leptos::logging::log!("Direct typing: key='{}', starting edit mode", key);
                                 // Calculate cell position for the editor
                                 let vp = viewport.get();
                                 let (pos, theme) = {

@@ -53,6 +53,7 @@ pub fn CellEditor(
                     // - For direct typing: the typed character
                     // - For 'i' key: existing cell content with cursor at 0
                     // - For 'a' key: existing cell content with cursor at end
+                    leptos::logging::log!("Setting editor value from state: '{}'", editing_value);
                     set_editor_value.set(editing_value.clone());
                     
                     // Use the cursor position from state
