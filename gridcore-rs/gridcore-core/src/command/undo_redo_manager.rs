@@ -316,7 +316,7 @@ mod tests {
         }
     }
 
-    impl super::super::command::CommandExecutor for MockExecutor {
+    impl CommandExecutor for MockExecutor {
         fn set_cell_direct(
             &mut self,
             address: &CellAddress,
