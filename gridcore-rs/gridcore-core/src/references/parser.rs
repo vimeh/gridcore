@@ -111,9 +111,10 @@ impl ReferenceParser {
             let full_match = cap.get(0).unwrap().as_str();
             // Also skip if this is part of a range or sheet reference not yet processed
             if !self.is_part_of_complex_reference(formula, full_match)
-                && let Some(reference) = self.parse_single_reference(full_match) {
-                    references.push(reference);
-                }
+                && let Some(reference) = self.parse_single_reference(full_match)
+            {
+                references.push(reference);
+            }
         }
 
         references
@@ -189,24 +190,27 @@ impl ReferenceParser {
         // Check if preceded by '!' (sheet reference)
         if pos > 0
             && let Some(prev_char) = formula.chars().nth(pos - 1)
-                && prev_char == '!' {
-                    return true;
-                }
+            && prev_char == '!'
+        {
+            return true;
+        }
 
         // Check if followed by ':' (range reference)
         let end_pos = pos + reference.len();
         if end_pos < formula.len()
             && let Some(next_char) = formula.chars().nth(end_pos)
-                && next_char == ':' {
-                    return true;
-                }
+            && next_char == ':'
+        {
+            return true;
+        }
 
         // Check if preceded by ':' (range reference)
         if pos > 0
             && let Some(prev_char) = formula.chars().nth(pos - 1)
-                && prev_char == ':' {
-                    return true;
-                }
+            && prev_char == ':'
+        {
+            return true;
+        }
 
         false
     }

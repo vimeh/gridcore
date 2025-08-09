@@ -217,7 +217,8 @@ impl SelectionManager {
         // Check if range collapses to a single cell
         if new_start == new_end {
             self.primary_selection.selection_type = SelectionType::Cell { address: new_start };
-        } else if let SelectionType::Range { start, end } = &mut self.primary_selection.selection_type
+        } else if let SelectionType::Range { start, end } =
+            &mut self.primary_selection.selection_type
         {
             *start = new_start;
             *end = new_end;

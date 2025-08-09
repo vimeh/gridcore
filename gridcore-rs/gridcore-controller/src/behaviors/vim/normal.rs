@@ -421,9 +421,7 @@ impl VimBehavior {
 
     fn jump_to_mark(&mut self, mark: char) -> Result<Option<Action>> {
         if let Some(address) = self.get_mark(mark) {
-            Ok(Some(Action::UpdateCursor {
-                cursor: *address,
-            }))
+            Ok(Some(Action::UpdateCursor { cursor: *address }))
         } else {
             Ok(None)
         }

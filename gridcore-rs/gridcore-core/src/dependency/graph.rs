@@ -96,10 +96,8 @@ impl DependencyGraph {
                 // Topological sort gives us nodes in reverse dependency order
                 // since our edges point from dependent to dependency
                 // We need to reverse it to get the calculation order
-                let mut order: Vec<CellAddress> = indices
-                    .into_iter()
-                    .map(|idx| self.graph[idx])
-                    .collect();
+                let mut order: Vec<CellAddress> =
+                    indices.into_iter().map(|idx| self.graph[idx]).collect();
                 order.reverse();
                 Ok(order)
             }

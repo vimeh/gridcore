@@ -51,7 +51,8 @@ impl PatternDetector for LinearPatternDetector {
     fn detect(&self, values: &[CellValue]) -> Option<PatternType> {
         let numbers = self.extract_numbers(values);
 
-        self.detect_linear_pattern(&numbers).map(|slope| PatternType::Linear { slope })
+        self.detect_linear_pattern(&numbers)
+            .map(|slope| PatternType::Linear { slope })
     }
 
     fn priority(&self) -> u32 {

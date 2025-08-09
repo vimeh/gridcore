@@ -244,11 +244,7 @@ impl UIStateMachine {
                     cursor, viewport, ..
                 },
                 Action::ExitToNavigation,
-            ) => Ok(create_navigation_state(
-                *cursor,
-                viewport.clone(),
-                None,
-            )),
+            ) => Ok(create_navigation_state(*cursor, viewport.clone(), None)),
 
             (
                 UIState::Editing { .. },
@@ -362,11 +358,7 @@ impl UIStateMachine {
                     cursor, viewport, ..
                 },
                 Action::ExitCommandMode,
-            ) => Ok(create_navigation_state(
-                *cursor,
-                viewport.clone(),
-                None,
-            )),
+            ) => Ok(create_navigation_state(*cursor, viewport.clone(), None)),
 
             (UIState::Command { .. }, Action::UpdateCommandValue { value }) => {
                 let mut new_state = state.clone();
@@ -382,11 +374,7 @@ impl UIStateMachine {
                     cursor, viewport, ..
                 },
                 Action::ExitSpreadsheetVisualMode,
-            ) => Ok(create_navigation_state(
-                *cursor,
-                viewport.clone(),
-                None,
-            )),
+            ) => Ok(create_navigation_state(*cursor, viewport.clone(), None)),
 
             (UIState::Visual { .. }, Action::UpdateSelection { selection }) => {
                 let mut new_state = state.clone();
@@ -486,11 +474,7 @@ impl UIStateMachine {
                     cursor, viewport, ..
                 },
                 Action::ConfirmResize | Action::CancelResize,
-            ) => Ok(create_navigation_state(
-                *cursor,
-                viewport.clone(),
-                None,
-            )),
+            ) => Ok(create_navigation_state(*cursor, viewport.clone(), None)),
 
             // Insert mode transitions
             (
@@ -526,11 +510,7 @@ impl UIStateMachine {
                     cursor, viewport, ..
                 },
                 Action::ConfirmInsert | Action::CancelInsert,
-            ) => Ok(create_navigation_state(
-                *cursor,
-                viewport.clone(),
-                None,
-            )),
+            ) => Ok(create_navigation_state(*cursor, viewport.clone(), None)),
 
             // Delete mode transitions
             (
@@ -557,11 +537,7 @@ impl UIStateMachine {
                 Action::ConfirmDelete,
             ) => {
                 // In real implementation, this would execute the delete
-                Ok(create_navigation_state(
-                    *cursor,
-                    viewport.clone(),
-                    None,
-                ))
+                Ok(create_navigation_state(*cursor, viewport.clone(), None))
             }
 
             (
@@ -569,11 +545,7 @@ impl UIStateMachine {
                     cursor, viewport, ..
                 },
                 Action::CancelDelete,
-            ) => Ok(create_navigation_state(
-                *cursor,
-                viewport.clone(),
-                None,
-            )),
+            ) => Ok(create_navigation_state(*cursor, viewport.clone(), None)),
 
             // Bulk operation transitions
             (
@@ -600,22 +572,14 @@ impl UIStateMachine {
                     cursor, viewport, ..
                 },
                 Action::CompleteBulkOperation,
-            ) => Ok(create_navigation_state(
-                *cursor,
-                viewport.clone(),
-                None,
-            )),
+            ) => Ok(create_navigation_state(*cursor, viewport.clone(), None)),
 
             (
                 UIState::BulkOperation {
                     cursor, viewport, ..
                 },
                 Action::CancelBulkOperation,
-            ) => Ok(create_navigation_state(
-                *cursor,
-                viewport.clone(),
-                None,
-            )),
+            ) => Ok(create_navigation_state(*cursor, viewport.clone(), None)),
 
             (UIState::BulkOperation { .. }, Action::GeneratePreview) => {
                 // For now, just update the status to Previewing
@@ -640,11 +604,7 @@ impl UIStateMachine {
             ) => {
                 // For testing, execute completes immediately and returns to navigation
                 // In a real implementation, this would update status and handle async execution
-                Ok(create_navigation_state(
-                    *cursor,
-                    viewport.clone(),
-                    None,
-                ))
+                Ok(create_navigation_state(*cursor, viewport.clone(), None))
             }
 
             // Universal transitions (work in any mode)
@@ -722,11 +682,7 @@ impl UIStateMachine {
                     }
                     CellMode::Normal => {
                         // Exit editing mode entirely
-                        Ok(create_navigation_state(
-                            *cursor,
-                            viewport.clone(),
-                            None,
-                        ))
+                        Ok(create_navigation_state(*cursor, viewport.clone(), None))
                     }
                 }
             }
@@ -740,11 +696,7 @@ impl UIStateMachine {
                 cursor, viewport, ..
             } => {
                 // Exit to navigation
-                Ok(create_navigation_state(
-                    *cursor,
-                    viewport.clone(),
-                    None,
-                ))
+                Ok(create_navigation_state(*cursor, viewport.clone(), None))
             }
             UIState::Navigation { .. } => {
                 // Already in navigation, nothing to do

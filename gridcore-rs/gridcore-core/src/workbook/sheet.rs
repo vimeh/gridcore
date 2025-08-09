@@ -185,7 +185,6 @@ impl Sheet {
 
     /// Clone the sheet with a new name
     pub fn clone_with_name(&self, new_name: impl Into<String>) -> Self {
-        
         Self {
             name: new_name.into(),
             cells: Rc::new(RefCell::new(self.cells.borrow().clone())),

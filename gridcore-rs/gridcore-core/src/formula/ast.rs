@@ -42,7 +42,6 @@ impl CellRange {
         Self::create(start, end)
     }
 
-
     /// Check if a cell address is within this range
     pub fn contains(&self, addr: &CellAddress) -> bool {
         addr.col >= self.start.col

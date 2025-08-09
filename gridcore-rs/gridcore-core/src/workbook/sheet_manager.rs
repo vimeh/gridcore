@@ -129,12 +129,12 @@ impl SheetManager {
                 for (address, cell) in cells.borrow().iter() {
                     if cell.has_formula()
                         && let CellValue::String(formula_str) = &cell.raw_value
-                            && formula_str.starts_with('=')
-                                && let Ok(adjusted) =
-                                    adjuster.adjust_formula(formula_str, &operation)
-                                    && adjusted != *formula_str {
-                                        adjusted_cells.push((address, adjusted));
-                                    }
+                        && formula_str.starts_with('=')
+                        && let Ok(adjusted) = adjuster.adjust_formula(formula_str, &operation)
+                        && adjusted != *formula_str
+                    {
+                        adjusted_cells.push((address, adjusted));
+                    }
                 }
 
                 // Apply adjustments
@@ -193,14 +193,11 @@ impl SheetManager {
                 for (address, cell) in cells.borrow().iter() {
                     if cell.has_formula()
                         && let CellValue::String(formula) = &cell.raw_value
-                            && formula.starts_with('=')
-                                && let Err(e) = FormulaParser::parse(&formula[1..]) {
-                                    errors.push((
-                                        sheet_name.clone(),
-                                        address,
-                                        format!("Parse error: {:?}", e),
-                                    ));
-                                }
+                        && formula.starts_with('=')
+                        && let Err(e) = FormulaParser::parse(&formula[1..])
+                    {
+                        errors.push((sheet_name.clone(), address, format!("Parse error: {:?}", e)));
+                    }
                 }
             }
         }

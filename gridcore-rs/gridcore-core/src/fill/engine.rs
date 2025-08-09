@@ -126,9 +126,10 @@ impl FillEngine {
         // Try each detector in priority order
         for detector in &self.detectors {
             if detector.can_handle(values)
-                && let Some(pattern) = detector.detect(values) {
-                    return Ok(pattern);
-                }
+                && let Some(pattern) = detector.detect(values)
+            {
+                return Ok(pattern);
+            }
         }
 
         // Default to copy pattern if no pattern detected
@@ -268,18 +269,15 @@ impl FillEngine {
         for source_addr in source_range.iter_cells() {
             if let Some(cell) = self.cell_repository.get(&source_addr)
                 && let CellValue::String(ref text) = cell.computed_value
-                    && text.starts_with('=') {
-                        // Generate adjusted formulas for each target cell
-                        for target_addr in target_range.iter_cells() {
-                            let adjusted_formula = adjuster.adjust_formula(
-                                text,
-                                &source_addr,
-                                &target_addr,
-                                direction,
-                            )?;
-                            adjusted.push((target_addr, adjusted_formula));
-                        }
-                    }
+                && text.starts_with('=')
+            {
+                // Generate adjusted formulas for each target cell
+                for target_addr in target_range.iter_cells() {
+                    let adjusted_formula =
+                        adjuster.adjust_formula(text, &source_addr, &target_addr, direction)?;
+                    adjusted.push((target_addr, adjusted_formula));
+                }
+            }
         }
 
         Ok(adjusted)

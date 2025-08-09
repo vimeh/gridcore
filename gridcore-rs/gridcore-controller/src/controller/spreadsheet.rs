@@ -447,7 +447,9 @@ impl SpreadsheetController {
             match self.facade.set_cell_value(&address, &value) {
                 Ok(_) => {
                     // Check if the cell now contains an error value (e.g., from formula evaluation)
-                    if let Ok(gridcore_core::types::CellValue::Error(error_msg)) = self.facade.get_cell_value(&address) {
+                    if let Ok(gridcore_core::types::CellValue::Error(error_msg)) =
+                        self.facade.get_cell_value(&address)
+                    {
                         // Emit error event for formula evaluation errors
                         self.event_dispatcher
                             .dispatch(&SpreadsheetEvent::ErrorOccurred {
@@ -457,10 +459,7 @@ impl SpreadsheetController {
                     }
 
                     self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CellEditCompleted {
-                            address,
-                            value,
-                        });
+                        .dispatch(&SpreadsheetEvent::CellEditCompleted { address, value });
                 }
                 Err(e) => {
                     // Emit error event for setting errors

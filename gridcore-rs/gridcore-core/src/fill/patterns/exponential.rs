@@ -59,7 +59,8 @@ impl PatternDetector for ExponentialPatternDetector {
     fn detect(&self, values: &[CellValue]) -> Option<PatternType> {
         let numbers = self.extract_numbers(values);
 
-        self.detect_exponential_pattern(&numbers).map(|rate| PatternType::Exponential { rate })
+        self.detect_exponential_pattern(&numbers)
+            .map(|rate| PatternType::Exponential { rate })
     }
 
     fn priority(&self) -> u32 {

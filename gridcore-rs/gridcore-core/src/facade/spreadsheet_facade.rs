@@ -251,9 +251,7 @@ impl SpreadsheetFacade {
                 drop(batch_manager);
                 self.queue_batch_operation(
                     batch_id,
-                    BatchOperation::DeleteCell {
-                        address: *address,
-                    },
+                    BatchOperation::DeleteCell { address: *address },
                 )?;
                 return Ok(());
             }
@@ -291,21 +289,22 @@ impl SpreadsheetFacade {
         // Recalculate each cell in order
         for address in &order {
             if let Some(mut cell) = self.repository.borrow().get(address).cloned()
-                && let Some(ast) = &cell.formula {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    // Push the current cell to the evaluation stack for circular reference detection
-                    context.push_evaluation(address);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    // Try to evaluate, but store error values if evaluation fails
-                    let result = match evaluator.evaluate(ast) {
-                        Ok(val) => val,
-                        Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
-                    };
-                    // Pop the current cell from the evaluation stack
-                    context.pop_evaluation(address);
-                    cell.set_computed_value(result);
-                    self.repository.borrow_mut().set(address, cell);
-                }
+                && let Some(ast) = &cell.formula
+            {
+                let mut context = RepositoryContext::new(&self.repository);
+                // Push the current cell to the evaluation stack for circular reference detection
+                context.push_evaluation(address);
+                let mut evaluator = Evaluator::new(&mut context);
+                // Try to evaluate, but store error values if evaluation fails
+                let result = match evaluator.evaluate(ast) {
+                    Ok(val) => val,
+                    Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
+                };
+                // Pop the current cell from the evaluation stack
+                context.pop_evaluation(address);
+                cell.set_computed_value(result);
+                self.repository.borrow_mut().set(address, cell);
+            }
         }
 
         // Emit calculation completed event
@@ -540,11 +539,12 @@ impl SpreadsheetFacade {
                     // Get the original formula string from raw_value
                     if let CellValue::String(formula_str) = &cell.raw_value
                         && formula_str.starts_with('=')
-                            && let Ok(adjusted_formula) =
-                                adjuster.adjust_formula(formula_str, &operation)
-                                && adjusted_formula != *formula_str {
-                                    adjusted_cells.push((address, adjusted_formula));
-                                }
+                        && let Ok(adjusted_formula) =
+                            adjuster.adjust_formula(formula_str, &operation)
+                        && adjusted_formula != *formula_str
+                    {
+                        adjusted_cells.push((address, adjusted_formula));
+                    }
                 }
             }
         }
@@ -635,32 +635,34 @@ impl SpreadsheetFacade {
             let cell = self.repository.borrow().get(&dependent).cloned();
 
             if let Some(mut cell) = cell
-                && let Some(ast) = &cell.formula {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    // Push the current cell to the evaluation stack for circular reference detection
-                    context.push_evaluation(&dependent);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    // Try to evaluate, but store error values if evaluation fails
-                    let result = match evaluator.evaluate(ast) {
-                        Ok(val) => val,
-                        Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
-                    };
-                    // Pop the current cell from the evaluation stack
-                    context.pop_evaluation(&dependent);
+                && let Some(ast) = &cell.formula
+            {
+                let mut context = RepositoryContext::new(&self.repository);
+                // Push the current cell to the evaluation stack for circular reference detection
+                context.push_evaluation(&dependent);
+                let mut evaluator = Evaluator::new(&mut context);
+                // Try to evaluate, but store error values if evaluation fails
+                let result = match evaluator.evaluate(ast) {
+                    Ok(val) => val,
+                    Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
+                };
+                // Pop the current cell from the evaluation stack
+                context.pop_evaluation(&dependent);
 
-                    // If the dependent formula now evaluates to an error, emit an error event
-                    if matches!(result, CellValue::Error(_))
-                        && let CellValue::Error(e) = &result {
-                            let error_msg = format!("Formula error in {}: {}", dependent, e);
-                            self.emit_event(SpreadsheetEvent::error(error_msg, Some(&dependent)));
-                        }
-
-                    cell.set_computed_value(result);
-                    self.repository.borrow_mut().set(&dependent, cell);
-
-                    // Recursively recalculate cells that depend on this one
-                    self.recalculate_dependents(&dependent)?;
+                // If the dependent formula now evaluates to an error, emit an error event
+                if matches!(result, CellValue::Error(_))
+                    && let CellValue::Error(e) = &result
+                {
+                    let error_msg = format!("Formula error in {}: {}", dependent, e);
+                    self.emit_event(SpreadsheetEvent::error(error_msg, Some(&dependent)));
                 }
+
+                cell.set_computed_value(result);
+                self.repository.borrow_mut().set(&dependent, cell);
+
+                // Recursively recalculate cells that depend on this one
+                self.recalculate_dependents(&dependent)?;
+            }
         }
 
         Ok(())
@@ -685,21 +687,22 @@ impl SpreadsheetFacade {
         // Recalculate in order
         for address in ordered_cells {
             if let Some(mut cell) = self.repository.borrow().get(&address).cloned()
-                && let Some(ast) = &cell.formula {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    // Push the current cell to the evaluation stack for circular reference detection
-                    context.push_evaluation(&address);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    // Try to evaluate, but store error values if evaluation fails
-                    let result = match evaluator.evaluate(ast) {
-                        Ok(val) => val,
-                        Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
-                    };
-                    // Pop the current cell from the evaluation stack
-                    context.pop_evaluation(&address);
-                    cell.set_computed_value(result);
-                    self.repository.borrow_mut().set(&address, cell);
-                }
+                && let Some(ast) = &cell.formula
+            {
+                let mut context = RepositoryContext::new(&self.repository);
+                // Push the current cell to the evaluation stack for circular reference detection
+                context.push_evaluation(&address);
+                let mut evaluator = Evaluator::new(&mut context);
+                // Try to evaluate, but store error values if evaluation fails
+                let result = match evaluator.evaluate(ast) {
+                    Ok(val) => val,
+                    Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
+                };
+                // Pop the current cell from the evaluation stack
+                context.pop_evaluation(&address);
+                cell.set_computed_value(result);
+                self.repository.borrow_mut().set(&address, cell);
+            }
         }
 
         Ok(())

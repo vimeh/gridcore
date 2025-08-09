@@ -100,9 +100,10 @@ impl ReferenceTracker {
             }
 
             if visited.insert(current)
-                && let Some(deps) = self.forward_dependencies.get(&current) {
-                    stack.extend(deps.iter().cloned());
-                }
+                && let Some(deps) = self.forward_dependencies.get(&current)
+            {
+                stack.extend(deps.iter().cloned());
+            }
         }
 
         false
@@ -115,13 +116,14 @@ impl ReferenceTracker {
 
         while let Some(cell) = to_process.pop() {
             if affected.insert(cell)
-                && let Some(dependents) = self.reverse_dependencies.get(&cell) {
-                    for dependent in dependents {
-                        if !affected.contains(dependent) {
-                            to_process.push(*dependent);
-                        }
+                && let Some(dependents) = self.reverse_dependencies.get(&cell)
+            {
+                for dependent in dependents {
+                    if !affected.contains(dependent) {
+                        to_process.push(*dependent);
                     }
                 }
+            }
         }
 
         // Sort by dependency order (topological sort)

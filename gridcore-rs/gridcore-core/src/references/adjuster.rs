@@ -99,7 +99,8 @@ impl ReferenceAdjuster {
             }
             ReferenceType::Sheet(sheet_name, inner_ref) => {
                 // Adjust the inner reference and prepend the sheet name
-                self.adjust_for_insert_rows(inner_ref, before_row, count).map(|adjusted| format!("{}!{}", sheet_name, adjusted))
+                self.adjust_for_insert_rows(inner_ref, before_row, count)
+                    .map(|adjusted| format!("{}!{}", sheet_name, adjusted))
             }
             _ => None,
         }
@@ -137,7 +138,8 @@ impl ReferenceAdjuster {
             }
             ReferenceType::Sheet(sheet_name, inner_ref) => {
                 // Adjust the inner reference and prepend the sheet name
-                self.adjust_for_insert_columns(inner_ref, before_col, count).map(|adjusted| format!("{}!{}", sheet_name, adjusted))
+                self.adjust_for_insert_columns(inner_ref, before_col, count)
+                    .map(|adjusted| format!("{}!{}", sheet_name, adjusted))
             }
             _ => None,
         }
@@ -191,15 +193,16 @@ impl ReferenceAdjuster {
     ) -> Option<String> {
         // Check if reference is within the moved range
         if let Some(addr) = reference.to_absolute_address(&CellAddress::new(0, 0))
-            && from.contains(&addr) {
-                let row_offset = to.row as i32 - from.start.row as i32;
-                let col_offset = to.col as i32 - from.start.col as i32;
+            && from.contains(&addr)
+        {
+            let row_offset = to.row as i32 - from.start.row as i32;
+            let col_offset = to.col as i32 - from.start.col as i32;
 
-                let new_row = (addr.row as i32 + row_offset).max(0) as u32;
-                let new_col = (addr.col as i32 + col_offset).max(0) as u32;
+            let new_row = (addr.row as i32 + row_offset).max(0) as u32;
+            let new_col = (addr.col as i32 + col_offset).max(0) as u32;
 
-                return Some(self.format_relative_reference(new_col, new_row));
-            }
+            return Some(self.format_relative_reference(new_col, new_row));
+        }
         None
     }
 
