@@ -37,7 +37,7 @@ pub fn ErrorDisplay(
             error_counter.set(id + 1);
 
             let error = ErrorMessage {
-                message,
+                message: message.clone(),
                 severity: severity.clone(),
                 id,
             };
