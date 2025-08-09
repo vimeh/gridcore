@@ -25,9 +25,7 @@ test.describe("Vim Mode - Text Saving Fixes", () => {
     await page.keyboard.press("ArrowUp");
 
     // The formula bar should show the saved text
-    await expect(page.locator(".formula-input")).toHaveValue(
-      "Test content",
-    );
+    await expect(page.locator(".formula-input")).toHaveValue("Test content");
   });
 
   test("should continue inserting when pressing Enter multiple times", async ({
@@ -51,9 +49,7 @@ test.describe("Vim Mode - Text Saving Fixes", () => {
     await expect(page.locator(".mode-text")).toContainText("NAVIGATION");
 
     // The formula bar should show the multi-line text
-    const formulaBarValue = await page
-      .locator(".formula-input")
-      .inputValue();
+    const formulaBarValue = await page.locator(".formula-input").inputValue();
     expect(formulaBarValue).toContain("Line 1");
   });
 });
@@ -68,7 +64,7 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
     await page.keyboard.type("Hello World");
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
-    
+
     // Now we're back in navigation mode at A1 with "Hello World"
     // Make sure the grid is focused
     await page.locator(".canvas-grid-wrapper").focus();
@@ -80,10 +76,13 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
   }) => {
     // Enter the cell using 'i' to preserve existing text with cursor at beginning
     await page.keyboard.press("i");
-    
+
     // Wait for the editor to appear
-    await page.waitForSelector(".cell-editor-overlay", { state: "visible", timeout: 1000 });
-    
+    await page.waitForSelector(".cell-editor-overlay", {
+      state: "visible",
+      timeout: 1000,
+    });
+
     // Wait a moment for cursor positioning
     await page.waitForTimeout(100);
 
@@ -95,25 +94,30 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(50);
     await page.keyboard.press("Escape");
-    
+
     // Wait for editor to disappear
-    await page.waitForSelector(".cell-editor-overlay", { state: "hidden", timeout: 1000 });
+    await page.waitForSelector(".cell-editor-overlay", {
+      state: "hidden",
+      timeout: 1000,
+    });
 
     await expect(page.locator(".formula-input")).toHaveValue(
       "Start Hello World",
     );
   });
 
-
   test("should handle cursor position when entering existing text", async ({
     page,
   }) => {
     // Navigate to a cell with existing text using 'a' (append mode)
     await page.keyboard.press("a");
-    
+
     // Wait for the editor to appear
-    await page.waitForSelector(".cell-editor-overlay", { state: "visible", timeout: 1000 });
-    
+    await page.waitForSelector(".cell-editor-overlay", {
+      state: "visible",
+      timeout: 1000,
+    });
+
     // Wait a moment for cursor positioning
     await page.waitForTimeout(100);
 
@@ -125,13 +129,14 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(50);
     await page.keyboard.press("Escape");
-    
+
     // Wait for editor to disappear
-    await page.waitForSelector(".cell-editor-overlay", { state: "hidden", timeout: 1000 });
+    await page.waitForSelector(".cell-editor-overlay", {
+      state: "hidden",
+      timeout: 1000,
+    });
 
     // Text should be appended at the end
-    await expect(page.locator(".formula-input")).toHaveValue(
-      "Hello World123",
-    );
+    await expect(page.locator(".formula-input")).toHaveValue("Hello World123");
   });
 });

@@ -61,9 +61,7 @@ test.describe("Cell Editing", () => {
 
     // Current implementation saves, cursor correctly positioned at beginning with 'i'
     // When pressing 'i', cursor is at the beginning, so "Changed" appears before "World"
-    await expect(page.locator(".formula-input")).toHaveValue(
-      "ChangedWorld",
-    );
+    await expect(page.locator(".formula-input")).toHaveValue("ChangedWorld");
   });
 
   test("should handle formula entry", async ({ page }) => {
@@ -121,9 +119,7 @@ test.describe("Cell Editing", () => {
     await page.waitForTimeout(100);
 
     // The vim mode indicator shows just the mode (not the instruction text)
-    await expect(page.locator(".mode-text")).toContainText(
-      "NORMAL",
-    );
+    await expect(page.locator(".mode-text")).toContainText("NORMAL");
 
     // Check if cell editor is still visible (it should be)
     await expect(page.locator(".cell-editor-overlay")).toBeVisible();
@@ -156,5 +152,4 @@ test.describe("Cell Editing", () => {
     // Check that text was inserted at the beginning
     await expect(page.locator(".formula-input")).toHaveValue("!World");
   });
-
 });

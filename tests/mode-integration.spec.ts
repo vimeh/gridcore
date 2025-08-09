@@ -109,9 +109,7 @@ test.describe("Mode Integration", () => {
       // Exit and verify content
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await expect(page.locator(".formula-input")).toHaveValue(
-        "Direct entry",
-      );
+      await expect(page.locator(".formula-input")).toHaveValue("Direct entry");
     });
   });
 
@@ -412,7 +410,7 @@ test.describe("Mode Integration", () => {
 
       // Navigate to B3
       await page.keyboard.press("l"); // Move to B3
-      
+
       // Small delay to ensure navigation completes
       await page.waitForTimeout(50);
 
@@ -482,9 +480,7 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("Escape");
 
       // Formula bar should reflect final state
-      await expect(page.locator(".formula-input")).toHaveValue(
-        " editWorld",
-      );
+      await expect(page.locator(".formula-input")).toHaveValue(" editWorld");
     });
 
     test("should handle keyboard focus correctly across modes", async ({
@@ -541,9 +537,7 @@ test.describe("Mode Integration", () => {
       await page.keyboard.press("l");
 
       // Check initial value
-      const initialValue = await page
-        .locator(".formula-input")
-        .textContent();
+      const initialValue = await page.locator(".formula-input").textContent();
       // console.log("Initial value:", initialValue);
 
       // Enter insert mode with 'i'
@@ -586,7 +580,7 @@ test.describe("Mode Integration", () => {
 
       // Ensure grid has focus before pressing Escape
       await page.locator(".grid-container").focus();
-      
+
       // Exit visual mode goes back to navigation
       await page.keyboard.press("Escape");
       await expect(getModeText(page)).toContainText("NAVIGATION");
@@ -619,7 +613,9 @@ test.describe("Mode Integration", () => {
       await expect(getModeText(page)).toContainText("NAVIGATION");
     });
 
-    test.skip("should maintain mode consistency after errors", async ({ page }) => {
+    test.skip("should maintain mode consistency after errors", async ({
+      page,
+    }) => {
       // Start editing
       await page.keyboard.press("i");
       await page.keyboard.type("test");

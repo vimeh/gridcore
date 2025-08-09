@@ -27,8 +27,10 @@ test.describe("Smoke Tests", () => {
 
     // Check that the canvas element is present
     await expect(page.locator("canvas")).toBeVisible();
-    
+
     // Check formula bar input is present
-    await expect(page.locator(".formula-bar input.formula-input")).toBeVisible();
+    await expect(
+      page.locator(".formula-bar input.formula-input"),
+    ).toBeVisible();
   });
 });

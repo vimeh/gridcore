@@ -121,11 +121,11 @@ test.describe("Common Features", () => {
     // Move right and down first
     await page.keyboard.press("l");
     await page.keyboard.press("j");
-    
+
     // Now navigate back to A1 using vim keys
     // Press 'h' to go to column A
     await page.keyboard.press("h");
-    // Press 'k' to go to row 1  
+    // Press 'k' to go to row 1
     await page.keyboard.press("k");
 
     // Verify we're at A1

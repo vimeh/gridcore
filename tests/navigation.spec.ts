@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { selectors, waitForApp } from "./helpers/selectors";
-import { getCurrentCellAddress, focusGrid } from "./helpers/test-utils";
+import { focusGrid, getCurrentCellAddress } from "./helpers/test-utils";
 
 test.describe("Grid Navigation", () => {
   test.beforeEach(async ({ page }) => {
@@ -14,7 +14,7 @@ test.describe("Grid Navigation", () => {
   test("should navigate with hjkl keys", async ({ page }) => {
     // Start at A1
     expect(await getCurrentCellAddress(page)).toBe("A1");
-    
+
     // Focus the grid wrapper, not the canvas to avoid mouse position issues
     const gridWrapper = page.locator(selectors.gridWrapper);
     await gridWrapper.focus();
@@ -23,7 +23,7 @@ test.describe("Grid Navigation", () => {
     // Move right with 'l'
     await page.keyboard.press("l");
     await page.waitForTimeout(200); // Wait for state update
-    
+
     const addressAfterL = await getCurrentCellAddress(page);
     expect(addressAfterL).toBe("B1");
 
