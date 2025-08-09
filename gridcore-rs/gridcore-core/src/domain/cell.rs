@@ -1,5 +1,5 @@
 use crate::formula::ast::Expr;
-use crate::types::CellValue;
+use crate::types::{CellValue, ErrorType};
 use serde::{Deserialize, Serialize};
 
 /// Represents a spreadsheet cell with its value and optional formula
@@ -41,9 +41,35 @@ impl Cell {
 
     /// Create a cell with an error
     pub fn with_error(raw_value: CellValue, error: String) -> Self {
+        // Parse the error string to determine the appropriate ErrorType
+        let error_type = if error.contains("#DIV/0!") || error.contains("Division by zero") {
+            ErrorType::DivideByZero
+        } else if error.contains("#REF!") || error.contains("Invalid reference") {
+            ErrorType::InvalidRef {
+                reference: error.clone(),
+            }
+        } else if error.contains("#NAME?") || error.contains("Unknown function") {
+            ErrorType::NameError {
+                name: error.clone(),
+            }
+        } else if error.contains("#VALUE!") || error.contains("Type mismatch") {
+            ErrorType::ValueError {
+                expected: "valid".to_string(),
+                actual: error.clone(),
+            }
+        } else if error.contains("#CIRC!") || error.contains("Circular") {
+            ErrorType::CircularDependency { cells: Vec::new() }
+        } else if error.contains("#NUM!") {
+            ErrorType::NumError
+        } else {
+            ErrorType::ParseError {
+                message: error.clone(),
+            }
+        };
+
         Cell {
             raw_value,
-            computed_value: CellValue::Error(error.clone()),
+            computed_value: CellValue::Error(error_type),
             formula: None,
             error: Some(error),
         }
@@ -93,7 +119,34 @@ impl Cell {
     /// Set an error on the cell
     pub fn set_error(&mut self, error: String) {
         self.error = Some(error.clone());
-        self.computed_value = CellValue::Error(error);
+
+        // Parse the error string to determine the appropriate ErrorType
+        let error_type = if error.contains("#DIV/0!") || error.contains("Division by zero") {
+            ErrorType::DivideByZero
+        } else if error.contains("#REF!") || error.contains("Invalid reference") {
+            ErrorType::InvalidRef {
+                reference: error.clone(),
+            }
+        } else if error.contains("#NAME?") || error.contains("Unknown function") {
+            ErrorType::NameError {
+                name: error.clone(),
+            }
+        } else if error.contains("#VALUE!") || error.contains("Type mismatch") {
+            ErrorType::ValueError {
+                expected: "valid".to_string(),
+                actual: error.clone(),
+            }
+        } else if error.contains("#CIRC!") || error.contains("Circular") {
+            ErrorType::CircularDependency { cells: Vec::new() }
+        } else if error.contains("#NUM!") {
+            ErrorType::NumError
+        } else {
+            ErrorType::ParseError {
+                message: error.clone(),
+            }
+        };
+
+        self.computed_value = CellValue::Error(error_type);
     }
 }
 
@@ -172,7 +225,9 @@ mod tests {
         assert_eq!(cell.error, Some("Unknown function".to_string()));
         assert_eq!(
             cell.computed_value,
-            CellValue::Error("Unknown function".to_string())
+            CellValue::Error(ErrorType::NameError {
+                name: "Unknown function".to_string()
+            })
         );
     }
 
@@ -193,7 +248,7 @@ mod tests {
         assert_eq!(cell.error, Some("Division by zero".to_string()));
         assert_eq!(
             cell.computed_value,
-            CellValue::Error("Division by zero".to_string())
+            CellValue::Error(ErrorType::DivideByZero)
         );
         assert_eq!(cell.raw_value, CellValue::Number(42.0));
     }
@@ -209,7 +264,7 @@ mod tests {
         );
         assert_eq!(
             cell_with_error.get_display_value(),
-            &CellValue::Error("Division by zero".to_string())
+            &CellValue::Error(ErrorType::DivideByZero)
         );
     }
 

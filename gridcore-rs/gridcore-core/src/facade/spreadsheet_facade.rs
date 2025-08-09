@@ -6,7 +6,7 @@ use crate::fill::{FillEngine, FillOperation, FillResult};
 use crate::formula::FormulaParser;
 use crate::references::{ReferenceAdjuster, ReferenceTracker, StructuralOperation};
 use crate::repository::CellRepository;
-use crate::types::{CellAddress, CellValue};
+use crate::types::{CellAddress, CellValue, ErrorType};
 use crate::{Result, SpreadsheetError};
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -33,28 +33,6 @@ pub struct SpreadsheetFacade {
 }
 
 impl SpreadsheetFacade {
-    /// Convert SpreadsheetError to Excel-compatible error string
-    fn error_to_excel_format(error: &SpreadsheetError) -> String {
-        match error {
-            SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
-                "#DIV/0!".to_string()
-            }
-            SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => "#VALUE!".to_string(),
-            SpreadsheetError::RefError | SpreadsheetError::InvalidRef(_) => "#REF!".to_string(),
-            SpreadsheetError::NameError | SpreadsheetError::UnknownFunction(_) => {
-                "#NAME?".to_string()
-            }
-            SpreadsheetError::NumError => "#NUM!".to_string(),
-            SpreadsheetError::CircularDependency => "#CIRC!".to_string(),
-            SpreadsheetError::Parse(msg) if msg.contains("#REF!") => "#REF!".to_string(),
-            SpreadsheetError::Parse(msg) if msg.contains("#NAME?") => "#NAME?".to_string(),
-            SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => {
-                "#NAME?".to_string()
-            }
-            _ => format!("#{}", error),
-        }
-    }
-
     /// Create a new spreadsheet facade
     pub fn new() -> Self {
         SpreadsheetFacade {
@@ -146,14 +124,18 @@ impl SpreadsheetFacade {
                         // Store the cell with circular reference error
                         let mut cell =
                             Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
-                        cell.set_computed_value(CellValue::Error("#CIRC!".to_string()));
+                        cell.set_computed_value(CellValue::Error(ErrorType::CircularDependency {
+                            cells: vec![*address],
+                        }));
                         self.repository.borrow_mut().set(address, cell.clone());
 
                         // Emit event
                         self.emit_event(SpreadsheetEvent::cell_updated(
                             address,
                             old_value,
-                            CellValue::Error("#CIRC!".to_string()),
+                            CellValue::Error(ErrorType::CircularDependency {
+                                cells: vec![*address],
+                            }),
                             Some(value.to_string()),
                         ));
 
@@ -180,9 +162,9 @@ impl SpreadsheetFacade {
             let computed_value = match evaluator.evaluate(&ast) {
                 Ok(val) => val,
                 Err(e) => {
-                    let error_code = Self::error_to_excel_format(&e);
+                    let error_type = e.to_error_type();
                     // Debug: Evaluation error for formula
-                    CellValue::Error(error_code)
+                    CellValue::Error(error_type)
                 }
             };
             // Pop the current cell from the evaluation stack
@@ -311,7 +293,7 @@ impl SpreadsheetFacade {
                     // Try to evaluate, but store error values if evaluation fails
                     let eval_result = match evaluator.evaluate(ast) {
                         Ok(val) => val,
-                        Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
+                        Err(e) => CellValue::Error(e.to_error_type()),
                     };
                     // Pop the current cell from the evaluation stack
                     context.pop_evaluation(address);
@@ -397,7 +379,7 @@ impl SpreadsheetFacade {
                             CellValue::Number(n) => n.to_string(),
                             CellValue::String(s) => s,
                             CellValue::Boolean(b) => b.to_string(),
-                            CellValue::Error(e) => e,
+                            CellValue::Error(e) => e.excel_code().to_string(),
                             _ => String::new(),
                         }
                     };
@@ -623,7 +605,9 @@ impl SpreadsheetFacade {
                     if has_circular {
                         // Store as error cell with circular reference error
                         let mut cell = Cell::new(CellValue::String(value.to_string()));
-                        cell.set_computed_value(CellValue::Error("#CIRC!".to_string()));
+                        cell.set_computed_value(CellValue::Error(ErrorType::CircularDependency {
+                            cells: vec![*address],
+                        }));
                         cell.set_error("#CIRC!".to_string());
                         cell
                     } else {
@@ -637,7 +621,7 @@ impl SpreadsheetFacade {
                         // Try to evaluate the formula, but store error values if evaluation fails
                         let computed_value = match evaluator.evaluate(&ast) {
                             Ok(val) => val,
-                            Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
+                            Err(e) => CellValue::Error(e.to_error_type()),
                         };
                         // Pop the current cell from the evaluation stack
                         context.pop_evaluation(address);
@@ -649,24 +633,11 @@ impl SpreadsheetFacade {
                     // Parse error - store the formula with an error value
                     let mut cell = Cell::new(CellValue::String(value.to_string()));
                     // Convert parse error to Excel-compatible error code
-                    let error_code = match &parse_error {
-                        SpreadsheetError::Parse(msg) if msg.contains("#REF!") => {
-                            "#REF!".to_string()
-                        }
-                        SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => {
-                            "#NAME?".to_string()
-                        }
-                        SpreadsheetError::InvalidRef(_) | SpreadsheetError::RefError => {
-                            "#REF!".to_string()
-                        }
-                        SpreadsheetError::UnknownFunction(_) | SpreadsheetError::NameError => {
-                            "#NAME?".to_string()
-                        }
-                        _ => Self::error_to_excel_format(&parse_error),
-                    };
-                    // Store the Excel error code in CellValue::Error for UI display
+                    let error_type = parse_error.to_error_type();
+                    let error_code = error_type.excel_code().to_string();
+                    // Store the error type for UI display
                     // Debug: Parse error for formula
-                    cell.set_computed_value(CellValue::Error(error_code.clone()));
+                    cell.set_computed_value(CellValue::Error(error_type));
                     cell.set_error(error_code);
                     cell
                 }
@@ -707,7 +678,7 @@ impl SpreadsheetFacade {
                     // Try to evaluate, but store error values if evaluation fails
                     let eval_result = match evaluator.evaluate(ast) {
                         Ok(val) => val,
-                        Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
+                        Err(e) => CellValue::Error(e.to_error_type()),
                     };
                     // Pop the current cell from the evaluation stack
                     context.pop_evaluation(&dependent);
@@ -765,7 +736,7 @@ impl SpreadsheetFacade {
                     // Try to evaluate, but store error values if evaluation fails
                     let eval_result = match evaluator.evaluate(ast) {
                         Ok(val) => val,
-                        Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
+                        Err(e) => CellValue::Error(e.to_error_type()),
                     };
                     // Pop the current cell from the evaluation stack
                     context.pop_evaluation(&address);
@@ -806,7 +777,26 @@ impl SpreadsheetFacade {
 
         // Check for error values
         if value.starts_with('#') && value.ends_with('!') {
-            return CellValue::Error(value.to_string());
+            // Parse Excel-style error codes
+            let error_type = match value {
+                "#DIV/0!" => ErrorType::DivideByZero,
+                "#REF!" => ErrorType::InvalidRef {
+                    reference: "unknown".to_string(),
+                },
+                "#NAME?" => ErrorType::NameError {
+                    name: "unknown".to_string(),
+                },
+                "#VALUE!" => ErrorType::ValueError {
+                    expected: "valid".to_string(),
+                    actual: "invalid".to_string(),
+                },
+                "#NUM!" => ErrorType::NumError,
+                "#CIRC!" => ErrorType::CircularDependency { cells: Vec::new() },
+                _ => ErrorType::ParseError {
+                    message: value.to_string(),
+                },
+            };
+            return CellValue::Error(error_type);
         }
 
         // Default to string

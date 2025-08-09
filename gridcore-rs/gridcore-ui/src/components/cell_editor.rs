@@ -16,8 +16,11 @@ fn format_parse_error(error: &str, is_formula: bool) -> String {
         "#REF! - Invalid reference".to_string()
     } else if error.contains("Unknown function") || error.contains("UNKNOWNFUNC") {
         "#NAME? - Unknown function or name".to_string()
-    } else if error.contains("Type mismatch") || error.contains("cannot add") || error.contains("cannot subtract") {
-        "#VALUE! - Type mismatch or invalid value".to_string()  
+    } else if error.contains("Type mismatch")
+        || error.contains("cannot add")
+        || error.contains("cannot subtract")
+    {
+        "#VALUE! - Type mismatch or invalid value".to_string()
     } else if error.contains("Circular") || error.contains("circular") {
         "#CIRC! - Circular reference detected".to_string()
     } else if error.contains("Division by zero") || error.contains("divide by zero") {
@@ -323,16 +326,16 @@ pub fn CellEditor(
                             Ok(_) => {
                                 // Check if the cell now contains an error value
                                 if let Ok(cell_value) = facade.get_cell_value(&cell) {
-                                    if let gridcore_core::types::CellValue::Error(error_msg) =
+                                    if let gridcore_core::types::CellValue::Error(error_type) =
                                         cell_value
                                     {
-                                        // Display the Excel-style error directly
+                                        // Display the error with both code and description
                                         if let Some(error_ctx) = use_error_context() {
-                                            error_ctx.show_error(error_msg.clone());
+                                            error_ctx.show_error(error_type.full_display());
                                         }
                                         leptos::logging::log!(
                                             "Formula error detected: {}",
-                                            error_msg
+                                            error_type.full_display()
                                         );
                                     }
                                 }
@@ -340,7 +343,8 @@ pub fn CellEditor(
                             Err(e) => {
                                 // Display error to user for setting errors
                                 if let Some(error_ctx) = use_error_context() {
-                                    let error_msg = format_parse_error(&e.to_string(), value.starts_with('='));
+                                    let error_msg =
+                                        format_parse_error(&e.to_string(), value.starts_with('='));
                                     leptos::logging::log!("Showing error: {}", error_msg);
                                     error_ctx.show_error(error_msg);
                                 }
@@ -437,16 +441,16 @@ pub fn CellEditor(
                             Ok(_) => {
                                 // Check if the cell now contains an error value
                                 if let Ok(cell_value) = facade.get_cell_value(&cell) {
-                                    if let gridcore_core::types::CellValue::Error(error_msg) =
+                                    if let gridcore_core::types::CellValue::Error(error_type) =
                                         cell_value
                                     {
-                                        // Display the Excel-style error directly
+                                        // Display the error with both code and description
                                         if let Some(error_ctx) = use_error_context() {
-                                            error_ctx.show_error(error_msg.clone());
+                                            error_ctx.show_error(error_type.full_display());
                                         }
                                         leptos::logging::log!(
                                             "Formula error detected: {}",
-                                            error_msg
+                                            error_type.full_display()
                                         );
                                     }
                                 }
@@ -454,7 +458,8 @@ pub fn CellEditor(
                             Err(e) => {
                                 // Display error to user for setting errors
                                 if let Some(error_ctx) = use_error_context() {
-                                    let error_msg = format_parse_error(&e.to_string(), value.starts_with('='));
+                                    let error_msg =
+                                        format_parse_error(&e.to_string(), value.starts_with('='));
                                     leptos::logging::log!("Showing error: {}", error_msg);
                                     error_ctx.show_error(error_msg);
                                 }

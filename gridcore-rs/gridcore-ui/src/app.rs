@@ -184,16 +184,19 @@ pub fn App() -> impl IntoView {
                     Ok(_) => {
                         // Check if the cell now contains an error value
                         if let Ok(cell_value) = facade.get_cell_value(&cell) {
-                            if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
-                                // Display the Excel-style error directly
+                            if let gridcore_core::types::CellValue::Error(error_type) = cell_value {
+                                // Display the error with both code and description
                                 set_errors.update(|errs| {
                                     errs.push(ErrorMessage {
-                                        message: error_msg.clone(),
+                                        message: error_type.full_display(),
                                         severity: ErrorSeverity::Error,
                                         id: errs.len(),
                                     });
                                 });
-                                leptos::logging::log!("Formula error detected: {}", error_msg);
+                                leptos::logging::log!(
+                                    "Formula error detected: {}",
+                                    error_type.full_display()
+                                );
                                 // Don't clear the formula bar when there's an error - keep it for editing
                             } else {
                                 // Only clear formula bar on successful evaluation

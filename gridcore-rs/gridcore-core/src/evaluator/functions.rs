@@ -1,5 +1,6 @@
 use super::operators::{coerce_to_boolean, coerce_to_number, coerce_to_string};
 use crate::types::CellValue;
+use crate::types::ErrorType;
 use crate::{Result, SpreadsheetError};
 use std::collections::HashMap;
 
@@ -55,7 +56,7 @@ impl FunctionLibrary {
             Box::new(|args| {
                 let mut sum = 0.0;
                 let mut has_error = false;
-                let mut error_value = String::new();
+                let mut error_value = ErrorType::default();
 
                 for arg in args {
                     // Check for errors first and propagate them
@@ -75,18 +76,24 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                        expected: "numeric".to_string(),
+                                        actual: "non-numeric".to_string(),
+                                    }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(err_str))
+                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
+                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                    expected: "numeric".to_string(),
+                                    actual: "non-numeric".to_string(),
+                                })),
                             };
                         }
                     }
@@ -121,18 +128,24 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                        expected: "numeric".to_string(),
+                                        actual: "non-numeric".to_string(),
+                                    }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(err_str))
+                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
+                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                    expected: "numeric".to_string(),
+                                    actual: "non-numeric".to_string(),
+                                })),
                             };
                         }
                     }
@@ -170,18 +183,24 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                        expected: "numeric".to_string(),
+                                        actual: "non-numeric".to_string(),
+                                    }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(err_str))
+                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
+                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                    expected: "numeric".to_string(),
+                                    actual: "non-numeric".to_string(),
+                                })),
                             };
                         }
                     }
@@ -220,18 +239,24 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                        expected: "numeric".to_string(),
+                                        actual: "non-numeric".to_string(),
+                                    }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(err_str))
+                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
+                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                    expected: "numeric".to_string(),
+                                    actual: "non-numeric".to_string(),
+                                })),
                             };
                         }
                     }
@@ -270,18 +295,24 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                        expected: "numeric".to_string(),
+                                        actual: "non-numeric".to_string(),
+                                    }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                    Ok(CellValue::Error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(err_str))
+                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
+                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                    expected: "numeric".to_string(),
+                                    actual: "non-numeric".to_string(),
+                                })),
                             };
                         }
                     }
@@ -505,12 +536,14 @@ impl FunctionLibrary {
 fn extract_numbers(value: &CellValue) -> Result<Vec<f64>> {
     match value {
         CellValue::Number(n) => Ok(vec![*n]),
-        CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.clone())),
+        CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.to_string())),
         CellValue::Array(arr) => {
             let mut numbers = Vec::new();
             for val in arr {
                 match val {
-                    CellValue::Error(e) => return Err(SpreadsheetError::FormulaError(e.clone())),
+                    CellValue::Error(e) => {
+                        return Err(SpreadsheetError::FormulaError(e.to_string()));
+                    }
                     _ => {
                         if let Ok(n) = coerce_to_number(val) {
                             numbers.push(n);

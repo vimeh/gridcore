@@ -1,6 +1,6 @@
 use crate::SpreadsheetError;
 use crate::formula::ast::{CellRange, Expr};
-use crate::types::{CellAddress, CellValue};
+use crate::types::{CellAddress, CellValue, ErrorType};
 
 /// Transformer for adjusting formulas during structural operations
 #[derive(Debug, Clone)]
@@ -124,7 +124,9 @@ impl FormulaTransformer {
                     absolute_row: new_abs_row,
                 },
                 Err(_) => Expr::Literal {
-                    value: CellValue::Error("#REF!".to_string()),
+                    value: CellValue::Error(ErrorType::InvalidRef {
+                        reference: "deleted".to_string(),
+                    }),
                 },
             },
 
@@ -150,7 +152,9 @@ impl FormulaTransformer {
                         absolute_end_row: end_abs_row,
                     },
                     _ => Expr::Literal {
-                        value: CellValue::Error("#REF!".to_string()),
+                        value: CellValue::Error(ErrorType::InvalidRef {
+                            reference: "deleted".to_string(),
+                        }),
                     },
                 }
             }
@@ -243,7 +247,12 @@ mod tests {
         // A5 should become #REF! when row 5 is deleted
         match result {
             Expr::Literal { value } => {
-                assert_eq!(value, CellValue::Error("#REF!".to_string()));
+                assert_eq!(
+                    value,
+                    CellValue::Error(ErrorType::InvalidRef {
+                        reference: "deleted".to_string()
+                    })
+                );
             }
             _ => panic!("Expected #REF! error"),
         }

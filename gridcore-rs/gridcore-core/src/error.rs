@@ -1,3 +1,4 @@
+use crate::types::ErrorType;
 use thiserror::Error;
 
 #[derive(Debug, Error, Clone)]
@@ -61,6 +62,70 @@ pub enum SpreadsheetError {
 
     #[error("Invalid operation: {0}")]
     InvalidOperation(String),
+}
+
+impl SpreadsheetError {
+    /// Convert SpreadsheetError to ErrorType for cell values
+    pub fn to_error_type(&self) -> ErrorType {
+        match self {
+            SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                ErrorType::DivideByZero
+            }
+            SpreadsheetError::ValueError => ErrorType::ValueError {
+                expected: "valid value".to_string(),
+                actual: "invalid".to_string(),
+            },
+            SpreadsheetError::TypeError(msg) => ErrorType::ValueError {
+                expected: "valid value".to_string(),
+                actual: msg.clone(),
+            },
+            SpreadsheetError::RefError => ErrorType::InvalidRef {
+                reference: "unknown".to_string(),
+            },
+            SpreadsheetError::InvalidRef(reference) => ErrorType::InvalidRef {
+                reference: reference.clone(),
+            },
+            SpreadsheetError::InvalidAddress(addr) => ErrorType::InvalidRef {
+                reference: addr.clone(),
+            },
+            SpreadsheetError::NameError => ErrorType::NameError {
+                name: "unknown".to_string(),
+            },
+            SpreadsheetError::UnknownFunction(name) => ErrorType::NameError { name: name.clone() },
+            SpreadsheetError::NumError => ErrorType::NumError,
+            SpreadsheetError::CircularDependency => {
+                ErrorType::CircularDependency { cells: Vec::new() }
+            }
+            SpreadsheetError::InvalidRange(range) => ErrorType::InvalidRange {
+                range: range.clone(),
+            },
+            SpreadsheetError::TypeMismatch { expected, actual } => ErrorType::ValueError {
+                expected: expected.clone(),
+                actual: actual.clone(),
+            },
+            SpreadsheetError::InvalidArguments(msg) => ErrorType::InvalidArguments {
+                function: "unknown".to_string(),
+                message: msg.clone(),
+            },
+            SpreadsheetError::Parse(msg) => {
+                // Try to determine the specific error type from the message
+                if msg.contains("#REF!") || msg.contains("Invalid reference") {
+                    ErrorType::InvalidRef {
+                        reference: msg.clone(),
+                    }
+                } else if msg.contains("#NAME?") || msg.contains("Unknown function") {
+                    ErrorType::NameError { name: msg.clone() }
+                } else {
+                    ErrorType::ParseError {
+                        message: msg.clone(),
+                    }
+                }
+            }
+            _ => ErrorType::InvalidOperation {
+                message: self.to_string(),
+            },
+        }
+    }
 }
 
 pub type Result<T> = std::result::Result<T, SpreadsheetError>;

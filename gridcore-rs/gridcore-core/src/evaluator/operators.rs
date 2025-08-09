@@ -1,5 +1,5 @@
 use crate::formula::ast::{BinaryOperator, UnaryOperator};
-use crate::types::CellValue;
+use crate::types::{CellValue, ErrorType};
 use crate::{Result, SpreadsheetError};
 
 /// Apply a unary operator to a value
@@ -12,11 +12,17 @@ pub fn apply_unary(op: &UnaryOperator, value: CellValue) -> Result<CellValue> {
     match op {
         UnaryOperator::Negate => match coerce_to_number(&value) {
             Ok(n) => Ok(CellValue::Number(-n)),
-            Err(_) => Ok(CellValue::Error("#VALUE!".to_string())),
+            Err(_) => Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "number".to_string(),
+                actual: value.type_name().to_string(),
+            })),
         },
         UnaryOperator::Percent => match coerce_to_number(&value) {
             Ok(n) => Ok(CellValue::Number(n / 100.0)),
-            Err(_) => Ok(CellValue::Error("#VALUE!".to_string())),
+            Err(_) => Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "number".to_string(),
+                actual: value.type_name().to_string(),
+            })),
         },
     }
 }
@@ -65,7 +71,10 @@ fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     }
 
     // Return #VALUE! error for type mismatch
-    Ok(CellValue::Error("#VALUE!".to_string()))
+    Ok(CellValue::Error(ErrorType::ValueError {
+        expected: "compatible types".to_string(),
+        actual: "incompatible types".to_string(),
+    }))
 }
 
 /// Subtract two values
@@ -80,12 +89,22 @@ fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 
     let l = match coerce_to_number(&left) {
         Ok(n) => n,
-        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+        Err(_) => {
+            return Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "compatible types".to_string(),
+                actual: "incompatible types".to_string(),
+            }));
+        }
     };
 
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
-        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+        Err(_) => {
+            return Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "compatible types".to_string(),
+                actual: "incompatible types".to_string(),
+            }));
+        }
     };
 
     Ok(CellValue::Number(l - r))
@@ -103,12 +122,22 @@ fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 
     let l = match coerce_to_number(&left) {
         Ok(n) => n,
-        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+        Err(_) => {
+            return Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "compatible types".to_string(),
+                actual: "incompatible types".to_string(),
+            }));
+        }
     };
 
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
-        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+        Err(_) => {
+            return Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "compatible types".to_string(),
+                actual: "incompatible types".to_string(),
+            }));
+        }
     };
 
     Ok(CellValue::Number(l * r))
@@ -134,32 +163,48 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
             match coerce_to_number(val) {
                 Ok(0.0) => {
                     // Division by zero found in array
-                    return Ok(CellValue::Error("#DIV/0!".to_string()));
+                    return Ok(CellValue::Error(ErrorType::DivideByZero));
                 }
                 Err(_) => {
                     // Type error in array
-                    return Ok(CellValue::Error("#VALUE!".to_string()));
+                    return Ok(CellValue::Error(ErrorType::ValueError {
+                        expected: "compatible types".to_string(),
+                        actual: "incompatible types".to_string(),
+                    }));
                 }
                 _ => {}
             }
         }
         // If we have an array on the right, we can't perform scalar division
         // But we should return a VALUE error, not throw
-        return Ok(CellValue::Error("#VALUE!".to_string()));
+        return Ok(CellValue::Error(ErrorType::ValueError {
+            expected: "compatible types".to_string(),
+            actual: "incompatible types".to_string(),
+        }));
     }
 
     let l = match coerce_to_number(&left) {
         Ok(n) => n,
-        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+        Err(_) => {
+            return Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "compatible types".to_string(),
+                actual: "incompatible types".to_string(),
+            }));
+        }
     };
 
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
-        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+        Err(_) => {
+            return Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "compatible types".to_string(),
+                actual: "incompatible types".to_string(),
+            }));
+        }
     };
 
     if r == 0.0 {
-        return Ok(CellValue::Error("#DIV/0!".to_string()));
+        return Ok(CellValue::Error(ErrorType::DivideByZero));
     }
 
     Ok(CellValue::Number(l / r))
@@ -177,18 +222,28 @@ fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 
     let l = match coerce_to_number(&left) {
         Ok(n) => n,
-        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+        Err(_) => {
+            return Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "compatible types".to_string(),
+                actual: "incompatible types".to_string(),
+            }));
+        }
     };
 
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
-        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+        Err(_) => {
+            return Ok(CellValue::Error(ErrorType::ValueError {
+                expected: "compatible types".to_string(),
+                actual: "incompatible types".to_string(),
+            }));
+        }
     };
 
     // Check for invalid power operations that result in NaN or infinite
     let result = l.powf(r);
     if result.is_nan() || result.is_infinite() {
-        return Ok(CellValue::Error("#NUM!".to_string()));
+        return Ok(CellValue::Error(ErrorType::NumError));
     }
 
     Ok(CellValue::Number(result))
@@ -298,7 +353,7 @@ pub fn coerce_to_number(value: &CellValue) -> Result<f64> {
             .parse::<f64>()
             .map_err(|_| SpreadsheetError::TypeError(format!("Cannot convert '{}' to number", s))),
         CellValue::Empty => Ok(0.0),
-        CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.clone())),
+        CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.to_string())),
         CellValue::Array(_) => Err(SpreadsheetError::TypeError(
             "Cannot convert array to number".to_string(),
         )),
@@ -349,7 +404,7 @@ pub fn coerce_to_boolean(value: &CellValue) -> Result<bool> {
             }
         }
         CellValue::Empty => Ok(false),
-        CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.clone())),
+        CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.to_string())),
         CellValue::Array(_) => Err(SpreadsheetError::TypeError(
             "Cannot convert array to boolean".to_string(),
         )),

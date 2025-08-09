@@ -541,26 +541,12 @@ impl SpreadsheetController {
             match self.facade.set_cell_value(&address, &value) {
                 Ok(_) => {
                     // Check if the cell now contains an error value (e.g., from formula evaluation)
-                    if let Ok(gridcore_core::types::CellValue::Error(error_msg)) =
+                    if let Ok(gridcore_core::types::CellValue::Error(error_type)) =
                         self.facade.get_cell_value(&address)
                     {
-                        // Enhanced error message with both Excel code and description
-                        let enhanced_message = match error_msg.as_str() {
-                            "#REF!" => format!("Formula error: {} - Invalid reference", error_msg),
-                            "#NAME?" => {
-                                format!("Formula error: {} - Unknown function or name", error_msg)
-                            }
-                            "#VALUE!" => format!(
-                                "Formula error: {} - Type mismatch or invalid value",
-                                error_msg
-                            ),
-                            "#CIRC!" => format!(
-                                "Formula error: {} - Circular reference detected",
-                                error_msg
-                            ),
-                            "#DIV/0!" => format!("Formula error: {} - Division by zero", error_msg),
-                            _ => format!("Formula error: {}", error_msg),
-                        };
+                        // Use the ErrorType's built-in full_display method
+                        let enhanced_message =
+                            format!("Formula error: {}", error_type.full_display());
 
                         log::error!("Error in cell {}: {}", address, enhanced_message);
 
@@ -578,11 +564,16 @@ impl SpreadsheetController {
                 Err(e) => {
                     // Convert parse errors to Excel codes with descriptions
                     let error_str = e.to_string();
-                    let message = if error_str.contains("#REF!") || error_str.contains("expected") || error_str.contains("found end of input") {
+                    let message = if error_str.contains("#REF!")
+                        || error_str.contains("expected")
+                        || error_str.contains("found end of input")
+                    {
                         "Formula error: #REF! - Invalid reference".to_string()
                     } else if error_str.contains("Unknown function") {
                         "Formula error: #NAME? - Unknown function or name".to_string()
-                    } else if error_str.contains("Type mismatch") || error_str.contains("cannot add") {
+                    } else if error_str.contains("Type mismatch")
+                        || error_str.contains("cannot add")
+                    {
                         "Formula error: #VALUE! - Type mismatch or invalid value".to_string()
                     } else if error_str.contains("Circular") {
                         "Formula error: #CIRC! - Circular reference detected".to_string()
@@ -591,9 +582,9 @@ impl SpreadsheetController {
                     } else {
                         format!("Failed to set cell value: {}", e)
                     };
-                    
+
                     log::error!("Parse/Set error in cell {}: {}", address, message);
-                    
+
                     // Emit error event for setting errors
                     self.event_dispatcher
                         .dispatch(&SpreadsheetEvent::ErrorOccurred {

@@ -2,7 +2,7 @@ use super::context::EvaluationContext;
 use super::functions::FunctionLibrary;
 use super::operators;
 use crate::formula::ast::{CellRange, Expr};
-use crate::types::CellValue;
+use crate::types::{CellValue, ErrorType};
 use crate::{Result, SpreadsheetError};
 
 /// Main formula evaluator
@@ -29,7 +29,9 @@ impl<'a> Evaluator<'a> {
                 // Check for circular dependency
                 if self.context.check_circular(address) {
                     // Return as CellValue::Error for proper propagation
-                    return Ok(CellValue::Error("#CIRC!".to_string()));
+                    return Ok(CellValue::Error(ErrorType::CircularDependency {
+                        cells: vec![*address],
+                    }));
                 }
 
                 // Get the cell value
@@ -39,7 +41,9 @@ impl<'a> Evaluator<'a> {
                         // Convert errors to Excel format
                         match e {
                             SpreadsheetError::CircularDependency => {
-                                Ok(CellValue::Error("#CIRC!".to_string()))
+                                Ok(CellValue::Error(ErrorType::CircularDependency {
+                                    cells: Vec::new(),
+                                }))
                             }
                             _ => Err(e),
                         }
@@ -85,12 +89,16 @@ impl<'a> Evaluator<'a> {
                     for cell_addr in range.cells() {
                         if self.context.check_circular(&cell_addr) {
                             // Return circular reference error as CellValue::Error
-                            return Ok(CellValue::Error("#CIRC!".to_string()));
+                            return Ok(CellValue::Error(ErrorType::CircularDependency {
+                                cells: vec![cell_addr],
+                            }));
                         }
                         match self.context.get_cell_value(&cell_addr) {
                             Ok(value) => values.push(value),
                             Err(SpreadsheetError::CircularDependency) => {
-                                return Ok(CellValue::Error("#CIRC!".to_string()));
+                                return Ok(CellValue::Error(ErrorType::CircularDependency {
+                                    cells: vec![cell_addr],
+                                }));
                             }
                             Err(e) => return Err(e),
                         }
@@ -115,13 +123,17 @@ impl<'a> Evaluator<'a> {
         for cell_addr in range.cells() {
             if self.context.check_circular(&cell_addr) {
                 // Add circular reference error to the array
-                values.push(CellValue::Error("#CIRC!".to_string()));
+                values.push(CellValue::Error(ErrorType::CircularDependency {
+                    cells: vec![cell_addr],
+                }));
                 continue;
             }
             match self.context.get_cell_value(&cell_addr) {
                 Ok(value) => values.push(value),
                 Err(SpreadsheetError::CircularDependency) => {
-                    values.push(CellValue::Error("#CIRC!".to_string()));
+                    values.push(CellValue::Error(ErrorType::CircularDependency {
+                        cells: vec![cell_addr],
+                    }));
                 }
                 Err(e) => return Err(e),
             }

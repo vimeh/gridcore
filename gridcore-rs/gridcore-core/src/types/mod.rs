@@ -1,8 +1,10 @@
 pub mod cell_address;
 pub mod cell_value;
+pub mod error_type;
 
 pub use cell_address::CellAddress;
 pub use cell_value::CellValue;
+pub use error_type::ErrorType;
 // Re-export CellRange from formula module
 pub use crate::formula::ast::CellRange;
 
