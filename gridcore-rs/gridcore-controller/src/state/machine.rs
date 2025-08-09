@@ -8,6 +8,9 @@ use gridcore_core::{types::CellAddress, Result, SpreadsheetError};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+use web_sys;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Action {
     StartEditing {
@@ -156,7 +159,26 @@ impl UIStateMachine {
     }
 
     pub fn transition(&mut self, action: Action) -> Result<()> {
+        // Log the incoming action and current state
+        #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+        {
+            web_sys::console::log_1(&format!(
+                "[STATE MACHINE] Transition requested - action: {:?}, current_mode: {:?}",
+                action,
+                self.state.spreadsheet_mode()
+            ).into());
+        }
+        
         let new_state = self.apply_transition(&self.state.clone(), &action)?;
+
+        // Log the resulting state
+        #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+        {
+            web_sys::console::log_1(&format!(
+                "[STATE MACHINE] Transition completed - new_mode: {:?}",
+                new_state.spreadsheet_mode()
+            ).into());
+        }
 
         // Add to history
         self.add_to_history(self.state.clone(), action.clone());
@@ -183,6 +205,15 @@ impl UIStateMachine {
                     cursor_position,
                 },
             ) => {
+                #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+                {
+                    web_sys::console::log_1(&format!(
+                        "[STATE MACHINE] Navigation->StartEditing matched! cursor: {:?}, edit_mode: {:?}",
+                        cursor,
+                        edit_mode
+                    ).into());
+                }
+                
                 let mut new_state = create_editing_state(
                     cursor.clone(),
                     viewport.clone(),
@@ -210,6 +241,14 @@ impl UIStateMachine {
                         *pos = *cp;
                     }
                     *edit_variant = edit_mode.clone();
+                }
+
+                #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+                {
+                    web_sys::console::log_1(&format!(
+                        "[STATE MACHINE] Created editing state with mode: {:?}",
+                        new_state.spreadsheet_mode()
+                    ).into());
                 }
 
                 Ok(new_state)
@@ -685,11 +724,21 @@ impl UIStateMachine {
             // Escape handling
             (_, Action::Escape) => self.handle_escape(state),
 
-            _ => Err(SpreadsheetError::InvalidOperation(format!(
-                "Invalid transition from {:?} with action {:?}",
-                state.spreadsheet_mode(),
-                action
-            ))),
+            _ => {
+                #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+                {
+                    web_sys::console::error_1(&format!(
+                        "[STATE MACHINE] INVALID TRANSITION - state: {:?}, action: {:?}",
+                        state,
+                        action
+                    ).into());
+                }
+                Err(SpreadsheetError::InvalidOperation(format!(
+                    "Invalid transition from {:?} with action {:?}",
+                    state.spreadsheet_mode(),
+                    action
+                )))
+            }
         }
     }
 

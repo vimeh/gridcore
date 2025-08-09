@@ -385,9 +385,10 @@ pub fn CanvasGrid(
                     "l" | "ArrowRight" => {
                         ev.prevent_default();
                         leptos::logging::log!(
-                            "Moving right from col={} to col={}",
+                            "[NAV] Moving right from col={} to col={}, current_mode={:?}",
                             current_cursor.col,
-                            current_cursor.col + 1
+                            current_cursor.col + 1,
+                            current_mode
                         );
                         Some(Action::UpdateCursor {
                             cursor: CellAddress::new(current_cursor.col + 1, current_cursor.row),
@@ -400,7 +401,13 @@ pub fn CanvasGrid(
                         let actual_cursor = {
                             let ctrl = controller.clone();
                             let ctrl_borrow = ctrl.borrow();
-                            *ctrl_borrow.get_state().cursor()
+                            let state = ctrl_borrow.get_state();
+                            leptos::logging::log!(
+                                "[NAV] 'i' key pressed - current state mode: {:?}, cursor: {:?}",
+                                state.spreadsheet_mode(),
+                                state.cursor()
+                            );
+                            *state.cursor()
                         };
                         // Calculate cell position for the editor
                         let vp = viewport.get();
@@ -433,6 +440,11 @@ pub fn CanvasGrid(
                             }
                         };
                         // 'i' key preserves existing content and positions cursor at beginning
+                        leptos::logging::log!(
+                            "[NAV] Creating StartEditing action with existing_value='{}', cursor={:?}",
+                            existing_value,
+                            actual_cursor
+                        );
                         Some(Action::StartEditing {
                             edit_mode: Some(InsertMode::I),
                             initial_value: Some(existing_value),
@@ -711,11 +723,18 @@ pub fn CanvasGrid(
 
         // Dispatch action if we have one
         if let Some(action) = action {
+            leptos::logging::log!("[DISPATCH] About to dispatch action: {:?}", action);
             // Dispatch action and get new state, then drop the borrow
             let (new_mode, new_cursor, is_editing) = {
                 let mut ctrl_mut = ctrl.borrow_mut();
+                let old_state = ctrl_mut.get_state().clone();
+                leptos::logging::log!(
+                    "[DISPATCH] Before dispatch - mode: {:?}, cursor: {:?}",
+                    old_state.spreadsheet_mode(),
+                    old_state.cursor()
+                );
                 if let Err(e) = ctrl_mut.dispatch_action(action.clone()) {
-                    leptos::logging::log!("Error dispatching action: {:?}", e);
+                    leptos::logging::log!("[DISPATCH] Error dispatching action: {:?}", e);
                 }
 
                 let state = ctrl_mut.get_state();
@@ -723,6 +742,12 @@ pub fn CanvasGrid(
                 let cursor = *state.cursor();
                 let is_editing =
                     matches!(state, gridcore_controller::state::UIState::Editing { .. });
+                leptos::logging::log!(
+                    "[DISPATCH] After dispatch - mode: {:?}, cursor: {:?}, is_editing: {}",
+                    mode,
+                    cursor,
+                    is_editing
+                );
                 (mode, cursor, is_editing)
             }; // ctrl_mut is dropped here
 
