@@ -9,6 +9,29 @@ use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use web_sys::KeyboardEvent;
 
+/// Convert parse errors to Excel-style error codes with descriptions
+fn format_parse_error(error: &str, is_formula: bool) -> String {
+    // Check for specific error patterns and convert to Excel codes
+    if error.contains("#REF!") {
+        "#REF! - Invalid reference".to_string()
+    } else if error.contains("Unknown function") || error.contains("UNKNOWNFUNC") {
+        "#NAME? - Unknown function or name".to_string()
+    } else if error.contains("Type mismatch") || error.contains("cannot add") || error.contains("cannot subtract") {
+        "#VALUE! - Type mismatch or invalid value".to_string()  
+    } else if error.contains("Circular") || error.contains("circular") {
+        "#CIRC! - Circular reference detected".to_string()
+    } else if error.contains("Division by zero") || error.contains("divide by zero") {
+        "#DIV/0! - Division by zero".to_string()
+    } else if error.contains("expected") || error.contains("found end of input") {
+        // Parse errors often mean invalid references
+        "#REF! - Invalid reference".to_string()
+    } else if is_formula {
+        format!("Formula error: {}", error)
+    } else {
+        format!("Error: {}", error)
+    }
+}
+
 #[component]
 pub fn CellEditor(
     active_cell: ReadSignal<CellAddress>,
@@ -317,11 +340,8 @@ pub fn CellEditor(
                             Err(e) => {
                                 // Display error to user for setting errors
                                 if let Some(error_ctx) = use_error_context() {
-                                    let error_msg = if value.starts_with('=') {
-                                        format!("Formula error: {}", e)
-                                    } else {
-                                        format!("Error: {}", e)
-                                    };
+                                    let error_msg = format_parse_error(&e.to_string(), value.starts_with('='));
+                                    leptos::logging::log!("Showing error: {}", error_msg);
                                     error_ctx.show_error(error_msg);
                                 }
                                 leptos::logging::log!("Error setting cell value: {:?}", e);
@@ -434,11 +454,8 @@ pub fn CellEditor(
                             Err(e) => {
                                 // Display error to user for setting errors
                                 if let Some(error_ctx) = use_error_context() {
-                                    let error_msg = if value.starts_with('=') {
-                                        format!("Formula error: {}", e)
-                                    } else {
-                                        format!("Error: {}", e)
-                                    };
+                                    let error_msg = format_parse_error(&e.to_string(), value.starts_with('='));
+                                    leptos::logging::log!("Showing error: {}", error_msg);
                                     error_ctx.show_error(error_msg);
                                 }
                                 leptos::logging::log!("Error setting cell value: {:?}", e);

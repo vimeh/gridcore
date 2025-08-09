@@ -576,10 +576,28 @@ impl SpreadsheetController {
                         .dispatch(&SpreadsheetEvent::CellEditCompleted { address, value });
                 }
                 Err(e) => {
+                    // Convert parse errors to Excel codes with descriptions
+                    let error_str = e.to_string();
+                    let message = if error_str.contains("#REF!") || error_str.contains("expected") || error_str.contains("found end of input") {
+                        "Formula error: #REF! - Invalid reference".to_string()
+                    } else if error_str.contains("Unknown function") {
+                        "Formula error: #NAME? - Unknown function or name".to_string()
+                    } else if error_str.contains("Type mismatch") || error_str.contains("cannot add") {
+                        "Formula error: #VALUE! - Type mismatch or invalid value".to_string()
+                    } else if error_str.contains("Circular") {
+                        "Formula error: #CIRC! - Circular reference detected".to_string()
+                    } else if error_str.contains("Division by zero") {
+                        "Formula error: #DIV/0! - Division by zero".to_string()
+                    } else {
+                        format!("Failed to set cell value: {}", e)
+                    };
+                    
+                    log::error!("Parse/Set error in cell {}: {}", address, message);
+                    
                     // Emit error event for setting errors
                     self.event_dispatcher
                         .dispatch(&SpreadsheetEvent::ErrorOccurred {
-                            message: format!("Failed to set cell value: {}", e),
+                            message,
                             severity: crate::controller::events::ErrorSeverity::Error,
                         });
                     // Still exit editing mode even if the value couldn't be set
