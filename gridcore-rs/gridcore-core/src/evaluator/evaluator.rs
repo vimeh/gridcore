@@ -28,11 +28,23 @@ impl<'a> Evaluator<'a> {
             Expr::Reference { address, .. } => {
                 // Check for circular dependency
                 if self.context.check_circular(address) {
-                    return Err(SpreadsheetError::CircularDependency);
+                    // Return as CellValue::Error for proper propagation
+                    return Ok(CellValue::Error("#CIRC!".to_string()));
                 }
 
                 // Get the cell value
-                self.context.get_cell_value(address)
+                match self.context.get_cell_value(address) {
+                    Ok(value) => Ok(value),
+                    Err(e) => {
+                        // Convert errors to Excel format
+                        match e {
+                            SpreadsheetError::CircularDependency => {
+                                Ok(CellValue::Error("#CIRC!".to_string()))
+                            }
+                            _ => Err(e)
+                        }
+                    }
+                }
             }
 
             Expr::Range { .. } => {
@@ -72,10 +84,16 @@ impl<'a> Evaluator<'a> {
                     let mut values = Vec::new();
                     for cell_addr in range.cells() {
                         if self.context.check_circular(&cell_addr) {
-                            return Err(SpreadsheetError::CircularDependency);
+                            // Return circular reference error as CellValue::Error
+                            return Ok(CellValue::Error("#CIRC!".to_string()));
                         }
-                        let value = self.context.get_cell_value(&cell_addr)?;
-                        values.push(value);
+                        match self.context.get_cell_value(&cell_addr) {
+                            Ok(value) => values.push(value),
+                            Err(SpreadsheetError::CircularDependency) => {
+                                return Ok(CellValue::Error("#CIRC!".to_string()));
+                            }
+                            Err(e) => return Err(e),
+                        }
                     }
                     evaluated_args.push(CellValue::Array(values));
                 }
@@ -96,10 +114,17 @@ impl<'a> Evaluator<'a> {
 
         for cell_addr in range.cells() {
             if self.context.check_circular(&cell_addr) {
-                return Err(SpreadsheetError::CircularDependency);
+                // Add circular reference error to the array
+                values.push(CellValue::Error("#CIRC!".to_string()));
+                continue;
             }
-            let value = self.context.get_cell_value(&cell_addr)?;
-            values.push(value);
+            match self.context.get_cell_value(&cell_addr) {
+                Ok(value) => values.push(value),
+                Err(SpreadsheetError::CircularDependency) => {
+                    values.push(CellValue::Error("#CIRC!".to_string()));
+                }
+                Err(e) => return Err(e),
+            }
         }
 
         Ok(values)

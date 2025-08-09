@@ -164,12 +164,16 @@ impl SpreadsheetFacade {
 
             // Evaluate the formula
             let mut context = RepositoryContext::new(&self.repository);
+            // Push the current cell to the evaluation stack for circular reference detection
+            context.push_evaluation(address);
             let mut evaluator = Evaluator::new(&mut context);
             // Try to evaluate the formula, but store error values if evaluation fails
             let computed_value = match evaluator.evaluate(&ast) {
                 Ok(val) => val,
                 Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
             };
+            // Pop the current cell from the evaluation stack
+            context.pop_evaluation(address);
             cell.set_computed_value(computed_value.clone());
 
             cell
@@ -288,12 +292,16 @@ impl SpreadsheetFacade {
             if let Some(mut cell) = self.repository.borrow().get(address).cloned() {
                 if let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
+                    // Push the current cell to the evaluation stack for circular reference detection
+                    context.push_evaluation(address);
                     let mut evaluator = Evaluator::new(&mut context);
                     // Try to evaluate, but store error values if evaluation fails
                     let result = match evaluator.evaluate(ast) {
                         Ok(val) => val,
                         Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
                     };
+                    // Pop the current cell from the evaluation stack
+                    context.pop_evaluation(address);
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(address, cell);
                 }
@@ -595,12 +603,16 @@ impl SpreadsheetFacade {
 
             let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
             let mut context = RepositoryContext::new(&self.repository);
+            // Push the current cell to the evaluation stack for circular reference detection
+            context.push_evaluation(address);
             let mut evaluator = Evaluator::new(&mut context);
             // Try to evaluate the formula, but store error values if evaluation fails
             let computed_value = match evaluator.evaluate(&ast) {
                 Ok(val) => val,
                 Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
             };
+            // Pop the current cell from the evaluation stack
+            context.pop_evaluation(address);
             cell.set_computed_value(computed_value);
             cell
         } else {
@@ -630,12 +642,16 @@ impl SpreadsheetFacade {
             if let Some(mut cell) = cell {
                 if let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
+                    // Push the current cell to the evaluation stack for circular reference detection
+                    context.push_evaluation(&dependent);
                     let mut evaluator = Evaluator::new(&mut context);
                     // Try to evaluate, but store error values if evaluation fails
                     let result = match evaluator.evaluate(ast) {
                         Ok(val) => val,
                         Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
                     };
+                    // Pop the current cell from the evaluation stack
+                    context.pop_evaluation(&dependent);
                     
                     // If the dependent formula now evaluates to an error, emit an error event
                     if matches!(result, CellValue::Error(_)) {
@@ -681,12 +697,16 @@ impl SpreadsheetFacade {
             if let Some(mut cell) = self.repository.borrow().get(&address).cloned() {
                 if let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
+                    // Push the current cell to the evaluation stack for circular reference detection
+                    context.push_evaluation(&address);
                     let mut evaluator = Evaluator::new(&mut context);
                     // Try to evaluate, but store error values if evaluation fails
                     let result = match evaluator.evaluate(ast) {
                         Ok(val) => val,
                         Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
                     };
+                    // Pop the current cell from the evaluation stack
+                    context.pop_evaluation(&address);
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(&address, cell);
                 }

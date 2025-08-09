@@ -48,14 +48,48 @@ impl FunctionLibrary {
             "SUM",
             Box::new(|args| {
                 let mut sum = 0.0;
+                let mut has_error = false;
+                let mut error_value = String::new();
+                
                 for arg in args {
-                    // Check for errors first
+                    // Check for errors first and propagate them
                     if let CellValue::Error(e) = arg {
-                        return Ok(CellValue::Error(e.clone()));
+                        has_error = true;
+                        error_value = e.clone();
+                        break;
                     }
-                    sum += extract_numbers(arg)?.into_iter().sum::<f64>();
+                    
+                    // Try to extract numbers, catching any errors
+                    match extract_numbers(arg) {
+                        Ok(numbers) => {
+                            sum += numbers.into_iter().sum::<f64>();
+                        }
+                        Err(e) => {
+                            // Convert error to Excel format and return as CellValue::Error
+                            return match e {
+                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                }
+                                SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
+                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                }
+                                SpreadsheetError::NumError => {
+                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                }
+                                SpreadsheetError::FormulaError(err_str) => {
+                                    Ok(CellValue::Error(err_str))
+                                }
+                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                            };
+                        }
+                    }
                 }
-                Ok(CellValue::Number(sum))
+                
+                if has_error {
+                    Ok(CellValue::Error(error_value))
+                } else {
+                    Ok(CellValue::Number(sum))
+                }
             }),
         );
 
@@ -65,11 +99,35 @@ impl FunctionLibrary {
             Box::new(|args| {
                 let mut all_numbers = Vec::new();
                 for arg in args {
-                    // Check for errors first
+                    // Check for errors first and propagate them
                     if let CellValue::Error(e) = arg {
                         return Ok(CellValue::Error(e.clone()));
                     }
-                    all_numbers.extend(extract_numbers(arg)?);
+                    
+                    // Try to extract numbers, catching any errors
+                    match extract_numbers(arg) {
+                        Ok(numbers) => {
+                            all_numbers.extend(numbers);
+                        }
+                        Err(e) => {
+                            // Convert error to Excel format and return as CellValue::Error
+                            return match e {
+                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                }
+                                SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
+                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                }
+                                SpreadsheetError::NumError => {
+                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                }
+                                SpreadsheetError::FormulaError(err_str) => {
+                                    Ok(CellValue::Error(err_str))
+                                }
+                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                            };
+                        }
+                    }
                 }
 
                 if all_numbers.is_empty() {
@@ -89,11 +147,35 @@ impl FunctionLibrary {
             Box::new(|args| {
                 let mut all_numbers = Vec::new();
                 for arg in args {
-                    // Check for errors first
+                    // Check for errors first and propagate them
                     if let CellValue::Error(e) = arg {
                         return Ok(CellValue::Error(e.clone()));
                     }
-                    all_numbers.extend(extract_numbers(arg)?);
+                    
+                    // Try to extract numbers, catching any errors
+                    match extract_numbers(arg) {
+                        Ok(numbers) => {
+                            all_numbers.extend(numbers);
+                        }
+                        Err(e) => {
+                            // Convert error to Excel format and return as CellValue::Error
+                            return match e {
+                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                }
+                                SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
+                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                }
+                                SpreadsheetError::NumError => {
+                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                }
+                                SpreadsheetError::FormulaError(err_str) => {
+                                    Ok(CellValue::Error(err_str))
+                                }
+                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                            };
+                        }
+                    }
                 }
 
                 if all_numbers.is_empty() {
@@ -114,11 +196,35 @@ impl FunctionLibrary {
             Box::new(|args| {
                 let mut all_numbers = Vec::new();
                 for arg in args {
-                    // Check for errors first
+                    // Check for errors first and propagate them
                     if let CellValue::Error(e) = arg {
                         return Ok(CellValue::Error(e.clone()));
                     }
-                    all_numbers.extend(extract_numbers(arg)?);
+                    
+                    // Try to extract numbers, catching any errors
+                    match extract_numbers(arg) {
+                        Ok(numbers) => {
+                            all_numbers.extend(numbers);
+                        }
+                        Err(e) => {
+                            // Convert error to Excel format and return as CellValue::Error
+                            return match e {
+                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                }
+                                SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
+                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                }
+                                SpreadsheetError::NumError => {
+                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                }
+                                SpreadsheetError::FormulaError(err_str) => {
+                                    Ok(CellValue::Error(err_str))
+                                }
+                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                            };
+                        }
+                    }
                 }
 
                 if all_numbers.is_empty() {
@@ -139,11 +245,35 @@ impl FunctionLibrary {
             Box::new(|args| {
                 let mut count = 0;
                 for arg in args {
-                    // Check for errors first
+                    // Check for errors first and propagate them
                     if let CellValue::Error(e) = arg {
                         return Ok(CellValue::Error(e.clone()));
                     }
-                    count += extract_numbers(arg)?.len();
+                    
+                    // Try to extract numbers, catching any errors
+                    match extract_numbers(arg) {
+                        Ok(numbers) => {
+                            count += numbers.len();
+                        }
+                        Err(e) => {
+                            // Convert error to Excel format and return as CellValue::Error
+                            return match e {
+                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                    Ok(CellValue::Error("#DIV/0!".to_string()))
+                                }
+                                SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
+                                    Ok(CellValue::Error("#VALUE!".to_string()))
+                                }
+                                SpreadsheetError::NumError => {
+                                    Ok(CellValue::Error("#NUM!".to_string()))
+                                }
+                                SpreadsheetError::FormulaError(err_str) => {
+                                    Ok(CellValue::Error(err_str))
+                                }
+                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                            };
+                        }
+                    }
                 }
 
                 Ok(CellValue::Number(count as f64))

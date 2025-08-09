@@ -82,8 +82,16 @@ fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         return Ok(CellValue::Error(e));
     }
 
-    let l = coerce_to_number(&left)?;
-    let r = coerce_to_number(&right)?;
+    let l = match coerce_to_number(&left) {
+        Ok(n) => n,
+        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+    };
+    
+    let r = match coerce_to_number(&right) {
+        Ok(n) => n,
+        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+    };
+    
     Ok(CellValue::Number(l - r))
 }
 
@@ -97,8 +105,16 @@ fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         return Ok(CellValue::Error(e));
     }
 
-    let l = coerce_to_number(&left)?;
-    let r = coerce_to_number(&right)?;
+    let l = match coerce_to_number(&left) {
+        Ok(n) => n,
+        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+    };
+    
+    let r = match coerce_to_number(&right) {
+        Ok(n) => n,
+        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+    };
+    
     Ok(CellValue::Number(l * r))
 }
 
@@ -112,30 +128,42 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         return Ok(CellValue::Error(e.clone()));
     }
 
-    // Handle array division
+    // Handle array division - check for zeros and errors in the array
     if let CellValue::Array(arr) = &right {
         // Check if any value in the array is zero or would cause an error
         for val in arr {
             if let CellValue::Error(e) = val {
                 return Ok(CellValue::Error(e.clone()));
             }
-            if let Ok(n) = coerce_to_number(val) {
-                if n == 0.0 {
-                    return Err(SpreadsheetError::DivisionByZero);
+            match coerce_to_number(val) {
+                Ok(n) if n == 0.0 => {
+                    // Division by zero found in array
+                    return Ok(CellValue::Error("#DIV/0!".to_string()));
                 }
+                Err(_) => {
+                    // Type error in array
+                    return Ok(CellValue::Error("#VALUE!".to_string()));
+                }
+                _ => {}
             }
         }
         // If we have an array on the right, we can't perform scalar division
-        return Err(SpreadsheetError::TypeError(
-            "Cannot divide by an array".to_string(),
-        ));
+        // But we should return a VALUE error, not throw
+        return Ok(CellValue::Error("#VALUE!".to_string()));
     }
 
-    let l = coerce_to_number(&left)?;
-    let r = coerce_to_number(&right)?;
+    let l = match coerce_to_number(&left) {
+        Ok(n) => n,
+        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+    };
+    
+    let r = match coerce_to_number(&right) {
+        Ok(n) => n,
+        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+    };
 
     if r == 0.0 {
-        return Err(SpreadsheetError::DivisionByZero);
+        return Ok(CellValue::Error("#DIV/0!".to_string()));
     }
 
     Ok(CellValue::Number(l / r))
