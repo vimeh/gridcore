@@ -2,6 +2,7 @@ use crate::controller::{
     DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
     SpreadsheetEvent, ViewportManager,
 };
+use crate::managers::ResizeManager;
 use crate::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
@@ -10,6 +11,7 @@ pub struct SpreadsheetController {
     facade: SpreadsheetFacade,
     event_dispatcher: EventDispatcher,
     viewport_manager: Box<dyn ViewportManager>,
+    resize_manager: ResizeManager,
     config: GridConfiguration,
 }
 
@@ -30,11 +32,20 @@ impl SpreadsheetController {
     }
 
     pub fn with_viewport(viewport_manager: Box<dyn ViewportManager>, config: GridConfiguration) -> Self {
+        let resize_manager = ResizeManager::new()
+            .with_limits(
+                config.min_cell_width,
+                config.max_cell_width,
+                config.default_cell_height.min(20.0),
+                config.default_cell_height * 10.0,
+            );
+            
         let mut controller = Self {
             state_machine: UIStateMachine::new(None),
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
             viewport_manager,
+            resize_manager,
             config,
         };
 
@@ -45,11 +56,20 @@ impl SpreadsheetController {
 
     pub fn with_state(initial_state: UIState) -> Self {
         let config = GridConfiguration::default();
+        let resize_manager = ResizeManager::new()
+            .with_limits(
+                config.min_cell_width,
+                config.max_cell_width,
+                config.default_cell_height.min(20.0),
+                config.default_cell_height * 10.0,
+            );
+            
         let mut controller = Self {
             state_machine: UIStateMachine::new(Some(initial_state)),
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
             viewport_manager: Box::new(DefaultViewportManager::new(1000, 100).with_config(config.clone())),
+            resize_manager,
             config,
         };
 
@@ -110,6 +130,14 @@ impl SpreadsheetController {
     
     pub fn get_config(&self) -> &GridConfiguration {
         &self.config
+    }
+    
+    pub fn get_resize_manager(&self) -> &ResizeManager {
+        &self.resize_manager
+    }
+    
+    pub fn get_resize_manager_mut(&mut self) -> &mut ResizeManager {
+        &mut self.resize_manager
     }
 
     pub fn subscribe_to_events<F>(&mut self, listener: F) -> usize
