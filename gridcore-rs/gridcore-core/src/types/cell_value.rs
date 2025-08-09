@@ -109,7 +109,14 @@ impl CellValue {
             CellValue::String(s) => s.clone(),
             CellValue::Boolean(b) => b.to_string().to_uppercase(),
             CellValue::Empty => String::new(),
-            CellValue::Error(e) => e.clone(),
+            CellValue::Error(e) => {
+                // Display Excel-compatible error format
+                if !e.starts_with('#') {
+                    format!("#{}", e)
+                } else {
+                    e.clone()
+                }
+            },
             CellValue::Array(arr) => format!("{:?}", arr),
         }
     }

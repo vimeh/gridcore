@@ -49,6 +49,10 @@ impl FunctionLibrary {
             Box::new(|args| {
                 let mut sum = 0.0;
                 for arg in args {
+                    // Check for errors first
+                    if let CellValue::Error(e) = arg {
+                        return Ok(CellValue::Error(e.clone()));
+                    }
                     sum += extract_numbers(arg)?.into_iter().sum::<f64>();
                 }
                 Ok(CellValue::Number(sum))
@@ -59,19 +63,23 @@ impl FunctionLibrary {
         self.register(
             "AVERAGE",
             Box::new(|args| {
-                let numbers = args
-                    .iter()
-                    .flat_map(|arg| extract_numbers(arg).unwrap_or_default())
-                    .collect::<Vec<_>>();
+                let mut all_numbers = Vec::new();
+                for arg in args {
+                    // Check for errors first
+                    if let CellValue::Error(e) = arg {
+                        return Ok(CellValue::Error(e.clone()));
+                    }
+                    all_numbers.extend(extract_numbers(arg)?);
+                }
 
-                if numbers.is_empty() {
+                if all_numbers.is_empty() {
                     return Err(SpreadsheetError::InvalidArguments(
                         "AVERAGE requires at least one number".to_string(),
                     ));
                 }
 
-                let sum: f64 = numbers.iter().sum();
-                Ok(CellValue::Number(sum / numbers.len() as f64))
+                let sum: f64 = all_numbers.iter().sum();
+                Ok(CellValue::Number(sum / all_numbers.len() as f64))
             }),
         );
 
@@ -79,19 +87,23 @@ impl FunctionLibrary {
         self.register(
             "MIN",
             Box::new(|args| {
-                let numbers = args
-                    .iter()
-                    .flat_map(|arg| extract_numbers(arg).unwrap_or_default())
-                    .collect::<Vec<_>>();
+                let mut all_numbers = Vec::new();
+                for arg in args {
+                    // Check for errors first
+                    if let CellValue::Error(e) = arg {
+                        return Ok(CellValue::Error(e.clone()));
+                    }
+                    all_numbers.extend(extract_numbers(arg)?);
+                }
 
-                if numbers.is_empty() {
+                if all_numbers.is_empty() {
                     return Err(SpreadsheetError::InvalidArguments(
                         "MIN requires at least one number".to_string(),
                     ));
                 }
 
                 Ok(CellValue::Number(
-                    numbers.into_iter().fold(f64::INFINITY, f64::min),
+                    all_numbers.into_iter().fold(f64::INFINITY, f64::min),
                 ))
             }),
         );
@@ -100,19 +112,23 @@ impl FunctionLibrary {
         self.register(
             "MAX",
             Box::new(|args| {
-                let numbers = args
-                    .iter()
-                    .flat_map(|arg| extract_numbers(arg).unwrap_or_default())
-                    .collect::<Vec<_>>();
+                let mut all_numbers = Vec::new();
+                for arg in args {
+                    // Check for errors first
+                    if let CellValue::Error(e) = arg {
+                        return Ok(CellValue::Error(e.clone()));
+                    }
+                    all_numbers.extend(extract_numbers(arg)?);
+                }
 
-                if numbers.is_empty() {
+                if all_numbers.is_empty() {
                     return Err(SpreadsheetError::InvalidArguments(
                         "MAX requires at least one number".to_string(),
                     ));
                 }
 
                 Ok(CellValue::Number(
-                    numbers.into_iter().fold(f64::NEG_INFINITY, f64::max),
+                    all_numbers.into_iter().fold(f64::NEG_INFINITY, f64::max),
                 ))
             }),
         );
@@ -121,10 +137,14 @@ impl FunctionLibrary {
         self.register(
             "COUNT",
             Box::new(|args| {
-                let count = args
-                    .iter()
-                    .flat_map(|arg| extract_numbers(arg).unwrap_or_default())
-                    .count();
+                let mut count = 0;
+                for arg in args {
+                    // Check for errors first
+                    if let CellValue::Error(e) = arg {
+                        return Ok(CellValue::Error(e.clone()));
+                    }
+                    count += extract_numbers(arg)?.len();
+                }
 
                 Ok(CellValue::Number(count as f64))
             }),
@@ -175,11 +195,14 @@ impl FunctionLibrary {
                     ));
                 }
 
+                // Check for error values first
+                if let CellValue::Error(e) = &args[0] {
+                    return Ok(CellValue::Error(e.clone()));
+                }
+
                 let number = coerce_to_number(&args[0])?;
                 if number < 0.0 {
-                    return Err(SpreadsheetError::InvalidArguments(
-                        "SQRT of negative number".to_string(),
-                    ));
+                    return Err(SpreadsheetError::NumError);
                 }
                 Ok(CellValue::Number(number.sqrt()))
             }),
@@ -341,13 +364,19 @@ impl FunctionLibrary {
 fn extract_numbers(value: &CellValue) -> Result<Vec<f64>> {
     match value {
         CellValue::Number(n) => Ok(vec![*n]),
+        CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.clone())),
         CellValue::Array(arr) => {
             let mut numbers = Vec::new();
             for val in arr {
-                if let Ok(n) = coerce_to_number(val) {
-                    numbers.push(n);
+                match val {
+                    CellValue::Error(e) => return Err(SpreadsheetError::FormulaError(e.clone())),
+                    _ => {
+                        if let Ok(n) = coerce_to_number(val) {
+                            numbers.push(n);
+                        }
+                        // Skip non-numeric values
+                    }
                 }
-                // Skip non-numeric values
             }
             Ok(numbers)
         }

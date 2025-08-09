@@ -47,6 +47,14 @@ pub fn apply_binary(op: &BinaryOperator, left: CellValue, right: CellValue) -> R
 
 /// Add two values (with type coercion)
 fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
+    // Check for errors first and propagate them
+    if let CellValue::Error(e) = left {
+        return Ok(CellValue::Error(e));
+    }
+    if let CellValue::Error(e) = right {
+        return Ok(CellValue::Error(e));
+    }
+
     // Try numeric addition first
     if let (Ok(l), Ok(r)) = (coerce_to_number(&left), coerce_to_number(&right)) {
         return Ok(CellValue::Number(l + r));
@@ -66,6 +74,14 @@ fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 
 /// Subtract two values
 fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
+    // Check for errors first and propagate them
+    if let CellValue::Error(e) = left {
+        return Ok(CellValue::Error(e));
+    }
+    if let CellValue::Error(e) = right {
+        return Ok(CellValue::Error(e));
+    }
+
     let l = coerce_to_number(&left)?;
     let r = coerce_to_number(&right)?;
     Ok(CellValue::Number(l - r))
@@ -73,6 +89,14 @@ fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 
 /// Multiply two values
 fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
+    // Check for errors first and propagate them
+    if let CellValue::Error(e) = left {
+        return Ok(CellValue::Error(e));
+    }
+    if let CellValue::Error(e) = right {
+        return Ok(CellValue::Error(e));
+    }
+
     let l = coerce_to_number(&left)?;
     let r = coerce_to_number(&right)?;
     Ok(CellValue::Number(l * r))
@@ -80,6 +104,33 @@ fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 
 /// Divide two values
 fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
+    // Check for errors first
+    if let CellValue::Error(e) = &left {
+        return Ok(CellValue::Error(e.clone()));
+    }
+    if let CellValue::Error(e) = &right {
+        return Ok(CellValue::Error(e.clone()));
+    }
+
+    // Handle array division
+    if let CellValue::Array(arr) = &right {
+        // Check if any value in the array is zero or would cause an error
+        for val in arr {
+            if let CellValue::Error(e) = val {
+                return Ok(CellValue::Error(e.clone()));
+            }
+            if let Ok(n) = coerce_to_number(val) {
+                if n == 0.0 {
+                    return Err(SpreadsheetError::DivisionByZero);
+                }
+            }
+        }
+        // If we have an array on the right, we can't perform scalar division
+        return Err(SpreadsheetError::TypeError(
+            "Cannot divide by an array".to_string(),
+        ));
+    }
+
     let l = coerce_to_number(&left)?;
     let r = coerce_to_number(&right)?;
 
@@ -92,9 +143,24 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 
 /// Raise left to the power of right
 fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
+    // Check for errors first and propagate them
+    if let CellValue::Error(e) = left {
+        return Ok(CellValue::Error(e));
+    }
+    if let CellValue::Error(e) = right {
+        return Ok(CellValue::Error(e));
+    }
+
     let l = coerce_to_number(&left)?;
     let r = coerce_to_number(&right)?;
-    Ok(CellValue::Number(l.powf(r)))
+    
+    // Check for invalid power operations that result in NaN or infinite
+    let result = l.powf(r);
+    if result.is_nan() || result.is_infinite() {
+        return Err(SpreadsheetError::NumError);
+    }
+    
+    Ok(CellValue::Number(result))
 }
 
 /// Concatenate two values as strings

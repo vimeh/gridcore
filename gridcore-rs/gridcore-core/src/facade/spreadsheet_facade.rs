@@ -33,6 +33,19 @@ pub struct SpreadsheetFacade {
 }
 
 impl SpreadsheetFacade {
+    /// Convert SpreadsheetError to Excel-compatible error string
+    fn error_to_excel_format(error: &SpreadsheetError) -> String {
+        match error {
+            SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => "#DIV/0!".to_string(),
+            SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => "#VALUE!".to_string(),
+            SpreadsheetError::RefError | SpreadsheetError::InvalidRef(_) => "#REF!".to_string(),
+            SpreadsheetError::NameError | SpreadsheetError::UnknownFunction(_) => "#NAME?".to_string(),
+            SpreadsheetError::NumError => "#NUM!".to_string(),
+            SpreadsheetError::CircularDependency => "#CIRC!".to_string(),
+            _ => format!("#{}", error),
+        }
+    }
+
     /// Create a new spreadsheet facade
     pub fn new() -> Self {
         SpreadsheetFacade {
@@ -122,7 +135,20 @@ impl SpreadsheetFacade {
                 for dep in &dependencies {
                     // Check for circular dependencies
                     if graph.would_create_cycle(address, dep) {
-                        return Err(SpreadsheetError::CircularDependency);
+                        // Store the cell with circular reference error
+                        let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
+                        cell.set_computed_value(CellValue::Error("#CIRC!".to_string()));
+                        self.repository.borrow_mut().set(address, cell.clone());
+                        
+                        // Emit event
+                        self.emit_event(SpreadsheetEvent::cell_updated(
+                            address,
+                            old_value,
+                            CellValue::Error("#CIRC!".to_string()),
+                            Some(value.to_string()),
+                        ));
+                        
+                        return Ok(cell);
                     }
                     graph.add_dependency(address.clone(), dep.clone());
                 }
@@ -142,7 +168,7 @@ impl SpreadsheetFacade {
             // Try to evaluate the formula, but store error values if evaluation fails
             let computed_value = match evaluator.evaluate(&ast) {
                 Ok(val) => val,
-                Err(e) => CellValue::Error(e.to_string()),
+                Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
             };
             cell.set_computed_value(computed_value.clone());
 
@@ -246,7 +272,7 @@ impl SpreadsheetFacade {
                     // Try to evaluate, but store error values if evaluation fails
                     let result = match evaluator.evaluate(ast) {
                         Ok(val) => val,
-                        Err(e) => CellValue::Error(e.to_string()),
+                        Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
                     };
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(address, cell);
@@ -553,7 +579,7 @@ impl SpreadsheetFacade {
             // Try to evaluate the formula, but store error values if evaluation fails
             let computed_value = match evaluator.evaluate(&ast) {
                 Ok(val) => val,
-                Err(e) => CellValue::Error(e.to_string()),
+                Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
             };
             cell.set_computed_value(computed_value);
             cell
@@ -588,7 +614,7 @@ impl SpreadsheetFacade {
                     // Try to evaluate, but store error values if evaluation fails
                     let result = match evaluator.evaluate(ast) {
                         Ok(val) => val,
-                        Err(e) => CellValue::Error(e.to_string()),
+                        Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
                     };
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(&dependent, cell);
@@ -627,7 +653,7 @@ impl SpreadsheetFacade {
                     // Try to evaluate, but store error values if evaluation fails
                     let result = match evaluator.evaluate(ast) {
                         Ok(val) => val,
-                        Err(e) => CellValue::Error(e.to_string()),
+                        Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
                     };
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(&address, cell);
