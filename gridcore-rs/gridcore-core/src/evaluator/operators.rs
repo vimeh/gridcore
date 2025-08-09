@@ -86,12 +86,12 @@ fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         Ok(n) => n,
         Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
     };
-    
+
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
         Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
     };
-    
+
     Ok(CellValue::Number(l - r))
 }
 
@@ -109,12 +109,12 @@ fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         Ok(n) => n,
         Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
     };
-    
+
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
         Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
     };
-    
+
     Ok(CellValue::Number(l * r))
 }
 
@@ -156,7 +156,7 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         Ok(n) => n,
         Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
     };
-    
+
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
         Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
@@ -181,13 +181,13 @@ fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 
     let l = coerce_to_number(&left)?;
     let r = coerce_to_number(&right)?;
-    
+
     // Check for invalid power operations that result in NaN or infinite
     let result = l.powf(r);
     if result.is_nan() || result.is_infinite() {
         return Err(SpreadsheetError::NumError);
     }
-    
+
     Ok(CellValue::Number(result))
 }
 

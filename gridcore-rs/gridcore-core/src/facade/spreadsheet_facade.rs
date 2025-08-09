@@ -36,10 +36,14 @@ impl SpreadsheetFacade {
     /// Convert SpreadsheetError to Excel-compatible error string
     fn error_to_excel_format(error: &SpreadsheetError) -> String {
         match error {
-            SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => "#DIV/0!".to_string(),
+            SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                "#DIV/0!".to_string()
+            }
             SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => "#VALUE!".to_string(),
             SpreadsheetError::RefError | SpreadsheetError::InvalidRef(_) => "#REF!".to_string(),
-            SpreadsheetError::NameError | SpreadsheetError::UnknownFunction(_) => "#NAME?".to_string(),
+            SpreadsheetError::NameError | SpreadsheetError::UnknownFunction(_) => {
+                "#NAME?".to_string()
+            }
             SpreadsheetError::NumError => "#NUM!".to_string(),
             SpreadsheetError::CircularDependency => "#CIRC!".to_string(),
             _ => format!("#{}", error),
@@ -136,10 +140,11 @@ impl SpreadsheetFacade {
                     // Check for circular dependencies
                     if graph.would_create_cycle(address, dep) {
                         // Store the cell with circular reference error
-                        let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
+                        let mut cell =
+                            Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
                         cell.set_computed_value(CellValue::Error("#CIRC!".to_string()));
                         self.repository.borrow_mut().set(address, cell.clone());
-                        
+
                         // Emit event
                         self.emit_event(SpreadsheetEvent::cell_updated(
                             address,
@@ -147,7 +152,7 @@ impl SpreadsheetFacade {
                             CellValue::Error("#CIRC!".to_string()),
                             Some(value.to_string()),
                         ));
-                        
+
                         return Ok(cell);
                     }
                     graph.add_dependency(address.clone(), dep.clone());
@@ -212,10 +217,7 @@ impl SpreadsheetFacade {
                 _ => String::new(),
             };
             if !error_msg.is_empty() {
-                self.emit_event(SpreadsheetEvent::error(
-                    error_msg,
-                    Some(address),
-                ));
+                self.emit_event(SpreadsheetEvent::error(error_msg, Some(address)));
             }
         }
 
@@ -652,18 +654,15 @@ impl SpreadsheetFacade {
                     };
                     // Pop the current cell from the evaluation stack
                     context.pop_evaluation(&dependent);
-                    
+
                     // If the dependent formula now evaluates to an error, emit an error event
                     if matches!(result, CellValue::Error(_)) {
                         if let CellValue::Error(e) = &result {
                             let error_msg = format!("Formula error in {}: {}", dependent, e);
-                            self.emit_event(SpreadsheetEvent::error(
-                                error_msg,
-                                Some(&dependent),
-                            ));
+                            self.emit_event(SpreadsheetEvent::error(error_msg, Some(&dependent)));
                         }
                     }
-                    
+
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(&dependent, cell);
 

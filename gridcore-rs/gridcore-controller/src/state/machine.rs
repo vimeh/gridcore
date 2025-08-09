@@ -174,22 +174,28 @@ impl UIStateMachine {
         // Log the incoming action and current state
         #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
         if is_debug_enabled() {
-            web_sys::console::log_1(&format!(
-                "[STATE MACHINE] Transition requested - action: {:?}, current_mode: {:?}",
-                action,
-                self.state.spreadsheet_mode()
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[STATE MACHINE] Transition requested - action: {:?}, current_mode: {:?}",
+                    action,
+                    self.state.spreadsheet_mode()
+                )
+                .into(),
+            );
         }
-        
+
         let new_state = self.apply_transition(&self.state.clone(), &action)?;
 
         // Log the resulting state
         #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
         if is_debug_enabled() {
-            web_sys::console::log_1(&format!(
-                "[STATE MACHINE] Transition completed - new_mode: {:?}",
-                new_state.spreadsheet_mode()
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[STATE MACHINE] Transition completed - new_mode: {:?}",
+                    new_state.spreadsheet_mode()
+                )
+                .into(),
+            );
         }
 
         // Add to history
@@ -225,7 +231,7 @@ impl UIStateMachine {
                         edit_mode
                     ).into());
                 }
-                
+
                 let mut new_state = create_editing_state(
                     cursor.clone(),
                     viewport.clone(),
@@ -257,10 +263,13 @@ impl UIStateMachine {
 
                 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
                 if is_debug_enabled() {
-                    web_sys::console::log_1(&format!(
-                        "[STATE MACHINE] Created editing state with mode: {:?}",
-                        new_state.spreadsheet_mode()
-                    ).into());
+                    web_sys::console::log_1(
+                        &format!(
+                            "[STATE MACHINE] Created editing state with mode: {:?}",
+                            new_state.spreadsheet_mode()
+                        )
+                        .into(),
+                    );
                 }
 
                 Ok(new_state)
@@ -739,11 +748,13 @@ impl UIStateMachine {
             _ => {
                 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
                 if is_debug_enabled() {
-                    web_sys::console::error_1(&format!(
-                        "[STATE MACHINE] INVALID TRANSITION - state: {:?}, action: {:?}",
-                        state,
-                        action
-                    ).into());
+                    web_sys::console::error_1(
+                        &format!(
+                            "[STATE MACHINE] INVALID TRANSITION - state: {:?}, action: {:?}",
+                            state, action
+                        )
+                        .into(),
+                    );
                 }
                 Err(SpreadsheetError::InvalidOperation(format!(
                     "Invalid transition from {:?} with action {:?}",

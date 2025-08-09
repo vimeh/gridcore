@@ -50,7 +50,7 @@ impl FunctionLibrary {
                 let mut sum = 0.0;
                 let mut has_error = false;
                 let mut error_value = String::new();
-                
+
                 for arg in args {
                     // Check for errors first and propagate them
                     if let CellValue::Error(e) = arg {
@@ -58,7 +58,7 @@ impl FunctionLibrary {
                         error_value = e.clone();
                         break;
                     }
-                    
+
                     // Try to extract numbers, catching any errors
                     match extract_numbers(arg) {
                         Ok(numbers) => {
@@ -67,7 +67,8 @@ impl FunctionLibrary {
                         Err(e) => {
                             // Convert error to Excel format and return as CellValue::Error
                             return match e {
-                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                SpreadsheetError::DivisionByZero
+                                | SpreadsheetError::DivideByZero => {
                                     Ok(CellValue::Error("#DIV/0!".to_string()))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
@@ -79,12 +80,12 @@ impl FunctionLibrary {
                                 SpreadsheetError::FormulaError(err_str) => {
                                     Ok(CellValue::Error(err_str))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
                             };
                         }
                     }
                 }
-                
+
                 if has_error {
                     Ok(CellValue::Error(error_value))
                 } else {
@@ -103,7 +104,7 @@ impl FunctionLibrary {
                     if let CellValue::Error(e) = arg {
                         return Ok(CellValue::Error(e.clone()));
                     }
-                    
+
                     // Try to extract numbers, catching any errors
                     match extract_numbers(arg) {
                         Ok(numbers) => {
@@ -112,7 +113,8 @@ impl FunctionLibrary {
                         Err(e) => {
                             // Convert error to Excel format and return as CellValue::Error
                             return match e {
-                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                SpreadsheetError::DivisionByZero
+                                | SpreadsheetError::DivideByZero => {
                                     Ok(CellValue::Error("#DIV/0!".to_string()))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
@@ -124,7 +126,7 @@ impl FunctionLibrary {
                                 SpreadsheetError::FormulaError(err_str) => {
                                     Ok(CellValue::Error(err_str))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
                             };
                         }
                     }
@@ -151,7 +153,7 @@ impl FunctionLibrary {
                     if let CellValue::Error(e) = arg {
                         return Ok(CellValue::Error(e.clone()));
                     }
-                    
+
                     // Try to extract numbers, catching any errors
                     match extract_numbers(arg) {
                         Ok(numbers) => {
@@ -160,7 +162,8 @@ impl FunctionLibrary {
                         Err(e) => {
                             // Convert error to Excel format and return as CellValue::Error
                             return match e {
-                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                SpreadsheetError::DivisionByZero
+                                | SpreadsheetError::DivideByZero => {
                                     Ok(CellValue::Error("#DIV/0!".to_string()))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
@@ -172,7 +175,7 @@ impl FunctionLibrary {
                                 SpreadsheetError::FormulaError(err_str) => {
                                     Ok(CellValue::Error(err_str))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
                             };
                         }
                     }
@@ -200,7 +203,7 @@ impl FunctionLibrary {
                     if let CellValue::Error(e) = arg {
                         return Ok(CellValue::Error(e.clone()));
                     }
-                    
+
                     // Try to extract numbers, catching any errors
                     match extract_numbers(arg) {
                         Ok(numbers) => {
@@ -209,7 +212,8 @@ impl FunctionLibrary {
                         Err(e) => {
                             // Convert error to Excel format and return as CellValue::Error
                             return match e {
-                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                SpreadsheetError::DivisionByZero
+                                | SpreadsheetError::DivideByZero => {
                                     Ok(CellValue::Error("#DIV/0!".to_string()))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
@@ -221,7 +225,7 @@ impl FunctionLibrary {
                                 SpreadsheetError::FormulaError(err_str) => {
                                     Ok(CellValue::Error(err_str))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
                             };
                         }
                     }
@@ -249,7 +253,7 @@ impl FunctionLibrary {
                     if let CellValue::Error(e) = arg {
                         return Ok(CellValue::Error(e.clone()));
                     }
-                    
+
                     // Try to extract numbers, catching any errors
                     match extract_numbers(arg) {
                         Ok(numbers) => {
@@ -258,7 +262,8 @@ impl FunctionLibrary {
                         Err(e) => {
                             // Convert error to Excel format and return as CellValue::Error
                             return match e {
-                                SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => {
+                                SpreadsheetError::DivisionByZero
+                                | SpreadsheetError::DivideByZero => {
                                     Ok(CellValue::Error("#DIV/0!".to_string()))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
@@ -270,7 +275,7 @@ impl FunctionLibrary {
                                 SpreadsheetError::FormulaError(err_str) => {
                                     Ok(CellValue::Error(err_str))
                                 }
-                                _ => Ok(CellValue::Error("#VALUE!".to_string()))
+                                _ => Ok(CellValue::Error("#VALUE!".to_string())),
                             };
                         }
                     }

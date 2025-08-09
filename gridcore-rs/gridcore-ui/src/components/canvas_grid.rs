@@ -12,9 +12,9 @@ use web_sys::{
 
 use crate::components::cell_editor::CellEditor;
 use crate::components::viewport::Viewport;
-use crate::{debug_log, debug_console};
 use crate::interaction::resize_handler::ResizeHandler;
 use crate::rendering::default_theme;
+use crate::{debug_console, debug_log};
 
 #[component]
 pub fn CanvasGrid(
@@ -683,10 +683,7 @@ pub fn CanvasGrid(
                                 || "!@#$%^&*()_+-=[]{}|;':\",./<>?`~".contains(ch)
                             {
                                 ev.prevent_default();
-                                debug_log!(
-                                    "Direct typing: key='{}', starting edit mode",
-                                    key
-                                );
+                                debug_log!("Direct typing: key='{}', starting edit mode", key);
                                 // Get the current cursor from the controller, not the UI signal
                                 // This ensures we're using the controller's actual state
                                 let actual_cursor = {
@@ -735,7 +732,7 @@ pub fn CanvasGrid(
             debug_log!("[DISPATCH] About to dispatch action: {:?}", action);
             // Check if this is a StartEditing action before dispatch
             let is_start_editing = matches!(action, Action::StartEditing { .. });
-            
+
             // Dispatch action and get new state, then drop the borrow
             let (new_mode, new_cursor, is_editing, dispatch_ok) = {
                 let mut ctrl_mut = ctrl.borrow_mut();
@@ -753,7 +750,7 @@ pub fn CanvasGrid(
                 let state = ctrl_mut.get_state();
                 let mode = state.spreadsheet_mode();
                 let cursor = *state.cursor();
-                
+
                 // Debug: Log the exact state variant
                 let state_variant = match state {
                     gridcore_controller::state::UIState::Navigation { .. } => "Navigation",
@@ -765,7 +762,7 @@ pub fn CanvasGrid(
                     gridcore_controller::state::UIState::Delete { .. } => "Delete",
                     gridcore_controller::state::UIState::BulkOperation { .. } => "BulkOperation",
                 };
-                
+
                 let is_editing =
                     matches!(state, gridcore_controller::state::UIState::Editing { .. });
                 debug_log!(
@@ -814,28 +811,33 @@ pub fn CanvasGrid(
                 debug_log!("[EDITING_MODE] Cell position set for editor");
             } else if !should_be_editing && editing_mode.get() && !is_start_editing {
                 // We exited editing mode (but not if we just dispatched StartEditing)
-                debug_log!("[EDITING_MODE] Setting editing_mode to false (exiting), is_start_editing: {}", is_start_editing);
+                debug_log!(
+                    "[EDITING_MODE] Setting editing_mode to false (exiting), is_start_editing: {}",
+                    is_start_editing
+                );
                 set_editing_mode.set(false);
                 // Return focus to the grid container
                 // Use a longer timeout and retry mechanism to ensure focus is properly set
                 let wrapper_clone = wrapper_ref.clone();
                 let retry_count = std::rc::Rc::new(std::cell::Cell::new(0));
                 let retry_count_clone = retry_count.clone();
-                
+
                 let focus_fn = std::rc::Rc::new(std::cell::RefCell::new(None::<Box<dyn Fn()>>));
                 let focus_fn_clone = focus_fn.clone();
-                
+
                 *focus_fn.borrow_mut() = Some(Box::new(move || {
                     if let Some(wrapper) = wrapper_clone.get() {
                         let _ = wrapper.focus();
-                        
+
                         // Check if focus was actually set
                         if let Some(window) = web_sys::window() {
                             if let Some(document) = window.document() {
                                 if let Some(active) = document.active_element() {
                                     // Check if the wrapper or one of its children has focus
                                     let wrapper_element: &web_sys::Element = wrapper.as_ref();
-                                    if !wrapper.contains(Some(&active)) && !wrapper_element.is_same_node(Some(&active)) {
+                                    if !wrapper.contains(Some(&active))
+                                        && !wrapper_element.is_same_node(Some(&active))
+                                    {
                                         // Focus failed, retry if we haven't exceeded max retries
                                         if retry_count_clone.get() < 3 {
                                             retry_count_clone.set(retry_count_clone.get() + 1);
@@ -853,17 +855,21 @@ pub fn CanvasGrid(
                                                 std::time::Duration::from_millis(50),
                                             );
                                         } else {
-                                            debug_log!("[FOCUS] Failed to set focus after 3 retries");
+                                            debug_log!(
+                                                "[FOCUS] Failed to set focus after 3 retries"
+                                            );
                                         }
                                     } else {
-                                        debug_log!("[FOCUS] Successfully set focus to grid container");
+                                        debug_log!(
+                                            "[FOCUS] Successfully set focus to grid container"
+                                        );
                                     }
                                 }
                             }
                         }
                     }
                 }));
-                
+
                 // Initial attempt with 50ms delay
                 set_timeout(
                     move || {
@@ -1072,7 +1078,7 @@ fn render_grid(
                 let text_x = x + theme.cell_padding_left;
                 let text_y = y + height / 2.0 + 4.0; // Vertical center alignment
                 ctx.fill_text(&value_str, text_x, text_y).ok();
-                
+
                 // Reset fill style if it was changed
                 if is_error {
                     ctx.set_fill_style_str(&theme.cell_text_color);

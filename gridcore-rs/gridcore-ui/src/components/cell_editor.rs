@@ -80,7 +80,11 @@ pub fn CellEditor(
 
                 // Set cursor position based on edit mode
                 match editing_state {
-                    gridcore_controller::state::UIState::Editing { edit_variant, cursor_position, .. } => {
+                    gridcore_controller::state::UIState::Editing {
+                        edit_variant,
+                        cursor_position,
+                        ..
+                    } => {
                         if let Some(variant) = edit_variant {
                             match variant {
                                 InsertMode::I => {
@@ -211,18 +215,36 @@ pub fn CellEditor(
                     )
                 };
 
-                // For spreadsheet cells, Enter should always save the value
-                // This differs from standard Vim behavior where Enter adds a newline in Insert mode
-                // Users can use Shift+Enter if they need multiline input
-                if is_insert_mode && ev.shift_key() && !ev.ctrl_key() {
-                    // Shift+Enter adds a newline for multiline cells
-                    let current_value = editor_value.get();
-                    let new_value = format!("{}\n", current_value);
-                    set_editor_value.set(new_value);
+                // In Insert mode, Enter adds a newline (Vim behavior)
+                // Only save when not in Insert mode or with special modifiers
+                if is_insert_mode && !ev.ctrl_key() {
+                    // Enter in Insert mode adds a newline
                     ev.prevent_default(); // Prevent form submission
+
+                    // Get current value and cursor position from textarea
+                    if let Some(input) = input_ref.get() {
+                        let current_value = input.value();
+                        let cursor_pos =
+                            input.selection_start().unwrap_or(Some(0)).unwrap_or(0) as usize;
+
+                        // Insert newline at cursor position
+                        let mut new_value = String::new();
+                        new_value.push_str(&current_value[..cursor_pos]);
+                        new_value.push('\n');
+                        new_value.push_str(&current_value[cursor_pos..]);
+
+                        // Update the value
+                        set_editor_value.set(new_value.clone());
+                        input.set_value(&new_value);
+
+                        // Set cursor position after the newline
+                        let new_cursor_pos = cursor_pos + 1;
+                        let _ = input.set_selection_start(Some(new_cursor_pos as u32));
+                        let _ = input.set_selection_end(Some(new_cursor_pos as u32));
+                    }
                     return; // Don't save, just add newline
                 } else {
-                    // Enter (with or without Insert mode) saves the value
+                    // Not in Insert mode - Enter saves the value
                     ev.prevent_default();
 
                     // Check if we should apply a suggestion
@@ -250,12 +272,12 @@ pub fn CellEditor(
                     // Submit the value - always read from the textarea element when available
                     // This ensures we get the current value, not a stale one
                     let cell = active_cell.get();
-                    
+
                     // Get the current value - prioritize signal which is updated via on:input
                     // The textarea's value() might not be synchronized in all cases
                     let value = {
                         let signal_value = editor_value.get();
-                        
+
                         // Also check the textarea value for safety
                         if let Some(input) = input_ref.get() {
                             let textarea_value = input.value();
@@ -278,12 +300,17 @@ pub fn CellEditor(
                             Ok(_) => {
                                 // Check if the cell now contains an error value
                                 if let Ok(cell_value) = facade.get_cell_value(&cell) {
-                                    if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
+                                    if let gridcore_core::types::CellValue::Error(error_msg) =
+                                        cell_value
+                                    {
                                         // Display the Excel-style error directly
                                         if let Some(error_ctx) = use_error_context() {
                                             error_ctx.show_error(error_msg.clone());
                                         }
-                                        leptos::logging::log!("Formula error detected: {}", error_msg);
+                                        leptos::logging::log!(
+                                            "Formula error detected: {}",
+                                            error_msg
+                                        );
                                     }
                                 }
                             }
@@ -305,22 +332,24 @@ pub fn CellEditor(
                     // Return focus to grid container before exiting
                     if let Some(window) = web_sys::window() {
                         if let Some(document) = window.document() {
-                            if let Some(grid) = document.query_selector(".grid-container").ok().flatten() {
+                            if let Some(grid) =
+                                document.query_selector(".grid-container").ok().flatten()
+                            {
                                 if let Ok(html_element) = grid.dyn_into::<web_sys::HtmlElement>() {
                                     let _ = html_element.focus();
                                 }
                             }
                         }
                     }
-                    
+
                     // Exit editing mode
                     set_editing_mode.set(false);
-                    
+
                     let mut ctrl_mut = ctrl.borrow_mut();
                     if let Err(e) = ctrl_mut.dispatch_action(Action::ExitToNavigation) {
                         leptos::logging::log!("Error exiting edit mode: {:?}", e);
                     }
-                    
+
                     // Update formula bar with the saved value
                     set_formula_value.set(value.clone());
                 }
@@ -349,7 +378,7 @@ pub fn CellEditor(
                             leptos::logging::log!("Error exiting insert mode: {:?}", e);
                         }
                     } // Drop the borrow before updating the signal
-                    // Update the mode to Editing (which shows as NORMAL in vim style)
+                      // Update the mode to Editing (which shows as NORMAL in vim style)
                     set_current_mode.set(SpreadsheetMode::Editing);
                 } else if is_visual_mode {
                     // Escape from visual mode goes to normal mode
@@ -359,13 +388,13 @@ pub fn CellEditor(
                             leptos::logging::log!("Error exiting visual mode: {:?}", e);
                         }
                     } // Drop the borrow before updating the signal
-                    // Update the mode to Editing (which shows as NORMAL)
+                      // Update the mode to Editing (which shows as NORMAL)
                     set_current_mode.set(SpreadsheetMode::Editing);
                 } else if is_normal_mode {
                     // Second Escape: save and exit to navigation
                     // First save the value - use the same logic as Enter for consistency
                     let cell = active_cell.get();
-                    
+
                     // Get the current value from the textarea or signal (same logic as Enter)
                     let value = if let Some(input) = input_ref.get() {
                         // Always use the textarea's current value
@@ -382,12 +411,17 @@ pub fn CellEditor(
                             Ok(_) => {
                                 // Check if the cell now contains an error value
                                 if let Ok(cell_value) = facade.get_cell_value(&cell) {
-                                    if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
+                                    if let gridcore_core::types::CellValue::Error(error_msg) =
+                                        cell_value
+                                    {
                                         // Display the Excel-style error directly
                                         if let Some(error_ctx) = use_error_context() {
                                             error_ctx.show_error(error_msg.clone());
                                         }
-                                        leptos::logging::log!("Formula error detected: {}", error_msg);
+                                        leptos::logging::log!(
+                                            "Formula error detected: {}",
+                                            error_msg
+                                        );
                                     }
                                 }
                             }
@@ -409,14 +443,16 @@ pub fn CellEditor(
                     // Return focus to grid container before exiting
                     if let Some(window) = web_sys::window() {
                         if let Some(document) = window.document() {
-                            if let Some(grid) = document.query_selector(".grid-container").ok().flatten() {
+                            if let Some(grid) =
+                                document.query_selector(".grid-container").ok().flatten()
+                            {
                                 if let Ok(html_element) = grid.dyn_into::<web_sys::HtmlElement>() {
                                     let _ = html_element.focus();
                                 }
                             }
                         }
                     }
-                    
+
                     // Then exit editing
                     set_editing_mode.set(false);
                     set_suggestions.set(Vec::new());
@@ -438,14 +474,16 @@ pub fn CellEditor(
                     // Return focus to grid container before exiting
                     if let Some(window) = web_sys::window() {
                         if let Some(document) = window.document() {
-                            if let Some(grid) = document.query_selector(".grid-container").ok().flatten() {
+                            if let Some(grid) =
+                                document.query_selector(".grid-container").ok().flatten()
+                            {
                                 if let Ok(html_element) = grid.dyn_into::<web_sys::HtmlElement>() {
                                     let _ = html_element.focus();
                                 }
                             }
                         }
                     }
-                    
+
                     // Not in expected state - just exit
                     set_editing_mode.set(false);
                     let mut ctrl_mut = ctrl.borrow_mut();
@@ -548,7 +586,7 @@ pub fn CellEditor(
                                     leptos::logging::log!("Error entering visual mode: {:?}", e);
                                 }
                             } // Drop the borrow before updating signal
-                            // Update mode to Visual
+                              // Update mode to Visual
                             set_current_mode.set(SpreadsheetMode::Visual);
                         }
                         "V" => {
@@ -561,10 +599,13 @@ pub fn CellEditor(
                                     visual_type: VisualMode::Line,
                                     anchor: Some(0), // Start selection at current line
                                 }) {
-                                    leptos::logging::log!("Error entering visual line mode: {:?}", e);
+                                    leptos::logging::log!(
+                                        "Error entering visual line mode: {:?}",
+                                        e
+                                    );
                                 }
                             } // Drop the borrow before updating signal
-                            // Update mode to Visual (the status bar will check the visual type)
+                              // Update mode to Visual (the status bar will check the visual type)
                             set_current_mode.set(SpreadsheetMode::Visual);
                         }
                         "I" => {
@@ -575,7 +616,10 @@ pub fn CellEditor(
                                 if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
                                     mode: Some(InsertMode::CapitalI),
                                 }) {
-                                    leptos::logging::log!("Error entering insert mode (I): {:?}", e);
+                                    leptos::logging::log!(
+                                        "Error entering insert mode (I): {:?}",
+                                        e
+                                    );
                                 }
                             } // Drop the borrow before updating signal
                             set_current_mode.set(SpreadsheetMode::Insert);
@@ -588,7 +632,10 @@ pub fn CellEditor(
                                 if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
                                     mode: Some(InsertMode::CapitalA),
                                 }) {
-                                    leptos::logging::log!("Error entering insert mode (A): {:?}", e);
+                                    leptos::logging::log!(
+                                        "Error entering insert mode (A): {:?}",
+                                        e
+                                    );
                                 }
                             } // Drop the borrow before updating signal
                             set_current_mode.set(SpreadsheetMode::Insert);

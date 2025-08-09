@@ -1,5 +1,7 @@
 use crate::components::canvas_grid::CanvasGrid;
-use crate::components::error_display::{use_error_context, ErrorDisplay, ErrorMessage, ErrorSeverity};
+use crate::components::error_display::{
+    use_error_context, ErrorDisplay, ErrorMessage, ErrorSeverity,
+};
 use crate::components::status_bar::{SelectionStats, StatusBar};
 use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
@@ -244,8 +246,8 @@ pub fn App() -> impl IntoView {
                     <button class="toolbar-button">"Import"</button>
                     <button class="toolbar-button">"Export"</button>
                     <label style="margin-left: 20px;">
-                        <input 
-                            type="checkbox" 
+                        <input
+                            type="checkbox"
                             on:change=move |ev| {
                                 let checked = event_target_checked(&ev);
                                 crate::debug::set_debug_mode(checked);

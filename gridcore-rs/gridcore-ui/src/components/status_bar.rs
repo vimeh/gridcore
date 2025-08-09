@@ -1,5 +1,5 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{SpreadsheetMode, UIState, CellMode, VisualMode};
+use gridcore_controller::state::{CellMode, SpreadsheetMode, UIState, VisualMode};
 use leptos::*;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -33,19 +33,23 @@ pub fn StatusBar(
 ) -> impl IntoView {
     // Clone controller for closures
     let ctrl_for_display = controller.clone();
-    
+
     // Create a reactive signal that updates when current_mode changes
     // This ensures the UI updates when mode changes
     let mode_display = move || {
         // Read current_mode to ensure reactivity
         let _mode = current_mode.get();
-        
+
         let ctrl_borrow = ctrl_for_display.borrow();
         let state = ctrl_borrow.get_state();
-        
+
         let (text, color, detail) = match state {
             UIState::Navigation { .. } => ("NAVIGATION", "#4caf50", "hjkl to move"),
-            UIState::Editing { cell_mode, visual_type, .. } => {
+            UIState::Editing {
+                cell_mode,
+                visual_type,
+                ..
+            } => {
                 match cell_mode {
                     CellMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
                     CellMode::Normal => ("NORMAL", "#ff9800", "i/a to insert"),
@@ -53,7 +57,9 @@ pub fn StatusBar(
                         // Check visual type for line mode
                         match visual_type {
                             Some(VisualMode::Line) => ("VISUAL LINE", "#9c27b0", "hjkl to select"),
-                            Some(VisualMode::Block) => ("VISUAL BLOCK", "#9c27b0", "hjkl to select"),
+                            Some(VisualMode::Block) => {
+                                ("VISUAL BLOCK", "#9c27b0", "hjkl to select")
+                            }
                             _ => ("VISUAL", "#9c27b0", "hjkl to select"),
                         }
                     }

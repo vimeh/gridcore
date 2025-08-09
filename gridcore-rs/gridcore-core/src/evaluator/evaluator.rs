@@ -41,7 +41,7 @@ impl<'a> Evaluator<'a> {
                             SpreadsheetError::CircularDependency => {
                                 Ok(CellValue::Error("#CIRC!".to_string()))
                             }
-                            _ => Err(e)
+                            _ => Err(e),
                         }
                     }
                 }

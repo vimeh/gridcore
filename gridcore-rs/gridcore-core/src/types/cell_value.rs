@@ -116,7 +116,7 @@ impl CellValue {
                 } else {
                     e.clone()
                 }
-            },
+            }
             CellValue::Array(arr) => format!("{:?}", arr),
         }
     }
