@@ -4,20 +4,19 @@ use crate::{Result, SpreadsheetError};
 
 /// Apply a unary operator to a value
 pub fn apply_unary(op: &UnaryOperator, value: CellValue) -> Result<CellValue> {
+    // Check for errors first and propagate them
+    if let CellValue::Error(e) = value {
+        return Ok(CellValue::Error(e));
+    }
+    
     match op {
         UnaryOperator::Negate => match coerce_to_number(&value) {
             Ok(n) => Ok(CellValue::Number(-n)),
-            Err(_) => Err(SpreadsheetError::TypeError(format!(
-                "Cannot negate {}",
-                value.type_name()
-            ))),
+            Err(_) => Ok(CellValue::Error("#VALUE!".to_string())),
         },
         UnaryOperator::Percent => match coerce_to_number(&value) {
             Ok(n) => Ok(CellValue::Number(n / 100.0)),
-            Err(_) => Err(SpreadsheetError::TypeError(format!(
-                "Cannot apply percent to {}",
-                value.type_name()
-            ))),
+            Err(_) => Ok(CellValue::Error("#VALUE!".to_string())),
         },
     }
 }
@@ -65,11 +64,8 @@ fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         return concatenate_values(left, right);
     }
 
-    Err(SpreadsheetError::TypeError(format!(
-        "Cannot add {} and {}",
-        left.type_name(),
-        right.type_name()
-    )))
+    // Return #VALUE! error for type mismatch
+    Ok(CellValue::Error("#VALUE!".to_string()))
 }
 
 /// Subtract two values
@@ -179,13 +175,20 @@ fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         return Ok(CellValue::Error(e));
     }
 
-    let l = coerce_to_number(&left)?;
-    let r = coerce_to_number(&right)?;
+    let l = match coerce_to_number(&left) {
+        Ok(n) => n,
+        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+    };
+    
+    let r = match coerce_to_number(&right) {
+        Ok(n) => n,
+        Err(_) => return Ok(CellValue::Error("#VALUE!".to_string())),
+    };
 
     // Check for invalid power operations that result in NaN or infinite
     let result = l.powf(r);
     if result.is_nan() || result.is_infinite() {
-        return Err(SpreadsheetError::NumError);
+        return Ok(CellValue::Error("#NUM!".to_string()));
     }
 
     Ok(CellValue::Number(result))

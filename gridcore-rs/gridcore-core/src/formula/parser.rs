@@ -77,15 +77,21 @@ impl FormulaParser {
                 dollar.then(col_letters).then(dollar).then(row_num).try_map(
                     |(((abs_col, col_str), abs_row), row_str): (((bool, String), bool), &str),
                      span| {
-                        let col = CellAddress::column_label_to_number(&col_str)
-                            .map_err(|e| Rich::custom(span, e.to_string()))?;
-                        let row: u32 = row_str
-                            .parse()
-                            .map_err(|_| Rich::custom(span, "Invalid row number"))?;
-                        if row == 0 {
-                            return Err(Rich::custom(span, "Row must be greater than 0"));
+                        // Build the A1 notation string and use validated parsing
+                        let a1_notation = format!("{}{}", col_str, row_str);
+                        
+                        // Use parse_a1_notation which includes bounds checking
+                        match CellAddress::parse_a1_notation(&a1_notation) {
+                            Ok(address) => Ok((address, abs_col, abs_row)),
+                            Err(SpreadsheetError::RefError) => {
+                                // Convert RefError to a Rich error
+                                Err(Rich::custom(span, "#REF!"))
+                            }
+                            Err(e) => {
+                                // Other errors
+                                Err(Rich::custom(span, e.to_string()))
+                            }
                         }
-                        Ok((CellAddress::new(col, row - 1), abs_col, abs_row))
                     },
                 )
             };

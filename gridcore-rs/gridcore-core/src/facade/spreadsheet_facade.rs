@@ -46,6 +46,8 @@ impl SpreadsheetFacade {
             }
             SpreadsheetError::NumError => "#NUM!".to_string(),
             SpreadsheetError::CircularDependency => "#CIRC!".to_string(),
+            SpreadsheetError::Parse(msg) if msg.contains("#REF!") => "#REF!".to_string(),
+            SpreadsheetError::Parse(msg) if msg.contains("#NAME?") => "#NAME?".to_string(),
             _ => format!("#{}", error),
         }
     }
