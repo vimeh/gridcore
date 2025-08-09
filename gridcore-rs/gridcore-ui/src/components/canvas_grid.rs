@@ -396,6 +396,19 @@ pub fn CanvasGrid(
         let meta_pressed = ev.meta_key();
 
         leptos::logging::log!("Canvas grid keydown: key='{}', shift={}", key, shift_pressed);
+        
+        // Check if we're already in editing mode
+        let is_editing = {
+            let ctrl_borrow = ctrl_keydown.borrow();
+            let state = ctrl_borrow.get_state();
+            matches!(state.spreadsheet_mode(), SpreadsheetMode::Editing | SpreadsheetMode::Insert)
+        };
+        
+        // If we're in editing mode, let the cell editor handle the key
+        if is_editing {
+            leptos::logging::log!("Already in editing mode, letting cell editor handle key");
+            return;
+        }
 
         // Always prevent default for keys we might handle
         match key.as_str() {

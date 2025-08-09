@@ -292,7 +292,7 @@ pub fn CellEditor(
                         }
                     };
 
-                    // Always try to save, even if value is empty (user might want to clear the cell)
+                    // Save the cell value
                     {
                         let ctrl_borrow = ctrl.borrow();
                         let facade = ctrl_borrow.get_facade();
@@ -404,7 +404,8 @@ pub fn CellEditor(
                         editor_value.get()
                     };
 
-                    if !value.is_empty() {
+                    // Always save the value, even if empty (user might want to clear the cell)
+                    {
                         let ctrl_borrow = ctrl.borrow();
                         let facade = ctrl_borrow.get_facade();
                         match facade.set_cell_value(&cell, &value) {

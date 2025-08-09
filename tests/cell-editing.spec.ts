@@ -7,9 +7,7 @@ test.describe("Cell Editing", () => {
   });
 
   test("should edit cell with Enter key", async ({ page }) => {
-    // WARNING: This test expects Enter to open editor and preserve content,
-    // but current implementation uses "replace" mode which clears content.
-    // The vim-style editing behavior differs from traditional spreadsheet behavior.
+    // Enter key clears existing content and starts editing
     await page.keyboard.press("Enter");
     await expect(page.locator(".cell-editor-overlay")).toBeVisible();
 
@@ -137,9 +135,9 @@ test.describe("Cell Editing", () => {
     // Enter edit mode with 'i'
     await page.keyboard.press("i");
 
-    // Should be in insert mode
+    // Should be in insert mode - use first() to handle duplicate elements
     await expect(
-      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }),
+      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }).first(),
     ).toContainText("INSERT");
 
     // Type additional text - 'i' positions cursor at beginning

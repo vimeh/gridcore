@@ -232,30 +232,13 @@ impl SpreadsheetController {
                 result
             }
             "Enter" => {
-                // Enter key starts editing, preserving existing content with cursor at end
-                log::debug!("Enter key pressed, getting cell value");
-                
-                // Get existing cell value
-                let existing_value = match self.facade.get_cell(&current_cursor) {
-                    Some(cell) => {
-                        if cell.has_formula() {
-                            cell.raw_value.to_string()
-                        } else {
-                            cell.get_display_value().to_string()
-                        }
-                    }
-                    None => String::new(),
-                };
-                
-                // Position cursor at end for Enter key
-                let cursor_pos = existing_value.len();
-                
-                log::debug!("Enter key starting edit with existing value: '{}', cursor at {}", existing_value, cursor_pos);
+                // Enter key starts editing with empty content (replace mode)
+                log::debug!("Enter key pressed, starting edit with empty value");
                 
                 let action = Action::StartEditing {
-                    edit_mode: Some(InsertMode::A), // Use append mode for cursor at end
-                    initial_value: Some(existing_value),
-                    cursor_position: Some(cursor_pos),
+                    edit_mode: Some(InsertMode::I), // Use insert mode
+                    initial_value: Some(String::new()), // Start with empty value to replace content
+                    cursor_position: Some(0),
                 };
                 
                 let result = self.dispatch_action(action);
