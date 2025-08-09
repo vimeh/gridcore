@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Error Testing</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .formula { background: #f0f0f0; padding: 5px; font-family: monospace; }
+        .expected { color: green; }
+        .note { color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>Manual Error Testing for Gridcore</h1>
+    
+    <div class="test">
+        <h3>Test 1: Invalid Reference</h3>
+        <p>Formula: <span class="formula">=XYZ999</span></p>
+        <p class="expected">✅ Expected: Error message containing "Invalid"</p>
+        <p class="note">The cell should display "Invalid cell reference" and the error should appear in the error display</p>
+    </div>
+    
+    <div class="test">
+        <h3>Test 2: Unknown Function</h3>
+        <p>Formula: <span class="formula">=UNKNOWNFUNC(A1)</span></p>
+        <p class="expected">✅ Expected: Error message containing "Unknown function"</p>
+        <p class="note">The cell should display "Unknown function: UNKNOWNFUNC"</p>
+    </div>
+    
+    <div class="test">
+        <h3>Test 3: Type Mismatch</h3>
+        <p>Formula: <span class="formula">="text" + 5</span></p>
+        <p class="expected">✅ Expected: Any error display</p>
+        <p class="note">The concatenation operator should work, but if not, an error should be shown</p>
+    </div>
+    
+    <div class="test">
+        <h3>Test 4: Circular Reference</h3>
+        <p>In E1: <span class="formula">=F1+1</span></p>
+        <p>In F1: <span class="formula">=E1+1</span></p>
+        <p class="expected">✅ Expected: Error message containing "Circular"</p>
+        <p class="note">Both cells should display "Circular reference detected"</p>
+    </div>
+    
+    <div class="test">
+        <h3>Test 5: Division by Zero</h3>
+        <p>Formula: <span class="formula">=1/0</span></p>
+        <p class="expected">✅ Expected: Error message containing "DIV" or "Division"</p>
+        <p class="note">The cell should display "Division by zero"</p>
+    </div>
+    
+    <h2>Test Steps:</h2>
+    <ol>
+        <li>Open <a href="http://localhost:8081" target="_blank">Gridcore App</a></li>
+        <li>Enter each formula above in different cells</li>
+        <li>Verify that errors are displayed in the error container (top-right)</li>
+        <li>Verify that cells show error values</li>
+        <li>Verify that the formula bar still shows the original formula</li>
+        <li>Verify that you can re-edit cells with errors</li>
+    </ol>
+</body>
+</html>

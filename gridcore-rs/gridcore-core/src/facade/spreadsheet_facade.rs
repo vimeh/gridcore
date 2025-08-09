@@ -48,6 +48,7 @@ impl SpreadsheetFacade {
             SpreadsheetError::CircularDependency => "#CIRC!".to_string(),
             SpreadsheetError::Parse(msg) if msg.contains("#REF!") => "#REF!".to_string(),
             SpreadsheetError::Parse(msg) if msg.contains("#NAME?") => "#NAME?".to_string(),
+            SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => "#NAME?".to_string(),
             _ => format!("#{}", error),
         }
     }
@@ -585,33 +586,78 @@ impl SpreadsheetFacade {
     fn set_cell_value_internal(&self, address: &CellAddress, value: &str) -> Result<()> {
         // Similar to set_cell_value but without batch check
         let cell = if let Some(formula) = value.strip_prefix('=') {
-            let ast = FormulaParser::parse(formula)?;
+            // Try to parse the formula
+            match FormulaParser::parse(formula) {
+                Ok(ast) => {
+                    // Successfully parsed, check for dependencies
+                    let dependencies = DependencyAnalyzer::extract_dependencies(&ast);
 
-            let dependencies = DependencyAnalyzer::extract_dependencies(&ast);
+                    let mut graph = self.dependency_graph.borrow_mut();
+                    graph.remove_dependencies_for(address);
+                    
+                    // Check for circular dependencies
+                    let mut has_circular = false;
+                    for dep in &dependencies {
+                        if graph.would_create_cycle(address, dep) {
+                            has_circular = true;
+                            break;
+                        }
+                        graph.add_dependency(*address, *dep);
+                    }
 
-            let mut graph = self.dependency_graph.borrow_mut();
-            graph.remove_dependencies_for(address);
-            for dep in &dependencies {
-                if graph.would_create_cycle(address, dep) {
-                    return Err(SpreadsheetError::CircularDependency);
+                    if has_circular {
+                        // Store as error cell with circular reference error
+                        let mut cell = Cell::new(CellValue::String(value.to_string()));
+                        let error_msg = "Circular reference detected".to_string();
+                        cell.set_computed_value(CellValue::Error(error_msg.clone()));
+                        cell.set_error(error_msg);
+                        cell
+                    } else {
+                        // Normal formula evaluation
+                        let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
+                        let mut context = RepositoryContext::new(&self.repository);
+                        // Push the current cell to the evaluation stack for circular reference detection
+                        context.push_evaluation(address);
+                        let mut evaluator = Evaluator::new(&mut context);
+                        // Try to evaluate the formula, but store error values if evaluation fails
+                        let computed_value = match evaluator.evaluate(&ast) {
+                            Ok(val) => val,
+                            Err(e) => {
+                                // Create descriptive error message for evaluation errors
+                                let error_msg = match &e {
+                                    SpreadsheetError::UnknownFunction(name) => format!("Unknown function: {}", name),
+                                    SpreadsheetError::DivisionByZero | SpreadsheetError::DivideByZero => "Division by zero".to_string(),
+                                    SpreadsheetError::CircularDependency => "Circular reference detected".to_string(),
+                                    _ => Self::error_to_excel_format(&e),
+                                };
+                                CellValue::Error(error_msg)
+                            },
+                        };
+                        // Pop the current cell from the evaluation stack
+                        context.pop_evaluation(address);
+                        cell.set_computed_value(computed_value);
+                        cell
+                    }
                 }
-                graph.add_dependency(*address, *dep);
+                Err(parse_error) => {
+                    // Parse error - store the formula with an error value
+                    let mut cell = Cell::new(CellValue::String(value.to_string()));
+                    // Create a descriptive error message for display
+                    let display_error = match &parse_error {
+                        SpreadsheetError::Parse(msg) if msg.contains("#REF!") => "Invalid cell reference".to_string(),
+                        SpreadsheetError::Parse(msg) if msg.contains("Unknown function") => {
+                            // Extract function name from the formula
+                            let func_name = formula.split('(').next().unwrap_or("").trim();
+                            format!("Unknown function: {}", func_name)
+                        },
+                        _ => format!("{}", parse_error),
+                    };
+                    // Store the descriptive message in CellValue::Error for UI display
+                    cell.set_computed_value(CellValue::Error(display_error.clone()));
+                    cell.set_error(display_error);
+                    cell
+                }
             }
-
-            let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
-            let mut context = RepositoryContext::new(&self.repository);
-            // Push the current cell to the evaluation stack for circular reference detection
-            context.push_evaluation(address);
-            let mut evaluator = Evaluator::new(&mut context);
-            // Try to evaluate the formula, but store error values if evaluation fails
-            let computed_value = match evaluator.evaluate(&ast) {
-                Ok(val) => val,
-                Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
-            };
-            // Pop the current cell from the evaluation stack
-            context.pop_evaluation(address);
-            cell.set_computed_value(computed_value);
-            cell
         } else {
             let cell_value = Self::parse_value(value);
             Cell::new(cell_value)
