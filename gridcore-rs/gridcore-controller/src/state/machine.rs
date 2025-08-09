@@ -328,6 +328,7 @@ impl UIStateMachine {
                 },
                 Action::ExitVisualMode,
             ) => {
+                log::debug!("State machine: ExitVisualMode from CellMode::Visual to CellMode::Normal");
                 let mut new_state = state.clone();
                 if let UIState::Editing {
                     cell_mode,
@@ -339,6 +340,7 @@ impl UIStateMachine {
                     *cell_mode = CellMode::Normal;
                     *visual_type = None;
                     *visual_start = None;
+                    log::debug!("State machine: Successfully transitioned to CellMode::Normal");
                 }
                 Ok(new_state)
             }

@@ -38,10 +38,12 @@ pub fn StatusBar(
     // This ensures the UI updates when mode changes
     let mode_display = move || {
         // Read current_mode to ensure reactivity
-        let _mode = current_mode.get();
+        let signal_mode = current_mode.get();
+        leptos::logging::log!("Status bar update: signal mode = {:?}", signal_mode);
 
         let ctrl_borrow = ctrl_for_display.borrow();
         let state = ctrl_borrow.get_state();
+        leptos::logging::log!("Status bar update: controller state = {:?}", state);
 
         let (text, color, detail) = match state {
             UIState::Navigation { .. } => ("NAVIGATION", "#4caf50", "hjkl to move"),

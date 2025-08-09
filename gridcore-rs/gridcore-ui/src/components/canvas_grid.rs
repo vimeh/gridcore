@@ -480,12 +480,12 @@ pub fn CanvasGrid(
             leptos::logging::log!("Cursor did not change, still at {:?}", new_cursor);
         }
 
-        // Update cell position for editor if we're in editing mode
-        leptos::logging::log!("Checking if should show editor: new_mode = {:?}, matches Editing/Insert = {}", 
+        // Update cell position for editor if we're in editing mode (including visual mode within editing)
+        leptos::logging::log!("Checking if should show editor: new_mode = {:?}, matches Editing/Insert/Visual = {}", 
             new_mode, 
-            matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert)
+            matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual)
         );
-        if matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert) {
+        if matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual) {
             let vp = viewport.get();
             let (pos, config) = {
                 let vp_borrow = vp.borrow();
@@ -508,9 +508,9 @@ pub fn CanvasGrid(
                 leptos::logging::log!("editing_mode already true");
             }
         } else if editing_mode.get()
-            && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert)
+            && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual)
         {
-            // Hide editor if leaving editing mode
+            // Hide editor if leaving editing mode (but keep visible for visual mode within editing)
             set_editing_mode.set(false);
         }
 
@@ -542,7 +542,7 @@ pub fn CanvasGrid(
 
         // Auto-scroll to keep the active cell visible if cursor moved
         if new_cursor != old_cursor
-            && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert)
+            && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual)
         {
             let vp = viewport.get();
             let mut vp_borrow = vp.borrow_mut();

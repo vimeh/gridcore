@@ -382,14 +382,19 @@ pub fn CellEditor(
                     set_current_mode.set(SpreadsheetMode::Editing);
                 } else if is_visual_mode {
                     // Escape from visual mode goes to normal mode
+                    leptos::logging::log!("Visual mode escape: transitioning to normal mode");
                     {
                         let mut ctrl_mut = ctrl.borrow_mut();
                         if let Err(e) = ctrl_mut.dispatch_action(Action::ExitVisualMode) {
                             leptos::logging::log!("Error exiting visual mode: {:?}", e);
                         }
                     } // Drop the borrow before updating the signal
-                      // Update the mode to Editing (which shows as NORMAL)
-                    set_current_mode.set(SpreadsheetMode::Editing);
+                    
+                    // Force a signal update by temporarily setting a different value
+                    // This ensures Leptos triggers a re-render even if the value was already Editing
+                    leptos::logging::log!("Visual mode escape: forcing signal update");
+                    set_current_mode.set(SpreadsheetMode::Navigation); // Temporary value
+                    set_current_mode.set(SpreadsheetMode::Editing);    // Actual value (NORMAL mode)
                 } else if is_normal_mode {
                     // Second Escape: save and exit to navigation
                     // First save the value - use the same logic as Enter for consistency
@@ -577,6 +582,7 @@ pub fn CellEditor(
                         "v" => {
                             // Enter visual character mode
                             ev.prevent_default();
+                            leptos::logging::log!("Entering visual character mode from normal mode");
                             use gridcore_controller::state::VisualMode;
                             {
                                 let mut ctrl_mut = ctrl.borrow_mut();
@@ -587,7 +593,8 @@ pub fn CellEditor(
                                     leptos::logging::log!("Error entering visual mode: {:?}", e);
                                 }
                             } // Drop the borrow before updating signal
-                              // Update mode to Visual
+                            // Update mode to Visual
+                            leptos::logging::log!("Setting mode signal to Visual");
                             set_current_mode.set(SpreadsheetMode::Visual);
                         }
                         "V" => {
