@@ -153,7 +153,7 @@ impl SpreadsheetFacade {
                             Some(value.to_string()),
                         ));
 
-                        return Ok(cell);
+                        return Err(SpreadsheetError::CircularDependency);
                     }
                     graph.add_dependency(address.clone(), dep.clone());
                 }
