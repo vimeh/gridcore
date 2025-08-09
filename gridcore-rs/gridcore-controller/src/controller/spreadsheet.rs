@@ -1,6 +1,6 @@
 use crate::controller::{
-    DefaultViewportManager, EventDispatcher, KeyboardEvent, MouseEvent, SpreadsheetEvent,
-    ViewportManager,
+    DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
+    SpreadsheetEvent, ViewportManager,
 };
 use crate::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
@@ -10,19 +10,32 @@ pub struct SpreadsheetController {
     facade: SpreadsheetFacade,
     event_dispatcher: EventDispatcher,
     viewport_manager: Box<dyn ViewportManager>,
+    config: GridConfiguration,
 }
 
 impl SpreadsheetController {
     pub fn new() -> Self {
-        Self::with_viewport(Box::new(DefaultViewportManager::new(1000, 100)))
+        let mut config = GridConfiguration::default();
+        config.total_rows = 1000;
+        config.total_cols = 100;
+        Self::with_config(config)
+    }
+    
+    pub fn with_config(config: GridConfiguration) -> Self {
+        let viewport_manager = Box::new(
+            DefaultViewportManager::new(config.total_rows as u32, config.total_cols as u32)
+                .with_config(config.clone())
+        );
+        Self::with_viewport(viewport_manager, config)
     }
 
-    pub fn with_viewport(viewport_manager: Box<dyn ViewportManager>) -> Self {
+    pub fn with_viewport(viewport_manager: Box<dyn ViewportManager>, config: GridConfiguration) -> Self {
         let mut controller = Self {
             state_machine: UIStateMachine::new(None),
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
             viewport_manager,
+            config,
         };
 
         // Subscribe to state changes
@@ -31,11 +44,13 @@ impl SpreadsheetController {
     }
 
     pub fn with_state(initial_state: UIState) -> Self {
+        let config = GridConfiguration::default();
         let mut controller = Self {
             state_machine: UIStateMachine::new(Some(initial_state)),
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
-            viewport_manager: Box::new(DefaultViewportManager::new(1000, 100)),
+            viewport_manager: Box::new(DefaultViewportManager::new(1000, 100).with_config(config.clone())),
+            config,
         };
 
         controller.setup_state_listener();
@@ -91,6 +106,10 @@ impl SpreadsheetController {
 
     pub fn get_viewport_manager_mut(&mut self) -> &mut dyn ViewportManager {
         self.viewport_manager.as_mut()
+    }
+    
+    pub fn get_config(&self) -> &GridConfiguration {
+        &self.config
     }
 
     pub fn subscribe_to_events<F>(&mut self, listener: F) -> usize

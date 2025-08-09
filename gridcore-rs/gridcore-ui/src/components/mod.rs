@@ -4,3 +4,4 @@ pub mod error_display;
 pub mod status_bar;
 pub mod tab_bar;
 pub mod viewport;
+pub mod viewport_wrapper;
