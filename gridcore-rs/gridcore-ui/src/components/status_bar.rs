@@ -126,12 +126,12 @@ pub fn StatusBar(
             {move || {
                 let (mode_text, mode_color, mode_detail) = mode_display();
                 leptos::logging::log!("Mode indicator update: text={}, detail={}", mode_text, mode_detail);
+                leptos::logging::log!("Status bar: Rendering single mode indicator (duplicate removed for e2e test compatibility)");
                 
-                // Create separate indicators for different test scenarios
-                // The main indicator contains both text and detail for test compatibility
+                // Single mode indicator containing both mode text and detail
+                // Tests can filter by text content within this container
                 view! {
                     <>
-                        // Main mode indicator that contains full text for test filtering
                         <div 
                             class="mode-indicator" 
                             style="display: flex; align-items: center; gap: 8px;"
@@ -154,15 +154,6 @@ pub fn StatusBar(
                             } else {
                                 view! { <span></span> }.into_view()
                             }}
-                        </div>
-                        
-                        // Additional hidden indicator for test compatibility
-                        // This allows tests to filter by contained text
-                        <div 
-                            class="mode-indicator" 
-                            style="position: absolute; width: 1px; height: 1px; overflow: hidden;"
-                        >
-                            {format!("{} - {}", mode_text, mode_detail)}
                         </div>
                     </>
                 }
