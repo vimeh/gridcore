@@ -104,6 +104,7 @@ impl FormulaTransformer {
     }
 
     /// Transform an expression by applying a transformation function to all cell references
+    #[allow(clippy::only_used_in_recursion)]
     fn transform_expr<F>(&self, expr: Expr, transform: F) -> Expr
     where
         F: Fn(&CellAddress, bool, bool) -> Result<(CellAddress, bool, bool), SpreadsheetError>

@@ -447,16 +447,13 @@ impl SpreadsheetController {
             match self.facade.set_cell_value(&address, &value) {
                 Ok(_) => {
                     // Check if the cell now contains an error value (e.g., from formula evaluation)
-                    if let Ok(cell_value) = self.facade.get_cell_value(&address) {
-                        // Check if the cell value is an error
-                        if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
-                            // Emit error event for formula evaluation errors
-                            self.event_dispatcher
-                                .dispatch(&SpreadsheetEvent::ErrorOccurred {
-                                    message: format!("Formula error: {}", error_msg),
-                                    severity: crate::controller::events::ErrorSeverity::Error,
-                                });
-                        }
+                    if let Ok(gridcore_core::types::CellValue::Error(error_msg)) = self.facade.get_cell_value(&address) {
+                        // Emit error event for formula evaluation errors
+                        self.event_dispatcher
+                            .dispatch(&SpreadsheetEvent::ErrorOccurred {
+                                message: format!("Formula error: {}", error_msg),
+                                severity: crate::controller::events::ErrorSeverity::Error,
+                            });
                     }
 
                     self.event_dispatcher

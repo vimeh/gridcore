@@ -674,8 +674,8 @@ impl BulkCommandParser {
     }
 
     fn parse_find_replace(&self, cmd: &str) -> Option<BulkCommandType> {
-        let (scope, pattern) = if cmd.starts_with("%s/") {
-            (SearchScope::Sheet, &cmd[3..])
+        let (scope, pattern) = if let Some(stripped) = cmd.strip_prefix("%s/") {
+            (SearchScope::Sheet, stripped)
         } else {
             (SearchScope::Selection, &cmd[2..])
         };

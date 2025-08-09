@@ -16,6 +16,7 @@ impl ReferenceDetector {
     }
 
     /// Check if a reference would be affected by a structural operation
+    #[allow(clippy::only_used_in_recursion)]
     pub fn is_affected_by_insert_rows(&self, reference: &Reference, before_row: u32) -> bool {
         match &reference.ref_type {
             ReferenceType::Absolute(_, row) | ReferenceType::MixedRow(_, row) => *row >= before_row,
@@ -29,6 +30,7 @@ impl ReferenceDetector {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     pub fn is_affected_by_insert_columns(&self, reference: &Reference, before_col: u32) -> bool {
         match &reference.ref_type {
             ReferenceType::Absolute(col, _) | ReferenceType::MixedCol(col, _) => *col >= before_col,
@@ -44,6 +46,7 @@ impl ReferenceDetector {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     pub fn is_affected_by_delete_rows(
         &self,
         reference: &Reference,
@@ -69,6 +72,7 @@ impl ReferenceDetector {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     pub fn is_affected_by_delete_columns(
         &self,
         reference: &Reference,

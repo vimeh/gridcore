@@ -126,6 +126,7 @@ impl ReferenceParser {
         references
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn extract_from_expr_recursive(&self, expr: &Expr, references: &mut HashSet<CellAddress>) {
         match expr {
             Expr::Reference { address, .. } => {

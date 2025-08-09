@@ -90,6 +90,7 @@ impl SelectionManager {
     }
 
     /// Check if a selection contains a cell
+    #[allow(clippy::only_used_in_recursion)]
     fn selection_contains(&self, selection: &Selection, address: &CellAddress) -> bool {
         match &selection.selection_type {
             SelectionType::Cell { address: sel_addr } => sel_addr == address,
@@ -303,6 +304,7 @@ impl SelectionManager {
     }
 
     /// Get the bounding box of a selection
+    #[allow(clippy::only_used_in_recursion)]
     pub fn get_bounds(&self, selection: &Selection) -> (CellAddress, CellAddress) {
         match &selection.selection_type {
             SelectionType::Cell { address } => (*address, *address),
