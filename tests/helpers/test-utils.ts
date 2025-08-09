@@ -24,12 +24,12 @@ export async function isEditingCell(page: Page): Promise<boolean> {
 
 /**
  * Get the current cell address
- * Note: In Leptos UI, this is shown in the cell-indicator, not as an input value
+ * Note: In Leptos UI, this is shown in the cell-indicator input element
  */
 export async function getCurrentCellAddress(page: Page): Promise<string> {
   const cellIndicator = page.locator(selectors.formulaBarAddress)
-  const text = await cellIndicator.textContent()
-  return text?.trim() || ""
+  const value = await cellIndicator.inputValue()
+  return value?.trim() || ""
 }
 
 /**
