@@ -47,10 +47,18 @@ mod tests {
             .unwrap();
         assert_eq!(
             controller.get_state().spreadsheet_mode(),
-            SpreadsheetMode::Insert  // StartEditing with InsertMode creates Insert state
+            SpreadsheetMode::Insert // StartEditing with InsertMode creates Insert state
         );
 
-        // In Insert mode, escape should go back to Navigation
+        // In Insert mode, escape should go back to Editing
+        let event = KeyboardEvent::new("Escape".to_string());
+        controller.handle_keyboard_event(event).unwrap();
+        assert_eq!(
+            controller.get_state().spreadsheet_mode(),
+            SpreadsheetMode::Editing
+        );
+
+        // From Editing mode, escape should go to Navigation
         let event = KeyboardEvent::new("Escape".to_string());
         controller.handle_keyboard_event(event).unwrap();
         assert_eq!(

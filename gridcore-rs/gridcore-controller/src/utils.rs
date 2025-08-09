@@ -20,24 +20,24 @@ pub fn parse_column_label(label: &str) -> Option<usize> {
     if label.is_empty() {
         return None;
     }
-    
+
     let mut col = 0;
     let label = label.to_uppercase();
-    
+
     for c in label.chars() {
         if !c.is_ascii_uppercase() {
             return None;
         }
         col = col * 26 + (c as usize - 'A' as usize + 1);
     }
-    
+
     Some(col - 1)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_column_labels() {
         assert_eq!(get_column_label(0), "A");
@@ -50,7 +50,7 @@ mod tests {
         assert_eq!(get_column_label(701), "ZZ");
         assert_eq!(get_column_label(702), "AAA");
     }
-    
+
     #[test]
     fn test_parse_column_labels() {
         assert_eq!(parse_column_label("A"), Some(0));

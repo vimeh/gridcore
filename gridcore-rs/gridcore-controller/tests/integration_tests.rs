@@ -32,13 +32,25 @@ fn test_state_machine_basic_transitions() {
 fn test_controller_keyboard_handling() {
     let mut controller = SpreadsheetController::new();
 
-    // Process 'i' key to enter insert mode
-    let event = KeyboardEvent::new("i".to_string());
-    controller.handle_keyboard_event(event).unwrap();
+    // The 'i' key is handled by the UI, not the controller directly
+    // Instead, use the StartEditing action to enter editing mode
+    controller
+        .dispatch_action(Action::StartEditing {
+            edit_mode: Some(gridcore_controller::state::InsertMode::I),
+            initial_value: Some(String::new()),
+            cursor_position: Some(0),
+        })
+        .unwrap();
 
-    // Should be in editing mode
+    // Should be in Editing mode with Insert cell mode
     let state = controller.get_state();
-    assert!(matches!(state, UIState::Editing { .. }));
+    assert!(matches!(
+        state,
+        UIState::Editing {
+            cell_mode: gridcore_controller::state::CellMode::Insert,
+            ..
+        }
+    ));
 }
 
 #[test]

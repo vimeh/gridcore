@@ -13,9 +13,9 @@ use web_sys::{
 
 use crate::components::cell_editor::CellEditor;
 use crate::components::viewport::Viewport;
+use crate::debug_log;
 use crate::interaction::resize_handler::ResizeHandler;
 use crate::rendering::default_theme;
-use crate::debug_log;
 
 #[component]
 pub fn CanvasGrid(
@@ -36,8 +36,8 @@ pub fn CanvasGrid(
     // State
     let viewport_rc = Rc::new(RefCell::new(Viewport::new(
         theme.clone(),
-        Some(10000),  // Support up to 10,000 rows
-        Some(256),    // Support up to 256 columns (A-IV)
+        Some(10000), // Support up to 10,000 rows
+        Some(256),   // Support up to 256 columns (A-IV)
     )));
     let (viewport, set_viewport) = create_signal(viewport_rc.clone());
     let (editing_mode, set_editing_mode) = create_signal(false);
@@ -112,6 +112,7 @@ pub fn CanvasGrid(
                     active_cell.get(),
                     ctrl_borrow.get_facade(),
                     device_pixel_ratio,
+                    ctrl_borrow.get_config(),
                 );
             } // ctrl_borrow is dropped here
         }
@@ -156,6 +157,7 @@ pub fn CanvasGrid(
     });
 
     // Handle canvas click
+    let ctrl_click = controller.clone();
     let on_click = move |ev: MouseEvent| {
         if let Some(_canvas) = canvas_ref.get() {
             let x = ev.offset_x() as f64;
@@ -167,11 +169,13 @@ pub fn CanvasGrid(
             // Use a block to ensure the borrow is dropped before setting active cell
             let new_cell = {
                 let vp_borrow = vp.borrow();
-                let theme = vp_borrow.get_theme();
-                if x > theme.row_header_width && y > theme.column_header_height {
+                let _theme = vp_borrow.get_theme();
+                let ctrl_borrow = ctrl_click.borrow();
+                let config = ctrl_borrow.get_config();
+                if x > config.row_header_width && y > config.column_header_height {
                     // Subtract header offsets to get cell coordinates
-                    let cell_x = x - theme.row_header_width;
-                    let cell_y = y - theme.column_header_height;
+                    let cell_x = x - config.row_header_width;
+                    let cell_y = y - config.column_header_height;
 
                     vp_borrow.get_cell_at_position(cell_x, cell_y)
                 } else {
@@ -201,11 +205,13 @@ pub fn CanvasGrid(
             // Use a block to ensure the borrow is dropped before setting active cell
             let new_cell = {
                 let vp_borrow = vp.borrow();
-                let theme = vp_borrow.get_theme();
-                if x > theme.row_header_width && y > theme.column_header_height {
+                let _theme = vp_borrow.get_theme();
+                let ctrl_borrow = ctrl_dblclick.borrow();
+                let config = ctrl_borrow.get_config();
+                if x > config.row_header_width && y > config.column_header_height {
                     // Subtract header offsets to get cell coordinates
-                    let cell_x = x - theme.row_header_width;
-                    let cell_y = y - theme.column_header_height;
+                    let cell_x = x - config.row_header_width;
+                    let cell_y = y - config.column_header_height;
 
                     vp_borrow.get_cell_at_position(cell_x, cell_y)
                 } else {
@@ -234,16 +240,16 @@ pub fn CanvasGrid(
                 };
 
                 // Calculate cell position for the editor
-                let (pos, theme) = {
+                let (pos, config) = {
                     let vp_borrow = vp.borrow();
                     let pos = vp_borrow.get_cell_position(&cell);
-                    let theme = vp_borrow.get_theme().clone();
-                    (pos, theme)
+                    let config = ctrl_dblclick.borrow().get_config().clone();
+                    (pos, config)
                 }; // vp_borrow is dropped here
 
                 set_cell_position.set((
-                    pos.x + theme.row_header_width,
-                    pos.y + theme.column_header_height,
+                    pos.x + config.row_header_width,
+                    pos.y + config.column_header_height,
                     pos.width,
                     pos.height,
                 ));
@@ -270,6 +276,7 @@ pub fn CanvasGrid(
 
     // Handle mouse move for resize cursor
     let resize_handler_move = resize_handler.clone();
+    let ctrl_move = controller.clone();
     let on_mouse_move = move |ev: MouseEvent| {
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
@@ -281,9 +288,11 @@ pub fn CanvasGrid(
             set_viewport.update(|_| {});
         } else {
             // Check if we're hovering over a resize handle
-            let theme = default_theme();
-            let is_col_header = y < theme.column_header_height;
-            let is_row_header = x < theme.row_header_width;
+            let _theme = default_theme();
+            let ctrl_borrow = ctrl_move.borrow();
+            let config = ctrl_borrow.get_config();
+            let is_col_header = y < config.column_header_height;
+            let is_row_header = x < config.row_header_width;
 
             if is_col_header || is_row_header {
                 let cursor = resize_handler_move.get_cursor_style(
@@ -300,13 +309,15 @@ pub fn CanvasGrid(
 
     // Handle mouse down for starting resize
     let resize_handler_down = resize_handler.clone();
+    let ctrl_down = controller.clone();
     let on_mouse_down = move |ev: MouseEvent| {
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
-        let theme = default_theme();
-
-        let is_col_header = y < theme.column_header_height;
-        let is_row_header = x < theme.row_header_width;
+        let _theme = default_theme();
+        let ctrl_borrow = ctrl_down.borrow();
+        let config = ctrl_borrow.get_config();
+        let is_col_header = y < config.column_header_height;
+        let is_row_header = x < config.row_header_width;
 
         if is_col_header || is_row_header {
             if let Some((resize_type, index)) = resize_handler_down.check_resize_hover(
@@ -334,18 +345,18 @@ pub fn CanvasGrid(
     let viewport_wheel = viewport_rc.clone();
     let on_wheel = move |ev: WheelEvent| {
         ev.prevent_default();
-        
+
         // Get delta values (normalize for different scroll modes)
         let delta_x = ev.delta_x();
         let delta_y = ev.delta_y();
-        
+
         // Apply scroll with sensitivity factor
         let scroll_factor = 1.0;
         let vp = viewport_wheel.clone();
-        
+
         // Check if shift is pressed for horizontal scrolling
         let shift_pressed = ev.shift_key();
-        
+
         let (scroll_x, scroll_y) = if shift_pressed {
             // Shift+wheel scrolls horizontally
             (delta_y * scroll_factor, 0.0)
@@ -353,7 +364,7 @@ pub fn CanvasGrid(
             // Normal wheel scrolls vertically, with horizontal if deltaX is present
             (delta_x * scroll_factor, delta_y * scroll_factor)
         };
-        
+
         if scroll_x != 0.0 || scroll_y != 0.0 {
             vp.borrow_mut().scroll_by(scroll_x, scroll_y);
             // Trigger re-render
@@ -363,6 +374,7 @@ pub fn CanvasGrid(
     };
 
     // Handle keyboard events through controller
+    let ctrl_keydown = controller.clone();
     let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
         let shift_pressed = ev.shift_key();
@@ -445,15 +457,15 @@ pub fn CanvasGrid(
                         };
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let (pos, theme) = {
+                        let (pos, config) = {
                             let vp_borrow = vp.borrow();
                             let pos = vp_borrow.get_cell_position(&actual_cursor);
-                            let theme = vp_borrow.get_theme().clone();
-                            (pos, theme)
+                            let config = ctrl_keydown.borrow().get_config().clone();
+                            (pos, config)
                         }; // vp_borrow is dropped here
                         set_cell_position.set((
-                            pos.x + theme.row_header_width,
-                            pos.y + theme.column_header_height,
+                            pos.x + config.row_header_width,
+                            pos.y + config.column_header_height,
                             pos.width,
                             pos.height,
                         ));
@@ -504,15 +516,15 @@ pub fn CanvasGrid(
                         };
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let (pos, theme) = {
+                        let (pos, config) = {
                             let vp_borrow = vp.borrow();
                             let pos = vp_borrow.get_cell_position(&actual_cursor);
-                            let theme = vp_borrow.get_theme().clone();
-                            (pos, theme)
+                            let config = ctrl_keydown.borrow().get_config().clone();
+                            (pos, config)
                         }; // vp_borrow is dropped here
                         set_cell_position.set((
-                            pos.x + theme.row_header_width,
-                            pos.y + theme.column_header_height,
+                            pos.x + config.row_header_width,
+                            pos.y + config.column_header_height,
                             pos.width,
                             pos.height,
                         ));
@@ -553,15 +565,15 @@ pub fn CanvasGrid(
                         set_active_cell.set(new_cursor);
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let (pos, theme) = {
+                        let (pos, config) = {
                             let vp_borrow = vp.borrow();
                             let pos = vp_borrow.get_cell_position(&new_cursor);
-                            let theme = vp_borrow.get_theme().clone();
-                            (pos, theme)
+                            let config = ctrl_keydown.borrow().get_config().clone();
+                            (pos, config)
                         }; // vp_borrow is dropped here
                         set_cell_position.set((
-                            pos.x + theme.row_header_width,
-                            pos.y + theme.column_header_height,
+                            pos.x + config.row_header_width,
+                            pos.y + config.column_header_height,
                             pos.width,
                             pos.height,
                         ));
@@ -581,15 +593,15 @@ pub fn CanvasGrid(
                             set_active_cell.set(new_cursor);
                             // Calculate cell position for the editor
                             let vp = viewport.get();
-                            let (pos, theme) = {
+                            let (pos, config) = {
                                 let vp_borrow = vp.borrow();
                                 let pos = vp_borrow.get_cell_position(&new_cursor);
-                                let theme = vp_borrow.get_theme().clone();
-                                (pos, theme)
+                                let config = ctrl_keydown.borrow().get_config().clone();
+                                (pos, config)
                             }; // vp_borrow is dropped here
                             set_cell_position.set((
-                                pos.x + theme.row_header_width,
-                                pos.y + theme.column_header_height,
+                                pos.x + config.row_header_width,
+                                pos.y + config.column_header_height,
                                 pos.width,
                                 pos.height,
                             ));
@@ -609,15 +621,15 @@ pub fn CanvasGrid(
                         };
                         // Calculate cell position for the editor
                         let vp = viewport.get();
-                        let (pos, theme) = {
+                        let (pos, config) = {
                             let vp_borrow = vp.borrow();
                             let pos = vp_borrow.get_cell_position(&actual_cursor);
-                            let theme = vp_borrow.get_theme().clone();
-                            (pos, theme)
+                            let config = ctrl_keydown.borrow().get_config().clone();
+                            (pos, config)
                         }; // vp_borrow is dropped here
                         set_cell_position.set((
-                            pos.x + theme.row_header_width,
-                            pos.y + theme.column_header_height,
+                            pos.x + config.row_header_width,
+                            pos.y + config.column_header_height,
                             pos.width,
                             pos.height,
                         ));
@@ -726,15 +738,15 @@ pub fn CanvasGrid(
                                 };
                                 // Calculate cell position for the editor
                                 let vp = viewport.get();
-                                let (pos, theme) = {
+                                let (pos, config) = {
                                     let vp_borrow = vp.borrow();
                                     let pos = vp_borrow.get_cell_position(&actual_cursor);
-                                    let theme = vp_borrow.get_theme().clone();
-                                    (pos, theme)
+                                    let config = ctrl_keydown.borrow().get_config().clone();
+                                    (pos, config)
                                 }; // vp_borrow is dropped here
                                 set_cell_position.set((
-                                    pos.x + theme.row_header_width,
-                                    pos.y + theme.column_header_height,
+                                    pos.x + config.row_header_width,
+                                    pos.y + config.column_header_height,
                                     pos.width,
                                     pos.height,
                                 ));
@@ -817,24 +829,26 @@ pub fn CanvasGrid(
             if dispatch_ok && !is_start_editing {
                 let vp = viewport.get();
                 let mut vp_borrow = vp.borrow_mut();
-                
+
                 // Check if the cell is visible and scroll if needed
                 let cell_pos = vp_borrow.get_cell_position(&new_cursor);
-                let theme = vp_borrow.get_theme();
-                
+                let _theme = vp_borrow.get_theme();
+
                 // Calculate absolute position (without scroll offset)
                 let absolute_x = cell_pos.x + vp_borrow.get_scroll_position().x;
                 let absolute_y = cell_pos.y + vp_borrow.get_scroll_position().y;
-                
+
                 // Check if we need to scroll horizontally
-                let viewport_width = vp_borrow.get_viewport_width() - theme.row_header_width;
-                let viewport_height = vp_borrow.get_viewport_height() - theme.column_header_height;
+                let ctrl_borrow = ctrl_keydown.borrow();
+                let config = ctrl_borrow.get_config();
+                let viewport_width = vp_borrow.get_viewport_width() - config.row_header_width;
+                let viewport_height = vp_borrow.get_viewport_height() - config.column_header_height;
                 let scroll_pos = vp_borrow.get_scroll_position();
-                
+
                 let mut needs_scroll = false;
                 let mut new_scroll_x = scroll_pos.x;
                 let mut new_scroll_y = scroll_pos.y;
-                
+
                 // Check horizontal scrolling
                 if absolute_x < scroll_pos.x {
                     // Cell is to the left of viewport
@@ -845,7 +859,7 @@ pub fn CanvasGrid(
                     new_scroll_x = absolute_x + cell_pos.width - viewport_width;
                     needs_scroll = true;
                 }
-                
+
                 // Check vertical scrolling
                 if absolute_y < scroll_pos.y {
                     // Cell is above viewport
@@ -856,7 +870,7 @@ pub fn CanvasGrid(
                     new_scroll_y = absolute_y + cell_pos.height - viewport_height;
                     needs_scroll = true;
                 }
-                
+
                 if needs_scroll {
                     vp_borrow.set_scroll_position(new_scroll_x.max(0.0), new_scroll_y.max(0.0));
                     // Drop the borrow before triggering update
@@ -883,15 +897,15 @@ pub fn CanvasGrid(
                 set_editing_mode.set(true);
                 // Calculate cell position for the editor
                 let vp = viewport.get();
-                let (pos, theme) = {
+                let (pos, config) = {
                     let vp_borrow = vp.borrow();
                     let pos = vp_borrow.get_cell_position(&new_cursor);
-                    let theme = vp_borrow.get_theme().clone();
-                    (pos, theme)
+                    let config = ctrl_keydown.borrow().get_config().clone();
+                    (pos, config)
                 };
                 set_cell_position.set((
-                    pos.x + theme.row_header_width,
-                    pos.y + theme.column_header_height,
+                    pos.x + config.row_header_width,
+                    pos.y + config.column_header_height,
                     pos.width,
                     pos.height,
                 ));
@@ -1030,6 +1044,7 @@ fn render_grid(
     active_cell: CellAddress,
     facade: &gridcore_core::SpreadsheetFacade,
     device_pixel_ratio: f64,
+    config: &gridcore_controller::controller::GridConfiguration,
 ) {
     // Get 2D context
     let ctx = match canvas.get_context("2d") {
@@ -1066,26 +1081,26 @@ fn render_grid(
 
     for col in bounds.start_col..=bounds.end_col {
         let x =
-            viewport.get_column_x(col) - viewport.get_scroll_position().x + theme.row_header_width;
+            viewport.get_column_x(col) - viewport.get_scroll_position().x + config.row_header_width;
         ctx.begin_path();
-        ctx.move_to(x, theme.column_header_height);
+        ctx.move_to(x, config.column_header_height);
         ctx.line_to(x, logical_height);
         ctx.stroke();
     }
 
     // Draw horizontal lines
     for row in bounds.start_row..=bounds.end_row {
-        let y =
-            viewport.get_row_y(row) - viewport.get_scroll_position().y + theme.column_header_height;
+        let y = viewport.get_row_y(row) - viewport.get_scroll_position().y
+            + config.column_header_height;
         ctx.begin_path();
-        ctx.move_to(theme.row_header_width, y);
+        ctx.move_to(config.row_header_width, y);
         ctx.line_to(logical_width, y);
         ctx.stroke();
     }
 
     // Draw column headers
     ctx.set_fill_style_str(&theme.header_background_color);
-    ctx.fill_rect(0.0, 0.0, logical_width, theme.column_header_height);
+    ctx.fill_rect(0.0, 0.0, logical_width, config.column_header_height);
 
     ctx.set_fill_style_str(&theme.header_text_color);
     ctx.set_font(&format!(
@@ -1095,42 +1110,47 @@ fn render_grid(
 
     for col in bounds.start_col..=bounds.end_col {
         let x =
-            viewport.get_column_x(col) - viewport.get_scroll_position().x + theme.row_header_width;
+            viewport.get_column_x(col) - viewport.get_scroll_position().x + config.row_header_width;
         let width = viewport.get_column_width(col);
 
         // Draw header background
         ctx.set_fill_style_str(&theme.header_background_color);
-        ctx.fill_rect(x, 0.0, width, theme.column_header_height);
+        ctx.fill_rect(x, 0.0, width, config.column_header_height);
 
         // Draw column label
         ctx.set_fill_style_str(&theme.header_text_color);
         let label = get_column_label(col);
         let text_x = x + width / 2.0 - 8.0;
-        let text_y = theme.column_header_height / 2.0 + 4.0;
+        let text_y = config.column_header_height / 2.0 + 4.0;
         ctx.fill_text(&label, text_x, text_y).ok();
     }
 
     // Draw row headers
     for row in bounds.start_row..=bounds.end_row {
-        let y =
-            viewport.get_row_y(row) - viewport.get_scroll_position().y + theme.column_header_height;
+        let y = viewport.get_row_y(row) - viewport.get_scroll_position().y
+            + config.column_header_height;
         let height = viewport.get_row_height(row);
 
         // Draw header background
         ctx.set_fill_style_str(&theme.header_background_color);
-        ctx.fill_rect(0.0, y, theme.row_header_width, height);
+        ctx.fill_rect(0.0, y, config.row_header_width, height);
 
         // Draw row number
         ctx.set_fill_style_str(&theme.header_text_color);
         let label = (row + 1).to_string();
-        let text_x = theme.row_header_width / 2.0 - 8.0;
+        let text_x = config.row_header_width / 2.0 - 8.0;
         let text_y = y + height / 2.0 + 4.0;
         ctx.fill_text(&label, text_x, text_y).ok();
     }
 
     // Draw corner
     ctx.set_fill_style_str(&theme.header_background_color);
-    ctx.fill_rect(0.0, 0.0, theme.row_header_width, theme.column_header_height);
+    ctx.fill_rect(
+        0.0,
+        0.0,
+        config.row_header_width,
+        config.column_header_height,
+    );
 
     // Draw cell values
     ctx.set_fill_style_str(&theme.cell_text_color);
@@ -1149,9 +1169,9 @@ fn render_grid(
                 let value_str = display_value.to_string();
 
                 let x = viewport.get_column_x(col) - viewport.get_scroll_position().x
-                    + theme.row_header_width;
+                    + config.row_header_width;
                 let y = viewport.get_row_y(row) - viewport.get_scroll_position().y
-                    + theme.column_header_height;
+                    + config.column_header_height;
                 let height = viewport.get_row_height(row);
 
                 // Check if the value is an error and set appropriate color
@@ -1180,8 +1200,8 @@ fn render_grid(
         let pos = viewport.get_cell_position(&active_cell);
 
         // Add header offsets
-        let cell_x = pos.x + theme.row_header_width;
-        let cell_y = pos.y + theme.column_header_height;
+        let cell_x = pos.x + config.row_header_width;
+        let cell_y = pos.y + config.column_header_height;
 
         // Draw active cell border
         ctx.set_stroke_style_str(&theme.active_cell_border_color);

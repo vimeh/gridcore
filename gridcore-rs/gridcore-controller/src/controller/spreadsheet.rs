@@ -22,24 +22,26 @@ impl SpreadsheetController {
         config.total_cols = 100;
         Self::with_config(config)
     }
-    
+
     pub fn with_config(config: GridConfiguration) -> Self {
         let viewport_manager = Box::new(
             DefaultViewportManager::new(config.total_rows as u32, config.total_cols as u32)
-                .with_config(config.clone())
+                .with_config(config.clone()),
         );
         Self::with_viewport(viewport_manager, config)
     }
 
-    pub fn with_viewport(viewport_manager: Box<dyn ViewportManager>, config: GridConfiguration) -> Self {
-        let resize_manager = ResizeManager::new()
-            .with_limits(
-                config.min_cell_width,
-                config.max_cell_width,
-                config.default_cell_height.min(20.0),
-                config.default_cell_height * 10.0,
-            );
-            
+    pub fn with_viewport(
+        viewport_manager: Box<dyn ViewportManager>,
+        config: GridConfiguration,
+    ) -> Self {
+        let resize_manager = ResizeManager::new().with_limits(
+            config.min_cell_width,
+            config.max_cell_width,
+            config.default_cell_height.min(20.0),
+            config.default_cell_height * 10.0,
+        );
+
         let mut controller = Self {
             state_machine: UIStateMachine::new(None),
             facade: SpreadsheetFacade::new(),
@@ -56,19 +58,20 @@ impl SpreadsheetController {
 
     pub fn with_state(initial_state: UIState) -> Self {
         let config = GridConfiguration::default();
-        let resize_manager = ResizeManager::new()
-            .with_limits(
-                config.min_cell_width,
-                config.max_cell_width,
-                config.default_cell_height.min(20.0),
-                config.default_cell_height * 10.0,
-            );
-            
+        let resize_manager = ResizeManager::new().with_limits(
+            config.min_cell_width,
+            config.max_cell_width,
+            config.default_cell_height.min(20.0),
+            config.default_cell_height * 10.0,
+        );
+
         let mut controller = Self {
             state_machine: UIStateMachine::new(Some(initial_state)),
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
-            viewport_manager: Box::new(DefaultViewportManager::new(1000, 100).with_config(config.clone())),
+            viewport_manager: Box::new(
+                DefaultViewportManager::new(1000, 100).with_config(config.clone()),
+            ),
             resize_manager,
             config,
         };
@@ -127,15 +130,15 @@ impl SpreadsheetController {
     pub fn get_viewport_manager_mut(&mut self) -> &mut dyn ViewportManager {
         self.viewport_manager.as_mut()
     }
-    
+
     pub fn get_config(&self) -> &GridConfiguration {
         &self.config
     }
-    
+
     pub fn get_resize_manager(&self) -> &ResizeManager {
         &self.resize_manager
     }
-    
+
     pub fn get_resize_manager_mut(&mut self) -> &mut ResizeManager {
         &mut self.resize_manager
     }
@@ -273,7 +276,7 @@ impl SpreadsheetController {
         if event.key == "Escape" {
             return self.dispatch_action(Action::Escape);
         }
-        
+
         // In Insert mode, handle character input
         // The UI typically handles the actual text editing
         Ok(())

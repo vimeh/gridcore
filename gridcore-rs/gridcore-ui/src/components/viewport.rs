@@ -1,34 +1,14 @@
 use crate::rendering::GridTheme;
+use gridcore_controller::controller::{
+    CellPosition, GridConfiguration, ScrollPosition, ViewportBounds,
+};
 use gridcore_core::types::CellAddress;
 use std::collections::HashMap;
-
-#[derive(Clone, Debug)]
-pub struct ViewportBounds {
-    pub start_row: usize,
-    pub end_row: usize,
-    pub start_col: usize,
-    pub end_col: usize,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ScrollPosition {
-    pub x: f64,
-    pub y: f64,
-}
-
-#[derive(Clone, Debug)]
-pub struct CellPosition {
-    pub x: f64,
-    pub y: f64,
-    pub width: f64,
-    pub height: f64,
-}
 
 #[derive(Clone)]
 pub struct Viewport {
     theme: GridTheme,
-    total_rows: usize,
-    total_cols: usize,
+    config: GridConfiguration,
     scroll_position: ScrollPosition,
     viewport_width: f64,
     viewport_height: f64,
@@ -38,10 +18,13 @@ pub struct Viewport {
 
 impl Viewport {
     pub fn new(theme: GridTheme, total_rows: Option<usize>, total_cols: Option<usize>) -> Self {
+        let mut config = GridConfiguration::default();
+        config.total_rows = total_rows.unwrap_or(10000);
+        config.total_cols = total_cols.unwrap_or(256);
+
         Self {
             theme,
-            total_rows: total_rows.unwrap_or(10000),
-            total_cols: total_cols.unwrap_or(256),
+            config,
             scroll_position: ScrollPosition::default(),
             viewport_width: 800.0,
             viewport_height: 600.0,
@@ -51,11 +34,11 @@ impl Viewport {
     }
 
     pub fn get_total_rows(&self) -> usize {
-        self.total_rows
+        self.config.total_rows
     }
 
     pub fn get_total_cols(&self) -> usize {
-        self.total_cols
+        self.config.total_cols
     }
 
     pub fn get_theme(&self) -> &GridTheme {
@@ -130,13 +113,13 @@ impl Viewport {
         *self
             .column_widths
             .get(&col)
-            .unwrap_or(&self.theme.default_cell_width)
+            .unwrap_or(&self.config.default_cell_width)
     }
 
     pub fn set_column_width(&mut self, col: usize, width: f64) {
         let clamped_width = width
-            .max(self.theme.min_cell_width)
-            .min(self.theme.max_cell_width);
+            .max(self.config.min_cell_width)
+            .min(self.config.max_cell_width);
         self.column_widths.insert(col, clamped_width);
     }
 
@@ -144,7 +127,7 @@ impl Viewport {
         *self
             .row_heights
             .get(&row)
-            .unwrap_or(&self.theme.default_cell_height)
+            .unwrap_or(&self.config.default_cell_height)
     }
 
     pub fn set_row_height(&mut self, row: usize, height: f64) {
@@ -153,14 +136,14 @@ impl Viewport {
 
     pub fn get_visible_bounds(&self) -> ViewportBounds {
         let mut start_row = None;
-        let mut end_row = self.total_rows;
+        let mut end_row = self.config.total_rows;
         let mut start_col = None;
-        let mut end_col = self.total_cols;
+        let mut end_col = self.config.total_cols;
 
         // Calculate visible rows
         let mut y = 0.0;
         let scroll_y = self.scroll_position.y;
-        for row in 0..self.total_rows {
+        for row in 0..self.config.total_rows {
             let height = self.get_row_height(row);
             if y + height > scroll_y && start_row.is_none() {
                 start_row = Some(row);
@@ -175,7 +158,7 @@ impl Viewport {
         // Calculate visible columns
         let mut x = 0.0;
         let scroll_x = self.scroll_position.x;
-        for col in 0..self.total_cols {
+        for col in 0..self.config.total_cols {
             let width = self.get_column_width(col);
             if x + width > scroll_x && start_col.is_none() {
                 start_col = Some(col);
@@ -189,9 +172,9 @@ impl Viewport {
 
         ViewportBounds {
             start_row: start_row.unwrap_or(0),
-            end_row: end_row.min(self.total_rows - 1),
+            end_row: end_row.min(self.config.total_rows - 1),
             start_col: start_col.unwrap_or(0),
-            end_col: end_col.min(self.total_cols - 1),
+            end_col: end_col.min(self.config.total_cols - 1),
         }
     }
 
@@ -222,7 +205,7 @@ impl Viewport {
         let mut current_x = 0.0;
         let mut col = None;
 
-        for c in 0..self.total_cols {
+        for c in 0..self.config.total_cols {
             let width = self.get_column_width(c);
             if absolute_x >= current_x && absolute_x < current_x + width {
                 col = Some(c);
@@ -234,7 +217,7 @@ impl Viewport {
         let mut current_y = 0.0;
         let mut row = None;
 
-        for r in 0..self.total_rows {
+        for r in 0..self.config.total_rows {
             let height = self.get_row_height(r);
             if absolute_y >= current_y && absolute_y < current_y + height {
                 row = Some(r);
@@ -267,7 +250,7 @@ impl Viewport {
 
     pub fn get_total_grid_width(&self) -> f64 {
         let mut width = 0.0;
-        for col in 0..self.total_cols {
+        for col in 0..self.config.total_cols {
             width += self.get_column_width(col);
         }
         width
@@ -275,7 +258,7 @@ impl Viewport {
 
     pub fn get_total_grid_height(&self) -> f64 {
         let mut height = 0.0;
-        for row in 0..self.total_rows {
+        for row in 0..self.config.total_rows {
             height += self.get_row_height(row);
         }
         height
