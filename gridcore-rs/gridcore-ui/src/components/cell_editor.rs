@@ -1,5 +1,5 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{Action, UIState, CellMode, InsertMode, SpreadsheetMode};
+use gridcore_controller::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState};
 use gridcore_core::types::CellAddress;
 use leptos::html::Textarea;
 use leptos::*;
@@ -36,16 +36,16 @@ pub fn CellEditor(
             let _cell = active_cell.get();
             let ctrl = ctrl_value.clone();
             let ctrl_borrow = ctrl.borrow();
-            
+
             // Check the current editing state to get initial value and edit mode
             let editing_state = ctrl_borrow.get_state();
-            
+
             let (should_set_cursor_pos, cursor_pos_to_set) = match editing_state {
-                gridcore_controller::state::UIState::Editing { 
-                    editing_value, 
-                    
+                gridcore_controller::state::UIState::Editing {
+                    editing_value,
+
                     cursor_position,
-                    .. 
+                    ..
                 } => {
                     // Always use the editing_value from state
                     // The state machine now properly sets it based on the action:
@@ -55,7 +55,7 @@ pub fn CellEditor(
                     // - For 'a' key: existing cell content with cursor at end
                     leptos::logging::log!("Setting editor value from state: '{}'", editing_value);
                     set_editor_value.set(editing_value.clone());
-                    
+
                     // Use the cursor position from state
                     (true, *cursor_position)
                 }
@@ -69,13 +69,13 @@ pub fn CellEditor(
             // Focus the input and set cursor position
             if let Some(input) = input_ref.get() {
                 let _ = input.focus();
-                
+
                 // Set cursor position if needed (for direct typing)
                 if should_set_cursor_pos {
                     let _ = input.set_selection_start(Some(cursor_pos_to_set as u32));
                     let _ = input.set_selection_end(Some(cursor_pos_to_set as u32));
                 }
-                
+
                 // Set cursor position based on edit mode
                 match editing_state {
                     gridcore_controller::state::UIState::Editing { edit_variant, .. } => {
@@ -85,13 +85,16 @@ pub fn CellEditor(
                                     // Append modes - cursor at end
                                     // Use set_timeout to ensure the value is set first
                                     let input_clone = input_ref.clone();
-                                    set_timeout(move || {
-                                        if let Some(input) = input_clone.get() {
-                                            let len = input.value().len();
-                                            let _ = input.set_selection_start(Some(len as u32));
-                                            let _ = input.set_selection_end(Some(len as u32));
-                                        }
-                                    }, std::time::Duration::from_millis(0));
+                                    set_timeout(
+                                        move || {
+                                            if let Some(input) = input_clone.get() {
+                                                let len = input.value().len();
+                                                let _ = input.set_selection_start(Some(len as u32));
+                                                let _ = input.set_selection_end(Some(len as u32));
+                                            }
+                                        },
+                                        std::time::Duration::from_millis(0),
+                                    );
                                 }
                                 _ => {
                                     // Other modes - cursor at beginning or specified position
@@ -168,10 +171,13 @@ pub fn CellEditor(
                     let ctrl_borrow = ctrl.borrow();
                     matches!(
                         ctrl_borrow.get_state(),
-                        UIState::Editing { cell_mode: CellMode::Insert, .. }
+                        UIState::Editing {
+                            cell_mode: CellMode::Insert,
+                            ..
+                        }
                     )
                 };
-                
+
                 if is_insert_mode && !ev.shift_key() && !ev.ctrl_key() {
                     // In insert mode, Enter adds a newline
                     // We need to manually handle this since we're using controlled input
@@ -227,36 +233,46 @@ pub fn CellEditor(
             }
             "Escape" => {
                 ev.prevent_default();
-                
+
                 let ctrl = ctrl_cancel.clone();
-                let (is_insert_mode, is_normal_mode) = {
+                let (is_insert_mode, is_normal_mode, is_visual_mode) = {
                     let ctrl_borrow = ctrl.borrow();
                     match ctrl_borrow.get_state() {
-                        UIState::Editing { cell_mode, .. } => {
-                            match cell_mode {
-                                CellMode::Insert => (true, false),
-                                CellMode::Normal => (false, true),
-                                _ => (false, false),
-                            }
-                        }
-                        _ => (false, false),
+                        UIState::Editing { cell_mode, .. } => match cell_mode {
+                            CellMode::Insert => (true, false, false),
+                            CellMode::Normal => (false, true, false),
+                            CellMode::Visual => (false, false, true),
+                        },
+                        _ => (false, false, false),
                     }
                 };
-                
+
                 if is_insert_mode {
                     // First Escape: go from Insert to Normal mode (stay in editor)
-                    let mut ctrl_mut = ctrl.borrow_mut();
-                    if let Err(e) = ctrl_mut.dispatch_action(Action::ExitInsertMode) {
-                        leptos::logging::log!("Error exiting insert mode: {:?}", e);
-                    }
+                    {
+                        let mut ctrl_mut = ctrl.borrow_mut();
+                        if let Err(e) = ctrl_mut.dispatch_action(Action::ExitInsertMode) {
+                            leptos::logging::log!("Error exiting insert mode: {:?}", e);
+                        }
+                    } // Drop the borrow before updating the signal
                     // Update the mode to Editing (which shows as NORMAL in vim style)
+                    set_current_mode.set(SpreadsheetMode::Editing);
+                } else if is_visual_mode {
+                    // Escape from visual mode goes to normal mode
+                    {
+                        let mut ctrl_mut = ctrl.borrow_mut();
+                        if let Err(e) = ctrl_mut.dispatch_action(Action::ExitVisualMode) {
+                            leptos::logging::log!("Error exiting visual mode: {:?}", e);
+                        }
+                    } // Drop the borrow before updating the signal
+                    // Update the mode to Editing (which shows as NORMAL)
                     set_current_mode.set(SpreadsheetMode::Editing);
                 } else if is_normal_mode {
                     // Second Escape: save and exit to navigation
                     // First save the value
                     let value = editor_value.get();
                     let cell = active_cell.get();
-                    
+
                     if !value.is_empty() {
                         let ctrl_borrow = ctrl.borrow();
                         let facade = ctrl_borrow.get_facade();
@@ -265,27 +281,29 @@ pub fn CellEditor(
                             leptos::logging::log!("Error setting cell value: {:?}", e);
                         }
                     }
-                    
+
                     // Then exit editing
                     set_editing_mode.set(false);
                     set_suggestions.set(Vec::new());
                     set_selected_suggestion.set(None);
-                    
-                    let mut ctrl_mut = ctrl.borrow_mut();
-                    if let Err(e) = ctrl_mut.dispatch_action(Action::ExitToNavigation) {
-                        leptos::logging::log!("Error exiting edit mode: {:?}", e);
-                    }
-                    
+
+                    {
+                        let mut ctrl_mut = ctrl.borrow_mut();
+                        if let Err(e) = ctrl_mut.dispatch_action(Action::Escape) {
+                            leptos::logging::log!("Error exiting edit mode: {:?}", e);
+                        }
+                    } // Drop the borrow
+
                     // Update mode to Navigation
                     set_current_mode.set(SpreadsheetMode::Navigation);
-                    
+
                     // Update formula bar
                     set_formula_value.set(value);
                 } else {
                     // Not in expected state - just exit
                     set_editing_mode.set(false);
                     let mut ctrl_mut = ctrl.borrow_mut();
-                    let _ = ctrl_mut.dispatch_action(Action::ExitToNavigation);
+                    let _ = ctrl_mut.dispatch_action(Action::Escape);
                     set_current_mode.set(SpreadsheetMode::Navigation);
                 }
             }
@@ -336,47 +354,98 @@ pub fn CellEditor(
                     let ctrl_borrow = ctrl.borrow();
                     matches!(
                         ctrl_borrow.get_state(),
-                        UIState::Editing { cell_mode: CellMode::Normal, .. }
+                        UIState::Editing {
+                            cell_mode: CellMode::Normal,
+                            ..
+                        }
                     )
                 };
-                
+
                 if is_normal_mode {
                     match key.as_str() {
                         "i" => {
                             // Enter insert mode at current position
                             ev.prevent_default();
-                            let mut ctrl_mut = ctrl.borrow_mut();
-                            if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
-                                mode: Some(InsertMode::I),
-                            }) {
-                                leptos::logging::log!("Error entering insert mode: {:?}", e);
-                            }
+                            {
+                                let mut ctrl_mut = ctrl.borrow_mut();
+                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                    mode: Some(InsertMode::I),
+                                }) {
+                                    leptos::logging::log!("Error entering insert mode: {:?}", e);
+                                }
+                            } // Drop the borrow before updating signal
                             set_current_mode.set(SpreadsheetMode::Insert);
                         }
                         "a" => {
                             // Enter insert mode after current position
                             ev.prevent_default();
-                            let mut ctrl_mut = ctrl.borrow_mut();
-                            if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
-                                mode: Some(InsertMode::A),
-                            }) {
-                                leptos::logging::log!("Error entering insert mode: {:?}", e);
-                            }
+                            {
+                                let mut ctrl_mut = ctrl.borrow_mut();
+                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                    mode: Some(InsertMode::A),
+                                }) {
+                                    leptos::logging::log!("Error entering insert mode: {:?}", e);
+                                }
+                            } // Drop the borrow before updating signal
                             set_current_mode.set(SpreadsheetMode::Insert);
                         }
                         "v" => {
-                            // Enter visual mode
+                            // Enter visual character mode
                             ev.prevent_default();
                             use gridcore_controller::state::VisualMode;
-                            let mut ctrl_mut = ctrl.borrow_mut();
-                            if let Err(e) = ctrl_mut.dispatch_action(Action::EnterVisualMode {
-                                visual_type: VisualMode::Character,
-                                anchor: Some(0), // Start selection at current cursor position
-                            }) {
-                                leptos::logging::log!("Error entering visual mode: {:?}", e);
-                            }
-                            // Visual mode within editing still shows as normal in UI
-                            // but with visual selection active
+                            {
+                                let mut ctrl_mut = ctrl.borrow_mut();
+                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterVisualMode {
+                                    visual_type: VisualMode::Character,
+                                    anchor: Some(0), // Start selection at current cursor position
+                                }) {
+                                    leptos::logging::log!("Error entering visual mode: {:?}", e);
+                                }
+                            } // Drop the borrow before updating signal
+                            // Update mode to Visual
+                            set_current_mode.set(SpreadsheetMode::Visual);
+                        }
+                        "V" => {
+                            // Enter visual line mode
+                            ev.prevent_default();
+                            use gridcore_controller::state::VisualMode;
+                            {
+                                let mut ctrl_mut = ctrl.borrow_mut();
+                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterVisualMode {
+                                    visual_type: VisualMode::Line,
+                                    anchor: Some(0), // Start selection at current line
+                                }) {
+                                    leptos::logging::log!("Error entering visual line mode: {:?}", e);
+                                }
+                            } // Drop the borrow before updating signal
+                            // Update mode to Visual (the status bar will check the visual type)
+                            set_current_mode.set(SpreadsheetMode::Visual);
+                        }
+                        "I" => {
+                            // Enter insert mode at beginning of line
+                            ev.prevent_default();
+                            {
+                                let mut ctrl_mut = ctrl.borrow_mut();
+                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                    mode: Some(InsertMode::CapitalI),
+                                }) {
+                                    leptos::logging::log!("Error entering insert mode (I): {:?}", e);
+                                }
+                            } // Drop the borrow before updating signal
+                            set_current_mode.set(SpreadsheetMode::Insert);
+                        }
+                        "A" => {
+                            // Enter insert mode at end of line
+                            ev.prevent_default();
+                            {
+                                let mut ctrl_mut = ctrl.borrow_mut();
+                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                    mode: Some(InsertMode::CapitalA),
+                                }) {
+                                    leptos::logging::log!("Error entering insert mode (A): {:?}", e);
+                                }
+                            } // Drop the borrow before updating signal
+                            set_current_mode.set(SpreadsheetMode::Insert);
                         }
                         _ => {}
                     }
@@ -399,7 +468,7 @@ pub fn CellEditor(
             >
                 <textarea
                     node_ref=input_ref
-                    value=move || editor_value.get()
+                    prop:value=move || editor_value.get()
                     on:input=move |ev| set_editor_value.set(event_target_value(&ev))
                     on:keydown={let on_keydown = on_keydown.clone(); move |ev| on_keydown(ev)}
                     style="width: 100%; height: 100%; border: 2px solid #4285f4; padding: 2px 4px; font-family: monospace; font-size: 13px; outline: none; resize: none; overflow: hidden;"

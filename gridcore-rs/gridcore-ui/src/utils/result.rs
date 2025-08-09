@@ -49,7 +49,7 @@ impl UiError {
     /// Get severity level for error display
     pub fn severity(&self) -> crate::components::error_display::ErrorSeverity {
         use crate::components::error_display::ErrorSeverity;
-        
+
         match self {
             UiError::Spreadsheet(e) => match e {
                 SpreadsheetError::CircularDependency

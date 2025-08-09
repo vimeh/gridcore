@@ -786,10 +786,10 @@ impl UIStateMachine {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         #[cfg(target_arch = "wasm32")]
         let timestamp = 0u64; // Placeholder for WASM
-        
+
         let entry = HistoryEntry {
             state,
             action,

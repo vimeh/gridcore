@@ -97,7 +97,7 @@ pub enum SpreadsheetEvent {
     FileLoaded {
         path: String,
     },
-    
+
     // Error events
     ErrorOccurred {
         message: String,

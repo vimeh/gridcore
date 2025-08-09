@@ -74,13 +74,15 @@ impl SpreadsheetController {
     pub fn get_facade_mut(&mut self) -> &mut SpreadsheetFacade {
         &mut self.facade
     }
-    
+
     /// Emit an error event
-    pub fn emit_error(&mut self, message: String, severity: crate::controller::events::ErrorSeverity) {
-        self.event_dispatcher.dispatch(&SpreadsheetEvent::ErrorOccurred {
-            message,
-            severity,
-        });
+    pub fn emit_error(
+        &mut self,
+        message: String,
+        severity: crate::controller::events::ErrorSeverity,
+    ) {
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::ErrorOccurred { message, severity });
     }
 
     pub fn get_viewport_manager(&self) -> &dyn ViewportManager {
@@ -142,10 +144,11 @@ impl SpreadsheetController {
                     let address = cursor.clone();
                     // Delete the cell (actually removes it from repository)
                     self.facade.delete_cell(&address)?;
-                    self.event_dispatcher.dispatch(&SpreadsheetEvent::CellEditCompleted {
-                        address: address.clone(),
-                        value: String::new(),
-                    });
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::CellEditCompleted {
+                            address: address.clone(),
+                            value: String::new(),
+                        });
                 }
                 Ok(())
             }
@@ -295,25 +298,27 @@ impl SpreadsheetController {
                         // Check if the cell value is an error
                         if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
                             // Emit error event for formula evaluation errors
-                            self.event_dispatcher.dispatch(&SpreadsheetEvent::ErrorOccurred {
-                                message: format!("Formula error: {}", error_msg),
-                                severity: crate::controller::events::ErrorSeverity::Error,
-                            });
+                            self.event_dispatcher
+                                .dispatch(&SpreadsheetEvent::ErrorOccurred {
+                                    message: format!("Formula error: {}", error_msg),
+                                    severity: crate::controller::events::ErrorSeverity::Error,
+                                });
                         }
                     }
-                    
+
                     self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CellEditCompleted { 
-                            address: address.clone(), 
-                            value 
+                        .dispatch(&SpreadsheetEvent::CellEditCompleted {
+                            address: address.clone(),
+                            value,
                         });
                 }
                 Err(e) => {
                     // Emit error event for setting errors
-                    self.event_dispatcher.dispatch(&SpreadsheetEvent::ErrorOccurred {
-                        message: format!("Failed to set cell value: {}", e),
-                        severity: crate::controller::events::ErrorSeverity::Error,
-                    });
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::ErrorOccurred {
+                            message: format!("Failed to set cell value: {}", e),
+                            severity: crate::controller::events::ErrorSeverity::Error,
+                        });
                     // Still exit editing mode even if the value couldn't be set
                 }
             }

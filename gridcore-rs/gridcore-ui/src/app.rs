@@ -12,50 +12,70 @@ use std::rc::Rc;
 pub fn App() -> impl IntoView {
     // Create the SpreadsheetController
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
-    
+
     // We'll initialize test data after ErrorDisplay is available
     let init_data = create_rw_signal(false);
-    
+
     provide_context(controller.clone());
-    
+
     // Create error handling signals
     let (errors, set_errors) = create_signal::<Vec<ErrorMessage>>(Vec::new());
     let error_counter = create_rw_signal(0usize);
-    
+
     // Set up controller event listener for errors
     {
         let set_errors = set_errors.clone();
         let error_counter = error_counter.clone();
-        let callback = Box::new(move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
-            leptos::logging::log!("Controller event received: {:?}", event);
-            if let gridcore_controller::controller::events::SpreadsheetEvent::ErrorOccurred { message, severity } = event {
-                leptos::logging::log!("Error event: message={}, severity={:?}", message, severity);
-                let id = error_counter.get();
-                error_counter.set(id + 1);
-                
-                let sev = match severity {
-                    gridcore_controller::controller::events::ErrorSeverity::Error => ErrorSeverity::Error,
-                    gridcore_controller::controller::events::ErrorSeverity::Warning => ErrorSeverity::Warning,
-                    gridcore_controller::controller::events::ErrorSeverity::Info => ErrorSeverity::Info,
-                };
-                
-                let error_msg = ErrorMessage {
-                    message: message.clone(),
-                    severity: sev,
-                    id,
-                };
-                
-                leptos::logging::log!("Adding error to display: id={}, message={}", id, message);
-                set_errors.update(|errs| errs.push(error_msg));
-            }
-        });
+        let callback = Box::new(
+            move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
+                leptos::logging::log!("Controller event received: {:?}", event);
+                if let gridcore_controller::controller::events::SpreadsheetEvent::ErrorOccurred {
+                    message,
+                    severity,
+                } = event
+                {
+                    leptos::logging::log!(
+                        "Error event: message={}, severity={:?}",
+                        message,
+                        severity
+                    );
+                    let id = error_counter.get();
+                    error_counter.set(id + 1);
+
+                    let sev = match severity {
+                        gridcore_controller::controller::events::ErrorSeverity::Error => {
+                            ErrorSeverity::Error
+                        }
+                        gridcore_controller::controller::events::ErrorSeverity::Warning => {
+                            ErrorSeverity::Warning
+                        }
+                        gridcore_controller::controller::events::ErrorSeverity::Info => {
+                            ErrorSeverity::Info
+                        }
+                    };
+
+                    let error_msg = ErrorMessage {
+                        message: message.clone(),
+                        severity: sev,
+                        id,
+                    };
+
+                    leptos::logging::log!(
+                        "Adding error to display: id={}, message={}",
+                        id,
+                        message
+                    );
+                    set_errors.update(|errs| errs.push(error_msg));
+                }
+            },
+        );
         controller.borrow_mut().subscribe_to_events(callback);
     }
 
     // Create reactive signals for UI state
     let (active_cell, set_active_cell) = create_signal(CellAddress::new(0, 0));
     let (active_sheet, set_active_sheet) = create_signal(0);
-    
+
     // Initialize formula value with A1's content
     let initial_formula_value = {
         let ctrl_borrow = controller.borrow();
@@ -74,7 +94,7 @@ pub fn App() -> impl IntoView {
 
     // Get initial mode from controller
     let initial_mode = controller.borrow().get_state().spreadsheet_mode();
-    
+
     // Update formula bar when active cell changes
     let _ctrl_for_effect = controller.clone();
     // Removed duplicate create_effect - we have the better one below
@@ -105,18 +125,18 @@ pub fn App() -> impl IntoView {
     create_effect(move |_| {
         let cell = active_cell.get();
         let ctrl = controller_for_effect.clone();
-        
+
         // Check if we're in editing mode
         let is_editing = matches!(
             ctrl.borrow().get_state(),
             gridcore_controller::state::UIState::Editing { .. }
         );
-        
+
         // Only update formula bar if not editing
         if !is_editing {
             let ctrl_borrowed = ctrl.borrow();
             let facade = ctrl_borrowed.get_facade();
-            
+
             // Get the value of the active cell
             if let Some(cell_obj) = facade.get_cell(&cell) {
                 // Show the formula if it exists, otherwise show the display value
@@ -157,16 +177,15 @@ pub fn App() -> impl IntoView {
         }
     };
 
-    
     // Initialize test data with error handling after ErrorDisplay is mounted
     let controller_for_init = controller.clone();
     create_effect(move |_| {
         if !init_data.get() {
             init_data.set(true);
-            
+
             let ctrl = controller_for_init.borrow();
             let facade = ctrl.get_facade();
-            
+
             // Initialize test data with proper error handling
             let test_data = vec![
                 (CellAddress::new(0, 0), "Hello"),  // A1
@@ -175,7 +194,7 @@ pub fn App() -> impl IntoView {
                 (CellAddress::new(1, 1), "123"),    // B2
                 (CellAddress::new(2, 1), "=A2+B2"), // C2
             ];
-            
+
             for (address, value) in test_data {
                 if let Err(e) = facade.set_cell_value(&address, value) {
                     // Error will be displayed through controller events
@@ -250,9 +269,10 @@ pub fn App() -> impl IntoView {
                 <StatusBar
                     current_mode=current_mode
                     selection_stats=selection_stats
+                    controller=controller.clone()
                 />
             </div>
-            
+
             // Add error display overlay
             <ErrorDisplay errors=errors set_errors=set_errors />
         </div>

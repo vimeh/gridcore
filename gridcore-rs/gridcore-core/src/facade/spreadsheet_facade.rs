@@ -580,7 +580,7 @@ impl SpreadsheetFacade {
         for dependent in dependents {
             // Get cell and immediately drop the borrow
             let cell = self.repository.borrow().get(&dependent).cloned();
-            
+
             if let Some(mut cell) = cell {
                 if let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);

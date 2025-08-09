@@ -6,7 +6,9 @@ use leptos::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlDivElement, KeyboardEvent, MouseEvent};
+use web_sys::{
+    CanvasRenderingContext2d, HtmlCanvasElement, HtmlDivElement, KeyboardEvent, MouseEvent,
+};
 
 use crate::components::cell_editor::CellEditor;
 use crate::components::viewport::Viewport;
@@ -40,7 +42,7 @@ pub fn CanvasGrid(
     let (cell_position, set_cell_position) = create_signal((0.0, 0.0, 100.0, 25.0));
     let (cursor_style, set_cursor_style) = create_signal("cell");
     let (canvas_dimensions, set_canvas_dimensions) = create_signal((0.0, 0.0));
-    
+
     // Get device pixel ratio once
     let device_pixel_ratio = web_sys::window()
         .and_then(|w| Some(w.device_pixel_ratio()))
@@ -49,7 +51,7 @@ pub fn CanvasGrid(
     // Create resize handler
     let resize_handler = ResizeHandler::new(viewport_rc.clone());
     let _resize_state = resize_handler.get_state();
-    
+
     // Auto-focus the wrapper when component mounts
     create_effect(move |_| {
         if let Some(wrapper) = wrapper_ref.get() {
@@ -87,7 +89,7 @@ pub fn CanvasGrid(
                     // Set physical canvas size (actual pixels)
                     canvas_elem.set_width((width * device_pixel_ratio) as u32);
                     canvas_elem.set_height((height * device_pixel_ratio) as u32);
-                    
+
                     // Update the signal which will trigger the view to update
                     set_canvas_dimensions.set((width, height));
 
@@ -117,17 +119,21 @@ pub fn CanvasGrid(
     create_effect(move |_| {
         let cell = active_cell.get();
         let ctrl = ctrl_formula.clone();
-        
+
         leptos::logging::log!("Formula bar update: active_cell = {:?}", cell);
-        
+
         // Get cell value and drop the borrow immediately
         let cell_value = {
             let ctrl_borrow = ctrl.borrow();
             let facade = ctrl_borrow.get_facade();
-            
+
             if let Some(cell_obj) = facade.get_cell(&cell) {
-                leptos::logging::log!("Cell found at {:?}: raw_value={}, has_formula={}", 
-                    cell, cell_obj.raw_value, cell_obj.has_formula());
+                leptos::logging::log!(
+                    "Cell found at {:?}: raw_value={}, has_formula={}",
+                    cell,
+                    cell_obj.raw_value,
+                    cell_obj.has_formula()
+                );
                 // Check if cell has a formula
                 if cell_obj.has_formula() {
                     // If it has a formula, show the raw value (which contains the formula)
@@ -141,7 +147,7 @@ pub fn CanvasGrid(
                 None
             }
         }; // ctrl_borrow is dropped here
-        
+
         leptos::logging::log!("Setting formula value to: {:?}", cell_value);
         // Now update the formula value signal
         set_formula_value.set(cell_value.unwrap_or_default());
@@ -179,7 +185,7 @@ pub fn CanvasGrid(
             }
         }
     };
-    
+
     // Handle double-click to edit
     let ctrl_dblclick = controller.clone();
     let on_dblclick = move |ev: MouseEvent| {
@@ -208,7 +214,7 @@ pub fn CanvasGrid(
             // Now update active cell and start editing
             if let Some(cell) = new_cell {
                 set_active_cell.set(cell);
-                
+
                 // Get existing cell value
                 let existing_value = {
                     let ctrl = ctrl_dblclick.clone();
@@ -224,7 +230,7 @@ pub fn CanvasGrid(
                         String::new()
                     }
                 };
-                
+
                 // Calculate cell position for the editor
                 let (pos, theme) = {
                     let vp_borrow = vp.borrow();
@@ -232,14 +238,14 @@ pub fn CanvasGrid(
                     let theme = vp_borrow.get_theme().clone();
                     (pos, theme)
                 }; // vp_borrow is dropped here
-                
+
                 set_cell_position.set((
                     pos.x + theme.row_header_width,
                     pos.y + theme.column_header_height,
                     pos.width,
                     pos.height,
                 ));
-                
+
                 // Start editing with 'a' mode (cursor at end)
                 let cursor_pos = existing_value.len();
                 let action = Action::StartEditing {
@@ -247,7 +253,7 @@ pub fn CanvasGrid(
                     initial_value: Some(existing_value),
                     cursor_position: Some(cursor_pos),
                 };
-                
+
                 let mut ctrl_mut = ctrl_dblclick.borrow_mut();
                 if let Err(e) = ctrl_mut.dispatch_action(action) {
                     leptos::logging::log!("Error starting edit on double-click: {:?}", e);
@@ -375,7 +381,11 @@ pub fn CanvasGrid(
                     }
                     "l" | "ArrowRight" => {
                         ev.prevent_default();
-                        leptos::logging::log!("Moving right from col={} to col={}", current_cursor.col, current_cursor.col + 1);
+                        leptos::logging::log!(
+                            "Moving right from col={} to col={}",
+                            current_cursor.col,
+                            current_cursor.col + 1
+                        );
                         Some(Action::UpdateCursor {
                             cursor: CellAddress::new(current_cursor.col + 1, current_cursor.row),
                         })
@@ -566,7 +576,10 @@ pub fn CanvasGrid(
                             // Shift+Tab moves to previous cell (left, then wrap to previous row)
                             if current_cursor.col > 0 {
                                 Some(Action::UpdateCursor {
-                                    cursor: CellAddress::new(current_cursor.col - 1, current_cursor.row),
+                                    cursor: CellAddress::new(
+                                        current_cursor.col - 1,
+                                        current_cursor.row,
+                                    ),
                                 })
                             } else if current_cursor.row > 0 {
                                 // Wrap to previous row, last column
@@ -579,7 +592,8 @@ pub fn CanvasGrid(
                         } else {
                             // Tab moves to next cell (right, then wrap to next row)
                             let next_col = current_cursor.col + 1;
-                            if next_col < 100 { // Reasonable column limit
+                            if next_col < 100 {
+                                // Reasonable column limit
                                 Some(Action::UpdateCursor {
                                     cursor: CellAddress::new(next_col, current_cursor.row),
                                 })
@@ -595,9 +609,14 @@ pub fn CanvasGrid(
                         // Check if it's an alphanumeric character or special character to start editing
                         if key.len() == 1 {
                             let ch = key.chars().next().unwrap();
-                            if ch.is_alphanumeric() || "!@#$%^&*()_+-=[]{}|;':\",./<>?`~".contains(ch) {
+                            if ch.is_alphanumeric()
+                                || "!@#$%^&*()_+-=[]{}|;':\",./<>?`~".contains(ch)
+                            {
                                 ev.prevent_default();
-                                leptos::logging::log!("Direct typing: key='{}', starting edit mode", key);
+                                leptos::logging::log!(
+                                    "Direct typing: key='{}', starting edit mode",
+                                    key
+                                );
                                 // Calculate cell position for the editor
                                 let vp = viewport.get();
                                 let (pos, theme) = {
@@ -646,14 +665,15 @@ pub fn CanvasGrid(
                 let state = ctrl_mut.get_state();
                 let mode = state.spreadsheet_mode();
                 let cursor = *state.cursor();
-                let is_editing = matches!(state, gridcore_controller::state::UIState::Editing { .. });
+                let is_editing =
+                    matches!(state, gridcore_controller::state::UIState::Editing { .. });
                 (mode, cursor, is_editing)
             }; // ctrl_mut is dropped here
 
             // Now update UI state after borrow is dropped
             set_current_mode.set(new_mode);
             set_active_cell.set(new_cursor);
-            
+
             // If we just started editing, show the editor and calculate position
             if is_editing && !editing_mode.get() {
                 set_editing_mode.set(true);
@@ -675,8 +695,13 @@ pub fn CanvasGrid(
                 // We exited editing mode
                 set_editing_mode.set(false);
             }
-            
-            leptos::logging::log!("Updated active cell to: col={}, row={}, editing={}", new_cursor.col, new_cursor.row, is_editing);
+
+            leptos::logging::log!(
+                "Updated active cell to: col={}, row={}, editing={}",
+                new_cursor.col,
+                new_cursor.row,
+                is_editing
+            );
         }
     };
 

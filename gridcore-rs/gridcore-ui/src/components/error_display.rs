@@ -28,22 +28,22 @@ pub fn ErrorDisplay(
     set_errors: WriteSignal<Vec<ErrorMessage>>,
 ) -> impl IntoView {
     // Don't need to create signals here, they're passed in
-    
+
     // Provide context for other components to add errors (if needed)
     let error_counter = create_rw_signal(0usize);
     provide_context(ErrorContext {
         add_error: Callback::new(move |(message, severity): (String, ErrorSeverity)| {
             let id = error_counter.get();
             error_counter.set(id + 1);
-            
+
             let error = ErrorMessage {
                 message,
                 severity: severity.clone(),
                 id,
             };
-            
+
             set_errors.update(|errs| errs.push(error.clone()));
-            
+
             // Auto-dismiss after 5 seconds for info, 10 seconds for warnings
             let window = web_sys::window().expect("no global window exists");
             match severity {
@@ -93,7 +93,7 @@ pub fn ErrorDisplay(
                         ErrorSeverity::Warning => "error-message warning",
                         ErrorSeverity::Info => "error-message info",
                     };
-                    
+
                     view! {
                         <div class=severity_class>
                             <span class="error-text">{error.message.clone()}</span>
@@ -119,7 +119,8 @@ impl ErrorContext {
     }
 
     pub fn show_warning(&self, message: impl Into<String>) {
-        self.add_error.call((message.into(), ErrorSeverity::Warning));
+        self.add_error
+            .call((message.into(), ErrorSeverity::Warning));
     }
 
     pub fn show_info(&self, message: impl Into<String>) {

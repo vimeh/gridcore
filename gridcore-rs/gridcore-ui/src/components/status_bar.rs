@@ -1,5 +1,8 @@
-use gridcore_controller::state::SpreadsheetMode;
+use gridcore_controller::controller::SpreadsheetController;
+use gridcore_controller::state::{SpreadsheetMode, UIState, CellMode, VisualMode};
 use leptos::*;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub struct SelectionStats {
@@ -26,19 +29,42 @@ impl Default for SelectionStats {
 pub fn StatusBar(
     current_mode: ReadSignal<SpreadsheetMode>,
     selection_stats: ReadSignal<SelectionStats>,
+    controller: Rc<RefCell<SpreadsheetController>>,
 ) -> impl IntoView {
-
-    // Format mode display with color and detail text
+    // Clone controller for closures
+    let ctrl_for_display = controller.clone();
+    
+    // Create a reactive signal that updates when current_mode changes
+    // This ensures the UI updates when mode changes
     let mode_display = move || {
-        let (text, color, detail) = match current_mode.get() {
-            SpreadsheetMode::Navigation => ("NORMAL", "#4caf50", "hjkl to move"),
-            SpreadsheetMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
-            SpreadsheetMode::Editing => ("NORMAL", "#ff9800", "i/a to insert"),  // Normal mode within editing
-            SpreadsheetMode::Visual => ("VISUAL", "#9c27b0", "hjkl to select"),
-            SpreadsheetMode::Command => ("COMMAND", "#f44336", "Enter to execute"),
-            SpreadsheetMode::Resize => ("RESIZE", "#795548", ""),
-            SpreadsheetMode::Delete => ("DELETE", "#e91e63", ""),
-            SpreadsheetMode::BulkOperation => ("BULK", "#607d8b", ""),
+        // Read current_mode to ensure reactivity
+        let _mode = current_mode.get();
+        
+        let ctrl_borrow = ctrl_for_display.borrow();
+        let state = ctrl_borrow.get_state();
+        
+        let (text, color, detail) = match state {
+            UIState::Navigation { .. } => ("NAVIGATION", "#4caf50", "hjkl to move"),
+            UIState::Editing { cell_mode, visual_type, .. } => {
+                match cell_mode {
+                    CellMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
+                    CellMode::Normal => ("NORMAL", "#ff9800", "i/a to insert"),
+                    CellMode::Visual => {
+                        // Check visual type for line mode
+                        match visual_type {
+                            Some(VisualMode::Line) => ("VISUAL LINE", "#9c27b0", "hjkl to select"),
+                            Some(VisualMode::Block) => ("VISUAL BLOCK", "#9c27b0", "hjkl to select"),
+                            _ => ("VISUAL", "#9c27b0", "hjkl to select"),
+                        }
+                    }
+                }
+            }
+            UIState::Visual { .. } => ("VISUAL", "#9c27b0", "hjkl to select"),
+            UIState::Command { .. } => ("COMMAND", "#f44336", "Enter to execute"),
+            UIState::Resize { .. } => ("RESIZE", "#795548", ""),
+            UIState::Insert { .. } => ("INSERT", "#2196f3", "ESC to normal"),
+            UIState::Delete { .. } => ("DELETE", "#e91e63", ""),
+            UIState::BulkOperation { .. } => ("BULK", "#607d8b", ""),
         };
         (text, color, detail)
     };
@@ -82,7 +108,7 @@ pub fn StatusBar(
                         </span>
                     }.into_view()
                 } else {
-                    view! { 
+                    view! {
                         <span style="color: #999;">
                             "Ready"
                         </span>
@@ -119,4 +145,3 @@ pub fn StatusBar(
         </div>
     }
 }
-
