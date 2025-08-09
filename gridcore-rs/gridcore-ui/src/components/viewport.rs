@@ -40,8 +40,8 @@ impl Viewport {
     pub fn new(theme: GridTheme, total_rows: Option<usize>, total_cols: Option<usize>) -> Self {
         Self {
             theme,
-            total_rows: total_rows.unwrap_or(1000),
-            total_cols: total_cols.unwrap_or(26),
+            total_rows: total_rows.unwrap_or(10000),
+            total_cols: total_cols.unwrap_or(256),
             scroll_position: ScrollPosition::default(),
             viewport_width: 800.0,
             viewport_height: 600.0,
@@ -73,6 +73,14 @@ impl Viewport {
 
     pub fn get_scroll_position(&self) -> ScrollPosition {
         self.scroll_position.clone()
+    }
+
+    pub fn get_viewport_width(&self) -> f64 {
+        self.viewport_width
+    }
+
+    pub fn get_viewport_height(&self) -> f64 {
+        self.viewport_height
     }
 
     pub fn scroll_by(&mut self, delta_x: f64, delta_y: f64) {

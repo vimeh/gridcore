@@ -8,13 +8,14 @@ use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use web_sys::{
     CanvasRenderingContext2d, HtmlCanvasElement, HtmlDivElement, KeyboardEvent, MouseEvent,
+    WheelEvent,
 };
 
 use crate::components::cell_editor::CellEditor;
 use crate::components::viewport::Viewport;
 use crate::interaction::resize_handler::ResizeHandler;
 use crate::rendering::default_theme;
-use crate::{debug_console, debug_log};
+use crate::debug_log;
 
 #[component]
 pub fn CanvasGrid(
@@ -35,8 +36,8 @@ pub fn CanvasGrid(
     // State
     let viewport_rc = Rc::new(RefCell::new(Viewport::new(
         theme.clone(),
-        Some(100),
-        Some(26),
+        Some(10000),  // Support up to 10,000 rows
+        Some(256),    // Support up to 256 columns (A-IV)
     )));
     let (viewport, set_viewport) = create_signal(viewport_rc.clone());
     let (editing_mode, set_editing_mode) = create_signal(false);
@@ -326,6 +327,38 @@ pub fn CanvasGrid(
             resize_handler_up.end_resize();
             // Trigger final re-render
             set_viewport.update(|_| {});
+        }
+    };
+
+    // Handle mouse wheel for scrolling
+    let viewport_wheel = viewport_rc.clone();
+    let on_wheel = move |ev: WheelEvent| {
+        ev.prevent_default();
+        
+        // Get delta values (normalize for different scroll modes)
+        let delta_x = ev.delta_x();
+        let delta_y = ev.delta_y();
+        
+        // Apply scroll with sensitivity factor
+        let scroll_factor = 1.0;
+        let vp = viewport_wheel.clone();
+        
+        // Check if shift is pressed for horizontal scrolling
+        let shift_pressed = ev.shift_key();
+        
+        let (scroll_x, scroll_y) = if shift_pressed {
+            // Shift+wheel scrolls horizontally
+            (delta_y * scroll_factor, 0.0)
+        } else {
+            // Normal wheel scrolls vertically, with horizontal if deltaX is present
+            (delta_x * scroll_factor, delta_y * scroll_factor)
+        };
+        
+        if scroll_x != 0.0 || scroll_y != 0.0 {
+            vp.borrow_mut().scroll_by(scroll_x, scroll_y);
+            // Trigger re-render
+            set_viewport.update(|_| {});
+            debug_log!("Scrolled by: x={}, y={}", scroll_x, scroll_y);
         }
     };
 
@@ -780,6 +813,60 @@ pub fn CanvasGrid(
             set_current_mode.set(new_mode);
             set_active_cell.set(new_cursor);
 
+            // Auto-scroll to keep the active cell visible
+            if dispatch_ok && !is_start_editing {
+                let vp = viewport.get();
+                let mut vp_borrow = vp.borrow_mut();
+                
+                // Check if the cell is visible and scroll if needed
+                let cell_pos = vp_borrow.get_cell_position(&new_cursor);
+                let theme = vp_borrow.get_theme();
+                
+                // Calculate absolute position (without scroll offset)
+                let absolute_x = cell_pos.x + vp_borrow.get_scroll_position().x;
+                let absolute_y = cell_pos.y + vp_borrow.get_scroll_position().y;
+                
+                // Check if we need to scroll horizontally
+                let viewport_width = vp_borrow.get_viewport_width() - theme.row_header_width;
+                let viewport_height = vp_borrow.get_viewport_height() - theme.column_header_height;
+                let scroll_pos = vp_borrow.get_scroll_position();
+                
+                let mut needs_scroll = false;
+                let mut new_scroll_x = scroll_pos.x;
+                let mut new_scroll_y = scroll_pos.y;
+                
+                // Check horizontal scrolling
+                if absolute_x < scroll_pos.x {
+                    // Cell is to the left of viewport
+                    new_scroll_x = absolute_x;
+                    needs_scroll = true;
+                } else if absolute_x + cell_pos.width > scroll_pos.x + viewport_width {
+                    // Cell is to the right of viewport
+                    new_scroll_x = absolute_x + cell_pos.width - viewport_width;
+                    needs_scroll = true;
+                }
+                
+                // Check vertical scrolling
+                if absolute_y < scroll_pos.y {
+                    // Cell is above viewport
+                    new_scroll_y = absolute_y;
+                    needs_scroll = true;
+                } else if absolute_y + cell_pos.height > scroll_pos.y + viewport_height {
+                    // Cell is below viewport
+                    new_scroll_y = absolute_y + cell_pos.height - viewport_height;
+                    needs_scroll = true;
+                }
+                
+                if needs_scroll {
+                    vp_borrow.set_scroll_position(new_scroll_x.max(0.0), new_scroll_y.max(0.0));
+                    // Drop the borrow before triggering update
+                    drop(vp_borrow);
+                    // Trigger re-render
+                    set_viewport.update(|_| {});
+                    debug_log!("Auto-scrolled to keep cell {:?} visible", new_cursor);
+                }
+            }
+
             // If we just started editing, show the editor and calculate position
             // Force editing mode if we successfully dispatched StartEditing
             let should_be_editing = is_editing || (is_start_editing && dispatch_ok);
@@ -914,6 +1001,7 @@ pub fn CanvasGrid(
                 on:mousedown=on_mouse_down
                 on:mousemove=on_mouse_move
                 on:mouseup=on_mouse_up
+                on:wheel=on_wheel
                 style=move || {
                     let (width, height) = canvas_dimensions.get();
                     format!(
