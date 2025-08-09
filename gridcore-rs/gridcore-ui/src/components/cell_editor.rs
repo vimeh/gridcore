@@ -78,14 +78,18 @@ pub fn CellEditor(
 
                 // Set cursor position based on edit mode
                 match editing_state {
-                    gridcore_controller::state::UIState::Editing { edit_variant, .. } => {
+                    gridcore_controller::state::UIState::Editing { edit_variant, cursor_position, .. } => {
                         if let Some(variant) = edit_variant {
                             match variant {
                                 InsertMode::I => {
                                     // Insert mode 'i' - cursor at beginning
-                                    // Set immediately without timeout since we need cursor position right away
-                                    let _ = input.set_selection_start(Some(0));
-                                    let _ = input.set_selection_end(Some(0));
+                                    // Only set to 0 if we're not direct typing (direct typing has cursor_position > 0)
+                                    // Direct typing already has the correct cursor position from state
+                                    if *cursor_position == 0 {
+                                        // This is 'i' key press on existing content, not direct typing
+                                        let _ = input.set_selection_start(Some(0));
+                                        let _ = input.set_selection_end(Some(0));
+                                    }
                                 }
                                 InsertMode::CapitalI => {
                                     // Insert mode 'I' - cursor at beginning of line
