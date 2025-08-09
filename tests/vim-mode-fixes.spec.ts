@@ -53,7 +53,7 @@ test.describe("Vim Mode - Text Saving Fixes", () => {
     // The formula bar should show the multi-line text
     const formulaBarValue = await page
       .locator(".formula-input")
-      .textContent();
+      .inputValue();
     expect(formulaBarValue).toContain("Line 1");
   });
 });
@@ -70,6 +70,9 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
     await page.keyboard.press("Escape");
     
     // Now we're back in navigation mode at A1 with "Hello World"
+    // Make sure the grid is focused
+    await page.locator(".canvas-grid-wrapper").focus();
+    await page.waitForTimeout(100);
   });
 
   test("should position cursor at beginning when pressing 'i' on existing text", async ({
@@ -77,6 +80,12 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
   }) => {
     // Enter the cell using 'i' to preserve existing text with cursor at beginning
     await page.keyboard.press("i");
+    
+    // Wait for the editor to appear
+    await page.waitForSelector(".cell-editor-overlay", { state: "visible", timeout: 1000 });
+    
+    // Wait a moment for cursor positioning
+    await page.waitForTimeout(100);
 
     // The cursor should be at the beginning of existing text
     // Type additional text - it should appear at the beginning
@@ -84,7 +93,11 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
 
     // Save and check - first Escape to normal mode, second to save
     await page.keyboard.press("Escape");
+    await page.waitForTimeout(50);
     await page.keyboard.press("Escape");
+    
+    // Wait for editor to disappear
+    await page.waitForSelector(".cell-editor-overlay", { state: "hidden", timeout: 1000 });
 
     await expect(page.locator(".formula-input")).toHaveValue(
       "Start Hello World",
@@ -97,6 +110,12 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
   }) => {
     // Navigate to a cell with existing text using 'a' (append mode)
     await page.keyboard.press("a");
+    
+    // Wait for the editor to appear
+    await page.waitForSelector(".cell-editor-overlay", { state: "visible", timeout: 1000 });
+    
+    // Wait a moment for cursor positioning
+    await page.waitForTimeout(100);
 
     // The cursor should be at the end of existing text
     // Type something to verify position
@@ -104,7 +123,11 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
 
     // Save
     await page.keyboard.press("Escape");
+    await page.waitForTimeout(50);
     await page.keyboard.press("Escape");
+    
+    // Wait for editor to disappear
+    await page.waitForSelector(".cell-editor-overlay", { state: "hidden", timeout: 1000 });
 
     // Text should be appended at the end
     await expect(page.locator(".formula-input")).toHaveValue(

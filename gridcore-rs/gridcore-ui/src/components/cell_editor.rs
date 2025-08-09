@@ -81,8 +81,35 @@ pub fn CellEditor(
                     gridcore_controller::state::UIState::Editing { edit_variant, .. } => {
                         if let Some(variant) = edit_variant {
                             match variant {
-                                InsertMode::A | InsertMode::CapitalA => {
-                                    // Append modes - cursor at end
+                                InsertMode::I => {
+                                    // Insert mode 'i' - cursor at beginning
+                                    // Set immediately without timeout since we need cursor position right away
+                                    let _ = input.set_selection_start(Some(0));
+                                    let _ = input.set_selection_end(Some(0));
+                                }
+                                InsertMode::CapitalI => {
+                                    // Insert mode 'I' - cursor at beginning of line
+                                    // Use set_timeout to ensure the value is set first
+                                    let input_clone = input_ref.clone();
+                                    set_timeout(
+                                        move || {
+                                            if let Some(input) = input_clone.get() {
+                                                let _ = input.set_selection_start(Some(0));
+                                                let _ = input.set_selection_end(Some(0));
+                                            }
+                                        },
+                                        std::time::Duration::from_millis(0),
+                                    );
+                                }
+                                InsertMode::A => {
+                                    // Append mode 'a' - cursor after current position (at end)
+                                    // Set immediately without timeout since we need cursor position right away
+                                    let len = input.value().len();
+                                    let _ = input.set_selection_start(Some(len as u32));
+                                    let _ = input.set_selection_end(Some(len as u32));
+                                }
+                                InsertMode::CapitalA => {
+                                    // Append mode 'A' - cursor at end of line
                                     // Use set_timeout to ensure the value is set first
                                     let input_clone = input_ref.clone();
                                     set_timeout(
@@ -97,7 +124,7 @@ pub fn CellEditor(
                                     );
                                 }
                                 _ => {
-                                    // Other modes - cursor at beginning or specified position
+                                    // Other modes - use specified position
                                 }
                             }
                         }
