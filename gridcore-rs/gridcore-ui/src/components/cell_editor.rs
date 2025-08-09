@@ -1,5 +1,5 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{Action, UIState, CellMode, InsertMode};
+use gridcore_controller::state::{Action, UIState, CellMode, InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Input;
 use leptos::*;
@@ -14,6 +14,7 @@ pub fn CellEditor(
     set_editing_mode: WriteSignal<bool>,
     cell_position: ReadSignal<(f64, f64, f64, f64)>, // x, y, width, height
     set_formula_value: WriteSignal<String>,
+    set_current_mode: WriteSignal<SpreadsheetMode>,
 ) -> impl IntoView {
     // Get controller from context
     let controller: Rc<RefCell<SpreadsheetController>> =
@@ -243,6 +244,8 @@ pub fn CellEditor(
                     if let Err(e) = ctrl_mut.dispatch_action(Action::ExitInsertMode) {
                         leptos::logging::log!("Error exiting insert mode: {:?}", e);
                     }
+                    // Update the mode to Editing (which shows as NORMAL in vim style)
+                    set_current_mode.set(SpreadsheetMode::Editing);
                 } else if is_normal_mode {
                     // Second Escape: save and exit to navigation
                     // First save the value
@@ -268,6 +271,9 @@ pub fn CellEditor(
                         leptos::logging::log!("Error exiting edit mode: {:?}", e);
                     }
                     
+                    // Update mode to Navigation
+                    set_current_mode.set(SpreadsheetMode::Navigation);
+                    
                     // Update formula bar
                     set_formula_value.set(value);
                 } else {
@@ -275,6 +281,7 @@ pub fn CellEditor(
                     set_editing_mode.set(false);
                     let mut ctrl_mut = ctrl.borrow_mut();
                     let _ = ctrl_mut.dispatch_action(Action::ExitToNavigation);
+                    set_current_mode.set(SpreadsheetMode::Navigation);
                 }
             }
             "ArrowDown" => {

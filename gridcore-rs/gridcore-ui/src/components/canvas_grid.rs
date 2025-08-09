@@ -118,12 +118,16 @@ pub fn CanvasGrid(
         let cell = active_cell.get();
         let ctrl = ctrl_formula.clone();
         
+        leptos::logging::log!("Formula bar update: active_cell = {:?}", cell);
+        
         // Get cell value and drop the borrow immediately
         let cell_value = {
             let ctrl_borrow = ctrl.borrow();
             let facade = ctrl_borrow.get_facade();
             
             if let Some(cell_obj) = facade.get_cell(&cell) {
+                leptos::logging::log!("Cell found at {:?}: raw_value={}, has_formula={}", 
+                    cell, cell_obj.raw_value, cell_obj.has_formula());
                 // Check if cell has a formula
                 if cell_obj.has_formula() {
                     // If it has a formula, show the raw value (which contains the formula)
@@ -133,10 +137,12 @@ pub fn CanvasGrid(
                     Some(cell_obj.get_display_value().to_string())
                 }
             } else {
+                leptos::logging::log!("No cell found at {:?}", cell);
                 None
             }
         }; // ctrl_borrow is dropped here
         
+        leptos::logging::log!("Setting formula value to: {:?}", cell_value);
         // Now update the formula value signal
         set_formula_value.set(cell_value.unwrap_or_default());
     });
@@ -170,6 +176,86 @@ pub fn CanvasGrid(
                 set_active_cell.set(cell);
                 // For now, just update the UI state
                 // TODO: Add proper selection action when available in controller
+            }
+        }
+    };
+    
+    // Handle double-click to edit
+    let ctrl_dblclick = controller.clone();
+    let on_dblclick = move |ev: MouseEvent| {
+        if let Some(_canvas) = canvas_ref.get() {
+            let x = ev.offset_x() as f64;
+            let y = ev.offset_y() as f64;
+
+            // Only process clicks in the cell area (not headers)
+            let vp = viewport.get();
+
+            // Use a block to ensure the borrow is dropped before setting active cell
+            let new_cell = {
+                let vp_borrow = vp.borrow();
+                let theme = vp_borrow.get_theme();
+                if x > theme.row_header_width && y > theme.column_header_height {
+                    // Subtract header offsets to get cell coordinates
+                    let cell_x = x - theme.row_header_width;
+                    let cell_y = y - theme.column_header_height;
+
+                    vp_borrow.get_cell_at_position(cell_x, cell_y)
+                } else {
+                    None
+                }
+            }; // vp_borrow is dropped here
+
+            // Now update active cell and start editing
+            if let Some(cell) = new_cell {
+                set_active_cell.set(cell);
+                
+                // Get existing cell value
+                let existing_value = {
+                    let ctrl = ctrl_dblclick.clone();
+                    let ctrl_borrow = ctrl.borrow();
+                    let facade = ctrl_borrow.get_facade();
+                    if let Some(cell_obj) = facade.get_cell(&cell) {
+                        if cell_obj.has_formula() {
+                            cell_obj.raw_value.to_string()
+                        } else {
+                            cell_obj.get_display_value().to_string()
+                        }
+                    } else {
+                        String::new()
+                    }
+                };
+                
+                // Calculate cell position for the editor
+                let (pos, theme) = {
+                    let vp_borrow = vp.borrow();
+                    let pos = vp_borrow.get_cell_position(&cell);
+                    let theme = vp_borrow.get_theme().clone();
+                    (pos, theme)
+                }; // vp_borrow is dropped here
+                
+                set_cell_position.set((
+                    pos.x + theme.row_header_width,
+                    pos.y + theme.column_header_height,
+                    pos.width,
+                    pos.height,
+                ));
+                
+                // Start editing with 'a' mode (cursor at end)
+                let cursor_pos = existing_value.len();
+                let action = Action::StartEditing {
+                    edit_mode: Some(InsertMode::A),
+                    initial_value: Some(existing_value),
+                    cursor_position: Some(cursor_pos),
+                };
+                
+                let mut ctrl_mut = ctrl_dblclick.borrow_mut();
+                if let Err(e) = ctrl_mut.dispatch_action(action) {
+                    leptos::logging::log!("Error starting edit on double-click: {:?}", e);
+                } else {
+                    // Update UI state
+                    set_editing_mode.set(true);
+                    set_current_mode.set(SpreadsheetMode::Insert);
+                }
             }
         }
     };
@@ -599,6 +685,7 @@ pub fn CanvasGrid(
                     (height * device_pixel_ratio) as u32
                 }
                 on:click=on_click
+                on:dblclick=on_dblclick
                 on:mousedown=on_mouse_down
                 on:mousemove=on_mouse_move
                 on:mouseup=on_mouse_up
@@ -618,6 +705,7 @@ pub fn CanvasGrid(
                 set_editing_mode=set_editing_mode
                 cell_position=cell_position
                 set_formula_value=set_formula_value
+                set_current_mode=set_current_mode
             />
         </div>
     }

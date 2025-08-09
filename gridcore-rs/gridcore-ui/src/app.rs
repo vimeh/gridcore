@@ -169,11 +169,11 @@ pub fn App() -> impl IntoView {
             
             // Initialize test data with proper error handling
             let test_data = vec![
-                (CellAddress::new(0, 0), "Hello"),
-                (CellAddress::new(1, 0), "World"),
-                (CellAddress::new(0, 1), "123"),
-                (CellAddress::new(1, 1), "123"),
-                (CellAddress::new(1, 2), "=A2+B2"),
+                (CellAddress::new(0, 0), "Hello"),  // A1
+                (CellAddress::new(1, 0), "World"),  // B1
+                (CellAddress::new(0, 1), "123"),    // A2
+                (CellAddress::new(1, 1), "123"),    // B2
+                (CellAddress::new(2, 1), "=A2+B2"), // C2
             ];
             
             for (address, value) in test_data {
@@ -204,7 +204,7 @@ pub fn App() -> impl IntoView {
                     <input
                         type="text"
                         class="cell-indicator"
-                        value=move || {
+                        prop:value=move || {
                             let cell = active_cell.get();
                             // Fix column calculation for multi-character columns
                             let col = if cell.col < 26 {
@@ -225,7 +225,7 @@ pub fn App() -> impl IntoView {
                         type="text"
                         class="formula-input"
                         placeholder="Enter formula or value"
-                        value=move || formula_value.get()
+                        prop:value=move || formula_value.get()
                         on:input=move |ev| set_formula_value.set(event_target_value(&ev))
                         on:keydown=on_formula_submit
                     />
