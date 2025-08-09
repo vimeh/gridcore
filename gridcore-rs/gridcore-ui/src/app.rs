@@ -10,6 +10,13 @@ use std::rc::Rc;
 
 #[component]
 pub fn App() -> impl IntoView {
+    // Initialize wasm-logger once for the entire application
+    _ = wasm_logger::init(wasm_logger::Config::default());
+    
+    // Set panic hook for better error messages
+    #[cfg(feature = "debug")]
+    console_error_panic_hook::set_once();
+    
     // Create the SpreadsheetController
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
 

@@ -71,8 +71,11 @@ pub fn CanvasGrid(
     // Clone viewport_rc for use in the effect
     let viewport_effect = viewport_rc.clone();
 
-    // Set up canvas rendering after mount
+    // Set up canvas rendering after mount and when active cell changes
     create_effect(move |_| {
+        // Track active_cell to trigger re-render when it changes
+        let current_cell = active_cell.get();
+        
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
 
@@ -107,10 +110,11 @@ pub fn CanvasGrid(
             let ctrl = ctrl_render.clone();
             {
                 let ctrl_borrow = ctrl.borrow();
+                leptos::logging::log!("Rendering grid with active cell: {:?}", current_cell);
                 render_grid(
                     canvas_elem,
                     &*viewport_effect.borrow(),
-                    active_cell.get(),
+                    current_cell,
                     ctrl_borrow.get_facade(),
                     device_pixel_ratio,
                     ctrl_borrow.get_config(),
@@ -391,7 +395,7 @@ pub fn CanvasGrid(
         let alt_pressed = ev.alt_key();
         let meta_pressed = ev.meta_key();
 
-        debug_log!("Key pressed: {}, shift: {}", key, shift_pressed);
+        leptos::logging::log!("Canvas grid keydown: key='{}', shift={}", key, shift_pressed);
 
         // Always prevent default for keys we might handle
         match key.as_str() {
@@ -412,22 +416,39 @@ pub fn CanvasGrid(
 
         // Get the current state before handling the event
         let ctrl = ctrl_keyboard.clone();
-        let old_state = ctrl.borrow().get_state().clone();
-        let old_mode = old_state.spreadsheet_mode();
-        let old_cursor = *old_state.cursor();
+        let (old_mode, old_cursor) = {
+            let ctrl_borrow = ctrl.borrow();
+            let state = ctrl_borrow.get_state();
+            (state.spreadsheet_mode(), *state.cursor())
+        };
 
-        // Forward the event to the controller
-        let result = ctrl.borrow_mut().handle_keyboard_event(controller_event);
+        // Forward the event to the controller and drop the borrow immediately
+        leptos::logging::log!("About to call handle_keyboard_event");
+        let result = {
+            let mut ctrl_borrow = ctrl.borrow_mut();
+            ctrl_borrow.handle_keyboard_event(controller_event)
+        }; // ctrl_borrow is dropped here
+
+        leptos::logging::log!("Controller handle_keyboard_event returned: {:?}", result);
 
         // Handle any errors
         if let Err(e) = result {
-            debug_log!("Error handling keyboard event: {:?}", e);
+            leptos::logging::log!("Error handling keyboard event: {:?}", e);
         }
 
-        // Get the updated state after handling
-        let new_state = ctrl.borrow().get_state().clone();
-        let new_mode = new_state.spreadsheet_mode();
-        let new_cursor = *new_state.cursor();
+        // Get the updated state after handling - new borrow
+        let (new_mode, new_cursor) = {
+            let ctrl_borrow = ctrl.borrow();
+            let state = ctrl_borrow.get_state();
+            (state.spreadsheet_mode(), *state.cursor())
+        };
+
+        leptos::logging::log!(
+            "After keyboard event: old_cursor={:?}, new_cursor={:?}, equal={}",
+            old_cursor,
+            new_cursor,
+            new_cursor == old_cursor
+        );
 
         // Update UI state based on controller state
         if new_mode != old_mode {
@@ -435,7 +456,10 @@ pub fn CanvasGrid(
         }
 
         if new_cursor != old_cursor {
+            leptos::logging::log!("Cursor changed from {:?} to {:?}, updating active_cell signal", old_cursor, new_cursor);
             set_active_cell.set(new_cursor);
+        } else {
+            leptos::logging::log!("Cursor did not change, still at {:?}", new_cursor);
         }
 
         // Update cell position for editor if we're in editing mode
@@ -466,16 +490,17 @@ pub fn CanvasGrid(
         }
 
         // Update formula bar based on current state
-        match &new_state {
-            UIState::Editing { editing_value, .. } => {
-                set_formula_value.set(editing_value.clone());
-            }
-            UIState::Navigation { cursor, .. } => {
-                // Update formula bar with current cell value
-                let cell_value = {
-                    let ctrl_borrow = ctrl.borrow();
+        {
+            let ctrl_borrow = ctrl.borrow();
+            let state = ctrl_borrow.get_state();
+            match state {
+                UIState::Editing { editing_value, .. } => {
+                    set_formula_value.set(editing_value.clone());
+                }
+                UIState::Navigation { cursor, .. } => {
+                    // Update formula bar with current cell value
                     let facade = ctrl_borrow.get_facade();
-                    if let Some(cell) = facade.get_cell(cursor) {
+                    let cell_value = if let Some(cell) = facade.get_cell(cursor) {
                         if cell.has_formula() {
                             cell.raw_value.to_string()
                         } else {
@@ -483,11 +508,11 @@ pub fn CanvasGrid(
                         }
                     } else {
                         String::new()
-                    }
-                };
-                set_formula_value.set(cell_value);
+                    };
+                    set_formula_value.set(cell_value);
+                }
+                _ => {}
             }
-            _ => {}
         }
 
         // Auto-scroll to keep the active cell visible if cursor moved

@@ -609,6 +609,7 @@ impl UIStateMachine {
 
             // Universal transitions (work in any mode)
             (_, Action::UpdateCursor { cursor }) => {
+                log::debug!("State machine: UpdateCursor action to {:?}", cursor);
                 let mut new_state = state.clone();
                 match &mut new_state {
                     UIState::Navigation { cursor: c, .. }
@@ -619,9 +620,11 @@ impl UIStateMachine {
                     | UIState::Insert { cursor: c, .. }
                     | UIState::Delete { cursor: c, .. }
                     | UIState::BulkOperation { cursor: c, .. } => {
+                        log::debug!("State machine: Updating cursor from {:?} to {:?}", c, cursor);
                         *c = *cursor;
                     }
                 }
+                log::debug!("State machine: New state after UpdateCursor: {:?}", new_state);
                 Ok(new_state)
             }
 

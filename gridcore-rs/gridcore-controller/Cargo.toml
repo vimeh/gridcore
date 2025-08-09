@@ -11,6 +11,8 @@ gridcore-core = { path = "../gridcore-core" }
 thiserror = { workspace = true }
 serde = { workspace = true }
 regex.workspace = true
+log = "0.4"
+wasm-logger = "0.2"
 
 [dev-dependencies]
 criterion = "0.7"

@@ -160,6 +160,7 @@ impl SpreadsheetController {
     pub fn handle_keyboard_event(&mut self, event: KeyboardEvent) -> Result<()> {
         // Clone the mode to avoid borrowing issues
         let mode = self.state_machine.get_state().spreadsheet_mode();
+        log::debug!("Handling keyboard event: key='{}', mode={:?}", event.key, mode);
 
         match mode {
             SpreadsheetMode::Navigation => self.handle_navigation_key(event),
@@ -173,6 +174,7 @@ impl SpreadsheetController {
 
     fn handle_navigation_key(&mut self, event: KeyboardEvent) -> Result<()> {
         let current_cursor = *self.state_machine.get_state().cursor();
+        log::debug!("Navigation mode key: '{}', current cursor: {:?}", event.key, current_cursor);
 
         match event.key.as_str() {
             // Edit mode triggers
@@ -242,10 +244,22 @@ impl SpreadsheetController {
             }
 
             // Navigation
-            "ArrowUp" | "k" => self.move_cursor(0, -1),
-            "ArrowDown" | "j" => self.move_cursor(0, 1),
-            "ArrowLeft" | "h" => self.move_cursor(-1, 0),
-            "ArrowRight" | "l" => self.move_cursor(1, 0),
+            "ArrowUp" | "k" => {
+                log::debug!("Moving cursor up");
+                self.move_cursor(0, -1)
+            }
+            "ArrowDown" | "j" => {
+                log::debug!("Moving cursor down");
+                self.move_cursor(0, 1)
+            }
+            "ArrowLeft" | "h" => {
+                log::debug!("Moving cursor left");
+                self.move_cursor(-1, 0)
+            }
+            "ArrowRight" | "l" => {
+                log::debug!("Moving cursor right");
+                self.move_cursor(1, 0)
+            }
 
             // Tab navigation
             "Tab" => {
@@ -295,7 +309,10 @@ impl SpreadsheetController {
             // Escape does nothing in navigation mode
             "Escape" => Ok(()),
 
-            _ => Ok(()),
+            _ => {
+                log::debug!("Unhandled navigation key: '{}'", event.key);
+                Ok(())
+            }
         }
     }
 
@@ -421,6 +438,11 @@ impl SpreadsheetController {
         let new_col = (current.col as i32 + delta_col).max(0) as u32;
         let new_row = (current.row as i32 + delta_row).max(0) as u32;
         let new_cursor = CellAddress::new(new_col, new_row);
+        
+        log::debug!(
+            "move_cursor: delta=({}, {}), current=({}, {}), new=({}, {})",
+            delta_col, delta_row, current.col, current.row, new_col, new_row
+        );
 
         self.viewport_manager.ensure_visible(&new_cursor);
 
@@ -430,7 +452,9 @@ impl SpreadsheetController {
                 to: new_cursor,
             });
 
-        self.dispatch_action(Action::UpdateCursor { cursor: new_cursor })
+        let result = self.dispatch_action(Action::UpdateCursor { cursor: new_cursor });
+        log::debug!("UpdateCursor action dispatched, result: {:?}", result);
+        result
     }
 
     fn complete_editing(&mut self) -> Result<()> {
