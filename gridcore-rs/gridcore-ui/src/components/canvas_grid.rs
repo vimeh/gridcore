@@ -335,17 +335,20 @@ pub fn CanvasGrid(
         leptos::logging::log!("Key pressed: {}, shift: {}", key, shift_pressed);
         let ctrl = ctrl_keyboard.clone();
 
-        // Get current mode and cursor, then drop the borrow
-        let (current_mode, current_cursor) = {
+        // Get current mode only - we'll get cursor when needed
+        let current_mode = {
             let ctrl_borrow = ctrl.borrow();
-            let mode = ctrl_borrow.get_state().spreadsheet_mode();
-            let cursor = *ctrl_borrow.get_state().cursor();
-            (mode, cursor)
-        }; // ctrl_borrow is dropped here
+            ctrl_borrow.get_state().spreadsheet_mode()
+        };
 
         // For navigation, handle movement directly since controller doesn't have Move action
         let action = match current_mode {
             SpreadsheetMode::Navigation => {
+                // Get fresh cursor state for navigation actions
+                let current_cursor = {
+                    let ctrl_borrow = ctrl.borrow();
+                    *ctrl_borrow.get_state().cursor()
+                };
                 match key.as_str() {
                     "h" | "ArrowLeft" => {
                         ev.prevent_default();
@@ -399,13 +402,6 @@ pub fn CanvasGrid(
                             let ctrl_borrow = ctrl.borrow();
                             *ctrl_borrow.get_state().cursor()
                         };
-                        
-                        leptos::logging::log!(
-                            "Starting edit mode at cursor: col={}, row={}",
-                            actual_cursor.col,
-                            actual_cursor.row
-                        );
-                        
                         // Calculate cell position for the editor
                         let vp = viewport.get();
                         let (pos, theme) = {
@@ -492,6 +488,11 @@ pub fn CanvasGrid(
                     }
                     "o" => {
                         ev.prevent_default();
+                        // Get fresh cursor state
+                        let current_cursor = {
+                            let ctrl_borrow = ctrl.borrow();
+                            *ctrl_borrow.get_state().cursor()
+                        };
                         // Move to next row and start editing
                         let new_cursor =
                             CellAddress::new(current_cursor.col, current_cursor.row + 1);
@@ -514,6 +515,11 @@ pub fn CanvasGrid(
                     }
                     "O" => {
                         ev.prevent_default();
+                        // Get fresh cursor state
+                        let current_cursor = {
+                            let ctrl_borrow = ctrl.borrow();
+                            *ctrl_borrow.get_state().cursor()
+                        };
                         // Move to previous row and start editing
                         if current_cursor.row > 0 {
                             let new_cursor =
@@ -570,6 +576,11 @@ pub fn CanvasGrid(
                     }
                     "Delete" | "Backspace" => {
                         ev.prevent_default();
+                        // Get fresh cursor state
+                        let current_cursor = {
+                            let ctrl_borrow = ctrl.borrow();
+                            *ctrl_borrow.get_state().cursor()
+                        };
                         // Clear the current cell
                         let ctrl = controller.clone();
                         {
@@ -585,6 +596,11 @@ pub fn CanvasGrid(
                     }
                     "v" => {
                         ev.prevent_default();
+                        // Get fresh cursor state
+                        let current_cursor = {
+                            let ctrl_borrow = ctrl.borrow();
+                            *ctrl_borrow.get_state().cursor()
+                        };
                         use gridcore_controller::state::{
                             Selection, SelectionType, SpreadsheetVisualMode,
                         };
@@ -600,6 +616,11 @@ pub fn CanvasGrid(
                     }
                     "Tab" => {
                         ev.prevent_default();
+                        // Get fresh cursor state
+                        let current_cursor = {
+                            let ctrl_borrow = ctrl.borrow();
+                            *ctrl_borrow.get_state().cursor()
+                        };
                         if shift_pressed {
                             // Shift+Tab moves to previous cell (left, then wrap to previous row)
                             if current_cursor.col > 0 {
@@ -690,7 +711,6 @@ pub fn CanvasGrid(
 
         // Dispatch action if we have one
         if let Some(action) = action {
-            leptos::logging::log!("Dispatching action: {:?}", action);
             // Dispatch action and get new state, then drop the borrow
             let (new_mode, new_cursor, is_editing) = {
                 let mut ctrl_mut = ctrl.borrow_mut();
@@ -703,10 +723,6 @@ pub fn CanvasGrid(
                 let cursor = *state.cursor();
                 let is_editing =
                     matches!(state, gridcore_controller::state::UIState::Editing { .. });
-                leptos::logging::log!(
-                    "After action dispatch - Mode: {:?}, Cursor: col={}, row={}, Is editing: {}",
-                    mode, cursor.col, cursor.row, is_editing
-                );
                 (mode, cursor, is_editing)
             }; // ctrl_mut is dropped here
 
@@ -734,7 +750,8 @@ pub fn CanvasGrid(
             } else if !is_editing && editing_mode.get() {
                 // We exited editing mode
                 set_editing_mode.set(false);
-                // Return focus to the grid container after a brief delay
+                // Return focus to the grid container
+                // Use a very small timeout to ensure DOM updates have completed
                 let wrapper_clone = wrapper_ref.clone();
                 set_timeout(
                     move || {
@@ -742,7 +759,7 @@ pub fn CanvasGrid(
                             let _ = wrapper.focus();
                         }
                     },
-                    std::time::Duration::from_millis(10),
+                    std::time::Duration::from_millis(1),
                 );
             }
 

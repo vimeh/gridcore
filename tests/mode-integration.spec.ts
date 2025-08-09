@@ -412,6 +412,9 @@ test.describe("Mode Integration", () => {
 
       // Navigate to B3
       await page.keyboard.press("l"); // Move to B3
+      
+      // Small delay to ensure navigation completes
+      await page.waitForTimeout(50);
 
       // Start editing the new cell
       await page.keyboard.press("i");
