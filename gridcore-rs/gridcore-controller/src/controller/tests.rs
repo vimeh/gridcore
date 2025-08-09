@@ -37,25 +37,20 @@ mod tests {
     fn test_mode_transitions() {
         let mut controller = SpreadsheetController::new();
 
-        // Enter editing mode with 'i'
-        let event = KeyboardEvent::new("i".to_string());
-        controller.handle_keyboard_event(event).unwrap();
+        // Enter editing mode using StartEditing action (since 'i' key is handled by UI)
+        controller
+            .dispatch_action(Action::StartEditing {
+                edit_mode: Some(crate::state::InsertMode::I),
+                initial_value: Some(String::new()),
+                cursor_position: Some(0),
+            })
+            .unwrap();
         assert_eq!(
             controller.get_state().spreadsheet_mode(),
-            SpreadsheetMode::Editing
+            SpreadsheetMode::Insert  // StartEditing with InsertMode creates Insert state
         );
 
-        // In editing mode with Insert cell mode, escape should go to Normal cell mode first
-        // Then another escape goes to Navigation
-        let event = KeyboardEvent::new("Escape".to_string());
-        controller.handle_keyboard_event(event).unwrap();
-
-        // Check if we're in Normal cell mode within Editing
-        if let UIState::Editing { cell_mode, .. } = controller.get_state() {
-            assert_eq!(*cell_mode, crate::state::CellMode::Normal);
-        }
-
-        // Second escape should exit to navigation
+        // In Insert mode, escape should go back to Navigation
         let event = KeyboardEvent::new("Escape".to_string());
         controller.handle_keyboard_event(event).unwrap();
         assert_eq!(

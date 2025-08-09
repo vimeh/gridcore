@@ -159,6 +159,7 @@ impl SpreadsheetController {
         match mode {
             SpreadsheetMode::Navigation => self.handle_navigation_key(event),
             SpreadsheetMode::Editing => self.handle_editing_key(event),
+            SpreadsheetMode::Insert => self.handle_insert_key(event),
             SpreadsheetMode::Command => self.handle_command_key(event),
             SpreadsheetMode::Visual => self.handle_visual_key(event),
             _ => Ok(()),
@@ -266,6 +267,16 @@ impl SpreadsheetController {
         } else {
             Ok(())
         }
+    }
+
+    fn handle_insert_key(&mut self, event: KeyboardEvent) -> Result<()> {
+        if event.key == "Escape" {
+            return self.dispatch_action(Action::Escape);
+        }
+        
+        // In Insert mode, handle character input
+        // The UI typically handles the actual text editing
+        Ok(())
     }
 
     fn handle_command_key(&mut self, event: KeyboardEvent) -> Result<()> {

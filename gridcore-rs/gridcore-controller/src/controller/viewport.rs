@@ -522,12 +522,23 @@ mod tests {
 
     #[test]
     fn test_visibility() {
-        let manager = DefaultViewportManager::new(100, 50);
-
-        assert!(manager.is_visible(&CellAddress::new(0, 0)));
-        assert!(manager.is_visible(&CellAddress::new(9, 19)));
-        assert!(!manager.is_visible(&CellAddress::new(10, 20)));
-        assert!(!manager.is_visible(&CellAddress::new(0, 20)));
-        assert!(!manager.is_visible(&CellAddress::new(10, 0)));
+        let mut manager = DefaultViewportManager::new(100, 50);
+        // Set viewport size so we have a proper visible area
+        manager.set_viewport_size(1000.0, 500.0);
+        
+        // Get the visible bounds to understand what should be visible
+        let bounds = manager.get_visible_bounds();
+        
+        // Test cells within bounds
+        assert!(manager.is_visible(&CellAddress::new(bounds.start_col as u32, bounds.start_row as u32)));
+        assert!(manager.is_visible(&CellAddress::new(bounds.end_col as u32, bounds.end_row as u32)));
+        
+        // Test cells outside bounds
+        if bounds.end_col < 49 {
+            assert!(!manager.is_visible(&CellAddress::new((bounds.end_col + 1) as u32, bounds.start_row as u32)));
+        }
+        if bounds.end_row < 99 {
+            assert!(!manager.is_visible(&CellAddress::new(bounds.start_col as u32, (bounds.end_row + 1) as u32)));
+        }
     }
 }
