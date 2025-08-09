@@ -38,12 +38,13 @@
 - ✅ Added Insert mode keyboard handler
 - ✅ All controller tests passing (204 tests)
 
-## Remaining Tasks 📋
-
 ### Event System
-- ⏳ Move keyboard navigation logic from UI to controller
-- ⏳ Enhance controller's `handle_keyboard_event` for complete navigation
-- ⏳ Ensure UI only captures events and renders
+- ✅ Moved keyboard navigation logic from UI to controller
+- ✅ Enhanced controller's `handle_keyboard_event` for complete navigation
+- ✅ UI now only captures events and forwards to controller
+- ✅ Removed 600+ lines of duplicated logic from UI
+
+## Remaining Tasks 📋
 
 ### ResizeHandler Update
 - ⏳ Update `resize_handler.rs` to use controller's `ResizeManager`
@@ -123,3 +124,4 @@ When updating UI components:
 - `b1aaf72` - Add ResizeManager for column/row resize operations
 - `a47e03e` - Update tests for new architecture
 - `512b46a` - Complete UI-to-controller architecture migration
+- `da6a2ec` - Simplify keyboard event handling in UI layer
