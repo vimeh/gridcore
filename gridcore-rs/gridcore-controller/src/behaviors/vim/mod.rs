@@ -190,27 +190,27 @@ impl VimBehavior {
             // Visual mode
             "v" => {
                 self.mode = VimMode::Visual;
-                self.visual_anchor = Some(current_state.cursor().clone());
+                self.visual_anchor = Some(*current_state.cursor());
                 Ok(Some(Action::EnterSpreadsheetVisualMode {
                     visual_mode: crate::state::SpreadsheetVisualMode::Char,
                     selection: crate::state::Selection {
                         selection_type: crate::state::SelectionType::Cell {
-                            address: current_state.cursor().clone(),
+                            address: *current_state.cursor(),
                         },
-                        anchor: Some(current_state.cursor().clone()),
+                        anchor: Some(*current_state.cursor()),
                     },
                 }))
             }
             "V" => {
                 self.mode = VimMode::VisualLine;
-                self.visual_anchor = Some(current_state.cursor().clone());
+                self.visual_anchor = Some(*current_state.cursor());
                 Ok(Some(Action::EnterSpreadsheetVisualMode {
                     visual_mode: crate::state::SpreadsheetVisualMode::Line,
                     selection: crate::state::Selection {
                         selection_type: crate::state::SelectionType::Row {
                             rows: vec![current_state.cursor().row],
                         },
-                        anchor: Some(current_state.cursor().clone()),
+                        anchor: Some(*current_state.cursor()),
                     },
                 }))
             }
@@ -456,7 +456,7 @@ impl VimBehavior {
             Motion::DocumentStart => Ok(CellAddress::new(0, 0)),
             Motion::DocumentEnd => Ok(CellAddress::new(current.col, 9999)),
             Motion::GotoLine(line) => Ok(CellAddress::new(current.col, line.saturating_sub(1))),
-            _ => Ok(current.clone()), // TODO: Implement other motions
+            _ => Ok(*current), // TODO: Implement other motions
         }
     }
 
@@ -516,6 +516,12 @@ impl VimBehavior {
 
     pub fn get_mark(&self, mark: char) -> Option<&CellAddress> {
         self.marks.get(&mark)
+    }
+}
+
+impl Default for VimCommand {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

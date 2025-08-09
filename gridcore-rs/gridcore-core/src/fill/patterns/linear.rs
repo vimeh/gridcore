@@ -3,6 +3,12 @@ use crate::types::CellValue;
 
 pub struct LinearPatternDetector;
 
+impl Default for LinearPatternDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LinearPatternDetector {
     pub fn new() -> Self {
         Self
@@ -45,11 +51,7 @@ impl PatternDetector for LinearPatternDetector {
     fn detect(&self, values: &[CellValue]) -> Option<PatternType> {
         let numbers = self.extract_numbers(values);
 
-        if let Some(slope) = self.detect_linear_pattern(&numbers) {
-            Some(PatternType::Linear { slope })
-        } else {
-            None
-        }
+        self.detect_linear_pattern(&numbers).map(|slope| PatternType::Linear { slope })
     }
 
     fn priority(&self) -> u32 {

@@ -3,6 +3,12 @@ use crate::types::CellValue;
 
 pub struct ExponentialPatternDetector;
 
+impl Default for ExponentialPatternDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExponentialPatternDetector {
     pub fn new() -> Self {
         Self
@@ -53,11 +59,7 @@ impl PatternDetector for ExponentialPatternDetector {
     fn detect(&self, values: &[CellValue]) -> Option<PatternType> {
         let numbers = self.extract_numbers(values);
 
-        if let Some(rate) = self.detect_exponential_pattern(&numbers) {
-            Some(PatternType::Exponential { rate })
-        } else {
-            None
-        }
+        self.detect_exponential_pattern(&numbers).map(|rate| PatternType::Exponential { rate })
     }
 
     fn priority(&self) -> u32 {
@@ -74,7 +76,7 @@ impl PatternDetector for ExponentialPatternDetector {
             })
             .collect();
 
-        numbers.len() >= 2 && !numbers.iter().any(|&n| n == 0.0)
+        numbers.len() >= 2 && !numbers.contains(&0.0)
     }
 }
 

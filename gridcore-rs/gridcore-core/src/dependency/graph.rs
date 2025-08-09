@@ -30,7 +30,7 @@ impl DependencyGraph {
         if let Some(&idx) = self.node_map.get(&address) {
             idx
         } else {
-            let idx = self.graph.add_node(address.clone());
+            let idx = self.graph.add_node(address);
             self.node_map.insert(address, idx);
             idx
         }
@@ -69,7 +69,7 @@ impl DependencyGraph {
             self.graph
                 .node_indices()
                 .filter(|&node| self.graph.edges(node).any(|e| e.target() == idx))
-                .map(|node| self.graph[node].clone())
+                .map(|node| self.graph[node])
                 .collect()
         } else {
             Vec::new()
@@ -81,7 +81,7 @@ impl DependencyGraph {
         if let Some(&idx) = self.node_map.get(address) {
             self.graph
                 .edges(idx)
-                .map(|e| self.graph[e.target()].clone())
+                .map(|e| self.graph[e.target()])
                 .collect()
         } else {
             Vec::new()
@@ -98,7 +98,7 @@ impl DependencyGraph {
                 // We need to reverse it to get the calculation order
                 let mut order: Vec<CellAddress> = indices
                     .into_iter()
-                    .map(|idx| self.graph[idx].clone())
+                    .map(|idx| self.graph[idx])
                     .collect();
                 order.reverse();
                 Ok(order)

@@ -13,7 +13,7 @@ pub struct VisualSelection {
 impl VisualSelection {
     pub fn new(anchor: CellAddress, mode: VimMode) -> Self {
         Self {
-            anchor: anchor.clone(),
+            anchor: anchor,
             cursor: anchor,
             mode,
         }
@@ -49,13 +49,13 @@ impl VisualSelection {
                 }
             }
             _ => SelectionType::Cell {
-                address: self.cursor.clone(),
+                address: self.cursor,
             },
         };
 
         Selection {
             selection_type,
-            anchor: Some(self.anchor.clone()),
+            anchor: Some(self.anchor),
         }
     }
 
@@ -63,9 +63,9 @@ impl VisualSelection {
         if self.anchor.row < self.cursor.row
             || (self.anchor.row == self.cursor.row && self.anchor.col <= self.cursor.col)
         {
-            self.anchor.clone()
+            self.anchor
         } else {
-            self.cursor.clone()
+            self.cursor
         }
     }
 
@@ -73,9 +73,9 @@ impl VisualSelection {
         if self.anchor.row > self.cursor.row
             || (self.anchor.row == self.cursor.row && self.anchor.col >= self.cursor.col)
         {
-            self.anchor.clone()
+            self.anchor
         } else {
-            self.cursor.clone()
+            self.cursor
         }
     }
 }
@@ -88,7 +88,7 @@ impl VimBehavior {
         current_state: &UIState,
     ) -> Result<Option<Action>> {
         self.mode = mode;
-        self.visual_anchor = Some(current_state.cursor().clone());
+        self.visual_anchor = Some(*current_state.cursor());
 
         let visual_mode = match mode {
             VimMode::Visual => SpreadsheetVisualMode::Char,
@@ -103,10 +103,10 @@ impl VimBehavior {
                     rows: vec![current_state.cursor().row],
                 },
                 _ => SelectionType::Cell {
-                    address: current_state.cursor().clone(),
+                    address: *current_state.cursor(),
                 },
             },
-            anchor: Some(current_state.cursor().clone()),
+            anchor: Some(*current_state.cursor()),
         };
 
         Ok(Some(Action::EnterSpreadsheetVisualMode {
@@ -207,7 +207,7 @@ impl VimBehavior {
         current_state: &UIState,
     ) -> Result<Option<Action>> {
         let context = super::motion::MotionContext::new(
-            current_state.cursor().clone(),
+            *current_state.cursor(),
             current_state.viewport().clone(),
         );
 
@@ -216,8 +216,8 @@ impl VimBehavior {
         // Update visual selection
         if let Some(anchor) = &self.visual_anchor {
             let visual_selection = VisualSelection {
-                anchor: anchor.clone(),
-                cursor: new_cursor.clone(),
+                anchor: *anchor,
+                cursor: new_cursor,
                 mode: self.mode,
             };
 
@@ -232,8 +232,8 @@ impl VimBehavior {
     fn update_visual_selection(&self, current_state: &UIState) -> Result<Option<Action>> {
         if let Some(anchor) = &self.visual_anchor {
             let visual_selection = VisualSelection {
-                anchor: anchor.clone(),
-                cursor: current_state.cursor().clone(),
+                anchor: *anchor,
+                cursor: *current_state.cursor(),
                 mode: self.mode,
             };
 
@@ -256,8 +256,8 @@ impl VimBehavior {
 
     fn switch_visual_anchor(&mut self, current_state: &UIState) -> Result<Option<Action>> {
         if let Some(anchor) = &self.visual_anchor {
-            let new_anchor = current_state.cursor().clone();
-            self.visual_anchor = Some(anchor.clone());
+            let new_anchor = *current_state.cursor();
+            self.visual_anchor = Some(*anchor);
             Ok(Some(Action::UpdateCursor { cursor: new_anchor }))
         } else {
             Ok(None)

@@ -184,7 +184,7 @@ impl UIStateMachine {
                 },
             ) => {
                 let mut new_state = create_editing_state(
-                    cursor.clone(),
+                    *cursor,
                     viewport.clone(),
                     if edit_mode.is_some() {
                         CellMode::Insert
@@ -209,7 +209,7 @@ impl UIStateMachine {
                     if let Some(cp) = cursor_position {
                         *pos = *cp;
                     }
-                    *edit_variant = edit_mode.clone();
+                    *edit_variant = *edit_mode;
                 }
 
                 Ok(new_state)
@@ -220,7 +220,7 @@ impl UIStateMachine {
                     cursor, viewport, ..
                 },
                 Action::EnterCommandMode,
-            ) => Ok(create_command_state(cursor.clone(), viewport.clone())),
+            ) => Ok(create_command_state(*cursor, viewport.clone())),
 
             (
                 UIState::Navigation {
@@ -231,10 +231,10 @@ impl UIStateMachine {
                     selection,
                 },
             ) => Ok(create_visual_state(
-                cursor.clone(),
+                *cursor,
                 viewport.clone(),
                 *visual_mode,
-                cursor.clone(),
+                *cursor,
                 selection.clone(),
             )),
 
@@ -245,7 +245,7 @@ impl UIStateMachine {
                 },
                 Action::ExitToNavigation,
             ) => Ok(create_navigation_state(
-                cursor.clone(),
+                *cursor,
                 viewport.clone(),
                 None,
             )),
@@ -363,7 +363,7 @@ impl UIStateMachine {
                 },
                 Action::ExitCommandMode,
             ) => Ok(create_navigation_state(
-                cursor.clone(),
+                *cursor,
                 viewport.clone(),
                 None,
             )),
@@ -383,7 +383,7 @@ impl UIStateMachine {
                 },
                 Action::ExitSpreadsheetVisualMode,
             ) => Ok(create_navigation_state(
-                cursor.clone(),
+                *cursor,
                 viewport.clone(),
                 None,
             )),
@@ -415,10 +415,10 @@ impl UIStateMachine {
                 },
             ) => {
                 Ok(UIState::Resize {
-                    cursor: cursor.clone(),
+                    cursor: *cursor,
                     viewport: viewport.clone(),
-                    target: target.clone(),
-                    resize_target: target.clone(),
+                    target: *target,
+                    resize_target: *target,
                     resize_index: match target {
                         ResizeTarget::Column { index } => *index,
                         ResizeTarget::Row { index } => *index,
@@ -466,7 +466,7 @@ impl UIStateMachine {
                         ResizeTarget::Column { .. } => ResizeTarget::Column { index: *index },
                         ResizeTarget::Row { .. } => ResizeTarget::Row { index: *index },
                     };
-                    *target = new_target.clone();
+                    *target = new_target;
                     *r_target = new_target;
                 }
                 Ok(new_state)
@@ -487,7 +487,7 @@ impl UIStateMachine {
                 },
                 Action::ConfirmResize | Action::CancelResize,
             ) => Ok(create_navigation_state(
-                cursor.clone(),
+                *cursor,
                 viewport.clone(),
                 None,
             )),
@@ -503,7 +503,7 @@ impl UIStateMachine {
                     reference,
                 },
             ) => Ok(UIState::Insert {
-                cursor: cursor.clone(),
+                cursor: *cursor,
                 viewport: viewport.clone(),
                 insert_type: *insert_type,
                 position: *position,
@@ -527,7 +527,7 @@ impl UIStateMachine {
                 },
                 Action::ConfirmInsert | Action::CancelInsert,
             ) => Ok(create_navigation_state(
-                cursor.clone(),
+                *cursor,
                 viewport.clone(),
                 None,
             )),
@@ -542,7 +542,7 @@ impl UIStateMachine {
                     delete_type,
                 },
             ) => Ok(UIState::Delete {
-                cursor: cursor.clone(),
+                cursor: *cursor,
                 viewport: viewport.clone(),
                 delete_type: *delete_type,
                 targets: targets.clone(),
@@ -558,7 +558,7 @@ impl UIStateMachine {
             ) => {
                 // In real implementation, this would execute the delete
                 Ok(create_navigation_state(
-                    cursor.clone(),
+                    *cursor,
                     viewport.clone(),
                     None,
                 ))
@@ -570,7 +570,7 @@ impl UIStateMachine {
                 },
                 Action::CancelDelete,
             ) => Ok(create_navigation_state(
-                cursor.clone(),
+                *cursor,
                 viewport.clone(),
                 None,
             )),
@@ -585,7 +585,7 @@ impl UIStateMachine {
                     affected_cells,
                 },
             ) => Ok(UIState::BulkOperation {
-                cursor: cursor.clone(),
+                cursor: *cursor,
                 viewport: viewport.clone(),
                 parsed_command: parsed_command.clone(),
                 preview_available: false,
@@ -601,7 +601,7 @@ impl UIStateMachine {
                 },
                 Action::CompleteBulkOperation,
             ) => Ok(create_navigation_state(
-                cursor.clone(),
+                *cursor,
                 viewport.clone(),
                 None,
             )),
@@ -612,7 +612,7 @@ impl UIStateMachine {
                 },
                 Action::CancelBulkOperation,
             ) => Ok(create_navigation_state(
-                cursor.clone(),
+                *cursor,
                 viewport.clone(),
                 None,
             )),
@@ -641,7 +641,7 @@ impl UIStateMachine {
                 // For testing, execute completes immediately and returns to navigation
                 // In a real implementation, this would update status and handle async execution
                 Ok(create_navigation_state(
-                    cursor.clone(),
+                    *cursor,
                     viewport.clone(),
                     None,
                 ))
@@ -659,7 +659,7 @@ impl UIStateMachine {
                     | UIState::Insert { cursor: c, .. }
                     | UIState::Delete { cursor: c, .. }
                     | UIState::BulkOperation { cursor: c, .. } => {
-                        *c = cursor.clone();
+                        *c = *cursor;
                     }
                 }
                 Ok(new_state)
@@ -723,7 +723,7 @@ impl UIStateMachine {
                     CellMode::Normal => {
                         // Exit editing mode entirely
                         Ok(create_navigation_state(
-                            cursor.clone(),
+                            *cursor,
                             viewport.clone(),
                             None,
                         ))
@@ -741,7 +741,7 @@ impl UIStateMachine {
             } => {
                 // Exit to navigation
                 Ok(create_navigation_state(
-                    cursor.clone(),
+                    *cursor,
                     viewport.clone(),
                     None,
                 ))

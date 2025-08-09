@@ -284,7 +284,7 @@ impl SpreadsheetController {
                 self.facade.set_cell_value(&current_cursor, "")?;
                 self.event_dispatcher
                     .dispatch(&SpreadsheetEvent::CellEditCompleted {
-                        address: current_cursor.clone(),
+                        address: current_cursor,
                         value: String::new(),
                     });
                 Ok(())
@@ -424,8 +424,8 @@ impl SpreadsheetController {
 
         self.event_dispatcher
             .dispatch(&SpreadsheetEvent::CursorMoved {
-                from: current.clone(),
-                to: new_cursor.clone(),
+                from: *current,
+                to: new_cursor,
             });
 
         self.dispatch_action(Action::UpdateCursor { cursor: new_cursor })
@@ -438,7 +438,7 @@ impl SpreadsheetController {
             ..
         } = self.state_machine.get_state()
         {
-            let address = cursor.clone();
+            let address = *cursor;
             let value = editing_value.clone();
 
             // Update the cell value in the facade and handle errors
@@ -459,7 +459,7 @@ impl SpreadsheetController {
 
                     self.event_dispatcher
                         .dispatch(&SpreadsheetEvent::CellEditCompleted {
-                            address: address.clone(),
+                            address: address,
                             value,
                         });
                 }
@@ -487,8 +487,8 @@ impl SpreadsheetController {
                 crate::controller::events::MouseEventType::Click => {
                     self.event_dispatcher
                         .dispatch(&SpreadsheetEvent::CursorMoved {
-                            from: self.state_machine.get_state().cursor().clone(),
-                            to: cell.clone(),
+                            from: *self.state_machine.get_state().cursor(),
+                            to: cell,
                         });
                     self.dispatch_action(Action::UpdateCursor { cursor: cell })
                 }

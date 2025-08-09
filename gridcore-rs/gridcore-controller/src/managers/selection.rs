@@ -112,11 +112,11 @@ impl SelectionManager {
         match &mut self.primary_selection.selection_type {
             SelectionType::Cell { address } => {
                 // Convert to range
-                let addr_clone = address.clone();
+                let addr_clone = *address;
                 let new_end = Self::move_address_static(&addr_clone, direction, amount)?;
-                let start_addr = address.clone();
+                let start_addr = *address;
                 self.primary_selection.selection_type = SelectionType::Range {
-                    start: start_addr.clone(),
+                    start: start_addr,
                     end: new_end,
                 };
                 if self.primary_selection.anchor.is_none() {
@@ -125,7 +125,7 @@ impl SelectionManager {
             }
             SelectionType::Range { start, end } => {
                 // Expand the range
-                let anchor_clone = self.primary_selection.anchor.clone();
+                let anchor_clone = self.primary_selection.anchor;
                 if let Some(anchor) = &anchor_clone {
                     if end == anchor {
                         // Moving start
@@ -216,12 +216,10 @@ impl SelectionManager {
         // Check if range collapses to a single cell
         if new_start == new_end {
             self.primary_selection.selection_type = SelectionType::Cell { address: new_start };
-        } else {
-            if let SelectionType::Range { start, end } = &mut self.primary_selection.selection_type
-            {
-                *start = new_start;
-                *end = new_end;
-            }
+        } else if let SelectionType::Range { start, end } = &mut self.primary_selection.selection_type
+        {
+            *start = new_start;
+            *end = new_end;
         }
 
         Ok(())
@@ -262,7 +260,7 @@ impl SelectionManager {
     pub fn select_range(&mut self, start: CellAddress, end: CellAddress) {
         self.set_primary(Selection {
             selection_type: SelectionType::Range { start, end },
-            anchor: Some(start.clone()),
+            anchor: Some(start),
         });
     }
 
@@ -307,8 +305,8 @@ impl SelectionManager {
     /// Get the bounding box of a selection
     pub fn get_bounds(&self, selection: &Selection) -> (CellAddress, CellAddress) {
         match &selection.selection_type {
-            SelectionType::Cell { address } => (address.clone(), address.clone()),
-            SelectionType::Range { start, end } => (start.clone(), end.clone()),
+            SelectionType::Cell { address } => (*address, *address),
+            SelectionType::Range { start, end } => (*start, *end),
             SelectionType::Row { rows } => {
                 let min_row = rows.iter().min().copied().unwrap_or(0);
                 let max_row = rows.iter().max().copied().unwrap_or(0);
@@ -348,7 +346,7 @@ impl SelectionManager {
         for selection in self.get_all() {
             match &selection.selection_type {
                 SelectionType::Cell { address } => {
-                    cells.insert(address.clone());
+                    cells.insert(*address);
                 }
                 SelectionType::Range { start, end } => {
                     for row in start.row..=end.row {
@@ -393,7 +391,7 @@ impl SelectionManager {
 
         match &selection.selection_type {
             SelectionType::Cell { address } => {
-                cells.insert(address.clone());
+                cells.insert(*address);
             }
             SelectionType::Range { start, end } => {
                 for row in start.row..=end.row {

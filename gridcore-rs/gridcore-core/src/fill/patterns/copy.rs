@@ -4,6 +4,12 @@ use crate::types::CellValue;
 /// Copy pattern detector - fallback pattern that simply copies values
 pub struct CopyPatternDetector;
 
+impl Default for CopyPatternDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CopyPatternDetector {
     pub fn new() -> Self {
         Self

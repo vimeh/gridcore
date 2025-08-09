@@ -15,6 +15,12 @@ pub struct ReferenceTracker {
     pub(crate) reverse_dependencies: HashMap<CellAddress, HashSet<CellAddress>>,
 }
 
+impl Default for ReferenceTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReferenceTracker {
     pub fn new() -> Self {
         Self {
@@ -35,14 +41,14 @@ impl ReferenceTracker {
         // Add to forward dependencies
         if !dependencies.is_empty() {
             self.forward_dependencies
-                .insert(cell.clone(), dependencies.clone());
+                .insert(*cell, dependencies.clone());
 
             // Update reverse dependencies
             for dep in dependencies {
                 self.reverse_dependencies
                     .entry(dep)
-                    .or_insert_with(HashSet::new)
-                    .insert(cell.clone());
+                    .or_default()
+                    .insert(*cell);
             }
         }
     }
@@ -86,18 +92,17 @@ impl ReferenceTracker {
         }
 
         let mut visited = HashSet::new();
-        let mut stack = vec![to.clone()];
+        let mut stack = vec![*to];
 
         while let Some(current) = stack.pop() {
             if current == *from {
                 return true;
             }
 
-            if visited.insert(current.clone()) {
-                if let Some(deps) = self.forward_dependencies.get(&current) {
+            if visited.insert(current)
+                && let Some(deps) = self.forward_dependencies.get(&current) {
                     stack.extend(deps.iter().cloned());
                 }
-            }
         }
 
         false
@@ -109,15 +114,14 @@ impl ReferenceTracker {
         let mut to_process: Vec<_> = changed_cells.iter().cloned().collect();
 
         while let Some(cell) = to_process.pop() {
-            if affected.insert(cell.clone()) {
-                if let Some(dependents) = self.reverse_dependencies.get(&cell) {
+            if affected.insert(cell)
+                && let Some(dependents) = self.reverse_dependencies.get(&cell) {
                     for dependent in dependents {
                         if !affected.contains(dependent) {
-                            to_process.push(dependent.clone());
+                            to_process.push(*dependent);
                         }
                     }
                 }
-            }
         }
 
         // Sort by dependency order (topological sort)
@@ -151,7 +155,7 @@ impl ReferenceTracker {
             return;
         }
 
-        visiting.insert(cell.clone());
+        visiting.insert(*cell);
 
         if let Some(deps) = self.forward_dependencies.get(cell) {
             for dep in deps {
@@ -162,8 +166,8 @@ impl ReferenceTracker {
         }
 
         visiting.remove(cell);
-        visited.insert(cell.clone());
-        sorted.push(cell.clone());
+        visited.insert(*cell);
+        sorted.push(*cell);
     }
 
     /// Integrate with existing dependency graph
@@ -173,7 +177,7 @@ impl ReferenceTracker {
         // Clear and rebuild based on current tracking
         for (from, to_set) in &self.forward_dependencies {
             for to in to_set {
-                graph.add_dependency(from.clone(), to.clone());
+                graph.add_dependency(*from, *to);
             }
         }
     }

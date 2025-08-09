@@ -165,7 +165,7 @@ impl Workbook {
         }
 
         // Update global named ranges
-        for (_, (sheet_name, _)) in &mut self.global_named_ranges {
+        for (sheet_name, _) in self.global_named_ranges.values_mut() {
             if sheet_name == old_name {
                 *sheet_name = new_name.clone();
             }

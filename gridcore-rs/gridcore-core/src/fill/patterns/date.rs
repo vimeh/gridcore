@@ -5,6 +5,12 @@ use std::time::Duration;
 
 pub struct DatePatternDetector;
 
+impl Default for DatePatternDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DatePatternDetector {
     pub fn new() -> Self {
         Self
@@ -58,13 +64,9 @@ impl PatternDetector for DatePatternDetector {
     fn detect(&self, values: &[CellValue]) -> Option<PatternType> {
         let dates: Vec<_> = values.iter().filter_map(|v| self.parse_date(v)).collect();
 
-        if let Some(duration) = self.detect_date_pattern(&dates) {
-            Some(PatternType::Date {
+        self.detect_date_pattern(&dates).map(|duration| PatternType::Date {
                 increment_days: duration.as_secs() as f64 / 86400.0,
             })
-        } else {
-            None
-        }
     }
 
     fn priority(&self) -> u32 {

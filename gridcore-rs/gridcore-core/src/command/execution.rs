@@ -57,7 +57,7 @@ impl CommandExecutorTrait for CommandExecutorImpl {
         // Get all cells that will be affected
         for (addr, cell) in facade.get_all_cells() {
             if addr.row >= index {
-                affected.push((addr.clone(), cell.clone()));
+                affected.push((addr, cell.clone()));
             }
         }
         drop(facade);
@@ -76,7 +76,7 @@ impl CommandExecutorTrait for CommandExecutorImpl {
 
         for (addr, cell) in facade.get_all_cells() {
             if addr.row == index {
-                deleted.push((addr.clone(), cell.clone()));
+                deleted.push((addr, cell.clone()));
             }
         }
         drop(facade);
@@ -95,7 +95,7 @@ impl CommandExecutorTrait for CommandExecutorImpl {
 
         for (addr, cell) in facade.get_all_cells() {
             if addr.col >= index {
-                affected.push((addr.clone(), cell.clone()));
+                affected.push((addr, cell.clone()));
             }
         }
         drop(facade);
@@ -114,7 +114,7 @@ impl CommandExecutorTrait for CommandExecutorImpl {
 
         for (addr, cell) in facade.get_all_cells() {
             if addr.col == index {
-                deleted.push((addr.clone(), cell.clone()));
+                deleted.push((addr, cell.clone()));
             }
         }
         drop(facade);

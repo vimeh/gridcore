@@ -4,6 +4,12 @@ use crate::types::CellAddress;
 /// Detector for identifying reference types and patterns
 pub struct ReferenceDetector;
 
+impl Default for ReferenceDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReferenceDetector {
     pub fn new() -> Self {
         Self

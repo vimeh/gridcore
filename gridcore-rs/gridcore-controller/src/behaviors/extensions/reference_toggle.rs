@@ -27,9 +27,9 @@ impl ReferenceToggleExtension {
                 return Some(ReferenceMatch {
                     start,
                     end,
-                    col_absolute: captures.get(1).map_or(false, |m| m.as_str() == "$"),
+                    col_absolute: captures.get(1).is_some_and(|m| m.as_str() == "$"),
                     col_letters: captures.get(2)?.as_str().to_string(),
-                    row_absolute: captures.get(3).map_or(false, |m| m.as_str() == "$"),
+                    row_absolute: captures.get(3).is_some_and(|m| m.as_str() == "$"),
                     row_number: captures.get(4)?.as_str().to_string(),
                 });
             }

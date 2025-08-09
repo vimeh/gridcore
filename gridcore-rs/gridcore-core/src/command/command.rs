@@ -259,10 +259,10 @@ impl Command for SpreadsheetCommand {
     fn description(&self) -> String {
         match self {
             SpreadsheetCommand::SetCell { address, .. } => {
-                format!("Set cell {}", address.to_string())
+                format!("Set cell {}", address)
             }
             SpreadsheetCommand::DeleteCell { address, .. } => {
-                format!("Delete cell {}", address.to_string())
+                format!("Delete cell {}", address)
             }
             SpreadsheetCommand::InsertRow { index, .. } => {
                 format!("Insert row {}", index + 1)

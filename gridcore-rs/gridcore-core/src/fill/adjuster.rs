@@ -5,6 +5,12 @@ use regex::Regex;
 
 pub struct DefaultFormulaAdjuster;
 
+impl Default for DefaultFormulaAdjuster {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DefaultFormulaAdjuster {
     pub fn new() -> Self {
         Self

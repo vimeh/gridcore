@@ -4,6 +4,12 @@ use regex::Regex;
 
 pub struct TextPatternDetector;
 
+impl Default for TextPatternDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TextPatternDetector {
     pub fn new() -> Self {
         Self

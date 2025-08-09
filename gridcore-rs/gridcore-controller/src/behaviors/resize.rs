@@ -120,7 +120,7 @@ impl ResizeBehavior {
         } = state
         {
             Some(ResizeInfo {
-                target: target.clone(),
+                target: *target,
                 current_size: *current_size,
                 original_size: *original_size,
                 delta: (*current_size as i32 - *original_size as i32),

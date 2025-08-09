@@ -11,6 +11,12 @@ pub struct ReferenceParser {
     sheet_ref_regex: Regex,
 }
 
+impl Default for ReferenceParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReferenceParser {
     pub fn new() -> Self {
         Self {
@@ -104,11 +110,10 @@ impl ReferenceParser {
 
             let full_match = cap.get(0).unwrap().as_str();
             // Also skip if this is part of a range or sheet reference not yet processed
-            if !self.is_part_of_complex_reference(formula, full_match) {
-                if let Some(reference) = self.parse_single_reference(full_match) {
+            if !self.is_part_of_complex_reference(formula, full_match)
+                && let Some(reference) = self.parse_single_reference(full_match) {
                     references.push(reference);
                 }
-            }
         }
 
         references
@@ -124,7 +129,7 @@ impl ReferenceParser {
     fn extract_from_expr_recursive(&self, expr: &Expr, references: &mut HashSet<CellAddress>) {
         match expr {
             Expr::Reference { address, .. } => {
-                references.insert(address.clone());
+                references.insert(*address);
             }
             Expr::Range { range, .. } => {
                 // Add all cells in the range
@@ -181,32 +186,26 @@ impl ReferenceParser {
         };
 
         // Check if preceded by '!' (sheet reference)
-        if pos > 0 {
-            if let Some(prev_char) = formula.chars().nth(pos - 1) {
-                if prev_char == '!' {
+        if pos > 0
+            && let Some(prev_char) = formula.chars().nth(pos - 1)
+                && prev_char == '!' {
                     return true;
                 }
-            }
-        }
 
         // Check if followed by ':' (range reference)
         let end_pos = pos + reference.len();
-        if end_pos < formula.len() {
-            if let Some(next_char) = formula.chars().nth(end_pos) {
-                if next_char == ':' {
+        if end_pos < formula.len()
+            && let Some(next_char) = formula.chars().nth(end_pos)
+                && next_char == ':' {
                     return true;
                 }
-            }
-        }
 
         // Check if preceded by ':' (range reference)
-        if pos > 0 {
-            if let Some(prev_char) = formula.chars().nth(pos - 1) {
-                if prev_char == ':' {
+        if pos > 0
+            && let Some(prev_char) = formula.chars().nth(pos - 1)
+                && prev_char == ':' {
                     return true;
                 }
-            }
-        }
 
         false
     }

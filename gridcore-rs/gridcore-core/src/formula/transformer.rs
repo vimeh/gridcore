@@ -15,7 +15,7 @@ impl FormulaTransformer {
     /// Adjust formula references when a row is inserted
     pub fn adjust_for_row_insert(&self, ast: Expr, inserted_row: u32) -> Expr {
         self.transform_expr(ast, |addr, abs_col, abs_row| {
-            let mut new_addr = addr.clone();
+            let mut new_addr = *addr;
             // Always adjust for absolute references, adjust for relative if beyond insertion point
             if addr.row >= inserted_row {
                 new_addr.row += 1;
@@ -27,7 +27,7 @@ impl FormulaTransformer {
     /// Adjust formula references when a row is deleted
     pub fn adjust_for_row_delete(&self, ast: Expr, deleted_row: u32) -> Expr {
         self.transform_expr(ast, |addr, abs_col, abs_row| {
-            let mut new_addr = addr.clone();
+            let mut new_addr = *addr;
 
             // If the reference is to the deleted row, return #REF! error
             if addr.row == deleted_row {
@@ -46,7 +46,7 @@ impl FormulaTransformer {
     /// Adjust formula references when a column is inserted
     pub fn adjust_for_column_insert(&self, ast: Expr, inserted_col: u32) -> Expr {
         self.transform_expr(ast, |addr, abs_col, abs_row| {
-            let mut new_addr = addr.clone();
+            let mut new_addr = *addr;
             // Always adjust for absolute references, adjust for relative if beyond insertion point
             if addr.col >= inserted_col {
                 new_addr.col += 1;
@@ -58,7 +58,7 @@ impl FormulaTransformer {
     /// Adjust formula references when a column is deleted
     pub fn adjust_for_column_delete(&self, ast: Expr, deleted_col: u32) -> Expr {
         self.transform_expr(ast, |addr, abs_col, abs_row| {
-            let mut new_addr = addr.clone();
+            let mut new_addr = *addr;
 
             // If the reference is to the deleted column, return #REF! error
             if addr.col == deleted_col {
@@ -86,7 +86,7 @@ impl FormulaTransformer {
         let col_delta = to_start.col as i32 - from_start.col as i32;
 
         self.transform_expr(ast, |addr, abs_col, abs_row| {
-            let mut new_addr = addr.clone();
+            let mut new_addr = *addr;
 
             // Check if the address is within the moved range
             if addr.col >= from_start.col

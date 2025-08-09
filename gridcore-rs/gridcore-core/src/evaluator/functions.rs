@@ -10,6 +10,12 @@ pub struct FunctionLibrary {
     functions: HashMap<String, FunctionImpl>,
 }
 
+impl Default for FunctionLibrary {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FunctionLibrary {
     /// Create a new function library with all built-in functions
     pub fn new() -> Self {

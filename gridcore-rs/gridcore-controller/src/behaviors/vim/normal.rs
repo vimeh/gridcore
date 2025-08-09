@@ -211,7 +211,7 @@ impl VimBehavior {
             "m" => {
                 // Set mark
                 if key.len() == 1 && key.chars().next().unwrap().is_ascii_lowercase() {
-                    self.set_mark(key.chars().next().unwrap(), current_state.cursor().clone());
+                    self.set_mark(key.chars().next().unwrap(), *current_state.cursor());
                     Ok(None)
                 } else {
                     Ok(None)
@@ -300,7 +300,7 @@ impl VimBehavior {
     }
 
     fn last_key_was(&self, ch: char) -> bool {
-        self.command_buffer.chars().last() == Some(ch)
+        self.command_buffer.ends_with(ch)
     }
 
     fn enter_insert_mode(&mut self, mode: InsertMode) -> Result<Option<Action>> {
@@ -325,14 +325,14 @@ impl VimBehavior {
 
     fn move_cursor(&self, motion: Motion, current_state: &UIState) -> Result<Option<Action>> {
         let context = super::motion::MotionContext::new(
-            current_state.cursor().clone(),
+            *current_state.cursor(),
             current_state.viewport().clone(),
         );
         let new_position = super::motion::apply_motion(&motion, &context)?;
 
         // Check if viewport needs adjustment
         let mut actions = vec![Action::UpdateCursor {
-            cursor: new_position.clone(),
+            cursor: new_position,
         }];
 
         if let Some(new_viewport) =
@@ -422,7 +422,7 @@ impl VimBehavior {
     fn jump_to_mark(&mut self, mark: char) -> Result<Option<Action>> {
         if let Some(address) = self.get_mark(mark) {
             Ok(Some(Action::UpdateCursor {
-                cursor: address.clone(),
+                cursor: *address,
             }))
         } else {
             Ok(None)

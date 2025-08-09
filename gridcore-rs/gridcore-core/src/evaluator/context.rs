@@ -24,6 +24,12 @@ pub struct BasicContext {
     evaluation_stack: HashSet<CellAddress>,
 }
 
+impl Default for BasicContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BasicContext {
     pub fn new() -> Self {
         BasicContext {
@@ -44,7 +50,7 @@ impl EvaluationContext for BasicContext {
     }
 
     fn push_evaluation(&mut self, address: &CellAddress) {
-        self.evaluation_stack.insert(address.clone());
+        self.evaluation_stack.insert(*address);
     }
 
     fn pop_evaluation(&mut self, address: &CellAddress) {
@@ -81,7 +87,7 @@ impl<'a> EvaluationContext for RepositoryContext<'a> {
     }
 
     fn push_evaluation(&mut self, address: &CellAddress) {
-        self.evaluation_stack.insert(address.clone());
+        self.evaluation_stack.insert(*address);
     }
 
     fn pop_evaluation(&mut self, address: &CellAddress) {

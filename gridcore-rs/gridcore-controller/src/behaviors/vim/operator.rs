@@ -19,7 +19,7 @@ impl VimBehavior {
         } else {
             // No motion - operate on current position
             let cursor = context.current_state.cursor();
-            (cursor.clone(), cursor.clone())
+            (*cursor, *cursor)
         };
 
         match context.operator {
@@ -42,7 +42,7 @@ impl VimBehavior {
         current_state: &UIState,
     ) -> Result<(CellAddress, CellAddress)> {
         let context = super::motion::MotionContext::new(
-            current_state.cursor().clone(),
+            *current_state.cursor(),
             current_state.viewport().clone(),
         );
 

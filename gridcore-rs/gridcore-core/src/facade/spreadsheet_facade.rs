@@ -101,7 +101,7 @@ impl SpreadsheetFacade {
                 self.queue_batch_operation(
                     batch_id,
                     BatchOperation::SetCell {
-                        address: address.clone(),
+                        address: *address,
                         value: CellValue::String(value.to_string()),
                         formula: if value.starts_with('=') {
                             Some(value.to_string())
@@ -124,9 +124,8 @@ impl SpreadsheetFacade {
             .map(|cell| cell.get_computed_value());
 
         // Parse and create cell
-        let cell = if value.starts_with('=') {
+        let cell = if let Some(formula) = value.strip_prefix('=') {
             // Parse formula
-            let formula = &value[1..];
             let ast = FormulaParser::parse(formula)?;
 
             // Analyze dependencies
@@ -155,7 +154,7 @@ impl SpreadsheetFacade {
 
                         return Err(SpreadsheetError::CircularDependency);
                     }
-                    graph.add_dependency(address.clone(), dep.clone());
+                    graph.add_dependency(*address, *dep);
                 }
             }
 
@@ -253,7 +252,7 @@ impl SpreadsheetFacade {
                 self.queue_batch_operation(
                     batch_id,
                     BatchOperation::DeleteCell {
-                        address: address.clone(),
+                        address: *address,
                     },
                 )?;
                 return Ok(());
@@ -291,8 +290,8 @@ impl SpreadsheetFacade {
 
         // Recalculate each cell in order
         for address in &order {
-            if let Some(mut cell) = self.repository.borrow().get(address).cloned() {
-                if let Some(ast) = &cell.formula {
+            if let Some(mut cell) = self.repository.borrow().get(address).cloned()
+                && let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
                     // Push the current cell to the evaluation stack for circular reference detection
                     context.push_evaluation(address);
@@ -307,7 +306,6 @@ impl SpreadsheetFacade {
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(address, cell);
                 }
-            }
         }
 
         // Emit calculation completed event
@@ -373,7 +371,7 @@ impl SpreadsheetFacade {
                     value,
                     formula,
                 } => {
-                    affected_cells.insert(address.clone());
+                    affected_cells.insert(address);
                     // Convert CellValue to string for set_cell_value
                     let value_str = if let Some(formula) = formula {
                         formula
@@ -390,7 +388,7 @@ impl SpreadsheetFacade {
                     self.set_cell_value_internal(&address, &value_str)?;
                 }
                 BatchOperation::DeleteCell { address } => {
-                    affected_cells.insert(address.clone());
+                    affected_cells.insert(address);
                     self.delete_cell_internal(&address)?;
                 }
                 BatchOperation::SetRange {
@@ -410,7 +408,7 @@ impl SpreadsheetFacade {
                     for row in start.row..=end.row {
                         for col in start.col..=end.col {
                             let addr = CellAddress::new(col, row);
-                            affected_cells.insert(addr.clone());
+                            affected_cells.insert(addr);
                             self.delete_cell_internal(&addr)?;
                         }
                     }
@@ -475,7 +473,7 @@ impl SpreadsheetFacade {
         let affected_addresses: HashSet<_> = result
             .affected_cells
             .iter()
-            .map(|(addr, _)| addr.clone())
+            .map(|(addr, _)| *addr)
             .collect();
         self.batch_recalculate(affected_addresses)?;
 
@@ -540,17 +538,13 @@ impl SpreadsheetFacade {
             for (address, cell) in repo.iter() {
                 if cell.has_formula() {
                     // Get the original formula string from raw_value
-                    if let CellValue::String(formula_str) = &cell.raw_value {
-                        if formula_str.starts_with('=') {
-                            if let Ok(adjusted_formula) =
+                    if let CellValue::String(formula_str) = &cell.raw_value
+                        && formula_str.starts_with('=')
+                            && let Ok(adjusted_formula) =
                                 adjuster.adjust_formula(formula_str, &operation)
-                            {
-                                if adjusted_formula != *formula_str {
-                                    adjusted_cells.push((address.clone(), adjusted_formula));
+                                && adjusted_formula != *formula_str {
+                                    adjusted_cells.push((address, adjusted_formula));
                                 }
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -588,8 +582,7 @@ impl SpreadsheetFacade {
     /// Internal set cell value (without batch check)
     fn set_cell_value_internal(&self, address: &CellAddress, value: &str) -> Result<()> {
         // Similar to set_cell_value but without batch check
-        let cell = if value.starts_with('=') {
-            let formula = &value[1..];
+        let cell = if let Some(formula) = value.strip_prefix('=') {
             let ast = FormulaParser::parse(formula)?;
 
             let dependencies = DependencyAnalyzer::extract_dependencies(&ast);
@@ -600,7 +593,7 @@ impl SpreadsheetFacade {
                 if graph.would_create_cycle(address, dep) {
                     return Err(SpreadsheetError::CircularDependency);
                 }
-                graph.add_dependency(address.clone(), dep.clone());
+                graph.add_dependency(*address, *dep);
             }
 
             let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
@@ -641,8 +634,8 @@ impl SpreadsheetFacade {
             // Get cell and immediately drop the borrow
             let cell = self.repository.borrow().get(&dependent).cloned();
 
-            if let Some(mut cell) = cell {
-                if let Some(ast) = &cell.formula {
+            if let Some(mut cell) = cell
+                && let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
                     // Push the current cell to the evaluation stack for circular reference detection
                     context.push_evaluation(&dependent);
@@ -656,12 +649,11 @@ impl SpreadsheetFacade {
                     context.pop_evaluation(&dependent);
 
                     // If the dependent formula now evaluates to an error, emit an error event
-                    if matches!(result, CellValue::Error(_)) {
-                        if let CellValue::Error(e) = &result {
+                    if matches!(result, CellValue::Error(_))
+                        && let CellValue::Error(e) = &result {
                             let error_msg = format!("Formula error in {}: {}", dependent, e);
                             self.emit_event(SpreadsheetEvent::error(error_msg, Some(&dependent)));
                         }
-                    }
 
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(&dependent, cell);
@@ -669,7 +661,6 @@ impl SpreadsheetFacade {
                     // Recursively recalculate cells that depend on this one
                     self.recalculate_dependents(&dependent)?;
                 }
-            }
         }
 
         Ok(())
@@ -680,7 +671,7 @@ impl SpreadsheetFacade {
         // Collect all cells that need recalculation (including dependents)
         let mut to_recalculate = HashSet::new();
         for cell in cells {
-            to_recalculate.insert(cell.clone());
+            to_recalculate.insert(cell);
             self.collect_all_dependents(&cell, &mut to_recalculate);
         }
 
@@ -693,8 +684,8 @@ impl SpreadsheetFacade {
 
         // Recalculate in order
         for address in ordered_cells {
-            if let Some(mut cell) = self.repository.borrow().get(&address).cloned() {
-                if let Some(ast) = &cell.formula {
+            if let Some(mut cell) = self.repository.borrow().get(&address).cloned()
+                && let Some(ast) = &cell.formula {
                     let mut context = RepositoryContext::new(&self.repository);
                     // Push the current cell to the evaluation stack for circular reference detection
                     context.push_evaluation(&address);
@@ -709,7 +700,6 @@ impl SpreadsheetFacade {
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(&address, cell);
                 }
-            }
         }
 
         Ok(())
@@ -719,7 +709,7 @@ impl SpreadsheetFacade {
     fn collect_all_dependents(&self, address: &CellAddress, collected: &mut HashSet<CellAddress>) {
         let dependents = self.dependency_graph.borrow().get_dependents(address);
         for dependent in dependents {
-            if collected.insert(dependent.clone()) {
+            if collected.insert(dependent) {
                 self.collect_all_dependents(&dependent, collected);
             }
         }
@@ -760,12 +750,12 @@ impl SpreadsheetFacade {
             if address.row >= row_index {
                 // This cell needs to be moved down
                 let new_address = CellAddress::new(address.col, address.row + 1);
-                cells_to_move.push((address.clone(), new_address, cell.clone()));
+                cells_to_move.push((address, new_address, cell.clone()));
             } else if let Some(ast) = &cell.formula {
                 // This cell's formula might reference cells that are moving
                 let new_ast = transformer.adjust_for_row_insert(ast.clone(), row_index);
                 if *ast != new_ast {
-                    cells_to_update.push((address.clone(), new_ast));
+                    cells_to_update.push((address, new_ast));
                 }
             }
         }
@@ -826,16 +816,16 @@ impl SpreadsheetFacade {
         for (address, cell) in self.repository.borrow().iter() {
             if address.row == row_index {
                 // This cell is being deleted
-                cells_to_delete.push(address.clone());
+                cells_to_delete.push(address);
             } else if address.row > row_index {
                 // This cell needs to be moved up
                 let new_address = CellAddress::new(address.col, address.row - 1);
-                cells_to_move.push((address.clone(), new_address, cell.clone()));
+                cells_to_move.push((address, new_address, cell.clone()));
             } else if let Some(ast) = &cell.formula {
                 // This cell's formula might reference cells that are moving or being deleted
                 let new_ast = transformer.adjust_for_row_delete(ast.clone(), row_index);
                 if *ast != new_ast {
-                    cells_to_update.push((address.clone(), new_ast));
+                    cells_to_update.push((address, new_ast));
                 }
             }
         }
@@ -902,12 +892,12 @@ impl SpreadsheetFacade {
             if address.col >= col_index {
                 // This cell needs to be moved right
                 let new_address = CellAddress::new(address.col + 1, address.row);
-                cells_to_move.push((address.clone(), new_address, cell.clone()));
+                cells_to_move.push((address, new_address, cell.clone()));
             } else if let Some(ast) = &cell.formula {
                 // This cell's formula might reference cells that are moving
                 let new_ast = transformer.adjust_for_column_insert(ast.clone(), col_index);
                 if *ast != new_ast {
-                    cells_to_update.push((address.clone(), new_ast));
+                    cells_to_update.push((address, new_ast));
                 }
             }
         }
@@ -968,16 +958,16 @@ impl SpreadsheetFacade {
         for (address, cell) in self.repository.borrow().iter() {
             if address.col == col_index {
                 // This cell is being deleted
-                cells_to_delete.push(address.clone());
+                cells_to_delete.push(address);
             } else if address.col > col_index {
                 // This cell needs to be moved left
                 let new_address = CellAddress::new(address.col - 1, address.row);
-                cells_to_move.push((address.clone(), new_address, cell.clone()));
+                cells_to_move.push((address, new_address, cell.clone()));
             } else if let Some(ast) = &cell.formula {
                 // This cell's formula might reference cells that are moving or being deleted
                 let new_ast = transformer.adjust_for_column_delete(ast.clone(), col_index);
                 if *ast != new_ast {
-                    cells_to_update.push((address.clone(), new_ast));
+                    cells_to_update.push((address, new_ast));
                 }
             }
         }
@@ -1063,7 +1053,7 @@ impl SpreadsheetFacade {
                 let mut affected = Vec::new();
                 for (addr, cell) in self.facade.get_all_cells() {
                     if addr.row >= index {
-                        affected.push((addr.clone(), cell.clone()));
+                        affected.push((addr, cell.clone()));
                     }
                 }
                 self.facade.insert_row_without_command(index)?;
@@ -1074,7 +1064,7 @@ impl SpreadsheetFacade {
                 let mut deleted = Vec::new();
                 for (addr, cell) in self.facade.get_all_cells() {
                     if addr.row == index {
-                        deleted.push((addr.clone(), cell.clone()));
+                        deleted.push((addr, cell.clone()));
                     }
                 }
                 self.facade.delete_row_without_command(index)?;
@@ -1085,7 +1075,7 @@ impl SpreadsheetFacade {
                 let mut affected = Vec::new();
                 for (addr, cell) in self.facade.get_all_cells() {
                     if addr.col >= index {
-                        affected.push((addr.clone(), cell.clone()));
+                        affected.push((addr, cell.clone()));
                     }
                 }
                 self.facade.insert_column_without_command(index)?;
@@ -1096,7 +1086,7 @@ impl SpreadsheetFacade {
                 let mut deleted = Vec::new();
                 for (addr, cell) in self.facade.get_all_cells() {
                     if addr.col == index {
-                        deleted.push((addr.clone(), cell.clone()));
+                        deleted.push((addr, cell.clone()));
                     }
                 }
                 self.facade.delete_column_without_command(index)?;
@@ -1140,7 +1130,7 @@ impl SpreadsheetFacade {
                 let mut affected = Vec::new();
                 for (addr, cell) in self.facade.get_all_cells() {
                     if addr.row >= index {
-                        affected.push((addr.clone(), cell.clone()));
+                        affected.push((addr, cell.clone()));
                     }
                 }
                 self.facade.insert_row_without_command(index)?;
@@ -1151,7 +1141,7 @@ impl SpreadsheetFacade {
                 let mut deleted = Vec::new();
                 for (addr, cell) in self.facade.get_all_cells() {
                     if addr.row == index {
-                        deleted.push((addr.clone(), cell.clone()));
+                        deleted.push((addr, cell.clone()));
                     }
                 }
                 self.facade.delete_row_without_command(index)?;
@@ -1162,7 +1152,7 @@ impl SpreadsheetFacade {
                 let mut affected = Vec::new();
                 for (addr, cell) in self.facade.get_all_cells() {
                     if addr.col >= index {
-                        affected.push((addr.clone(), cell.clone()));
+                        affected.push((addr, cell.clone()));
                     }
                 }
                 self.facade.insert_column_without_command(index)?;
@@ -1173,7 +1163,7 @@ impl SpreadsheetFacade {
                 let mut deleted = Vec::new();
                 for (addr, cell) in self.facade.get_all_cells() {
                     if addr.col == index {
-                        deleted.push((addr.clone(), cell.clone()));
+                        deleted.push((addr, cell.clone()));
                     }
                 }
                 self.facade.delete_column_without_command(index)?;
@@ -1220,7 +1210,7 @@ impl SpreadsheetFacade {
         self.repository
             .borrow()
             .iter()
-            .map(|(addr, cell)| (addr.clone(), cell.clone()))
+            .map(|(addr, cell)| (addr, cell.clone()))
             .collect()
     }
 
@@ -1297,7 +1287,7 @@ impl<'a> EvaluationContext for RepositoryContext<'a> {
     }
 
     fn push_evaluation(&mut self, address: &CellAddress) {
-        self.evaluation_stack.borrow_mut().insert(address.clone());
+        self.evaluation_stack.borrow_mut().insert(*address);
     }
 
     fn pop_evaluation(&mut self, address: &CellAddress) {

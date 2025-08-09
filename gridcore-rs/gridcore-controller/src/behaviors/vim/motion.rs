@@ -110,7 +110,7 @@ pub fn apply_motion(motion: &super::Motion, context: &MotionContext) -> Result<C
         | Motion::RepeatFind
         | Motion::RepeatFindReverse => {
             // These require cell content, return current position for now
-            current.clone()
+            *current
         }
     };
 
@@ -122,7 +122,7 @@ pub fn motion_range(
     motion: &super::Motion,
     context: &MotionContext,
 ) -> Result<(CellAddress, CellAddress)> {
-    let start = context.current_position.clone();
+    let start = context.current_position;
     let end = apply_motion(motion, context)?;
 
     // Ensure start is before end

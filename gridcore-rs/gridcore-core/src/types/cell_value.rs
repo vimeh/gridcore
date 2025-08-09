@@ -2,10 +2,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum CellValue {
     Number(f64),
     String(String),
     Boolean(bool),
+    #[default]
     Empty,
     Error(String),
     Array(Vec<CellValue>),
@@ -93,11 +95,6 @@ impl CellValue {
     }
 }
 
-impl Default for CellValue {
-    fn default() -> Self {
-        CellValue::Empty
-    }
-}
 
 impl fmt::Display for CellValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

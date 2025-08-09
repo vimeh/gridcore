@@ -17,7 +17,7 @@ impl DependencyAnalyzer {
     fn extract_from_expr(expr: &Expr, dependencies: &mut HashSet<CellAddress>) {
         match expr {
             Expr::Reference { address, .. } => {
-                dependencies.insert(address.clone());
+                dependencies.insert(*address);
             }
 
             Expr::Range { range, .. } => {

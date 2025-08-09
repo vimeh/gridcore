@@ -369,9 +369,8 @@ impl VimBehavior {
     fn execute_set(&mut self, parsed: &ExCommand) -> Result<Option<Action>> {
         // Handle settings
         for arg in &parsed.args {
-            if arg.starts_with("no") {
+            if let Some(setting) = arg.strip_prefix("no") {
                 // Disable setting
-                let setting = &arg[2..];
                 self.settings
                     .insert(setting.to_string(), "false".to_string());
             } else if arg.contains('=') {
@@ -620,6 +619,12 @@ pub enum FormatType {
 /// Parser for bulk commands in vim command mode
 pub struct BulkCommandParser;
 
+impl Default for BulkCommandParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BulkCommandParser {
     pub fn new() -> Self {
         Self
@@ -693,7 +698,7 @@ impl BulkCommandParser {
                 current = String::new();
                 if parts.len() == 2 {
                     // Everything remaining is flags
-                    while let Some(ch) = chars.next() {
+                    for ch in chars.by_ref() {
                         current.push(ch);
                     }
                     break;

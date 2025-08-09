@@ -127,19 +127,14 @@ impl SheetManager {
 
                 // Collect cells that need adjustment
                 for (address, cell) in cells.borrow().iter() {
-                    if cell.has_formula() {
-                        if let CellValue::String(formula_str) = &cell.raw_value {
-                            if formula_str.starts_with('=') {
-                                if let Ok(adjusted) =
+                    if cell.has_formula()
+                        && let CellValue::String(formula_str) = &cell.raw_value
+                            && formula_str.starts_with('=')
+                                && let Ok(adjusted) =
                                     adjuster.adjust_formula(formula_str, &operation)
-                                {
-                                    if adjusted != *formula_str {
-                                        adjusted_cells.push((address.clone(), adjusted));
+                                    && adjusted != *formula_str {
+                                        adjusted_cells.push((address, adjusted));
                                     }
-                                }
-                            }
-                        }
-                    }
                 }
 
                 // Apply adjustments
@@ -177,7 +172,7 @@ impl SheetManager {
                         if let CellValue::String(formula) = &cell.raw_value {
                             let target_ref = format!("{}!{}", target_sheet, target_address.to_a1());
                             if formula.contains(&target_ref) {
-                                references.push((sheet_name.clone(), address.clone()));
+                                references.push((sheet_name.clone(), address));
                             }
                         }
                     }
@@ -196,19 +191,16 @@ impl SheetManager {
             if let Some(sheet) = self.workbook.get_sheet(sheet_name) {
                 let cells = sheet.cells();
                 for (address, cell) in cells.borrow().iter() {
-                    if cell.has_formula() {
-                        if let CellValue::String(formula) = &cell.raw_value {
-                            if formula.starts_with('=') {
-                                if let Err(e) = FormulaParser::parse(&formula[1..]) {
+                    if cell.has_formula()
+                        && let CellValue::String(formula) = &cell.raw_value
+                            && formula.starts_with('=')
+                                && let Err(e) = FormulaParser::parse(&formula[1..]) {
                                     errors.push((
                                         sheet_name.clone(),
-                                        address.clone(),
+                                        address,
                                         format!("Parse error: {:?}", e),
                                     ));
                                 }
-                            }
-                        }
-                    }
                 }
             }
         }
