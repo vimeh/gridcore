@@ -1,8 +1,7 @@
 use gridcore_controller::controller::events::{MouseButton, MouseEventType};
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::controller::{KeyboardEvent, MouseEvent};
+use gridcore_controller::controller::MouseEvent;
 use gridcore_controller::state::{Action, UIState, UIStateMachine};
-use gridcore_core::facade::SpreadsheetFacade;
 use gridcore_core::types::CellAddress;
 
 #[test]

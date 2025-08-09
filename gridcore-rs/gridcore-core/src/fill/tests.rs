@@ -8,7 +8,7 @@ mod fill_integration_tests {
     use crate::types::{CellAddress, CellValue};
     use std::rc::Rc;
 
-    fn setup_repo_with_values(values: Vec<(CellAddress, CellValue)>) -> Rc<CellRepository> {
+    fn setup_repo_with_values(_values: Vec<(CellAddress, CellValue)>) -> Rc<CellRepository> {
         let repo = CellRepository::new();
         let repo_rc = Rc::new(repo);
 

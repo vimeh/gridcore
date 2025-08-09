@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_modifiers_handling() {
-        let controller = SpreadsheetController::new();
+        let _controller = SpreadsheetController::new();
 
         // Create event with modifiers
         let event = KeyboardEvent::new("s".to_string()).with_modifiers(false, true, false, false); // Ctrl+S

@@ -166,8 +166,8 @@ mod tests {
     fn test_batch_manager_multiple_batches() {
         let mut manager = BatchManager::new();
 
-        let batch1 = manager.begin_batch(None);
-        let batch2 = manager.begin_batch(None);
+        let _batch1 = manager.begin_batch(None);
+        let _batch2 = manager.begin_batch(None);
 
         assert!(manager.has_active_batches());
         assert_eq!(manager.active_batch_ids().len(), 2);

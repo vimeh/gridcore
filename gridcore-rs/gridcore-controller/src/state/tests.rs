@@ -411,7 +411,7 @@ mod tests {
         let notifications = Arc::new(Mutex::new(Vec::new()));
         let notifications_clone = notifications.clone();
 
-        machine.subscribe(move |state, action| {
+        machine.subscribe(move |state, _action| {
             let mut notifs = notifications_clone.lock().unwrap();
             notifs.push(format!("{:?}", state.spreadsheet_mode()));
         });

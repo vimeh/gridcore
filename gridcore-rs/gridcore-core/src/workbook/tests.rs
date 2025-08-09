@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod workbook_integration_tests {
     use crate::domain::Cell;
-    use crate::formula::FormulaParser;
     use crate::types::{CellAddress, CellValue};
-    use crate::workbook::{Sheet, SheetManager, SheetProperties, Workbook};
+    use crate::workbook::{Sheet, SheetManager, Workbook};
 
     #[test]
     fn test_cross_sheet_references() {

@@ -1,7 +1,5 @@
 use crate::components::canvas_grid::CanvasGrid;
-use crate::components::error_display::{
-    use_error_context, ErrorDisplay, ErrorMessage, ErrorSeverity,
-};
+use crate::components::error_display::{ErrorDisplay, ErrorMessage, ErrorSeverity};
 use crate::components::status_bar::{SelectionStats, StatusBar};
 use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
