@@ -211,16 +211,18 @@ pub fn CellEditor(
                     )
                 };
 
-                if is_insert_mode && !ev.shift_key() && !ev.ctrl_key() {
-                    // In insert mode, Enter adds a newline
-                    // We need to manually handle this since we're using controlled input
+                // For spreadsheet cells, Enter should always save the value
+                // This differs from standard Vim behavior where Enter adds a newline in Insert mode
+                // Users can use Shift+Enter if they need multiline input
+                if is_insert_mode && ev.shift_key() && !ev.ctrl_key() {
+                    // Shift+Enter adds a newline for multiline cells
                     let current_value = editor_value.get();
                     let new_value = format!("{}\n", current_value);
                     set_editor_value.set(new_value);
                     ev.prevent_default(); // Prevent form submission
                     return; // Don't save, just add newline
                 } else {
-                    // In normal mode, or with modifier keys, Enter saves
+                    // Enter (with or without Insert mode) saves the value
                     ev.prevent_default();
 
                     // Check if we should apply a suggestion
@@ -245,11 +247,31 @@ pub fn CellEditor(
                         }
                     }
 
-                    // Submit the value
-                    let value = editor_value.get();
+                    // Submit the value - always read from the textarea element when available
+                    // This ensures we get the current value, not a stale one
                     let cell = active_cell.get();
+                    
+                    // Get the current value - prioritize signal which is updated via on:input
+                    // The textarea's value() might not be synchronized in all cases
+                    let value = {
+                        let signal_value = editor_value.get();
+                        
+                        // Also check the textarea value for safety
+                        if let Some(input) = input_ref.get() {
+                            let textarea_value = input.value();
+                            // Use textarea value if it's different and not empty
+                            if !textarea_value.is_empty() && textarea_value != signal_value {
+                                textarea_value
+                            } else {
+                                signal_value
+                            }
+                        } else {
+                            signal_value
+                        }
+                    };
 
-                    if !value.is_empty() {
+                    // Always try to save, even if value is empty (user might want to clear the cell)
+                    {
                         let ctrl_borrow = ctrl.borrow();
                         let facade = ctrl_borrow.get_facade();
                         match facade.set_cell_value(&cell, &value) {
@@ -278,7 +300,7 @@ pub fn CellEditor(
                                 leptos::logging::log!("Error setting cell value: {:?}", e);
                             }
                         }
-                    }
+                    } // ctrl_borrow is dropped here
 
                     // Return focus to grid container before exiting
                     if let Some(window) = web_sys::window() {
@@ -293,10 +315,14 @@ pub fn CellEditor(
                     
                     // Exit editing mode
                     set_editing_mode.set(false);
+                    
                     let mut ctrl_mut = ctrl.borrow_mut();
                     if let Err(e) = ctrl_mut.dispatch_action(Action::ExitToNavigation) {
                         leptos::logging::log!("Error exiting edit mode: {:?}", e);
                     }
+                    
+                    // Update formula bar with the saved value
+                    set_formula_value.set(value.clone());
                 }
             }
             "Escape" => {
@@ -337,9 +363,17 @@ pub fn CellEditor(
                     set_current_mode.set(SpreadsheetMode::Editing);
                 } else if is_normal_mode {
                     // Second Escape: save and exit to navigation
-                    // First save the value
-                    let value = editor_value.get();
+                    // First save the value - use the same logic as Enter for consistency
                     let cell = active_cell.get();
+                    
+                    // Get the current value from the textarea or signal (same logic as Enter)
+                    let value = if let Some(input) = input_ref.get() {
+                        // Always use the textarea's current value
+                        input.value()
+                    } else {
+                        // Fallback to signal if textarea not available
+                        editor_value.get()
+                    };
 
                     if !value.is_empty() {
                         let ctrl_borrow = ctrl.borrow();

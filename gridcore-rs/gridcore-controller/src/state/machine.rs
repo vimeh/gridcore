@@ -14,8 +14,8 @@ use web_sys;
 // Debug mode flag - can be set via environment or at runtime
 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 fn is_debug_enabled() -> bool {
-    // For now, always return false. Can be enhanced later.
-    false
+    // Enable debug mode for testing
+    true
 }
 
 #[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
@@ -244,8 +244,8 @@ impl UIStateMachine {
                 } = &mut new_state
                 {
                     // Handle initial_value:
-                    // - Some(value): Use the provided value (even if empty - for Enter key or direct typing)
-                    // - None: Keep the default empty string (cell_editor will load existing content)
+                    // - Some(value): Use the provided value (can be empty string for Enter key)
+                    // - None: Keep empty string (shouldn't happen with the new controller logic)
                     if let Some(val) = initial_value {
                         *editing_value = val.clone();
                     }

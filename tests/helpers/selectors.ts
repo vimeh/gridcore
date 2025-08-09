@@ -11,7 +11,7 @@ export const selectors = {
 
   // Editor elements
   cellEditor: ".cell-editor-overlay", // was .cell-editor
-  cellEditorInput: ".cell-editor-overlay input",
+  cellEditorInput: ".cell-editor-overlay textarea", // Changed from input to textarea
 
   // Mode indicators (currently in status bar)
   modeIndicator: ".status-bar", // Mode is now shown in status bar

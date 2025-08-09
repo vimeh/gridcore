@@ -430,6 +430,14 @@ pub fn CanvasGrid(
                             let ctrl_borrow = ctrl.borrow();
                             let facade = ctrl_borrow.get_facade();
                             if let Some(cell_obj) = facade.get_cell(&actual_cursor) {
+                                // Check what type of value the cell has
+                                let cell_value = facade.get_cell_value(&actual_cursor);
+                                debug_log!(
+                                    "[NAV] Cell at {:?} has_formula: {}, cell_value: {:?}",
+                                    actual_cursor,
+                                    cell_obj.has_formula(),
+                                    cell_value
+                                );
                                 // Get the display value - use raw_value if it's a formula, otherwise computed_value
                                 if cell_obj.has_formula() {
                                     cell_obj.raw_value.to_string()
@@ -725,8 +733,11 @@ pub fn CanvasGrid(
         // Dispatch action if we have one
         if let Some(action) = action {
             debug_log!("[DISPATCH] About to dispatch action: {:?}", action);
+            // Check if this is a StartEditing action before dispatch
+            let is_start_editing = matches!(action, Action::StartEditing { .. });
+            
             // Dispatch action and get new state, then drop the borrow
-            let (new_mode, new_cursor, is_editing) = {
+            let (new_mode, new_cursor, is_editing, dispatch_ok) = {
                 let mut ctrl_mut = ctrl.borrow_mut();
                 let old_state = ctrl_mut.get_state().clone();
                 debug_log!(
@@ -734,22 +745,38 @@ pub fn CanvasGrid(
                     old_state.spreadsheet_mode(),
                     old_state.cursor()
                 );
-                if let Err(e) = ctrl_mut.dispatch_action(action.clone()) {
+                let dispatch_result = ctrl_mut.dispatch_action(action.clone());
+                if let Err(e) = &dispatch_result {
                     debug_log!("[DISPATCH] Error dispatching action: {:?}", e);
                 }
 
                 let state = ctrl_mut.get_state();
                 let mode = state.spreadsheet_mode();
                 let cursor = *state.cursor();
+                
+                // Debug: Log the exact state variant
+                let state_variant = match state {
+                    gridcore_controller::state::UIState::Navigation { .. } => "Navigation",
+                    gridcore_controller::state::UIState::Editing { .. } => "Editing",
+                    gridcore_controller::state::UIState::Visual { .. } => "Visual",
+                    gridcore_controller::state::UIState::Command { .. } => "Command",
+                    gridcore_controller::state::UIState::Resize { .. } => "Resize",
+                    gridcore_controller::state::UIState::Insert { .. } => "Insert",
+                    gridcore_controller::state::UIState::Delete { .. } => "Delete",
+                    gridcore_controller::state::UIState::BulkOperation { .. } => "BulkOperation",
+                };
+                
                 let is_editing =
                     matches!(state, gridcore_controller::state::UIState::Editing { .. });
                 debug_log!(
-                    "[DISPATCH] After dispatch - mode: {:?}, cursor: {:?}, is_editing: {}",
+                    "[DISPATCH] After dispatch - state_variant: {}, mode: {:?}, cursor: {:?}, is_editing: {}, dispatch_ok: {}",
+                    state_variant,
                     mode,
                     cursor,
-                    is_editing
+                    is_editing,
+                    dispatch_result.is_ok()
                 );
-                (mode, cursor, is_editing)
+                (mode, cursor, is_editing, dispatch_result.is_ok())
             }; // ctrl_mut is dropped here
 
             // Now update UI state after borrow is dropped
@@ -757,7 +784,18 @@ pub fn CanvasGrid(
             set_active_cell.set(new_cursor);
 
             // If we just started editing, show the editor and calculate position
-            if is_editing && !editing_mode.get() {
+            // Force editing mode if we successfully dispatched StartEditing
+            let should_be_editing = is_editing || (is_start_editing && dispatch_ok);
+            debug_log!(
+                "[EDITING_MODE] is_editing: {}, should_be_editing: {}, editing_mode.get(): {}, is_start_editing: {}, dispatch_ok: {}",
+                is_editing,
+                should_be_editing,
+                editing_mode.get(),
+                is_start_editing,
+                dispatch_ok
+            );
+            if should_be_editing && !editing_mode.get() {
+                debug_log!("[EDITING_MODE] Setting editing_mode to true (forced by StartEditing or state check)");
                 set_editing_mode.set(true);
                 // Calculate cell position for the editor
                 let vp = viewport.get();
@@ -773,8 +811,10 @@ pub fn CanvasGrid(
                     pos.width,
                     pos.height,
                 ));
-            } else if !is_editing && editing_mode.get() {
-                // We exited editing mode
+                debug_log!("[EDITING_MODE] Cell position set for editor");
+            } else if !should_be_editing && editing_mode.get() && !is_start_editing {
+                // We exited editing mode (but not if we just dispatched StartEditing)
+                debug_log!("[EDITING_MODE] Setting editing_mode to false (exiting), is_start_editing: {}", is_start_editing);
                 set_editing_mode.set(false);
                 // Return focus to the grid container
                 // Use a longer timeout and retry mechanism to ensure focus is properly set

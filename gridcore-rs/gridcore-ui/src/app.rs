@@ -179,9 +179,15 @@ pub fn App() -> impl IntoView {
                                     });
                                 });
                                 leptos::logging::log!("Formula error detected: {}", error_msg);
+                                // Don't clear the formula bar when there's an error - keep it for editing
+                            } else {
+                                // Only clear formula bar on successful evaluation
+                                set_formula_value.set(String::new());
                             }
+                        } else {
+                            // Clear formula bar if we can't get the cell value
+                            set_formula_value.set(String::new());
                         }
-                        set_formula_value.set(String::new());
                     }
                     Err(e) => {
                         // Display error to user for setting errors

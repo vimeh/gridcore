@@ -120,16 +120,11 @@ impl SpreadsheetController {
 
     fn handle_navigation_key(&mut self, event: KeyboardEvent) -> Result<()> {
         match event.key.as_str() {
-            "i" => self.dispatch_action(Action::StartEditing {
-                edit_mode: Some(InsertMode::I),
-                initial_value: None,
-                cursor_position: None,
-            }),
-            "a" => self.dispatch_action(Action::StartEditing {
-                edit_mode: Some(InsertMode::A),
-                initial_value: None,
-                cursor_position: None,
-            }),
+            "i" | "a" => {
+                // Let the UI handle these keys - it will send the appropriate StartEditing action
+                // The UI canvas_grid component handles 'i' and 'a' keys and includes the existing cell value
+                Ok(())
+            }
             ":" => self.dispatch_action(Action::EnterCommandMode),
             "Escape" => self.dispatch_action(Action::Escape),
             // Arrow keys for navigation
