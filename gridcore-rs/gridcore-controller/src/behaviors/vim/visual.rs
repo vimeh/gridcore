@@ -13,7 +13,7 @@ pub struct VisualSelection {
 impl VisualSelection {
     pub fn new(anchor: CellAddress, mode: VimMode) -> Self {
         Self {
-            anchor: anchor,
+            anchor,
             cursor: anchor,
             mode,
         }

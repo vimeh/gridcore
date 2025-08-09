@@ -17,9 +17,11 @@ pub struct SpreadsheetController {
 
 impl SpreadsheetController {
     pub fn new() -> Self {
-        let mut config = GridConfiguration::default();
-        config.total_rows = 1000;
-        config.total_cols = 100;
+        let config = GridConfiguration {
+            total_rows: 1000,
+            total_cols: 100,
+            ..Default::default()
+        };
         Self::with_config(config)
     }
 
@@ -459,7 +461,7 @@ impl SpreadsheetController {
 
                     self.event_dispatcher
                         .dispatch(&SpreadsheetEvent::CellEditCompleted {
-                            address: address,
+                            address,
                             value,
                         });
                 }

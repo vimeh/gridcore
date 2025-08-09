@@ -210,9 +210,10 @@ impl SheetManager {
 
     /// Get statistics about the workbook
     pub fn get_statistics(&self) -> WorkbookStatistics {
-        let mut stats = WorkbookStatistics::default();
-
-        stats.sheet_count = self.workbook.sheet_count();
+        let mut stats = WorkbookStatistics {
+            sheet_count: self.workbook.sheet_count(),
+            ..Default::default()
+        };
 
         for sheet_name in self.workbook.sheet_names() {
             if let Some(sheet) = self.workbook.get_sheet(sheet_name) {

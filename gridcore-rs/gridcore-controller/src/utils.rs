@@ -1,4 +1,4 @@
-/// Utility functions for the spreadsheet controller
+//! Utility functions for the spreadsheet controller
 
 /// Convert a column index to a column label (0 -> A, 1 -> B, 26 -> AA, etc.)
 pub fn get_column_label(col: usize) -> String {

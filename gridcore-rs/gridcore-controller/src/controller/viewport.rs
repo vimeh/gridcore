@@ -134,9 +134,11 @@ pub struct DefaultViewportManager {
 
 impl DefaultViewportManager {
     pub fn new(rows: u32, cols: u32) -> Self {
-        let mut config = GridConfiguration::default();
-        config.total_rows = rows as usize;
-        config.total_cols = cols as usize;
+        let config = GridConfiguration {
+            total_rows: rows as usize,
+            total_cols: cols as usize,
+            ..Default::default()
+        };
 
         Self {
             viewport: ViewportInfo {

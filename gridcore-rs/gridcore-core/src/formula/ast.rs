@@ -1,6 +1,5 @@
 use crate::types::{CellAddress, CellValue};
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 /// Represents a cell range (e.g., A1:B10)
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
