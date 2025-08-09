@@ -1,11 +1,18 @@
 use crate::types::{CellAddress, CellValue};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// Represents a cell range (e.g., A1:B10)
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CellRange {
     pub start: CellAddress,
     pub end: CellAddress,
+}
+
+impl std::fmt::Display for CellRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.start.to_a1(), self.end.to_a1())
+    }
 }
 
 impl CellRange {
@@ -36,10 +43,6 @@ impl CellRange {
         Self::create(start, end)
     }
 
-    /// Convert to A1:B2 notation
-    pub fn to_string(&self) -> String {
-        format!("{}:{}", self.start.to_a1(), self.end.to_a1())
-    }
 
     /// Check if a cell address is within this range
     pub fn contains(&self, addr: &CellAddress) -> bool {

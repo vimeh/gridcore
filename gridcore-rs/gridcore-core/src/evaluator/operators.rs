@@ -136,7 +136,7 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
                 return Ok(CellValue::Error(e.clone()));
             }
             match coerce_to_number(val) {
-                Ok(n) if n == 0.0 => {
+                Ok(0.0) => {
                     // Division by zero found in array
                     return Ok(CellValue::Error("#DIV/0!".to_string()));
                 }

@@ -244,11 +244,9 @@ impl FillEngine {
         result: &mut Vec<(CellAddress, CellValue)>,
     ) -> Result<()> {
         let source_len = source_values.len();
-        let mut index = 0;
 
-        for addr in target_range.iter_cells() {
+        for (index, addr) in target_range.iter_cells().enumerate() {
             result.push((addr, source_values[index % source_len].clone()));
-            index += 1;
         }
 
         Ok(())

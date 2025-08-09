@@ -1,4 +1,4 @@
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use gridcore_core::formula::{Expr, FormulaParser, FormulaTransformer};
 use gridcore_core::types::CellAddress;
 
