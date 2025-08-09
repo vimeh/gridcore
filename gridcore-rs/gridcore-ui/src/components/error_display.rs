@@ -42,6 +42,7 @@ pub fn ErrorDisplay(
                 id,
             };
 
+            leptos::logging::log!("Adding error to display: {:?} - {}", severity, message);
             set_errors.update(|errs| errs.push(error.clone()));
 
             // Auto-dismiss after 5 seconds for info, 10 seconds for warnings

@@ -41,6 +41,7 @@ pub fn App() -> impl IntoView {
                     severity,
                 } = event
                 {
+                    leptos::logging::log!("ErrorOccurred event received: {} ({:?})", message, severity);
                     leptos::logging::log!(
                         "Error event: message={}, severity={:?}",
                         message,

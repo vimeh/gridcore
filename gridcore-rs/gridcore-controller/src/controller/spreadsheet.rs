@@ -544,10 +544,22 @@ impl SpreadsheetController {
                     if let Ok(gridcore_core::types::CellValue::Error(error_msg)) =
                         self.facade.get_cell_value(&address)
                     {
+                        // Enhanced error message with both Excel code and description
+                        let enhanced_message = match error_msg.as_str() {
+                            "#REF!" => format!("Formula error: {} - Invalid reference", error_msg),
+                            "#NAME?" => format!("Formula error: {} - Unknown function or name", error_msg),
+                            "#VALUE!" => format!("Formula error: {} - Type mismatch or invalid value", error_msg),
+                            "#CIRC!" => format!("Formula error: {} - Circular reference detected", error_msg),
+                            "#DIV/0!" => format!("Formula error: {} - Division by zero", error_msg),
+                            _ => format!("Formula error: {}", error_msg),
+                        };
+                        
+                        leptos::logging::log!("Error in cell {}: {}", address, enhanced_message);
+                        
                         // Emit error event for formula evaluation errors
                         self.event_dispatcher
                             .dispatch(&SpreadsheetEvent::ErrorOccurred {
-                                message: format!("Formula error: {}", error_msg),
+                                message: enhanced_message,
                                 severity: crate::controller::events::ErrorSeverity::Error,
                             });
                     }

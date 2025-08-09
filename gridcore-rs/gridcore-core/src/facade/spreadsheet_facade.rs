@@ -179,7 +179,11 @@ impl SpreadsheetFacade {
             // Try to evaluate the formula, but store error values if evaluation fails
             let computed_value = match evaluator.evaluate(&ast) {
                 Ok(val) => val,
-                Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
+                Err(e) => {
+                    let error_code = Self::error_to_excel_format(&e);
+                    // Debug: Evaluation error for formula
+                    CellValue::Error(error_code)
+                }
             };
             // Pop the current cell from the evaluation stack
             context.pop_evaluation(address);
@@ -661,6 +665,7 @@ impl SpreadsheetFacade {
                         _ => Self::error_to_excel_format(&parse_error),
                     };
                     // Store the Excel error code in CellValue::Error for UI display
+                    // Debug: Parse error for formula
                     cell.set_computed_value(CellValue::Error(error_code.clone()));
                     cell.set_error(error_code);
                     cell
