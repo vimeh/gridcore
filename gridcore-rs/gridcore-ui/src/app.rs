@@ -163,13 +163,28 @@ pub fn App() -> impl IntoView {
             // Set cell value through controller
             let ctrl = controller_for_submit.clone();
             if !value.is_empty() {
-                let result = ctrl.borrow().get_facade().set_cell_value(&cell, &value);
-                match result {
+                let ctrl_borrow = ctrl.borrow();
+                let facade = ctrl_borrow.get_facade();
+                match facade.set_cell_value(&cell, &value) {
                     Ok(_) => {
+                        // Check if the cell now contains an error value
+                        if let Ok(cell_value) = facade.get_cell_value(&cell) {
+                            if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
+                                // Display the Excel-style error directly
+                                set_errors.update(|errs| {
+                                    errs.push(ErrorMessage {
+                                        message: error_msg.clone(),
+                                        severity: ErrorSeverity::Error,
+                                        id: errs.len(),
+                                    });
+                                });
+                                leptos::logging::log!("Formula error detected: {}", error_msg);
+                            }
+                        }
                         set_formula_value.set(String::new());
                     }
                     Err(e) => {
-                        // Display error to user
+                        // Display error to user for setting errors
                         let error_msg = if value.starts_with('=') {
                             format!("Formula error: {}", e)
                         } else {

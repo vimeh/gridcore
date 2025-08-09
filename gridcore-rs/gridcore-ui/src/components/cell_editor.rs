@@ -250,17 +250,33 @@ pub fn CellEditor(
                     let cell = active_cell.get();
 
                     if !value.is_empty() {
-                        if let Err(e) = ctrl.borrow().get_facade().set_cell_value(&cell, &value) {
-                            // Display error to user
-                            if let Some(error_ctx) = use_error_context() {
-                                let error_msg = if value.starts_with('=') {
-                                    format!("Formula error: {}", e)
-                                } else {
-                                    format!("Error: {}", e)
-                                };
-                                error_ctx.show_error(error_msg);
+                        let ctrl_borrow = ctrl.borrow();
+                        let facade = ctrl_borrow.get_facade();
+                        match facade.set_cell_value(&cell, &value) {
+                            Ok(_) => {
+                                // Check if the cell now contains an error value
+                                if let Ok(cell_value) = facade.get_cell_value(&cell) {
+                                    if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
+                                        // Display the Excel-style error directly
+                                        if let Some(error_ctx) = use_error_context() {
+                                            error_ctx.show_error(error_msg.clone());
+                                        }
+                                        leptos::logging::log!("Formula error detected: {}", error_msg);
+                                    }
+                                }
                             }
-                            leptos::logging::log!("Error setting cell value: {:?}", e);
+                            Err(e) => {
+                                // Display error to user for setting errors
+                                if let Some(error_ctx) = use_error_context() {
+                                    let error_msg = if value.starts_with('=') {
+                                        format!("Formula error: {}", e)
+                                    } else {
+                                        format!("Error: {}", e)
+                                    };
+                                    error_ctx.show_error(error_msg);
+                                }
+                                leptos::logging::log!("Error setting cell value: {:?}", e);
+                            }
                         }
                     }
 
@@ -328,17 +344,31 @@ pub fn CellEditor(
                     if !value.is_empty() {
                         let ctrl_borrow = ctrl.borrow();
                         let facade = ctrl_borrow.get_facade();
-                        if let Err(e) = facade.set_cell_value(&cell, &value) {
-                            // Display error to user
-                            if let Some(error_ctx) = use_error_context() {
-                                let error_msg = if value.starts_with('=') {
-                                    format!("Formula error: {}", e)
-                                } else {
-                                    format!("Error: {}", e)
-                                };
-                                error_ctx.show_error(error_msg);
+                        match facade.set_cell_value(&cell, &value) {
+                            Ok(_) => {
+                                // Check if the cell now contains an error value
+                                if let Ok(cell_value) = facade.get_cell_value(&cell) {
+                                    if let gridcore_core::types::CellValue::Error(error_msg) = cell_value {
+                                        // Display the Excel-style error directly
+                                        if let Some(error_ctx) = use_error_context() {
+                                            error_ctx.show_error(error_msg.clone());
+                                        }
+                                        leptos::logging::log!("Formula error detected: {}", error_msg);
+                                    }
+                                }
                             }
-                            leptos::logging::log!("Error setting cell value: {:?}", e);
+                            Err(e) => {
+                                // Display error to user for setting errors
+                                if let Some(error_ctx) = use_error_context() {
+                                    let error_msg = if value.starts_with('=') {
+                                        format!("Formula error: {}", e)
+                                    } else {
+                                        format!("Error: {}", e)
+                                    };
+                                    error_ctx.show_error(error_msg);
+                                }
+                                leptos::logging::log!("Error setting cell value: {:?}", e);
+                            }
                         }
                     }
 
