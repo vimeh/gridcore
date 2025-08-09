@@ -11,6 +11,18 @@ use std::collections::VecDeque;
 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 use web_sys;
 
+// Debug mode flag - can be set via environment or at runtime
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+fn is_debug_enabled() -> bool {
+    // For now, always return false. Can be enhanced later.
+    false
+}
+
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+fn is_debug_enabled() -> bool {
+    std::env::var("DEBUG_MODE").unwrap_or_default() == "true"
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Action {
     StartEditing {
@@ -161,7 +173,7 @@ impl UIStateMachine {
     pub fn transition(&mut self, action: Action) -> Result<()> {
         // Log the incoming action and current state
         #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-        {
+        if is_debug_enabled() {
             web_sys::console::log_1(&format!(
                 "[STATE MACHINE] Transition requested - action: {:?}, current_mode: {:?}",
                 action,
@@ -173,7 +185,7 @@ impl UIStateMachine {
 
         // Log the resulting state
         #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-        {
+        if is_debug_enabled() {
             web_sys::console::log_1(&format!(
                 "[STATE MACHINE] Transition completed - new_mode: {:?}",
                 new_state.spreadsheet_mode()
@@ -206,7 +218,7 @@ impl UIStateMachine {
                 },
             ) => {
                 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-                {
+                if is_debug_enabled() {
                     web_sys::console::log_1(&format!(
                         "[STATE MACHINE] Navigation->StartEditing matched! cursor: {:?}, edit_mode: {:?}",
                         cursor,
@@ -244,7 +256,7 @@ impl UIStateMachine {
                 }
 
                 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-                {
+                if is_debug_enabled() {
                     web_sys::console::log_1(&format!(
                         "[STATE MACHINE] Created editing state with mode: {:?}",
                         new_state.spreadsheet_mode()
@@ -726,7 +738,7 @@ impl UIStateMachine {
 
             _ => {
                 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-                {
+                if is_debug_enabled() {
                     web_sys::console::error_1(&format!(
                         "[STATE MACHINE] INVALID TRANSITION - state: {:?}, action: {:?}",
                         state,

@@ -12,6 +12,7 @@ use web_sys::{
 
 use crate::components::cell_editor::CellEditor;
 use crate::components::viewport::Viewport;
+use crate::{debug_log, debug_console};
 use crate::interaction::resize_handler::ResizeHandler;
 use crate::rendering::default_theme;
 
@@ -120,7 +121,7 @@ pub fn CanvasGrid(
         let cell = active_cell.get();
         let ctrl = ctrl_formula.clone();
 
-        leptos::logging::log!("Formula bar update: active_cell = {:?}", cell);
+        debug_log!("Formula bar update: active_cell = {:?}", cell);
 
         // Get cell value and drop the borrow immediately
         let cell_value = {
@@ -128,7 +129,7 @@ pub fn CanvasGrid(
             let facade = ctrl_borrow.get_facade();
 
             if let Some(cell_obj) = facade.get_cell(&cell) {
-                leptos::logging::log!(
+                debug_log!(
                     "Cell found at {:?}: raw_value={}, has_formula={}",
                     cell,
                     cell_obj.raw_value,
@@ -143,12 +144,12 @@ pub fn CanvasGrid(
                     Some(cell_obj.get_display_value().to_string())
                 }
             } else {
-                leptos::logging::log!("No cell found at {:?}", cell);
+                debug_log!("No cell found at {:?}", cell);
                 None
             }
         }; // ctrl_borrow is dropped here
 
-        leptos::logging::log!("Setting formula value to: {:?}", cell_value);
+        debug_log!("Setting formula value to: {:?}", cell_value);
         // Now update the formula value signal
         set_formula_value.set(cell_value.unwrap_or_default());
     });
@@ -256,7 +257,7 @@ pub fn CanvasGrid(
 
                 let mut ctrl_mut = ctrl_dblclick.borrow_mut();
                 if let Err(e) = ctrl_mut.dispatch_action(action) {
-                    leptos::logging::log!("Error starting edit on double-click: {:?}", e);
+                    debug_log!("Error starting edit on double-click: {:?}", e);
                 } else {
                     // Update UI state
                     set_editing_mode.set(true);
@@ -332,7 +333,7 @@ pub fn CanvasGrid(
     let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
         let shift_pressed = ev.shift_key();
-        leptos::logging::log!("Key pressed: {}, shift: {}", key, shift_pressed);
+        debug_log!("Key pressed: {}, shift: {}", key, shift_pressed);
         let ctrl = ctrl_keyboard.clone();
 
         // Get current mode only - we'll get cursor when needed
@@ -384,7 +385,7 @@ pub fn CanvasGrid(
                     }
                     "l" | "ArrowRight" => {
                         ev.prevent_default();
-                        leptos::logging::log!(
+                        debug_log!(
                             "[NAV] Moving right from col={} to col={}, current_mode={:?}",
                             current_cursor.col,
                             current_cursor.col + 1,
@@ -402,7 +403,7 @@ pub fn CanvasGrid(
                             let ctrl = controller.clone();
                             let ctrl_borrow = ctrl.borrow();
                             let state = ctrl_borrow.get_state();
-                            leptos::logging::log!(
+                            debug_log!(
                                 "[NAV] 'i' key pressed - current state mode: {:?}, cursor: {:?}",
                                 state.spreadsheet_mode(),
                                 state.cursor()
@@ -440,7 +441,7 @@ pub fn CanvasGrid(
                             }
                         };
                         // 'i' key preserves existing content and positions cursor at beginning
-                        leptos::logging::log!(
+                        debug_log!(
                             "[NAV] Creating StartEditing action with existing_value='{}', cursor={:?}",
                             existing_value,
                             actual_cursor
@@ -599,7 +600,7 @@ pub fn CanvasGrid(
                             let ctrl_borrow = ctrl.borrow();
                             let facade = ctrl_borrow.get_facade();
                             if let Err(e) = facade.set_cell_value(&current_cursor, "") {
-                                leptos::logging::log!("Error clearing cell: {:?}", e);
+                                debug_log!("Error clearing cell: {:?}", e);
                             }
                         }
                         // Update formula bar
@@ -674,7 +675,7 @@ pub fn CanvasGrid(
                                 || "!@#$%^&*()_+-=[]{}|;':\",./<>?`~".contains(ch)
                             {
                                 ev.prevent_default();
-                                leptos::logging::log!(
+                                debug_log!(
                                     "Direct typing: key='{}', starting edit mode",
                                     key
                                 );
@@ -723,18 +724,18 @@ pub fn CanvasGrid(
 
         // Dispatch action if we have one
         if let Some(action) = action {
-            leptos::logging::log!("[DISPATCH] About to dispatch action: {:?}", action);
+            debug_log!("[DISPATCH] About to dispatch action: {:?}", action);
             // Dispatch action and get new state, then drop the borrow
             let (new_mode, new_cursor, is_editing) = {
                 let mut ctrl_mut = ctrl.borrow_mut();
                 let old_state = ctrl_mut.get_state().clone();
-                leptos::logging::log!(
+                debug_log!(
                     "[DISPATCH] Before dispatch - mode: {:?}, cursor: {:?}",
                     old_state.spreadsheet_mode(),
                     old_state.cursor()
                 );
                 if let Err(e) = ctrl_mut.dispatch_action(action.clone()) {
-                    leptos::logging::log!("[DISPATCH] Error dispatching action: {:?}", e);
+                    debug_log!("[DISPATCH] Error dispatching action: {:?}", e);
                 }
 
                 let state = ctrl_mut.get_state();
@@ -742,7 +743,7 @@ pub fn CanvasGrid(
                 let cursor = *state.cursor();
                 let is_editing =
                     matches!(state, gridcore_controller::state::UIState::Editing { .. });
-                leptos::logging::log!(
+                debug_log!(
                     "[DISPATCH] After dispatch - mode: {:?}, cursor: {:?}, is_editing: {}",
                     mode,
                     cursor,
@@ -776,19 +777,65 @@ pub fn CanvasGrid(
                 // We exited editing mode
                 set_editing_mode.set(false);
                 // Return focus to the grid container
-                // Use a very small timeout to ensure DOM updates have completed
+                // Use a longer timeout and retry mechanism to ensure focus is properly set
                 let wrapper_clone = wrapper_ref.clone();
+                let retry_count = std::rc::Rc::new(std::cell::Cell::new(0));
+                let retry_count_clone = retry_count.clone();
+                
+                let focus_fn = std::rc::Rc::new(std::cell::RefCell::new(None::<Box<dyn Fn()>>));
+                let focus_fn_clone = focus_fn.clone();
+                
+                *focus_fn.borrow_mut() = Some(Box::new(move || {
+                    if let Some(wrapper) = wrapper_clone.get() {
+                        let _ = wrapper.focus();
+                        
+                        // Check if focus was actually set
+                        if let Some(window) = web_sys::window() {
+                            if let Some(document) = window.document() {
+                                if let Some(active) = document.active_element() {
+                                    // Check if the wrapper or one of its children has focus
+                                    let wrapper_element: &web_sys::Element = wrapper.as_ref();
+                                    if !wrapper.contains(Some(&active)) && !wrapper_element.is_same_node(Some(&active)) {
+                                        // Focus failed, retry if we haven't exceeded max retries
+                                        if retry_count_clone.get() < 3 {
+                                            retry_count_clone.set(retry_count_clone.get() + 1);
+                                            debug_log!(
+                                                "[FOCUS] Retrying focus set, attempt {}",
+                                                retry_count_clone.get()
+                                            );
+                                            let focus_fn_clone2 = focus_fn_clone.clone();
+                                            set_timeout(
+                                                move || {
+                                                    if let Some(f) = &*focus_fn_clone2.borrow() {
+                                                        f();
+                                                    }
+                                                },
+                                                std::time::Duration::from_millis(50),
+                                            );
+                                        } else {
+                                            debug_log!("[FOCUS] Failed to set focus after 3 retries");
+                                        }
+                                    } else {
+                                        debug_log!("[FOCUS] Successfully set focus to grid container");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }));
+                
+                // Initial attempt with 50ms delay
                 set_timeout(
                     move || {
-                        if let Some(wrapper) = wrapper_clone.get() {
-                            let _ = wrapper.focus();
+                        if let Some(f) = &*focus_fn.borrow() {
+                            f();
                         }
                     },
-                    std::time::Duration::from_millis(1),
+                    std::time::Duration::from_millis(50),
                 );
             }
 
-            leptos::logging::log!(
+            debug_log!(
                 "Updated active cell to: col={}, row={}, editing={}",
                 new_cursor.col,
                 new_cursor.row,

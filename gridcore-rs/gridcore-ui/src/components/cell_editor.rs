@@ -5,6 +5,7 @@ use leptos::html::Textarea;
 use leptos::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+use wasm_bindgen::JsCast;
 use web_sys::KeyboardEvent;
 
 #[component]
@@ -254,6 +255,17 @@ pub fn CellEditor(
                         }
                     }
 
+                    // Return focus to grid container before exiting
+                    if let Some(window) = web_sys::window() {
+                        if let Some(document) = window.document() {
+                            if let Some(grid) = document.query_selector(".grid-container").ok().flatten() {
+                                if let Ok(html_element) = grid.dyn_into::<web_sys::HtmlElement>() {
+                                    let _ = html_element.focus();
+                                }
+                            }
+                        }
+                    }
+                    
                     // Exit editing mode
                     set_editing_mode.set(false);
                     let mut ctrl_mut = ctrl.borrow_mut();
@@ -313,6 +325,17 @@ pub fn CellEditor(
                         }
                     }
 
+                    // Return focus to grid container before exiting
+                    if let Some(window) = web_sys::window() {
+                        if let Some(document) = window.document() {
+                            if let Some(grid) = document.query_selector(".grid-container").ok().flatten() {
+                                if let Ok(html_element) = grid.dyn_into::<web_sys::HtmlElement>() {
+                                    let _ = html_element.focus();
+                                }
+                            }
+                        }
+                    }
+                    
                     // Then exit editing
                     set_editing_mode.set(false);
                     set_suggestions.set(Vec::new());
@@ -331,6 +354,17 @@ pub fn CellEditor(
                     // Update formula bar
                     set_formula_value.set(value);
                 } else {
+                    // Return focus to grid container before exiting
+                    if let Some(window) = web_sys::window() {
+                        if let Some(document) = window.document() {
+                            if let Some(grid) = document.query_selector(".grid-container").ok().flatten() {
+                                if let Ok(html_element) = grid.dyn_into::<web_sys::HtmlElement>() {
+                                    let _ = html_element.focus();
+                                }
+                            }
+                        }
+                    }
+                    
                     // Not in expected state - just exit
                     set_editing_mode.set(false);
                     let mut ctrl_mut = ctrl.borrow_mut();

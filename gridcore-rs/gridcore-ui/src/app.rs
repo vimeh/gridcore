@@ -211,7 +211,13 @@ pub fn App() -> impl IntoView {
                     <button class="toolbar-button">"Import"</button>
                     <button class="toolbar-button">"Export"</button>
                     <label style="margin-left: 20px;">
-                        <input type="checkbox" />
+                        <input 
+                            type="checkbox" 
+                            on:change=move |ev| {
+                                let checked = event_target_checked(&ev);
+                                crate::debug::set_debug_mode(checked);
+                            }
+                        />
                         " Debug Mode"
                     </label>
                     <label style="margin-left: 10px;">
