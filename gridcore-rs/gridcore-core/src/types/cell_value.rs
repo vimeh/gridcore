@@ -225,7 +225,7 @@ mod tests {
         assert_eq!(CellValue::Empty.to_display_string(), "");
         assert_eq!(
             CellValue::Error("ERROR".to_string()).to_display_string(),
-            "ERROR"
+            "#ERROR"
         );
 
         let array = CellValue::Array(vec![CellValue::Number(1.0), CellValue::Number(2.0)]);
@@ -294,7 +294,7 @@ mod tests {
         assert_eq!(format!("{}", CellValue::Empty), "");
         assert_eq!(
             format!("{}", CellValue::Error("ERROR".to_string())),
-            "ERROR"
+            "#ERROR"
         );
     }
 
