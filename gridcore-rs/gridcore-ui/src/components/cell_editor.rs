@@ -1,3 +1,4 @@
+use crate::components::error_display::use_error_context;
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_controller::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState};
 use gridcore_core::types::CellAddress;
@@ -250,7 +251,15 @@ pub fn CellEditor(
 
                     if !value.is_empty() {
                         if let Err(e) = ctrl.borrow().get_facade().set_cell_value(&cell, &value) {
-                            // Error will be displayed through controller events
+                            // Display error to user
+                            if let Some(error_ctx) = use_error_context() {
+                                let error_msg = if value.starts_with('=') {
+                                    format!("Formula error: {}", e)
+                                } else {
+                                    format!("Error: {}", e)
+                                };
+                                error_ctx.show_error(error_msg);
+                            }
                             leptos::logging::log!("Error setting cell value: {:?}", e);
                         }
                     }
@@ -320,7 +329,15 @@ pub fn CellEditor(
                         let ctrl_borrow = ctrl.borrow();
                         let facade = ctrl_borrow.get_facade();
                         if let Err(e) = facade.set_cell_value(&cell, &value) {
-                            // Error will be displayed through controller events
+                            // Display error to user
+                            if let Some(error_ctx) = use_error_context() {
+                                let error_msg = if value.starts_with('=') {
+                                    format!("Formula error: {}", e)
+                                } else {
+                                    format!("Error: {}", e)
+                                };
+                                error_ctx.show_error(error_msg);
+                            }
                             leptos::logging::log!("Error setting cell value: {:?}", e);
                         }
                     }

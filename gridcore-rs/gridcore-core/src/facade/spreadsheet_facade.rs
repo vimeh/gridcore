@@ -195,6 +195,26 @@ impl SpreadsheetFacade {
             },
         ));
 
+        // If the formula evaluated to an error, also emit an error event to show in UI
+        if matches!(computed_value, CellValue::Error(_)) {
+            let error_msg = match &computed_value {
+                CellValue::Error(e) => {
+                    if value.starts_with('=') {
+                        format!("Formula error in {}: {}", address, e)
+                    } else {
+                        format!("Error in {}: {}", address, e)
+                    }
+                }
+                _ => String::new(),
+            };
+            if !error_msg.is_empty() {
+                self.emit_event(SpreadsheetEvent::error(
+                    error_msg,
+                    Some(address),
+                ));
+            }
+        }
+
         // Recalculate dependents
         self.recalculate_dependents(address)?;
 
@@ -616,6 +636,18 @@ impl SpreadsheetFacade {
                         Ok(val) => val,
                         Err(e) => CellValue::Error(Self::error_to_excel_format(&e)),
                     };
+                    
+                    // If the dependent formula now evaluates to an error, emit an error event
+                    if matches!(result, CellValue::Error(_)) {
+                        if let CellValue::Error(e) = &result {
+                            let error_msg = format!("Formula error in {}: {}", dependent, e);
+                            self.emit_event(SpreadsheetEvent::error(
+                                error_msg,
+                                Some(&dependent),
+                            ));
+                        }
+                    }
+                    
                     cell.set_computed_value(result);
                     self.repository.borrow_mut().set(&dependent, cell);
 

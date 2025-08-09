@@ -1011,7 +1011,8 @@ fn render_grid(
 
             // Get cell value from facade
             if let Some(cell) = facade.get_cell(&cell_address) {
-                let value_str = cell.get_display_value().to_string();
+                let display_value = cell.get_display_value();
+                let value_str = display_value.to_string();
 
                 let x = viewport.get_column_x(col) - viewport.get_scroll_position().x
                     + theme.row_header_width;
@@ -1019,10 +1020,23 @@ fn render_grid(
                     + theme.column_header_height;
                 let height = viewport.get_row_height(row);
 
+                // Check if the value is an error and set appropriate color
+                let is_error = matches!(display_value, gridcore_core::types::CellValue::Error(_));
+                if is_error {
+                    ctx.set_fill_style_str("#ff4444"); // Red color for errors
+                } else {
+                    ctx.set_fill_style_str(&theme.cell_text_color);
+                }
+
                 // Draw cell text
                 let text_x = x + theme.cell_padding_left;
                 let text_y = y + height / 2.0 + 4.0; // Vertical center alignment
                 ctx.fill_text(&value_str, text_x, text_y).ok();
+                
+                // Reset fill style if it was changed
+                if is_error {
+                    ctx.set_fill_style_str(&theme.cell_text_color);
+                }
             }
         }
     }

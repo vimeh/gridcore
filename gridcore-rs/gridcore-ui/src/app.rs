@@ -1,5 +1,5 @@
 use crate::components::canvas_grid::CanvasGrid;
-use crate::components::error_display::{ErrorDisplay, ErrorMessage, ErrorSeverity};
+use crate::components::error_display::{use_error_context, ErrorDisplay, ErrorMessage, ErrorSeverity};
 use crate::components::status_bar::{SelectionStats, StatusBar};
 use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
@@ -169,7 +169,19 @@ pub fn App() -> impl IntoView {
                         set_formula_value.set(String::new());
                     }
                     Err(e) => {
-                        // Error will be displayed through controller events
+                        // Display error to user
+                        let error_msg = if value.starts_with('=') {
+                            format!("Formula error: {}", e)
+                        } else {
+                            format!("Error: {}", e)
+                        };
+                        set_errors.update(|errs| {
+                            errs.push(ErrorMessage {
+                                message: error_msg,
+                                severity: ErrorSeverity::Error,
+                                id: errs.len(),
+                            });
+                        });
                         leptos::logging::log!("Error setting cell value: {}", e);
                     }
                 }
