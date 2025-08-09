@@ -459,7 +459,7 @@ mod complex_transition_tests {
 
         // Build complex command character by character
         let command = ":s/foo/bar/g";
-        for (i, _) in command.chars().enumerate() {
+        for (i, _) in command.char_indices() {
             machine
                 .transition(Action::UpdateCommandValue {
                     value: command[..=i].to_string(),
