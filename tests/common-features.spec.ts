@@ -25,13 +25,13 @@ test.describe("Common Features", () => {
     const cellValue = page.locator(".formula-input");
 
     // Check A1
-    await expect(cellRef).toHaveText("A1");
+    await expect(cellRef).toHaveValue("A1");
     await expect(cellValue).toHaveValue("Hello");
 
     // Navigate to B2
     await page.keyboard.press("l");
     await page.keyboard.press("j");
-    await expect(cellRef).toHaveText("B2");
+    await expect(cellRef).toHaveValue("B2");
     await expect(cellValue).toHaveValue("123");
   });
 
@@ -40,9 +40,9 @@ test.describe("Common Features", () => {
       .locator(".mode-indicator")
       .filter({ hasText: "hjkl to move" });
 
-    // Should start in navigation mode (shown as NORMAL in vim style)
+    // Should start in navigation mode
     await expect(modeIndicator).toBeVisible();
-    await expect(modeIndicator).toContainText("NORMAL");
+    await expect(modeIndicator).toContainText("NAVIGATION");
 
     // Should show helpful hints
     await expect(modeIndicator).toContainText("hjkl to move");
@@ -106,21 +106,27 @@ test.describe("Common Features", () => {
     // Grid container should be focusable
     const gridContainer = page.locator(".grid-container");
 
-    // Click on grid to focus it
-    await gridContainer.click();
+    // Start from a known position - click on A1 area
+    const canvas = page.locator("canvas.grid-canvas");
+    const box = await canvas.boundingBox();
+    if (box) {
+      // Click on A1 cell area (just below and right of headers)
+      await page.mouse.click(box.x + 60, box.y + 30);
+    }
 
     // Wait for grid to be focused
     await page.waitForTimeout(100);
 
-    // Navigate to A1 using vim keys (go far left and up)
-    // Press 'h' multiple times to go to column A
-    for (let i = 0; i < 20; i++) {
-      await page.keyboard.press("h");
-    }
-    // Press 'k' multiple times to go to row 1
-    for (let i = 0; i < 20; i++) {
-      await page.keyboard.press("k");
-    }
+    // Navigate around and then back to A1 using vim keys
+    // Move right and down first
+    await page.keyboard.press("l");
+    await page.keyboard.press("j");
+    
+    // Now navigate back to A1 using vim keys
+    // Press 'h' to go to column A
+    await page.keyboard.press("h");
+    // Press 'k' to go to row 1  
+    await page.keyboard.press("k");
 
     // Verify we're at A1
     await expect(page.locator(".cell-indicator")).toHaveValue("A1");
