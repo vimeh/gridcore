@@ -171,12 +171,14 @@ impl SpreadsheetController {
 
     fn handle_navigation_key(&mut self, event: KeyboardEvent) -> Result<()> {
         let current_cursor = *self.state_machine.get_state().cursor();
-        
+
         match event.key.as_str() {
             // Edit mode triggers
             "i" => {
                 // Get existing cell value for insert mode
-                let existing_value = self.facade.get_cell(&current_cursor)
+                let existing_value = self
+                    .facade
+                    .get_cell(&current_cursor)
                     .map(|cell| {
                         if cell.has_formula() {
                             cell.raw_value.to_string()
@@ -193,7 +195,9 @@ impl SpreadsheetController {
             }
             "a" => {
                 // Get existing cell value for append mode
-                let existing_value = self.facade.get_cell(&current_cursor)
+                let existing_value = self
+                    .facade
+                    .get_cell(&current_cursor)
                     .map(|cell| {
                         if cell.has_formula() {
                             cell.raw_value.to_string()
@@ -217,10 +221,10 @@ impl SpreadsheetController {
                     cursor_position: Some(0),
                 })
             }
-            
+
             // Command mode
             ":" => self.dispatch_action(Action::EnterCommandMode),
-            
+
             // Visual mode
             "v" => {
                 use crate::state::{Selection, SelectionType, SpreadsheetVisualMode};
@@ -234,13 +238,13 @@ impl SpreadsheetController {
                     },
                 })
             }
-            
+
             // Navigation
             "ArrowUp" | "k" => self.move_cursor(0, -1),
             "ArrowDown" | "j" => self.move_cursor(0, 1),
             "ArrowLeft" | "h" => self.move_cursor(-1, 0),
             "ArrowRight" | "l" => self.move_cursor(1, 0),
-            
+
             // Tab navigation
             "Tab" => {
                 if event.shift {
@@ -273,7 +277,7 @@ impl SpreadsheetController {
                     }
                 }
             }
-            
+
             // Cell operations
             "Delete" | "Backspace" => {
                 // Clear the current cell
@@ -285,10 +289,10 @@ impl SpreadsheetController {
                     });
                 Ok(())
             }
-            
+
             // Escape does nothing in navigation mode
             "Escape" => Ok(()),
-            
+
             _ => Ok(()),
         }
     }

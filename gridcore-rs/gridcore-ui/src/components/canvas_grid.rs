@@ -381,13 +381,13 @@ pub fn CanvasGrid(
         let ctrl_pressed = ev.ctrl_key();
         let alt_pressed = ev.alt_key();
         let meta_pressed = ev.meta_key();
-        
+
         debug_log!("Key pressed: {}, shift: {}", key, shift_pressed);
-        
+
         // Always prevent default for keys we might handle
         match key.as_str() {
-            "Tab" | "Enter" | "Escape" | "Delete" | "Backspace" |
-            "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" => {
+            "Tab" | "Enter" | "Escape" | "Delete" | "Backspace" | "ArrowUp" | "ArrowDown"
+            | "ArrowLeft" | "ArrowRight" => {
                 ev.prevent_default();
             }
             _ if key.len() == 1 => {
@@ -396,40 +396,39 @@ pub fn CanvasGrid(
             }
             _ => {}
         }
-        
+
         // Convert browser keyboard event to controller event
         let controller_event = gridcore_controller::controller::KeyboardEvent::new(key.clone())
             .with_modifiers(shift_pressed, ctrl_pressed, alt_pressed, meta_pressed);
-        
+
         // Get the current state before handling the event
         let ctrl = ctrl_keyboard.clone();
         let old_state = ctrl.borrow().get_state().clone();
         let old_mode = old_state.spreadsheet_mode();
         let old_cursor = *old_state.cursor();
 
-        
         // Forward the event to the controller
         let result = ctrl.borrow_mut().handle_keyboard_event(controller_event);
-        
+
         // Handle any errors
         if let Err(e) = result {
             debug_log!("Error handling keyboard event: {:?}", e);
         }
-        
+
         // Get the updated state after handling
         let new_state = ctrl.borrow().get_state().clone();
         let new_mode = new_state.spreadsheet_mode();
         let new_cursor = *new_state.cursor();
-        
+
         // Update UI state based on controller state
         if new_mode != old_mode {
             set_current_mode.set(new_mode);
         }
-        
+
         if new_cursor != old_cursor {
             set_active_cell.set(new_cursor);
         }
-        
+
         // Update cell position for editor if we're in editing mode
         if matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert) {
             let vp = viewport.get();
@@ -445,16 +444,18 @@ pub fn CanvasGrid(
                 pos.width,
                 pos.height,
             ));
-            
+
             // Show editor if transitioning to editing mode
             if !editing_mode.get() {
                 set_editing_mode.set(true);
             }
-        } else if editing_mode.get() && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert) {
+        } else if editing_mode.get()
+            && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert)
+        {
             // Hide editor if leaving editing mode
             set_editing_mode.set(false);
         }
-        
+
         // Update formula bar based on current state
         match &new_state {
             UIState::Editing { editing_value, .. } => {
@@ -479,30 +480,32 @@ pub fn CanvasGrid(
             }
             _ => {}
         }
-        
+
         // Auto-scroll to keep the active cell visible if cursor moved
-        if new_cursor != old_cursor && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert) {
+        if new_cursor != old_cursor
+            && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert)
+        {
             let vp = viewport.get();
             let mut vp_borrow = vp.borrow_mut();
-            
+
             // Check if the cell is visible and scroll if needed
             let cell_pos = vp_borrow.get_cell_position(&new_cursor);
-            
+
             // Calculate absolute position (without scroll offset)
             let absolute_x = cell_pos.x + vp_borrow.get_scroll_position().x;
             let absolute_y = cell_pos.y + vp_borrow.get_scroll_position().y;
-            
+
             // Check if we need to scroll
             let ctrl_borrow = ctrl_keydown.borrow();
             let config = ctrl_borrow.get_config();
             let viewport_width = vp_borrow.get_viewport_width() - config.row_header_width;
             let viewport_height = vp_borrow.get_viewport_height() - config.column_header_height;
             let scroll_pos = vp_borrow.get_scroll_position();
-            
+
             let mut needs_scroll = false;
             let mut new_scroll_x = scroll_pos.x;
             let mut new_scroll_y = scroll_pos.y;
-            
+
             // Check horizontal scrolling
             if absolute_x < scroll_pos.x {
                 new_scroll_x = absolute_x;
@@ -511,7 +514,7 @@ pub fn CanvasGrid(
                 new_scroll_x = absolute_x + cell_pos.width - viewport_width;
                 needs_scroll = true;
             }
-            
+
             // Check vertical scrolling
             if absolute_y < scroll_pos.y {
                 new_scroll_y = absolute_y;
@@ -520,7 +523,7 @@ pub fn CanvasGrid(
                 new_scroll_y = absolute_y + cell_pos.height - viewport_height;
                 needs_scroll = true;
             }
-            
+
             if needs_scroll {
                 vp_borrow.set_scroll_position(new_scroll_x.max(0.0), new_scroll_y.max(0.0));
                 drop(vp_borrow);

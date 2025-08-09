@@ -1,6 +1,6 @@
 use gridcore_controller::controller::events::{MouseButton, MouseEventType};
-use gridcore_controller::controller::SpreadsheetController;
 use gridcore_controller::controller::MouseEvent;
+use gridcore_controller::controller::SpreadsheetController;
 use gridcore_controller::state::{Action, UIState, UIStateMachine};
 use gridcore_core::types::CellAddress;
 
@@ -247,4 +247,3 @@ fn test_controller_with_facade_integration() {
         assert_eq!(display_value.to_string(), "20");
     }
 }
-

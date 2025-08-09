@@ -466,4 +466,3 @@ impl Default for SelectionManager {
         Self::new()
     }
 }
-

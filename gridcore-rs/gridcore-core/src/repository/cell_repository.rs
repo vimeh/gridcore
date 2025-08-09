@@ -101,7 +101,6 @@ impl CellRepository {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

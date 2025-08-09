@@ -162,7 +162,6 @@ impl FromStr for CellAddress {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

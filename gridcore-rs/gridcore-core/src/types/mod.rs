@@ -21,4 +21,3 @@ pub fn column_index_to_label(index: u32) -> String {
 
     label
 }
-

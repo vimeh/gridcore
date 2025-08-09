@@ -12,7 +12,6 @@ pub enum CellValue {
 }
 
 impl CellValue {
-
     /// Check if the value is numeric
     pub fn is_number(&self) -> bool {
         matches!(self, CellValue::Number(_))

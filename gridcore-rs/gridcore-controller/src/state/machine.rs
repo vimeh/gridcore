@@ -685,13 +685,11 @@ impl UIStateMachine {
             // Escape handling
             (_, Action::Escape) => self.handle_escape(state),
 
-            _ => {
-                Err(SpreadsheetError::InvalidOperation(format!(
-                    "Invalid transition from {:?} with action {:?}",
-                    state.spreadsheet_mode(),
-                    action
-                )))
-            }
+            _ => Err(SpreadsheetError::InvalidOperation(format!(
+                "Invalid transition from {:?} with action {:?}",
+                state.spreadsheet_mode(),
+                action
+            ))),
         }
     }
 
