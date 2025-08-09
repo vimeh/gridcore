@@ -17,7 +17,7 @@ fn benchmark_single_undo_redo(c: &mut Criterion) {
             // Redo
             facade.redo().unwrap();
 
-            black_box(facade.get_cell_value(&addr));
+            let _ = black_box(facade.get_cell_value(&addr));
         });
     });
 }
@@ -100,7 +100,7 @@ fn benchmark_undo_redo_with_formulas(c: &mut Criterion) {
             // Redo the change
             facade.redo().unwrap();
 
-            black_box(facade.get_cell_value(&c1));
+            let _ = black_box(facade.get_cell_value(&c1));
         });
     });
 }

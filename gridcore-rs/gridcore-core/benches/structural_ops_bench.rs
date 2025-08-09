@@ -36,7 +36,7 @@ fn bench_insert_row_operations(c: &mut Criterion) {
                 || setup_spreadsheet(num_cells),
                 |facade| {
                     // Insert a row in the middle
-                    facade.insert_row(black_box(5));
+                    let _ = facade.insert_row(black_box(5));
                 },
             );
         });
@@ -54,7 +54,7 @@ fn bench_delete_column_operations(c: &mut Criterion) {
                 || setup_spreadsheet(num_cells),
                 |facade| {
                     // Delete column B (index 1)
-                    facade.delete_column(black_box(1));
+                    let _ = facade.delete_column(black_box(1));
                 },
             );
         });
@@ -73,10 +73,10 @@ fn bench_batch_structural_operations(c: &mut Criterion) {
                 let batch_id = facade.begin_batch(None);
 
                 // Perform multiple structural operations
-                facade.insert_row(black_box(5));
-                facade.delete_column(black_box(2));
-                facade.insert_column(black_box(10));
-                facade.delete_row(black_box(8));
+                let _ = facade.insert_row(black_box(5));
+                let _ = facade.delete_column(black_box(2));
+                let _ = facade.insert_column(black_box(10));
+                let _ = facade.delete_row(black_box(8));
 
                 facade.commit_batch(&batch_id).ok();
             },
@@ -90,10 +90,10 @@ fn bench_batch_structural_operations(c: &mut Criterion) {
                 let batch_id = facade.begin_batch(None);
 
                 // Perform multiple structural operations
-                facade.insert_row(black_box(50));
-                facade.delete_column(black_box(5));
-                facade.insert_column(black_box(20));
-                facade.delete_row(black_box(80));
+                let _ = facade.insert_row(black_box(50));
+                let _ = facade.delete_column(black_box(5));
+                let _ = facade.insert_column(black_box(20));
+                let _ = facade.delete_row(black_box(80));
 
                 facade.commit_batch(&batch_id).ok();
             },
@@ -126,7 +126,7 @@ fn bench_recalculation_after_structural_change(c: &mut Criterion) {
             },
             |facade| {
                 // Insert a row which requires recalculation
-                facade.insert_row(black_box(50));
+                let _ = facade.insert_row(black_box(50));
                 facade.recalculate().ok();
             },
         );

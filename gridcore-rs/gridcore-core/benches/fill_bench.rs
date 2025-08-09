@@ -122,7 +122,7 @@ fn bench_fill_operations(c: &mut Criterion) {
                     source_range,
                     target_range,
                     direction: FillDirection::Down,
-                    pattern: Some(PatternType::Linear(1.0)),
+                    pattern: Some(PatternType::Linear { slope: 1.0 }),
                 };
 
                 black_box(engine.fill(&operation))
@@ -194,7 +194,7 @@ fn bench_large_range_operations(c: &mut Criterion) {
                 source_range,
                 target_range,
                 direction: FillDirection::Down,
-                pattern: Some(PatternType::Linear(1.0)),
+                pattern: Some(PatternType::Linear { slope: 1.0 }),
             };
 
             black_box(engine.preview(&operation))
