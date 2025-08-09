@@ -14,32 +14,47 @@
 - ✅ Integrated `GridConfiguration` into `SpreadsheetController`
 - ✅ Added utility functions for column label conversion
 
-### Phase 3: Resize Management
+### Phase 3: Cell Calculations
+- ✅ Moved `get_cell_at_position` to `ViewportManager::get_cell_at_position`
+- ✅ Moved `get_cell_position` to `ViewportManager::get_cell_position`
+- ✅ Added column/row coordinate utilities (`get_column_x`, `get_row_y`)
+- ✅ Moved column label generation to controller utils
+
+### Phase 4: Resize Management
 - ✅ Created `ResizeManager` in controller for column/row resize operations
 - ✅ Added resize state tracking and limits enforcement
 - ✅ Integrated `ResizeManager` into `SpreadsheetController`
 - ✅ Added unit tests for resize functionality
 
+### UI Integration
+- ✅ Updated `canvas_grid.rs` to use controller's `GridConfiguration`
+- ✅ Updated `viewport.rs` to import types from controller
+- ✅ Fixed ownership issues with proper controller cloning
+- ✅ Modified `render_grid` to accept `GridConfiguration` parameter
+
 ### Test Fixes
 - ✅ Updated controller tests to match new architecture
 - ✅ Fixed mode transition tests for new state management
 - ✅ Added Insert mode keyboard handler
+- ✅ All controller tests passing (204 tests)
 
 ## Remaining Tasks 📋
 
-### UI Integration
-- ⏳ Update `canvas_grid.rs` to use controller's `GridConfiguration`
-- ⏳ Replace UI `Viewport` with controller's `ViewportManager`
-- ⏳ Update resize handler to use controller's `ResizeManager`
-- ⏳ Refactor mouse/keyboard event handling to delegate to controller
-
 ### Event System
-- ⏳ Complete keyboard event delegation to controller
-- ⏳ Move mouse event business logic to controller
+- ⏳ Move keyboard navigation logic from UI to controller
+- ⏳ Enhance controller's `handle_keyboard_event` for complete navigation
 - ⏳ Ensure UI only captures events and renders
 
+### ResizeHandler Update
+- ⏳ Update `resize_handler.rs` to use controller's `ResizeManager`
+- ⏳ Remove local resize state management
+- ⏳ Delegate resize operations to controller
+
+### Final Cleanup
+- ⏳ Remove duplicate `GridConfiguration` from UI viewport
+- ⏳ Simplify UI viewport to be thin wrapper around controller
+
 ### Testing & Validation
-- ⏳ Fix remaining reference toggle tests
 - ⏳ Run full test suite across all packages
 - ⏳ Test WASM compilation
 - ⏳ Manual testing of UI interactions
@@ -107,3 +122,4 @@ When updating UI components:
 - `0c7207f` - Add GridConfiguration and enhance viewport management
 - `b1aaf72` - Add ResizeManager for column/row resize operations
 - `a47e03e` - Update tests for new architecture
+- `512b46a` - Complete UI-to-controller architecture migration

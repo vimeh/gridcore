@@ -1,5 +1,5 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{Action, InsertMode, SpreadsheetMode};
+use gridcore_controller::state::{Action, InsertMode, SpreadsheetMode, UIState};
 use gridcore_core::types::CellAddress;
 use leptos::html::{Canvas, Div};
 use leptos::*;
@@ -378,616 +378,155 @@ pub fn CanvasGrid(
     let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
         let shift_pressed = ev.shift_key();
+        let ctrl_pressed = ev.ctrl_key();
+        let alt_pressed = ev.alt_key();
+        let meta_pressed = ev.meta_key();
+        
         debug_log!("Key pressed: {}, shift: {}", key, shift_pressed);
+        
+        // Always prevent default for keys we might handle
+        match key.as_str() {
+            "Tab" | "Enter" | "Escape" | "Delete" | "Backspace" |
+            "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" => {
+                ev.prevent_default();
+            }
+            _ if key.len() == 1 => {
+                // Single character keys that might start editing
+                ev.prevent_default();
+            }
+            _ => {}
+        }
+        
+        // Convert browser keyboard event to controller event
+        let controller_event = gridcore_controller::controller::KeyboardEvent::new(key.clone())
+            .with_modifiers(shift_pressed, ctrl_pressed, alt_pressed, meta_pressed);
+        
+        // Get the current state before handling the event
         let ctrl = ctrl_keyboard.clone();
+        let old_state = ctrl.borrow().get_state().clone();
+        let old_mode = old_state.spreadsheet_mode();
+        let old_cursor = *old_state.cursor();
 
-        // Get current mode only - we'll get cursor when needed
-        let current_mode = {
-            let ctrl_borrow = ctrl.borrow();
-            ctrl_borrow.get_state().spreadsheet_mode()
-        };
-
-        // For navigation, handle movement directly since controller doesn't have Move action
-        let action = match current_mode {
-            SpreadsheetMode::Navigation => {
-                // Get fresh cursor state for navigation actions
-                let current_cursor = {
-                    let ctrl_borrow = ctrl.borrow();
-                    *ctrl_borrow.get_state().cursor()
-                };
-                match key.as_str() {
-                    "h" | "ArrowLeft" => {
-                        ev.prevent_default();
-                        if current_cursor.col > 0 {
-                            Some(Action::UpdateCursor {
-                                cursor: CellAddress::new(
-                                    current_cursor.col - 1,
-                                    current_cursor.row,
-                                ),
-                            })
-                        } else {
-                            None
-                        }
-                    }
-                    "j" | "ArrowDown" => {
-                        ev.prevent_default();
-                        Some(Action::UpdateCursor {
-                            cursor: CellAddress::new(current_cursor.col, current_cursor.row + 1),
-                        })
-                    }
-                    "k" | "ArrowUp" => {
-                        ev.prevent_default();
-                        if current_cursor.row > 0 {
-                            Some(Action::UpdateCursor {
-                                cursor: CellAddress::new(
-                                    current_cursor.col,
-                                    current_cursor.row - 1,
-                                ),
-                            })
-                        } else {
-                            None
-                        }
-                    }
-                    "l" | "ArrowRight" => {
-                        ev.prevent_default();
-                        debug_log!(
-                            "[NAV] Moving right from col={} to col={}, current_mode={:?}",
-                            current_cursor.col,
-                            current_cursor.col + 1,
-                            current_mode
-                        );
-                        Some(Action::UpdateCursor {
-                            cursor: CellAddress::new(current_cursor.col + 1, current_cursor.row),
-                        })
-                    }
-                    "i" => {
-                        ev.prevent_default();
-                        // Get the current cursor from the controller, not the UI signal
-                        // This ensures we're using the controller's actual state
-                        let actual_cursor = {
-                            let ctrl = controller.clone();
-                            let ctrl_borrow = ctrl.borrow();
-                            let state = ctrl_borrow.get_state();
-                            debug_log!(
-                                "[NAV] 'i' key pressed - current state mode: {:?}, cursor: {:?}",
-                                state.spreadsheet_mode(),
-                                state.cursor()
-                            );
-                            *state.cursor()
-                        };
-                        // Calculate cell position for the editor
-                        let vp = viewport.get();
-                        let (pos, config) = {
-                            let vp_borrow = vp.borrow();
-                            let pos = vp_borrow.get_cell_position(&actual_cursor);
-                            let config = ctrl_keydown.borrow().get_config().clone();
-                            (pos, config)
-                        }; // vp_borrow is dropped here
-                        set_cell_position.set((
-                            pos.x + config.row_header_width,
-                            pos.y + config.column_header_height,
-                            pos.width,
-                            pos.height,
-                        ));
-                        // Get existing cell value for 'i' key
-                        let existing_value = {
-                            let ctrl = controller.clone();
-                            let ctrl_borrow = ctrl.borrow();
-                            let facade = ctrl_borrow.get_facade();
-                            if let Some(cell_obj) = facade.get_cell(&actual_cursor) {
-                                // Check what type of value the cell has
-                                let cell_value = facade.get_cell_value(&actual_cursor);
-                                debug_log!(
-                                    "[NAV] Cell at {:?} has_formula: {}, cell_value: {:?}",
-                                    actual_cursor,
-                                    cell_obj.has_formula(),
-                                    cell_value
-                                );
-                                // Get the display value - use raw_value if it's a formula, otherwise computed_value
-                                if cell_obj.has_formula() {
-                                    cell_obj.raw_value.to_string()
-                                } else {
-                                    cell_obj.get_display_value().to_string()
-                                }
-                            } else {
-                                String::new()
-                            }
-                        };
-                        // 'i' key preserves existing content and positions cursor at beginning
-                        debug_log!(
-                            "[NAV] Creating StartEditing action with existing_value='{}', cursor={:?}",
-                            existing_value,
-                            actual_cursor
-                        );
-                        Some(Action::StartEditing {
-                            edit_mode: Some(InsertMode::I),
-                            initial_value: Some(existing_value),
-                            cursor_position: Some(0), // Cursor at beginning for 'i'
-                        })
-                    }
-                    "a" => {
-                        ev.prevent_default();
-                        // Get the current cursor from the controller, not the UI signal
-                        // This ensures we're using the controller's actual state
-                        let actual_cursor = {
-                            let ctrl = controller.clone();
-                            let ctrl_borrow = ctrl.borrow();
-                            *ctrl_borrow.get_state().cursor()
-                        };
-                        // Calculate cell position for the editor
-                        let vp = viewport.get();
-                        let (pos, config) = {
-                            let vp_borrow = vp.borrow();
-                            let pos = vp_borrow.get_cell_position(&actual_cursor);
-                            let config = ctrl_keydown.borrow().get_config().clone();
-                            (pos, config)
-                        }; // vp_borrow is dropped here
-                        set_cell_position.set((
-                            pos.x + config.row_header_width,
-                            pos.y + config.column_header_height,
-                            pos.width,
-                            pos.height,
-                        ));
-                        // Get existing cell value for 'a' key
-                        let existing_value = {
-                            let ctrl = controller.clone();
-                            let ctrl_borrow = ctrl.borrow();
-                            let facade = ctrl_borrow.get_facade();
-                            if let Some(cell_obj) = facade.get_cell(&actual_cursor) {
-                                // Get the display value - use raw_value if it's a formula, otherwise computed_value
-                                if cell_obj.has_formula() {
-                                    cell_obj.raw_value.to_string()
-                                } else {
-                                    cell_obj.get_display_value().to_string()
-                                }
-                            } else {
-                                String::new()
-                            }
-                        };
-                        let cursor_pos = existing_value.len();
-                        // 'a' key preserves existing content and positions cursor at end
-                        Some(Action::StartEditing {
-                            edit_mode: Some(InsertMode::A),
-                            initial_value: Some(existing_value),
-                            cursor_position: Some(cursor_pos), // Cursor at end for 'a'
-                        })
-                    }
-                    "o" => {
-                        ev.prevent_default();
-                        // Get fresh cursor state
-                        let current_cursor = {
-                            let ctrl_borrow = ctrl.borrow();
-                            *ctrl_borrow.get_state().cursor()
-                        };
-                        // Move to next row and start editing
-                        let new_cursor =
-                            CellAddress::new(current_cursor.col, current_cursor.row + 1);
-                        set_active_cell.set(new_cursor);
-                        // Calculate cell position for the editor
-                        let vp = viewport.get();
-                        let (pos, config) = {
-                            let vp_borrow = vp.borrow();
-                            let pos = vp_borrow.get_cell_position(&new_cursor);
-                            let config = ctrl_keydown.borrow().get_config().clone();
-                            (pos, config)
-                        }; // vp_borrow is dropped here
-                        set_cell_position.set((
-                            pos.x + config.row_header_width,
-                            pos.y + config.column_header_height,
-                            pos.width,
-                            pos.height,
-                        ));
-                        Some(Action::UpdateCursor { cursor: new_cursor })
-                    }
-                    "O" => {
-                        ev.prevent_default();
-                        // Get fresh cursor state
-                        let current_cursor = {
-                            let ctrl_borrow = ctrl.borrow();
-                            *ctrl_borrow.get_state().cursor()
-                        };
-                        // Move to previous row and start editing
-                        if current_cursor.row > 0 {
-                            let new_cursor =
-                                CellAddress::new(current_cursor.col, current_cursor.row - 1);
-                            set_active_cell.set(new_cursor);
-                            // Calculate cell position for the editor
-                            let vp = viewport.get();
-                            let (pos, config) = {
-                                let vp_borrow = vp.borrow();
-                                let pos = vp_borrow.get_cell_position(&new_cursor);
-                                let config = ctrl_keydown.borrow().get_config().clone();
-                                (pos, config)
-                            }; // vp_borrow is dropped here
-                            set_cell_position.set((
-                                pos.x + config.row_header_width,
-                                pos.y + config.column_header_height,
-                                pos.width,
-                                pos.height,
-                            ));
-                            Some(Action::UpdateCursor { cursor: new_cursor })
-                        } else {
-                            None
-                        }
-                    }
-                    "Enter" => {
-                        ev.prevent_default();
-                        // Get the current cursor from the controller, not the UI signal
-                        // This ensures we're using the controller's actual state
-                        let actual_cursor = {
-                            let ctrl = controller.clone();
-                            let ctrl_borrow = ctrl.borrow();
-                            *ctrl_borrow.get_state().cursor()
-                        };
-                        // Calculate cell position for the editor
-                        let vp = viewport.get();
-                        let (pos, config) = {
-                            let vp_borrow = vp.borrow();
-                            let pos = vp_borrow.get_cell_position(&actual_cursor);
-                            let config = ctrl_keydown.borrow().get_config().clone();
-                            (pos, config)
-                        }; // vp_borrow is dropped here
-                        set_cell_position.set((
-                            pos.x + config.row_header_width,
-                            pos.y + config.column_header_height,
-                            pos.width,
-                            pos.height,
-                        ));
-                        // Enter key replaces existing content
-                        Some(Action::StartEditing {
-                            edit_mode: Some(InsertMode::I),
-                            initial_value: Some(String::new()), // Empty string to signal replace
-                            cursor_position: Some(0),
-                        })
-                    }
-                    "Delete" | "Backspace" => {
-                        ev.prevent_default();
-                        // Get fresh cursor state
-                        let current_cursor = {
-                            let ctrl_borrow = ctrl.borrow();
-                            *ctrl_borrow.get_state().cursor()
-                        };
-                        // Clear the current cell
-                        let ctrl = controller.clone();
-                        {
-                            let ctrl_borrow = ctrl.borrow();
-                            let facade = ctrl_borrow.get_facade();
-                            if let Err(e) = facade.set_cell_value(&current_cursor, "") {
-                                debug_log!("Error clearing cell: {:?}", e);
-                            }
-                        }
-                        // Update formula bar
-                        set_formula_value.set(String::new());
-                        None
-                    }
-                    "v" => {
-                        ev.prevent_default();
-                        // Get fresh cursor state
-                        let current_cursor = {
-                            let ctrl_borrow = ctrl.borrow();
-                            *ctrl_borrow.get_state().cursor()
-                        };
-                        use gridcore_controller::state::{
-                            Selection, SelectionType, SpreadsheetVisualMode,
-                        };
-                        Some(Action::EnterSpreadsheetVisualMode {
-                            visual_mode: SpreadsheetVisualMode::Char,
-                            selection: Selection {
-                                selection_type: SelectionType::Cell {
-                                    address: current_cursor,
-                                },
-                                anchor: Some(current_cursor),
-                            },
-                        })
-                    }
-                    "Tab" => {
-                        ev.prevent_default();
-                        // Get fresh cursor state
-                        let current_cursor = {
-                            let ctrl_borrow = ctrl.borrow();
-                            *ctrl_borrow.get_state().cursor()
-                        };
-                        if shift_pressed {
-                            // Shift+Tab moves to previous cell (left, then wrap to previous row)
-                            if current_cursor.col > 0 {
-                                Some(Action::UpdateCursor {
-                                    cursor: CellAddress::new(
-                                        current_cursor.col - 1,
-                                        current_cursor.row,
-                                    ),
-                                })
-                            } else if current_cursor.row > 0 {
-                                // Wrap to previous row, last column
-                                Some(Action::UpdateCursor {
-                                    cursor: CellAddress::new(99, current_cursor.row - 1), // Go to column 99 (reasonable limit)
-                                })
-                            } else {
-                                None // Can't go further back
-                            }
-                        } else {
-                            // Tab moves to next cell (right, then wrap to next row)
-                            let next_col = current_cursor.col + 1;
-                            if next_col < 100 {
-                                // Reasonable column limit
-                                Some(Action::UpdateCursor {
-                                    cursor: CellAddress::new(next_col, current_cursor.row),
-                                })
-                            } else {
-                                // Wrap to next row
-                                Some(Action::UpdateCursor {
-                                    cursor: CellAddress::new(0, current_cursor.row + 1),
-                                })
-                            }
-                        }
-                    }
-                    _ => {
-                        // Check if it's an alphanumeric character or special character to start editing
-                        if key.len() == 1 {
-                            let ch = key.chars().next().unwrap();
-                            if ch.is_alphanumeric()
-                                || "!@#$%^&*()_+-=[]{}|;':\",./<>?`~".contains(ch)
-                            {
-                                ev.prevent_default();
-                                debug_log!("Direct typing: key='{}', starting edit mode", key);
-                                // Get the current cursor from the controller, not the UI signal
-                                // This ensures we're using the controller's actual state
-                                let actual_cursor = {
-                                    let ctrl = controller.clone();
-                                    let ctrl_borrow = ctrl.borrow();
-                                    *ctrl_borrow.get_state().cursor()
-                                };
-                                // Calculate cell position for the editor
-                                let vp = viewport.get();
-                                let (pos, config) = {
-                                    let vp_borrow = vp.borrow();
-                                    let pos = vp_borrow.get_cell_position(&actual_cursor);
-                                    let config = ctrl_keydown.borrow().get_config().clone();
-                                    (pos, config)
-                                }; // vp_borrow is dropped here
-                                set_cell_position.set((
-                                    pos.x + config.row_header_width,
-                                    pos.y + config.column_header_height,
-                                    pos.width,
-                                    pos.height,
-                                ));
-                                // Start editing with the typed character
-                                Some(Action::StartEditing {
-                                    edit_mode: Some(InsertMode::I),
-                                    initial_value: Some(key.clone()),
-                                    cursor_position: Some(1), // Position cursor after the typed character
-                                })
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
-                    }
-                }
-            }
-            SpreadsheetMode::Editing | SpreadsheetMode::Insert => {
-                // Editing is handled by CellEditor component
-                None
-            }
-            _ => None,
-        };
-
-        // Dispatch action if we have one
-        if let Some(action) = action {
-            debug_log!("[DISPATCH] About to dispatch action: {:?}", action);
-            // Check if this is a StartEditing action before dispatch
-            let is_start_editing = matches!(action, Action::StartEditing { .. });
-
-            // Dispatch action and get new state, then drop the borrow
-            let (new_mode, new_cursor, is_editing, dispatch_ok) = {
-                let mut ctrl_mut = ctrl.borrow_mut();
-                let old_state = ctrl_mut.get_state().clone();
-                debug_log!(
-                    "[DISPATCH] Before dispatch - mode: {:?}, cursor: {:?}",
-                    old_state.spreadsheet_mode(),
-                    old_state.cursor()
-                );
-                let dispatch_result = ctrl_mut.dispatch_action(action.clone());
-                if let Err(e) = &dispatch_result {
-                    debug_log!("[DISPATCH] Error dispatching action: {:?}", e);
-                }
-
-                let state = ctrl_mut.get_state();
-                let mode = state.spreadsheet_mode();
-                let cursor = *state.cursor();
-
-                // Debug: Log the exact state variant
-                let state_variant = match state {
-                    gridcore_controller::state::UIState::Navigation { .. } => "Navigation",
-                    gridcore_controller::state::UIState::Editing { .. } => "Editing",
-                    gridcore_controller::state::UIState::Visual { .. } => "Visual",
-                    gridcore_controller::state::UIState::Command { .. } => "Command",
-                    gridcore_controller::state::UIState::Resize { .. } => "Resize",
-                    gridcore_controller::state::UIState::Insert { .. } => "Insert",
-                    gridcore_controller::state::UIState::Delete { .. } => "Delete",
-                    gridcore_controller::state::UIState::BulkOperation { .. } => "BulkOperation",
-                };
-
-                let is_editing =
-                    matches!(state, gridcore_controller::state::UIState::Editing { .. });
-                debug_log!(
-                    "[DISPATCH] After dispatch - state_variant: {}, mode: {:?}, cursor: {:?}, is_editing: {}, dispatch_ok: {}",
-                    state_variant,
-                    mode,
-                    cursor,
-                    is_editing,
-                    dispatch_result.is_ok()
-                );
-                (mode, cursor, is_editing, dispatch_result.is_ok())
-            }; // ctrl_mut is dropped here
-
-            // Now update UI state after borrow is dropped
+        
+        // Forward the event to the controller
+        let result = ctrl.borrow_mut().handle_keyboard_event(controller_event);
+        
+        // Handle any errors
+        if let Err(e) = result {
+            debug_log!("Error handling keyboard event: {:?}", e);
+        }
+        
+        // Get the updated state after handling
+        let new_state = ctrl.borrow().get_state().clone();
+        let new_mode = new_state.spreadsheet_mode();
+        let new_cursor = *new_state.cursor();
+        
+        // Update UI state based on controller state
+        if new_mode != old_mode {
             set_current_mode.set(new_mode);
+        }
+        
+        if new_cursor != old_cursor {
             set_active_cell.set(new_cursor);
-
-            // Auto-scroll to keep the active cell visible
-            if dispatch_ok && !is_start_editing {
-                let vp = viewport.get();
-                let mut vp_borrow = vp.borrow_mut();
-
-                // Check if the cell is visible and scroll if needed
-                let cell_pos = vp_borrow.get_cell_position(&new_cursor);
-                let _theme = vp_borrow.get_theme();
-
-                // Calculate absolute position (without scroll offset)
-                let absolute_x = cell_pos.x + vp_borrow.get_scroll_position().x;
-                let absolute_y = cell_pos.y + vp_borrow.get_scroll_position().y;
-
-                // Check if we need to scroll horizontally
-                let ctrl_borrow = ctrl_keydown.borrow();
-                let config = ctrl_borrow.get_config();
-                let viewport_width = vp_borrow.get_viewport_width() - config.row_header_width;
-                let viewport_height = vp_borrow.get_viewport_height() - config.column_header_height;
-                let scroll_pos = vp_borrow.get_scroll_position();
-
-                let mut needs_scroll = false;
-                let mut new_scroll_x = scroll_pos.x;
-                let mut new_scroll_y = scroll_pos.y;
-
-                // Check horizontal scrolling
-                if absolute_x < scroll_pos.x {
-                    // Cell is to the left of viewport
-                    new_scroll_x = absolute_x;
-                    needs_scroll = true;
-                } else if absolute_x + cell_pos.width > scroll_pos.x + viewport_width {
-                    // Cell is to the right of viewport
-                    new_scroll_x = absolute_x + cell_pos.width - viewport_width;
-                    needs_scroll = true;
-                }
-
-                // Check vertical scrolling
-                if absolute_y < scroll_pos.y {
-                    // Cell is above viewport
-                    new_scroll_y = absolute_y;
-                    needs_scroll = true;
-                } else if absolute_y + cell_pos.height > scroll_pos.y + viewport_height {
-                    // Cell is below viewport
-                    new_scroll_y = absolute_y + cell_pos.height - viewport_height;
-                    needs_scroll = true;
-                }
-
-                if needs_scroll {
-                    vp_borrow.set_scroll_position(new_scroll_x.max(0.0), new_scroll_y.max(0.0));
-                    // Drop the borrow before triggering update
-                    drop(vp_borrow);
-                    // Trigger re-render
-                    set_viewport.update(|_| {});
-                    debug_log!("Auto-scrolled to keep cell {:?} visible", new_cursor);
-                }
-            }
-
-            // If we just started editing, show the editor and calculate position
-            // Force editing mode if we successfully dispatched StartEditing
-            let should_be_editing = is_editing || (is_start_editing && dispatch_ok);
-            debug_log!(
-                "[EDITING_MODE] is_editing: {}, should_be_editing: {}, editing_mode.get(): {}, is_start_editing: {}, dispatch_ok: {}",
-                is_editing,
-                should_be_editing,
-                editing_mode.get(),
-                is_start_editing,
-                dispatch_ok
-            );
-            if should_be_editing && !editing_mode.get() {
-                debug_log!("[EDITING_MODE] Setting editing_mode to true (forced by StartEditing or state check)");
+        }
+        
+        // Update cell position for editor if we're in editing mode
+        if matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert) {
+            let vp = viewport.get();
+            let (pos, config) = {
+                let vp_borrow = vp.borrow();
+                let pos = vp_borrow.get_cell_position(&new_cursor);
+                let config = ctrl_keydown.borrow().get_config().clone();
+                (pos, config)
+            };
+            set_cell_position.set((
+                pos.x + config.row_header_width,
+                pos.y + config.column_header_height,
+                pos.width,
+                pos.height,
+            ));
+            
+            // Show editor if transitioning to editing mode
+            if !editing_mode.get() {
                 set_editing_mode.set(true);
-                // Calculate cell position for the editor
-                let vp = viewport.get();
-                let (pos, config) = {
-                    let vp_borrow = vp.borrow();
-                    let pos = vp_borrow.get_cell_position(&new_cursor);
-                    let config = ctrl_keydown.borrow().get_config().clone();
-                    (pos, config)
-                };
-                set_cell_position.set((
-                    pos.x + config.row_header_width,
-                    pos.y + config.column_header_height,
-                    pos.width,
-                    pos.height,
-                ));
-                debug_log!("[EDITING_MODE] Cell position set for editor");
-            } else if !should_be_editing && editing_mode.get() && !is_start_editing {
-                // We exited editing mode (but not if we just dispatched StartEditing)
-                debug_log!(
-                    "[EDITING_MODE] Setting editing_mode to false (exiting), is_start_editing: {}",
-                    is_start_editing
-                );
-                set_editing_mode.set(false);
-                // Return focus to the grid container
-                // Use a longer timeout and retry mechanism to ensure focus is properly set
-                let wrapper_clone = wrapper_ref.clone();
-                let retry_count = std::rc::Rc::new(std::cell::Cell::new(0));
-                let retry_count_clone = retry_count.clone();
-
-                let focus_fn = std::rc::Rc::new(std::cell::RefCell::new(None::<Box<dyn Fn()>>));
-                let focus_fn_clone = focus_fn.clone();
-
-                *focus_fn.borrow_mut() = Some(Box::new(move || {
-                    if let Some(wrapper) = wrapper_clone.get() {
-                        let _ = wrapper.focus();
-
-                        // Check if focus was actually set
-                        if let Some(window) = web_sys::window() {
-                            if let Some(document) = window.document() {
-                                if let Some(active) = document.active_element() {
-                                    // Check if the wrapper or one of its children has focus
-                                    let wrapper_element: &web_sys::Element = wrapper.as_ref();
-                                    if !wrapper.contains(Some(&active))
-                                        && !wrapper_element.is_same_node(Some(&active))
-                                    {
-                                        // Focus failed, retry if we haven't exceeded max retries
-                                        if retry_count_clone.get() < 3 {
-                                            retry_count_clone.set(retry_count_clone.get() + 1);
-                                            debug_log!(
-                                                "[FOCUS] Retrying focus set, attempt {}",
-                                                retry_count_clone.get()
-                                            );
-                                            let focus_fn_clone2 = focus_fn_clone.clone();
-                                            set_timeout(
-                                                move || {
-                                                    if let Some(f) = &*focus_fn_clone2.borrow() {
-                                                        f();
-                                                    }
-                                                },
-                                                std::time::Duration::from_millis(50),
-                                            );
-                                        } else {
-                                            debug_log!(
-                                                "[FOCUS] Failed to set focus after 3 retries"
-                                            );
-                                        }
-                                    } else {
-                                        debug_log!(
-                                            "[FOCUS] Successfully set focus to grid container"
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }));
-
-                // Initial attempt with 50ms delay
-                set_timeout(
-                    move || {
-                        if let Some(f) = &*focus_fn.borrow() {
-                            f();
-                        }
-                    },
-                    std::time::Duration::from_millis(50),
-                );
             }
-
-            debug_log!(
-                "Updated active cell to: col={}, row={}, editing={}",
-                new_cursor.col,
-                new_cursor.row,
-                is_editing
-            );
+        } else if editing_mode.get() && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert) {
+            // Hide editor if leaving editing mode
+            set_editing_mode.set(false);
+        }
+        
+        // Update formula bar based on current state
+        match &new_state {
+            UIState::Editing { editing_value, .. } => {
+                set_formula_value.set(editing_value.clone());
+            }
+            UIState::Navigation { cursor, .. } => {
+                // Update formula bar with current cell value
+                let cell_value = {
+                    let ctrl_borrow = ctrl.borrow();
+                    let facade = ctrl_borrow.get_facade();
+                    if let Some(cell) = facade.get_cell(cursor) {
+                        if cell.has_formula() {
+                            cell.raw_value.to_string()
+                        } else {
+                            cell.get_display_value().to_string()
+                        }
+                    } else {
+                        String::new()
+                    }
+                };
+                set_formula_value.set(cell_value);
+            }
+            _ => {}
+        }
+        
+        // Auto-scroll to keep the active cell visible if cursor moved
+        if new_cursor != old_cursor && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert) {
+            let vp = viewport.get();
+            let mut vp_borrow = vp.borrow_mut();
+            
+            // Check if the cell is visible and scroll if needed
+            let cell_pos = vp_borrow.get_cell_position(&new_cursor);
+            
+            // Calculate absolute position (without scroll offset)
+            let absolute_x = cell_pos.x + vp_borrow.get_scroll_position().x;
+            let absolute_y = cell_pos.y + vp_borrow.get_scroll_position().y;
+            
+            // Check if we need to scroll
+            let ctrl_borrow = ctrl_keydown.borrow();
+            let config = ctrl_borrow.get_config();
+            let viewport_width = vp_borrow.get_viewport_width() - config.row_header_width;
+            let viewport_height = vp_borrow.get_viewport_height() - config.column_header_height;
+            let scroll_pos = vp_borrow.get_scroll_position();
+            
+            let mut needs_scroll = false;
+            let mut new_scroll_x = scroll_pos.x;
+            let mut new_scroll_y = scroll_pos.y;
+            
+            // Check horizontal scrolling
+            if absolute_x < scroll_pos.x {
+                new_scroll_x = absolute_x;
+                needs_scroll = true;
+            } else if absolute_x + cell_pos.width > scroll_pos.x + viewport_width {
+                new_scroll_x = absolute_x + cell_pos.width - viewport_width;
+                needs_scroll = true;
+            }
+            
+            // Check vertical scrolling
+            if absolute_y < scroll_pos.y {
+                new_scroll_y = absolute_y;
+                needs_scroll = true;
+            } else if absolute_y + cell_pos.height > scroll_pos.y + viewport_height {
+                new_scroll_y = absolute_y + cell_pos.height - viewport_height;
+                needs_scroll = true;
+            }
+            
+            if needs_scroll {
+                vp_borrow.set_scroll_position(new_scroll_x.max(0.0), new_scroll_y.max(0.0));
+                drop(vp_borrow);
+                set_viewport.update(|_| {});
+                debug_log!("Auto-scrolled to keep cell {:?} visible", new_cursor);
+            }
         }
     };
 

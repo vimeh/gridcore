@@ -170,34 +170,125 @@ impl SpreadsheetController {
     }
 
     fn handle_navigation_key(&mut self, event: KeyboardEvent) -> Result<()> {
+        let current_cursor = *self.state_machine.get_state().cursor();
+        
         match event.key.as_str() {
-            "i" | "a" => {
-                // Let the UI handle these keys - it will send the appropriate StartEditing action
-                // The UI canvas_grid component handles 'i' and 'a' keys and includes the existing cell value
-                Ok(())
+            // Edit mode triggers
+            "i" => {
+                // Get existing cell value for insert mode
+                let existing_value = self.facade.get_cell(&current_cursor)
+                    .map(|cell| {
+                        if cell.has_formula() {
+                            cell.raw_value.to_string()
+                        } else {
+                            cell.get_display_value().to_string()
+                        }
+                    })
+                    .unwrap_or_default();
+                self.dispatch_action(Action::StartEditing {
+                    edit_mode: Some(InsertMode::I),
+                    initial_value: Some(existing_value),
+                    cursor_position: Some(0),
+                })
             }
+            "a" => {
+                // Get existing cell value for append mode
+                let existing_value = self.facade.get_cell(&current_cursor)
+                    .map(|cell| {
+                        if cell.has_formula() {
+                            cell.raw_value.to_string()
+                        } else {
+                            cell.get_display_value().to_string()
+                        }
+                    })
+                    .unwrap_or_default();
+                let cursor_pos = existing_value.len();
+                self.dispatch_action(Action::StartEditing {
+                    edit_mode: Some(InsertMode::A),
+                    initial_value: Some(existing_value),
+                    cursor_position: Some(cursor_pos),
+                })
+            }
+            "Enter" => {
+                // Enter key starts editing with empty content (replace mode)
+                self.dispatch_action(Action::StartEditing {
+                    edit_mode: Some(InsertMode::I),
+                    initial_value: Some(String::new()),
+                    cursor_position: Some(0),
+                })
+            }
+            
+            // Command mode
             ":" => self.dispatch_action(Action::EnterCommandMode),
-            "Escape" => self.dispatch_action(Action::Escape),
-            // Arrow keys for navigation
+            
+            // Visual mode
+            "v" => {
+                use crate::state::{Selection, SelectionType, SpreadsheetVisualMode};
+                self.dispatch_action(Action::EnterSpreadsheetVisualMode {
+                    visual_mode: SpreadsheetVisualMode::Char,
+                    selection: Selection {
+                        selection_type: SelectionType::Cell {
+                            address: current_cursor,
+                        },
+                        anchor: Some(current_cursor),
+                    },
+                })
+            }
+            
+            // Navigation
             "ArrowUp" | "k" => self.move_cursor(0, -1),
             "ArrowDown" | "j" => self.move_cursor(0, 1),
             "ArrowLeft" | "h" => self.move_cursor(-1, 0),
             "ArrowRight" | "l" => self.move_cursor(1, 0),
-            "Delete" => {
-                // Clear the current cell
-                let state = self.state_machine.get_state();
-                if let UIState::Navigation { cursor, .. } = state {
-                    let address = cursor.clone();
-                    // Delete the cell (actually removes it from repository)
-                    self.facade.delete_cell(&address)?;
-                    self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CellEditCompleted {
-                            address: address.clone(),
-                            value: String::new(),
-                        });
+            
+            // Tab navigation
+            "Tab" => {
+                if event.shift {
+                    // Shift+Tab moves left, then wraps to previous row
+                    if current_cursor.col > 0 {
+                        self.dispatch_action(Action::UpdateCursor {
+                            cursor: CellAddress::new(current_cursor.col - 1, current_cursor.row),
+                        })
+                    } else if current_cursor.row > 0 {
+                        // Wrap to end of previous row (assuming max 256 columns)
+                        self.dispatch_action(Action::UpdateCursor {
+                            cursor: CellAddress::new(255, current_cursor.row - 1),
+                        })
+                    } else {
+                        Ok(())
+                    }
+                } else {
+                    // Tab moves right, then wraps to next row
+                    if current_cursor.col < 255 {
+                        self.dispatch_action(Action::UpdateCursor {
+                            cursor: CellAddress::new(current_cursor.col + 1, current_cursor.row),
+                        })
+                    } else if current_cursor.row < 9999 {
+                        // Wrap to start of next row
+                        self.dispatch_action(Action::UpdateCursor {
+                            cursor: CellAddress::new(0, current_cursor.row + 1),
+                        })
+                    } else {
+                        Ok(())
+                    }
                 }
+            }
+            
+            // Cell operations
+            "Delete" | "Backspace" => {
+                // Clear the current cell
+                self.facade.set_cell_value(&current_cursor, "")?;
+                self.event_dispatcher
+                    .dispatch(&SpreadsheetEvent::CellEditCompleted {
+                        address: current_cursor.clone(),
+                        value: String::new(),
+                    });
                 Ok(())
             }
+            
+            // Escape does nothing in navigation mode
+            "Escape" => Ok(()),
+            
             _ => Ok(()),
         }
     }
