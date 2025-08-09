@@ -93,17 +93,23 @@ impl SpreadsheetController {
 
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
         let old_mode = self.state_machine.get_state().spreadsheet_mode();
+        log::debug!("dispatch_action: about to transition with action {:?}", action);
         self.state_machine.transition(action)?;
+        log::debug!("dispatch_action: transition succeeded");
         let new_mode = self.state_machine.get_state().spreadsheet_mode();
+        log::debug!("dispatch_action: old_mode={:?}, new_mode={:?}", old_mode, new_mode);
 
         if old_mode != new_mode {
+            log::debug!("dispatch_action: mode changed, dispatching event");
             self.event_dispatcher
                 .dispatch(&SpreadsheetEvent::ModeChanged {
                     from: old_mode,
                     to: new_mode,
                 });
+            log::debug!("dispatch_action: event dispatched");
         }
 
+        log::debug!("dispatch_action: returning Ok");
         Ok(())
     }
 
@@ -180,50 +186,84 @@ impl SpreadsheetController {
             // Edit mode triggers
             "i" => {
                 // Get existing cell value for insert mode
-                let existing_value = self
-                    .facade
-                    .get_cell(&current_cursor)
-                    .map(|cell| {
+                let existing_value = match self.facade.get_cell(&current_cursor) {
+                    Some(cell) => {
                         if cell.has_formula() {
                             cell.raw_value.to_string()
                         } else {
                             cell.get_display_value().to_string()
                         }
-                    })
-                    .unwrap_or_default();
-                self.dispatch_action(Action::StartEditing {
+                    }
+                    None => String::new(),
+                };
+                log::debug!("'i' key pressed, starting insert mode with existing value: '{}', cursor at 0", existing_value);
+                let result = self.dispatch_action(Action::StartEditing {
                     edit_mode: Some(InsertMode::I),
                     initial_value: Some(existing_value),
                     cursor_position: Some(0),
-                })
+                });
+                if let Err(ref e) = result {
+                    log::error!("Failed to start editing with 'i' key: {:?}", e);
+                }
+                result
             }
             "a" => {
                 // Get existing cell value for append mode
-                let existing_value = self
-                    .facade
-                    .get_cell(&current_cursor)
-                    .map(|cell| {
+                let existing_value = match self.facade.get_cell(&current_cursor) {
+                    Some(cell) => {
                         if cell.has_formula() {
                             cell.raw_value.to_string()
                         } else {
                             cell.get_display_value().to_string()
                         }
-                    })
-                    .unwrap_or_default();
+                    }
+                    None => String::new(),
+                };
                 let cursor_pos = existing_value.len();
-                self.dispatch_action(Action::StartEditing {
+                log::debug!("'a' key pressed, starting append mode with existing value: '{}', cursor at {}", existing_value, cursor_pos);
+                let result = self.dispatch_action(Action::StartEditing {
                     edit_mode: Some(InsertMode::A),
                     initial_value: Some(existing_value),
                     cursor_position: Some(cursor_pos),
-                })
+                });
+                if let Err(ref e) = result {
+                    log::error!("Failed to start editing with 'a' key: {:?}", e);
+                }
+                result
             }
             "Enter" => {
-                // Enter key starts editing with empty content (replace mode)
-                self.dispatch_action(Action::StartEditing {
-                    edit_mode: Some(InsertMode::I),
-                    initial_value: Some(String::new()),
-                    cursor_position: Some(0),
-                })
+                // Enter key starts editing, preserving existing content with cursor at end
+                log::debug!("Enter key pressed, getting cell value");
+                
+                // Get existing cell value
+                let existing_value = match self.facade.get_cell(&current_cursor) {
+                    Some(cell) => {
+                        if cell.has_formula() {
+                            cell.raw_value.to_string()
+                        } else {
+                            cell.get_display_value().to_string()
+                        }
+                    }
+                    None => String::new(),
+                };
+                
+                // Position cursor at end for Enter key
+                let cursor_pos = existing_value.len();
+                
+                log::debug!("Enter key starting edit with existing value: '{}', cursor at {}", existing_value, cursor_pos);
+                
+                let action = Action::StartEditing {
+                    edit_mode: Some(InsertMode::A), // Use append mode for cursor at end
+                    initial_value: Some(existing_value),
+                    cursor_position: Some(cursor_pos),
+                };
+                
+                let result = self.dispatch_action(action);
+                
+                if let Err(ref e) = result {
+                    log::error!("Failed to start editing with Enter key: {:?}", e);
+                }
+                result
             }
 
             // Command mode
@@ -297,6 +337,7 @@ impl SpreadsheetController {
             // Cell operations
             "Delete" | "Backspace" => {
                 // Clear the current cell
+                log::debug!("{} key pressed, clearing cell at {:?}", event.key, current_cursor);
                 self.facade.set_cell_value(&current_cursor, "")?;
                 self.event_dispatcher
                     .dispatch(&SpreadsheetEvent::CellEditCompleted {
@@ -310,8 +351,23 @@ impl SpreadsheetController {
             "Escape" => Ok(()),
 
             _ => {
-                log::debug!("Unhandled navigation key: '{}'", event.key);
-                Ok(())
+                // Check if this is a single printable character that should start editing
+                if event.key.len() == 1 && !event.ctrl && !event.alt && !event.meta {
+                    // Single character typed - start editing with this character
+                    log::debug!("Starting edit mode with typed character: '{}'", event.key);
+                    let result = self.dispatch_action(Action::StartEditing {
+                        edit_mode: Some(InsertMode::I),
+                        initial_value: Some(event.key.clone()),
+                        cursor_position: Some(1), // Position cursor after the typed character
+                    });
+                    if let Err(ref e) = result {
+                        log::error!("Failed to start editing with typed character: {:?}", e);
+                    }
+                    result
+                } else {
+                    log::debug!("Unhandled navigation key: '{}'", event.key);
+                    Ok(())
+                }
             }
         }
     }

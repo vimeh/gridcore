@@ -434,13 +434,17 @@ pub fn CanvasGrid(
         // Handle any errors
         if let Err(e) = result {
             leptos::logging::log!("Error handling keyboard event: {:?}", e);
+            return; // Exit early on error
         }
 
         // Get the updated state after handling - new borrow
         let (new_mode, new_cursor) = {
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
-            (state.spreadsheet_mode(), *state.cursor())
+            let mode = state.spreadsheet_mode();
+            let cursor = *state.cursor();
+            leptos::logging::log!("Controller state after event: mode={:?}, cursor={:?}", mode, cursor);
+            (mode, cursor)
         };
 
         leptos::logging::log!(
@@ -452,6 +456,7 @@ pub fn CanvasGrid(
 
         // Update UI state based on controller state
         if new_mode != old_mode {
+            leptos::logging::log!("Mode changed from {:?} to {:?}", old_mode, new_mode);
             set_current_mode.set(new_mode);
         }
 
@@ -463,6 +468,10 @@ pub fn CanvasGrid(
         }
 
         // Update cell position for editor if we're in editing mode
+        leptos::logging::log!("Checking if should show editor: new_mode = {:?}, matches Editing/Insert = {}", 
+            new_mode, 
+            matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert)
+        );
         if matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert) {
             let vp = viewport.get();
             let (pos, config) = {
@@ -480,7 +489,10 @@ pub fn CanvasGrid(
 
             // Show editor if transitioning to editing mode
             if !editing_mode.get() {
+                leptos::logging::log!("Setting editing_mode to true to show cell editor");
                 set_editing_mode.set(true);
+            } else {
+                leptos::logging::log!("editing_mode already true");
             }
         } else if editing_mode.get()
             && !matches!(new_mode, SpreadsheetMode::Editing | SpreadsheetMode::Insert)

@@ -156,21 +156,31 @@ impl UIStateMachine {
     }
 
     pub fn transition(&mut self, action: Action) -> Result<()> {
+        log::debug!("UIStateMachine::transition called with action: {:?}", action);
         let new_state = self.apply_transition(&self.state.clone(), &action)?;
+        log::debug!("UIStateMachine::transition - apply_transition succeeded");
 
         // Add to history
+        log::debug!("UIStateMachine::transition - adding to history");
         self.add_to_history(self.state.clone(), action.clone());
+        log::debug!("UIStateMachine::transition - history added");
 
         // Update state
+        log::debug!("UIStateMachine::transition - updating state");
         self.state = new_state;
+        log::debug!("UIStateMachine::transition - state updated");
 
         // Notify listeners
+        log::debug!("UIStateMachine::transition - notifying listeners");
         self.notify_listeners(&action);
+        log::debug!("UIStateMachine::transition - listeners notified");
 
+        log::debug!("UIStateMachine::transition - returning Ok");
         Ok(())
     }
 
     fn apply_transition(&self, state: &UIState, action: &Action) -> Result<UIState> {
+        log::debug!("apply_transition: state={:?}, action={:?}", state.spreadsheet_mode(), action);
         match (state, action) {
             // Navigation mode transitions
             (
@@ -183,6 +193,7 @@ impl UIStateMachine {
                     cursor_position,
                 },
             ) => {
+                log::debug!("apply_transition: handling StartEditing from Navigation");
                 let mut new_state = create_editing_state(
                     *cursor,
                     viewport.clone(),
@@ -736,9 +747,19 @@ impl UIStateMachine {
     }
 
     fn add_to_history(&mut self, state: UIState, action: Action) {
+        // Use a WASM-compatible timestamp
+        #[cfg(target_arch = "wasm32")]
+        let timestamp = {
+            // In WASM, use performance.now() or Date.now() via web_sys
+            // For now, just use a simple counter or fixed value
+            // This is non-critical for the app functionality
+            0u64
+        };
+        
+        #[cfg(not(target_arch = "wasm32"))]
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs();
 
         let entry = HistoryEntry {

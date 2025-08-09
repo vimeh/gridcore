@@ -663,7 +663,12 @@ pub fn CellEditor(
                 <textarea
                     node_ref=input_ref
                     prop:value=move || editor_value.get()
-                    on:input=move |ev| set_editor_value.set(event_target_value(&ev))
+                    on:input=move |ev| {
+                        let new_value = event_target_value(&ev);
+                        set_editor_value.set(new_value.clone());
+                        // Also update formula bar
+                        set_formula_value.set(new_value);
+                    }
                     on:keydown={let on_keydown = on_keydown.clone(); move |ev| on_keydown(ev)}
                     style="width: 100%; height: 100%; border: 2px solid #4285f4; padding: 2px 4px; font-family: monospace; font-size: 13px; outline: none; resize: none; overflow: hidden;"
                 />
