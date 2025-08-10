@@ -46,8 +46,7 @@ pub fn CanvasGrid(
     let (canvas_dimensions, set_canvas_dimensions) = create_signal((0.0, 0.0));
 
     // Get device pixel ratio once
-    let device_pixel_ratio = web_sys::window()
-        .and_then(|w| Some(w.device_pixel_ratio()))
+    let device_pixel_ratio = web_sys::window().map(|w| w.device_pixel_ratio())
         .unwrap_or(1.0);
 
     // Create resize handler
@@ -80,8 +79,7 @@ pub fn CanvasGrid(
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
 
             // Get device pixel ratio for high-DPI support
-            let device_pixel_ratio = web_sys::window()
-                .and_then(|w| Some(w.device_pixel_ratio()))
+            let device_pixel_ratio = web_sys::window().map(|w| w.device_pixel_ratio())
                 .unwrap_or(1.0);
 
             // Update canvas dimensions based on parent container
@@ -113,7 +111,7 @@ pub fn CanvasGrid(
                 leptos::logging::log!("Rendering grid with active cell: {:?}", current_cell);
                 render_grid(
                     canvas_elem,
-                    &*viewport_effect.borrow(),
+                    &viewport_effect.borrow(),
                     current_cell,
                     ctrl_borrow.get_facade(),
                     device_pixel_ratio,

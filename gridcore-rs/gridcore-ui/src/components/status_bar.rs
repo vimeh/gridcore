@@ -5,6 +5,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
+#[derive(Default)]
 pub struct SelectionStats {
     pub count: usize,
     pub sum: Option<f64>,
@@ -13,17 +14,6 @@ pub struct SelectionStats {
     pub max: Option<f64>,
 }
 
-impl Default for SelectionStats {
-    fn default() -> Self {
-        Self {
-            count: 0,
-            sum: None,
-            average: None,
-            min: None,
-            max: None,
-        }
-    }
-}
 
 #[component]
 pub fn StatusBar(

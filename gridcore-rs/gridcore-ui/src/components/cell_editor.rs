@@ -105,67 +105,64 @@ pub fn CellEditor(
                 }
 
                 // Set cursor position based on edit mode
-                match editing_state {
-                    gridcore_controller::state::UIState::Editing {
+                if let gridcore_controller::state::UIState::Editing {
                         edit_variant,
                         cursor_position,
                         ..
-                    } => {
-                        if let Some(variant) = edit_variant {
-                            match variant {
-                                InsertMode::I => {
-                                    // Insert mode 'i' - cursor at beginning
-                                    // Only set to 0 if we're not direct typing (direct typing has cursor_position > 0)
-                                    // Direct typing already has the correct cursor position from state
-                                    if *cursor_position == 0 {
-                                        // This is 'i' key press on existing content, not direct typing
-                                        let _ = input.set_selection_start(Some(0));
-                                        let _ = input.set_selection_end(Some(0));
-                                    }
+                    } = editing_state {
+                    if let Some(variant) = edit_variant {
+                        match variant {
+                            InsertMode::I => {
+                                // Insert mode 'i' - cursor at beginning
+                                // Only set to 0 if we're not direct typing (direct typing has cursor_position > 0)
+                                // Direct typing already has the correct cursor position from state
+                                if *cursor_position == 0 {
+                                    // This is 'i' key press on existing content, not direct typing
+                                    let _ = input.set_selection_start(Some(0));
+                                    let _ = input.set_selection_end(Some(0));
                                 }
-                                InsertMode::CapitalI => {
-                                    // Insert mode 'I' - cursor at beginning of line
-                                    // Use set_timeout to ensure the value is set first
-                                    let input_clone = input_ref.clone();
-                                    set_timeout(
-                                        move || {
-                                            if let Some(input) = input_clone.get() {
-                                                let _ = input.set_selection_start(Some(0));
-                                                let _ = input.set_selection_end(Some(0));
-                                            }
-                                        },
-                                        std::time::Duration::from_millis(0),
-                                    );
-                                }
-                                InsertMode::A => {
-                                    // Append mode 'a' - cursor after current position (at end)
-                                    // Set immediately without timeout since we need cursor position right away
-                                    let len = input.value().len();
-                                    let _ = input.set_selection_start(Some(len as u32));
-                                    let _ = input.set_selection_end(Some(len as u32));
-                                }
-                                InsertMode::CapitalA => {
-                                    // Append mode 'A' - cursor at end of line
-                                    // Use set_timeout to ensure the value is set first
-                                    let input_clone = input_ref.clone();
-                                    set_timeout(
-                                        move || {
-                                            if let Some(input) = input_clone.get() {
-                                                let len = input.value().len();
-                                                let _ = input.set_selection_start(Some(len as u32));
-                                                let _ = input.set_selection_end(Some(len as u32));
-                                            }
-                                        },
-                                        std::time::Duration::from_millis(0),
-                                    );
-                                }
-                                _ => {
-                                    // Other modes - use specified position
-                                }
+                            }
+                            InsertMode::CapitalI => {
+                                // Insert mode 'I' - cursor at beginning of line
+                                // Use set_timeout to ensure the value is set first
+                                let input_clone = input_ref;
+                                set_timeout(
+                                    move || {
+                                        if let Some(input) = input_clone.get() {
+                                            let _ = input.set_selection_start(Some(0));
+                                            let _ = input.set_selection_end(Some(0));
+                                        }
+                                    },
+                                    std::time::Duration::from_millis(0),
+                                );
+                            }
+                            InsertMode::A => {
+                                // Append mode 'a' - cursor after current position (at end)
+                                // Set immediately without timeout since we need cursor position right away
+                                let len = input.value().len();
+                                let _ = input.set_selection_start(Some(len as u32));
+                                let _ = input.set_selection_end(Some(len as u32));
+                            }
+                            InsertMode::CapitalA => {
+                                // Append mode 'A' - cursor at end of line
+                                // Use set_timeout to ensure the value is set first
+                                let input_clone = input_ref;
+                                set_timeout(
+                                    move || {
+                                        if let Some(input) = input_clone.get() {
+                                            let len = input.value().len();
+                                            let _ = input.set_selection_start(Some(len as u32));
+                                            let _ = input.set_selection_end(Some(len as u32));
+                                        }
+                                    },
+                                    std::time::Duration::from_millis(0),
+                                );
+                            }
+                            _ => {
+                                // Other modes - use specified position
                             }
                         }
                     }
-                    _ => {}
                 }
             }
         }
@@ -267,8 +264,7 @@ pub fn CellEditor(
                         let new_cursor_pos = cursor_pos + 1;
                         let _ = input.set_selection_start(Some(new_cursor_pos as u32));
                         let _ = input.set_selection_end(Some(new_cursor_pos as u32));
-                    }
-                    return; // Don't save, just add newline
+                    }// Don't save, just add newline
                 } else {
                     // Not in Insert mode - Enter saves the value
                     ev.prevent_default();

@@ -11,7 +11,7 @@ use std::rc::Rc;
 #[component]
 pub fn App() -> impl IntoView {
     // Initialize wasm-logger once for the entire application
-    _ = wasm_logger::init(wasm_logger::Config::default());
+    wasm_logger::init(wasm_logger::Config::default());;
 
     // Set panic hook for better error messages
     #[cfg(feature = "debug")]
@@ -31,8 +31,8 @@ pub fn App() -> impl IntoView {
 
     // Set up controller event listener for errors
     {
-        let set_errors = set_errors.clone();
-        let error_counter = error_counter.clone();
+        let set_errors = set_errors;
+        let error_counter = error_counter;
         let callback = Box::new(
             move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
                 leptos::logging::log!("Controller event received: {:?}", event);
