@@ -1,7 +1,7 @@
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ViewportInfo {
     pub start_row: u32,
     pub start_col: u32,

@@ -67,7 +67,7 @@ impl Reference {
 }
 
 /// Structural operations that affect references
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum StructuralOperation {
     InsertRows { before_row: u32, count: u32 },
     InsertColumns { before_col: u32, count: u32 },
@@ -77,7 +77,7 @@ pub enum StructuralOperation {
 }
 
 /// A range of cells
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CellRange {
     pub start: CellAddress,
     pub end: CellAddress,

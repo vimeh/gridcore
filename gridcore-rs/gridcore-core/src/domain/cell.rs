@@ -20,9 +20,10 @@ pub struct Cell {
 impl Cell {
     /// Create a new cell with a value
     pub fn new(value: CellValue) -> Self {
+        let computed = value.clone();
         Cell {
-            raw_value: value.clone(),
-            computed_value: value,
+            raw_value: value,
+            computed_value: computed,
             formula_text: None,
             error: None,
         }
