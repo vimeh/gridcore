@@ -1,4 +1,3 @@
-use crate::formula::ast::Expr;
 use crate::types::{CellValue, ErrorType};
 use serde::{Deserialize, Serialize};
 
@@ -11,8 +10,8 @@ pub struct Cell {
     /// The computed value after formula evaluation
     pub computed_value: CellValue,
 
-    /// The parsed formula AST if this cell contains a formula
-    pub formula: Option<Expr>,
+    /// The formula text if this cell contains a formula (without the leading '=')
+    pub formula_text: Option<String>,
 
     /// Any error that occurred during parsing or evaluation
     pub error: Option<String>,
@@ -24,17 +23,17 @@ impl Cell {
         Cell {
             raw_value: value.clone(),
             computed_value: value,
-            formula: None,
+            formula_text: None,
             error: None,
         }
     }
 
     /// Create a cell with a formula
-    pub fn with_formula(raw_value: CellValue, formula: Expr) -> Self {
+    pub fn with_formula(raw_value: CellValue, formula_text: String) -> Self {
         Cell {
             raw_value,
             computed_value: CellValue::Empty, // Will be computed later
-            formula: Some(formula),
+            formula_text: Some(formula_text),
             error: None,
         }
     }
@@ -70,7 +69,7 @@ impl Cell {
         Cell {
             raw_value,
             computed_value: CellValue::Error(error_type),
-            formula: None,
+            formula_text: None,
             error: Some(error),
         }
     }
@@ -80,14 +79,14 @@ impl Cell {
         Cell {
             raw_value: CellValue::Empty,
             computed_value: CellValue::Empty,
-            formula: None,
+            formula_text: None,
             error: None,
         }
     }
 
     /// Check if the cell contains a formula
     pub fn has_formula(&self) -> bool {
-        self.formula.is_some()
+        self.formula_text.is_some()
     }
 
     /// Check if the cell has an error
@@ -153,8 +152,6 @@ impl Cell {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::formula::ast::{BinaryOperator, Expr};
-    use crate::types::CellAddress;
 
     #[test]
     fn test_cell_creation() {
@@ -194,22 +191,9 @@ mod tests {
 
     #[test]
     fn test_cell_with_formula() {
-        let formula = Expr::BinaryOp {
-            op: BinaryOperator::Add,
-            left: Box::new(Expr::Reference {
-                address: CellAddress::new(0, 0),
-                absolute_col: false,
-                absolute_row: false,
-            }),
-            right: Box::new(Expr::Reference {
-                address: CellAddress::new(1, 0),
-                absolute_col: false,
-                absolute_row: false,
-            }),
-        };
-        let cell = Cell::with_formula(CellValue::String("=A1+B1".to_string()), formula.clone());
+        let cell = Cell::with_formula(CellValue::String("=A1+B1".to_string()), "A1+B1".to_string());
         assert!(cell.has_formula());
-        assert_eq!(cell.formula, Some(formula));
+        assert_eq!(cell.formula_text, Some("A1+B1".to_string()));
         assert_eq!(cell.raw_value, CellValue::String("=A1+B1".to_string()));
         assert_eq!(cell.computed_value, CellValue::Empty);
         assert!(!cell.has_error());
@@ -280,17 +264,8 @@ mod tests {
 
     #[test]
     fn test_cells_with_same_formula_are_equal() {
-        let formula = Expr::BinaryOp {
-            op: BinaryOperator::Add,
-            left: Box::new(Expr::Literal {
-                value: CellValue::Number(1.0),
-            }),
-            right: Box::new(Expr::Literal {
-                value: CellValue::Number(2.0),
-            }),
-        };
-        let cell1 = Cell::with_formula(CellValue::String("=1+2".to_string()), formula.clone());
-        let cell2 = Cell::with_formula(CellValue::String("=1+2".to_string()), formula.clone());
+        let cell1 = Cell::with_formula(CellValue::String("=1+2".to_string()), "1+2".to_string());
+        let cell2 = Cell::with_formula(CellValue::String("=1+2".to_string()), "1+2".to_string());
         assert_eq!(cell1, cell2);
     }
 
@@ -317,10 +292,7 @@ mod tests {
 
     #[test]
     fn test_formula_cell_computed_value() {
-        let formula = Expr::Literal {
-            value: CellValue::Number(42.0),
-        };
-        let mut cell = Cell::with_formula(CellValue::String("=42".to_string()), formula);
+        let mut cell = Cell::with_formula(CellValue::String("=42".to_string()), "42".to_string());
         assert_eq!(cell.computed_value, CellValue::Empty);
 
         cell.set_computed_value(CellValue::Number(42.0));

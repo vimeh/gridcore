@@ -2,13 +2,12 @@ use crate::Result;
 use crate::command::{CommandExecutor, UndoRedoManager};
 use crate::dependency::DependencyGraph;
 use crate::domain::Cell;
-use crate::evaluator::Evaluator;
 use crate::fill::{FillEngine, FillOperation, FillResult};
 use crate::formula::FormulaParser;
 use crate::references::{ReferenceAdjuster, ReferenceTracker, StructuralOperation};
 use crate::repository::CellRepository;
 use crate::services::{
-    ServiceContainer, ServiceContainerBuilder, EventManager, RepositoryContext,
+    ServiceContainer, ServiceContainerBuilder, EventManager,
     CellOperationsServiceImpl, StructuralOperationsServiceImpl, CalculationServiceImpl,
     BatchOperationsServiceImpl, EventServiceImpl,
 };
@@ -175,12 +174,9 @@ impl SpreadsheetFacade {
             // TODO: Extend BatchOperationsService trait to support operation queuing
             
             let cell = if value.starts_with('=') {
-                // Parse and set formula
-                if let Ok(formula) = FormulaParser::parse(value) {
-                    Cell::with_formula(CellValue::String(value.to_string()), formula)
-                } else {
-                    Cell::new(CellValue::String(value.to_string()))
-                }
+                // Store formula text without the leading '='
+                let formula_text = value[1..].to_string();
+                Cell::with_formula(CellValue::String(value.to_string()), formula_text)
             } else {
                 Cell::new(parsed_value.clone())
             };
@@ -601,7 +597,7 @@ impl SpreadsheetFacade {
         // This was doing manual cell movement and formula adjustment
         // Now handled by insert_rows -> StructuralOperations service
         let transformer = crate::formula::FormulaTransformer::new();
-        let mut cells_to_update = Vec::new();
+        let mut cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
 
         // Collect all cells that need to be updated
@@ -612,12 +608,10 @@ impl SpreadsheetFacade {
                 // This cell needs to be moved down
                 let new_address = CellAddress::new(address.col, address.row + 1);
                 cells_to_move.push((address, new_address, cell.clone()));
-            } else if let Some(ast) = &cell.formula {
+            } else if cell.has_formula() {
                 // This cell's formula might reference cells that are moving
-                let new_ast = transformer.adjust_for_row_insert(ast.clone(), row_index);
-                if *ast != new_ast {
-                    cells_to_update.push((address, new_ast));
-                }
+                // TODO: Implement formula adjustment without direct AST access
+                // This requires parsing formula text, adjusting AST, and converting back to string
             }
         }
 
@@ -628,8 +622,9 @@ impl SpreadsheetFacade {
         // Move cells that are shifting down
         for (old_addr, new_addr, mut cell) in cells_to_move {
             // Update the formula if it exists
-            if let Some(ast) = &cell.formula {
-                cell.formula = Some(transformer.adjust_for_row_insert(ast.clone(), row_index));
+            if cell.has_formula() {
+                // TODO: Implement formula adjustment without direct AST access
+                // This requires parsing formula text, adjusting AST, and converting back to string
             }
 
             if let Ok(mut repo) = self.repository.lock() {
@@ -644,25 +639,17 @@ impl SpreadsheetFacade {
         }
 
         // Update formulas in cells that reference moved cells
-        for (address, new_ast) in cells_to_update {
+        // TODO: Re-implement when we have AST-to-string conversion
+        for (_address, _) in cells_to_update {
             let cell = if let Ok(repo) = self.repository.lock() {
-                repo.get(&address).cloned()
+                repo.get(&_address).cloned()
             } else {
                 None
             };
-            if let Some(mut cell) = cell {
-                cell.formula = Some(new_ast.clone());
-                // Re-evaluate the formula
-                if let Ok(result) = {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    evaluator.evaluate(&new_ast)
-                } {
-                    cell.set_computed_value(result);
-                }
-                if let Ok(mut repo) = self.repository.lock() {
-                    repo.set(&address, cell);
-                }
+            if let Some(mut _cell) = cell {
+                // TODO: Update formula text from adjusted AST
+                // This requires an AST-to-string converter
+                // For now, skip formula adjustment
             }
         }
 
@@ -687,7 +674,7 @@ impl SpreadsheetFacade {
     #[allow(dead_code)]
     fn old_delete_row_impl(&self, row_index: u32) -> Result<()> {
         let transformer = crate::formula::FormulaTransformer::new();
-        let mut cells_to_update = Vec::new();
+        let mut cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
         let mut cells_to_delete = Vec::new();
 
@@ -702,12 +689,10 @@ impl SpreadsheetFacade {
                 // This cell needs to be moved up
                 let new_address = CellAddress::new(address.col, address.row - 1);
                 cells_to_move.push((address, new_address, cell.clone()));
-            } else if let Some(ast) = &cell.formula {
+            } else if cell.has_formula() {
                 // This cell's formula might reference cells that are moving or being deleted
-                let new_ast = transformer.adjust_for_row_delete(ast.clone(), row_index);
-                if *ast != new_ast {
-                    cells_to_update.push((address, new_ast));
-                }
+                // TODO: Implement formula adjustment without direct AST access
+                // This requires parsing formula text, adjusting AST, and converting back to string
             }
         }
 
@@ -728,8 +713,9 @@ impl SpreadsheetFacade {
         // Move cells that are shifting up
         for (old_addr, new_addr, mut cell) in cells_to_move {
             // Update the formula if it exists
-            if let Some(ast) = &cell.formula {
-                cell.formula = Some(transformer.adjust_for_row_delete(ast.clone(), row_index));
+            if cell.has_formula() {
+                // TODO: Implement formula adjustment without direct AST access
+                // This requires parsing formula text, adjusting AST, and converting back to string
             }
 
             if let Ok(mut repo) = self.repository.lock() {
@@ -744,25 +730,16 @@ impl SpreadsheetFacade {
         }
 
         // Update formulas in cells that reference moved or deleted cells
-        for (address, new_ast) in cells_to_update {
+        for (address, _) in cells_to_update {
             let cell = if let Ok(repo) = self.repository.lock() {
                 repo.get(&address).cloned()
             } else {
                 None
             };
-            if let Some(mut cell) = cell {
-                cell.formula = Some(new_ast.clone());
-                // Re-evaluate the formula
-                if let Ok(result) = {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    evaluator.evaluate(&new_ast)
-                } {
-                    cell.set_computed_value(result);
-                }
-                if let Ok(mut repo) = self.repository.lock() {
-                    repo.set(&address, cell);
-                }
+            if let Some(mut _cell) = cell {
+                // TODO: Update formula text from adjusted AST
+                // This requires an AST-to-string converter
+                // For now, skip formula adjustment
             }
         }
 
@@ -787,7 +764,7 @@ impl SpreadsheetFacade {
     #[allow(dead_code)]
     fn old_insert_column_impl(&self, col_index: u32) -> Result<()> {
         let transformer = crate::formula::FormulaTransformer::new();
-        let mut cells_to_update = Vec::new();
+        let mut cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
 
         // Collect all cells that need to be updated
@@ -798,12 +775,10 @@ impl SpreadsheetFacade {
                 // This cell needs to be moved right
                 let new_address = CellAddress::new(address.col + 1, address.row);
                 cells_to_move.push((address, new_address, cell.clone()));
-            } else if let Some(ast) = &cell.formula {
+            } else if cell.has_formula() {
                 // This cell's formula might reference cells that are moving
-                let new_ast = transformer.adjust_for_column_insert(ast.clone(), col_index);
-                if *ast != new_ast {
-                    cells_to_update.push((address, new_ast));
-                }
+                // TODO: Implement formula adjustment without direct AST access
+                // This requires parsing formula text, adjusting AST, and converting back to string
             }
         }
 
@@ -814,8 +789,9 @@ impl SpreadsheetFacade {
         // Move cells that are shifting right
         for (old_addr, new_addr, mut cell) in cells_to_move {
             // Update the formula if it exists
-            if let Some(ast) = &cell.formula {
-                cell.formula = Some(transformer.adjust_for_column_insert(ast.clone(), col_index));
+            if cell.has_formula() {
+                // TODO: Implement formula adjustment without direct AST access
+                // This requires parsing formula text, adjusting AST, and converting back to string
             }
 
             if let Ok(mut repo) = self.repository.lock() {
@@ -830,25 +806,17 @@ impl SpreadsheetFacade {
         }
 
         // Update formulas in cells that reference moved cells
-        for (address, new_ast) in cells_to_update {
+        // TODO: Re-implement when we have AST-to-string conversion
+        for (_address, _) in cells_to_update {
             let cell = if let Ok(repo) = self.repository.lock() {
-                repo.get(&address).cloned()
+                repo.get(&_address).cloned()
             } else {
                 None
             };
-            if let Some(mut cell) = cell {
-                cell.formula = Some(new_ast.clone());
-                // Re-evaluate the formula
-                if let Ok(result) = {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    evaluator.evaluate(&new_ast)
-                } {
-                    cell.set_computed_value(result);
-                }
-                if let Ok(mut repo) = self.repository.lock() {
-                    repo.set(&address, cell);
-                }
+            if let Some(mut _cell) = cell {
+                // TODO: Update formula text from adjusted AST
+                // This requires an AST-to-string converter
+                // For now, skip formula adjustment
             }
         }
 
@@ -873,7 +841,7 @@ impl SpreadsheetFacade {
     #[allow(dead_code)]
     fn old_delete_column_impl(&self, col_index: u32) -> Result<()> {
         let transformer = crate::formula::FormulaTransformer::new();
-        let mut cells_to_update = Vec::new();
+        let mut cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
         let mut cells_to_delete = Vec::new();
 
@@ -888,12 +856,10 @@ impl SpreadsheetFacade {
                 // This cell needs to be moved left
                 let new_address = CellAddress::new(address.col - 1, address.row);
                 cells_to_move.push((address, new_address, cell.clone()));
-            } else if let Some(ast) = &cell.formula {
+            } else if cell.has_formula() {
                 // This cell's formula might reference cells that are moving or being deleted
-                let new_ast = transformer.adjust_for_column_delete(ast.clone(), col_index);
-                if *ast != new_ast {
-                    cells_to_update.push((address, new_ast));
-                }
+                // TODO: Implement formula adjustment without direct AST access
+                // This requires parsing formula text, adjusting AST, and converting back to string
             }
         }
 
@@ -914,8 +880,9 @@ impl SpreadsheetFacade {
         // Move cells that are shifting left
         for (old_addr, new_addr, mut cell) in cells_to_move {
             // Update the formula if it exists
-            if let Some(ast) = &cell.formula {
-                cell.formula = Some(transformer.adjust_for_column_delete(ast.clone(), col_index));
+            if cell.has_formula() {
+                // TODO: Implement formula adjustment without direct AST access
+                // This requires parsing formula text, adjusting AST, and converting back to string
             }
 
             if let Ok(mut repo) = self.repository.lock() {
@@ -930,25 +897,16 @@ impl SpreadsheetFacade {
         }
 
         // Update formulas in cells that reference moved or deleted cells
-        for (address, new_ast) in cells_to_update {
+        for (address, _) in cells_to_update {
             let cell = if let Ok(repo) = self.repository.lock() {
                 repo.get(&address).cloned()
             } else {
                 None
             };
-            if let Some(mut cell) = cell {
-                cell.formula = Some(new_ast.clone());
-                // Re-evaluate the formula
-                if let Ok(result) = {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    evaluator.evaluate(&new_ast)
-                } {
-                    cell.set_computed_value(result);
-                }
-                if let Ok(mut repo) = self.repository.lock() {
-                    repo.set(&address, cell);
-                }
+            if let Some(mut _cell) = cell {
+                // TODO: Update formula text from adjusted AST
+                // This requires an AST-to-string converter
+                // For now, skip formula adjustment
             }
         }
 

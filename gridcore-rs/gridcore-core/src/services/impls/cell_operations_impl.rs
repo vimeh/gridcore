@@ -124,7 +124,8 @@ impl CellOperationsService for CellOperationsServiceImpl {
 
             // Create cell with formula and computed value
             let raw_value = CellValue::String(value.to_string());
-            let mut cell = Cell::with_formula(raw_value, formula);
+            let formula_text = value[1..].to_string(); // Store without leading '='
+            let mut cell = Cell::with_formula(raw_value, formula_text);
             cell.set_computed_value(computed_value);
             
             // Re-acquire repository lock and store
