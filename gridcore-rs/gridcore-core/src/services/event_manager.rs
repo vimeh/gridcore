@@ -52,23 +52,22 @@ pub fn create_shared_event_manager() -> Rc<EventManager> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cell::RefCell;
-    use std::rc::Rc;
+    use std::sync::{Arc, Mutex};
 
     struct TestCallback {
-        events: Rc<RefCell<Vec<SpreadsheetEvent>>>,
+        events: Arc<Mutex<Vec<SpreadsheetEvent>>>,
     }
 
     impl EventCallback for TestCallback {
         fn on_event(&self, event: &SpreadsheetEvent) {
-            self.events.borrow_mut().push(event.clone());
+            self.events.lock().unwrap().push(event.clone());
         }
     }
 
     #[test]
     fn test_event_manager_basic() {
         let manager = EventManager::new();
-        let events = Rc::new(RefCell::new(Vec::new()));
+        let events = Arc::new(Mutex::new(Vec::new()));
 
         let callback = Box::new(TestCallback {
             events: events.clone(),
@@ -77,20 +76,21 @@ mod tests {
         manager.add_callback(callback);
         assert_eq!(manager.callback_count(), 1);
 
-        manager.emit(SpreadsheetEvent::CellUpdated {
-            address: crate::types::CellAddress::new(0, 0),
-            old_value: None,
-            new_value: crate::types::CellValue::Number(42.0),
-        });
+        manager.emit(SpreadsheetEvent::cell_updated(
+            &crate::types::CellAddress::new(0, 0),
+            None,
+            crate::types::CellValue::Number(42.0),
+            None,
+        ));
 
-        assert_eq!(events.borrow().len(), 1);
+        assert_eq!(events.lock().unwrap().len(), 1);
     }
 
     #[test]
     fn test_event_manager_multiple_callbacks() {
         let manager = EventManager::new();
-        let events1 = Rc::new(RefCell::new(Vec::new()));
-        let events2 = Rc::new(RefCell::new(Vec::new()));
+        let events1 = Arc::new(Mutex::new(Vec::new()));
+        let events2 = Arc::new(Mutex::new(Vec::new()));
 
         manager.add_callback(Box::new(TestCallback {
             events: events1.clone(),
@@ -101,12 +101,10 @@ mod tests {
 
         assert_eq!(manager.callback_count(), 2);
 
-        manager.emit(SpreadsheetEvent::BatchStarted {
-            batch_id: "test".to_string(),
-        });
+        manager.emit(SpreadsheetEvent::batch_started("test".to_string()));
 
-        assert_eq!(events1.borrow().len(), 1);
-        assert_eq!(events2.borrow().len(), 1);
+        assert_eq!(events1.lock().unwrap().len(), 1);
+        assert_eq!(events2.lock().unwrap().len(), 1);
     }
 
     #[test]
@@ -114,7 +112,7 @@ mod tests {
         let manager = EventManager::new();
 
         manager.add_callback(Box::new(TestCallback {
-            events: Rc::new(RefCell::new(Vec::new())),
+            events: Arc::new(Mutex::new(Vec::new())),
         }));
 
         assert_eq!(manager.callback_count(), 1);

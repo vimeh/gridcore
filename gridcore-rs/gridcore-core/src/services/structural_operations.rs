@@ -10,7 +10,7 @@ use std::rc::Rc;
 pub struct StructuralOperations {
     repository: Rc<RefCell<CellRepository>>,
     dependency_graph: Rc<RefCell<DependencyGraph>>,
-    reference_adjuster: ReferenceAdjuster,
+    _reference_adjuster: ReferenceAdjuster,
 }
 
 impl StructuralOperations {
@@ -22,7 +22,7 @@ impl StructuralOperations {
         StructuralOperations {
             repository,
             dependency_graph,
-            reference_adjuster: ReferenceAdjuster::new(),
+            _reference_adjuster: ReferenceAdjuster::new(),
         }
     }
 
@@ -304,14 +304,14 @@ mod tests {
             service
                 .repository
                 .borrow()
-                .get_cell(&CellAddress::new(1, 0))
+                .get(&CellAddress::new(1, 0))
                 .is_none()
         );
         assert!(
             service
                 .repository
                 .borrow()
-                .get_cell(&CellAddress::new(2, 0))
+                .get(&CellAddress::new(2, 0))
                 .is_some()
         );
         assert!(!affected.is_empty());
@@ -330,22 +330,23 @@ mod tests {
         }
 
         // Delete column 1
-        let deleted = service.delete_columns(vec![1]).unwrap();
+        let deleted = service.delete_columns(1, 1).unwrap();
 
         assert_eq!(deleted.len(), 1);
         assert!(
             service
                 .repository
                 .borrow()
-                .get_cell(&CellAddress::new(0, 1))
+                .get(&CellAddress::new(0, 1))
                 .is_some()
         );
         // Column 2 should now be at column 1
         let cell = service
             .repository
             .borrow()
-            .get_cell(&CellAddress::new(0, 1))
-            .unwrap();
+            .get(&CellAddress::new(0, 1))
+            .unwrap()
+            .clone();
         assert_eq!(cell.get_computed_value(), CellValue::Number(2.0));
     }
 

@@ -14,7 +14,7 @@ use std::rc::Rc;
 pub struct CellOperations {
     repository: Rc<RefCell<CellRepository>>,
     dependency_graph: Rc<RefCell<DependencyGraph>>,
-    reference_tracker: Rc<RefCell<ReferenceTracker>>,
+    _reference_tracker: Rc<RefCell<ReferenceTracker>>,
 }
 
 impl CellOperations {
@@ -26,7 +26,7 @@ impl CellOperations {
         CellOperations {
             repository,
             dependency_graph,
-            reference_tracker: Rc::new(RefCell::new(ReferenceTracker::new())),
+            _reference_tracker: Rc::new(RefCell::new(ReferenceTracker::new())),
         }
     }
 
@@ -201,22 +201,21 @@ impl CellOperations {
         // Recalculate in topological order
         let sorted = self.dependency_graph.borrow().get_calculation_order()?;
         for addr in sorted {
-            if to_recalc.contains(&addr) {
-                if let Some(cell) = self.repository.borrow().get(&addr) {
-                    if cell.has_formula() {
-                        // Re-evaluate the formula
-                        if let Some(formula_expr) = &cell.formula {
-                            let mut context = BasicContext::new();
-                            let mut evaluator = Evaluator::new(&mut context);
-                            let value = evaluator.evaluate(formula_expr)?;
+            if to_recalc.contains(&addr)
+                && let Some(cell) = self.repository.borrow().get(&addr)
+                && cell.has_formula()
+            {
+                // Re-evaluate the formula
+                if let Some(formula_expr) = &cell.formula {
+                    let mut context = BasicContext::new();
+                    let mut evaluator = Evaluator::new(&mut context);
+                    let value = evaluator.evaluate(formula_expr)?;
 
-                            let mut new_cell = cell.clone();
-                            new_cell.set_computed_value(value);
+                    let mut new_cell = cell.clone();
+                    new_cell.set_computed_value(value);
 
-                            self.repository.borrow_mut().set(&addr, new_cell);
-                            recalculated.push(addr);
-                        }
-                    }
+                    self.repository.borrow_mut().set(&addr, new_cell);
+                    recalculated.push(addr);
                 }
             }
         }
