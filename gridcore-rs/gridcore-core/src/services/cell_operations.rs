@@ -55,52 +55,76 @@ impl CellOperations {
 
     /// Set a formula to a cell
     pub fn set_formula(&self, address: &CellAddress, formula: &str) -> Result<Cell> {
-        let parsed = FormulaParser::parse(formula)?;
+        // Try to parse the formula
+        let (parsed, value) = match FormulaParser::parse(formula) {
+            Ok(ast) => {
+                // Extract references from the parsed expression
+                let parser = crate::references::ReferenceParser::new();
+                let references = parser.extract_from_expr(&ast);
 
-        // Extract references from the parsed expression
-        let parser = crate::references::ReferenceParser::new();
-        let references = parser.extract_from_expr(&parsed);
+                // Check for circular dependencies before adding
+                for dep in &references {
+                    if self
+                        .dependency_graph
+                        .borrow()
+                        .would_create_cycle(address, dep)
+                    {
+                        return Err(crate::error::SpreadsheetError::CircularDependency);
+                    }
+                }
 
-        // Check for circular dependencies before adding
-        for dep in &references {
-            if self
-                .dependency_graph
-                .borrow()
-                .would_create_cycle(address, dep)
-            {
-                return Err(crate::error::SpreadsheetError::CircularDependency);
+                // Add dependencies after checking they're all safe
+                for dep in &references {
+                    self.dependency_graph
+                        .borrow_mut()
+                        .add_dependency(*address, *dep);
+                }
+
+                // Create evaluation context with repository access
+                let eval_value = {
+                    let repo_borrow = self.repository.borrow();
+                    let mut context = RepositoryContext::new(&repo_borrow);
+
+                    // Push current cell to evaluation stack to detect self-references
+                    context.push_evaluation(address);
+
+                    let mut evaluator = Evaluator::new(&mut context);
+
+                    // Evaluate the formula
+                    let result = evaluator.evaluate(&ast);
+
+                    // Pop from evaluation stack
+                    context.pop_evaluation(address);
+
+                    match result {
+                        Ok(v) => v,
+                        Err(e) => CellValue::Error(e.to_error_type()),
+                    }
+                }; // repo_borrow is dropped here
+
+                (Some(ast), eval_value)
             }
-        }
+            Err(e) => {
+                // Store error value if parsing fails
+                self.dependency_graph.borrow_mut().remove_cell(address);
+                (None, CellValue::Error(e.to_error_type()))
+            }
+        };
 
-        // Add dependencies after checking they're all safe
-        for dep in &references {
-            self.dependency_graph
-                .borrow_mut()
-                .add_dependency(*address, *dep);
-        }
-
-        // Create evaluation context with repository access
-        let value = {
-            let repo_borrow = self.repository.borrow();
-            let mut context = RepositoryContext::new(&repo_borrow);
-
-            // Push current cell to evaluation stack to detect self-references
-            context.push_evaluation(address);
-
-            let mut evaluator = Evaluator::new(&mut context);
-
-            // Evaluate the formula
-            let result = evaluator.evaluate(&parsed);
-
-            // Pop from evaluation stack
-            context.pop_evaluation(address);
-
-            result?
-        }; // repo_borrow is dropped here
-
-        // Create the cell with formula
-        let mut cell = Cell::with_formula(CellValue::String(formula.to_string()), parsed);
-        cell.set_computed_value(value);
+        // Create the cell with or without parsed formula
+        let mut cell = match parsed {
+            Some(ast) => {
+                let mut c = Cell::with_formula(CellValue::String(formula.to_string()), ast);
+                c.set_computed_value(value);
+                c
+            }
+            None => {
+                // Create a cell with just the formula string and error value
+                let mut c = Cell::new(CellValue::String(formula.to_string()));
+                c.set_computed_value(value);
+                c
+            }
+        };
 
         self.repository.borrow_mut().set(address, cell.clone());
 

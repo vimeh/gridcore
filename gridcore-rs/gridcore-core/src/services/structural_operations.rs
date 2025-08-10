@@ -304,14 +304,14 @@ mod tests {
             service
                 .repository
                 .borrow()
-                .get(&CellAddress::new(1, 0))
+                .get(&CellAddress::new(0, 1))
                 .is_none()
         );
         assert!(
             service
                 .repository
                 .borrow()
-                .get(&CellAddress::new(2, 0))
+                .get(&CellAddress::new(0, 2))
                 .is_some()
         );
         assert!(!affected.is_empty());
@@ -321,7 +321,7 @@ mod tests {
     fn test_delete_columns() {
         let service = create_test_service();
 
-        // Add cells in different columns
+        // Add cells in different columns (col, row)
         for col in 0..3 {
             service.repository.borrow_mut().set(
                 &CellAddress::new(col, 0),
@@ -333,18 +333,19 @@ mod tests {
         let deleted = service.delete_columns(1, 1).unwrap();
 
         assert_eq!(deleted.len(), 1);
+        // Column 0 should still exist
         assert!(
             service
                 .repository
                 .borrow()
-                .get(&CellAddress::new(0, 1))
+                .get(&CellAddress::new(0, 0))
                 .is_some()
         );
         // Column 2 should now be at column 1
         let cell = service
             .repository
             .borrow()
-            .get(&CellAddress::new(0, 1))
+            .get(&CellAddress::new(1, 0))
             .unwrap()
             .clone();
         assert_eq!(cell.get_computed_value(), CellValue::Number(2.0));

@@ -1479,13 +1479,19 @@ mod tests {
     fn test_parse_error_to_error_type() {
         let facade = SpreadsheetFacade::new();
 
-        // Invalid formula syntax should create parse error
-        let result = facade.set_cell_value(&CellAddress::new(0, 0), "=A1 +");
-        assert!(result.is_err());
+        // Invalid formula syntax should store parse error in cell
+        facade
+            .set_cell_value(&CellAddress::new(0, 0), "=A1 +")
+            .unwrap();
+        let value = facade.get_cell_value(&CellAddress::new(0, 0)).unwrap();
+        assert!(matches!(value, CellValue::Error(_)));
 
-        // Malformed reference
-        let result = facade.set_cell_value(&CellAddress::new(1, 0), "=A");
-        assert!(result.is_err());
+        // Malformed reference should store parse error in cell
+        facade
+            .set_cell_value(&CellAddress::new(1, 0), "=A")
+            .unwrap();
+        let value = facade.get_cell_value(&CellAddress::new(1, 0)).unwrap();
+        assert!(matches!(value, CellValue::Error(_)));
     }
 
     #[test]
@@ -1512,9 +1518,12 @@ mod tests {
     fn test_invalid_range_error() {
         let facade = SpreadsheetFacade::new();
 
-        // Try to use an invalid range - this will fail at parse time
-        let result = facade.set_cell_value(&CellAddress::new(0, 0), "=SUM(A1:)");
-        assert!(result.is_err());
+        // Try to use an invalid range - this will store parse error in cell
+        facade
+            .set_cell_value(&CellAddress::new(0, 0), "=SUM(A1:)")
+            .unwrap();
+        let value = facade.get_cell_value(&CellAddress::new(0, 0)).unwrap();
+        assert!(matches!(value, CellValue::Error(_)));
     }
 
     #[test]
