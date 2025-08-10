@@ -74,7 +74,7 @@ mod workbook_integration_tests {
 
         // Set metadata
         let metadata = workbook.metadata_mut();
-        metadata.title = "My Spreadsheet".to_string();
+        metadata.title = "My Spreadsheet".into();
         metadata.author = Some("Test Author".to_string());
         metadata
             .custom_properties

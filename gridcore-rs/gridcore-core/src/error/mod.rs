@@ -1,5 +1,6 @@
 pub mod recovery;
 
+use crate::constants::*;
 use crate::types::ErrorType;
 use thiserror::Error;
 
@@ -80,15 +81,15 @@ impl SpreadsheetError {
                 ErrorType::DivideByZero
             }
             SpreadsheetError::ValueError => ErrorType::ValueError {
-                expected: "valid value".to_string(),
-                actual: "invalid".to_string(),
+                expected: ERROR_VALID_VALUE.to_string(),
+                actual: ERROR_INVALID.to_string(),
             },
             SpreadsheetError::TypeError(msg) => ErrorType::ValueError {
-                expected: "valid value".to_string(),
+                expected: ERROR_VALID_VALUE.to_string(),
                 actual: msg.clone(),
             },
             SpreadsheetError::RefError => ErrorType::InvalidRef {
-                reference: "unknown".to_string(),
+                reference: ERROR_UNKNOWN.to_string(),
             },
             SpreadsheetError::InvalidRef(reference) => ErrorType::InvalidRef {
                 reference: reference.clone(),
@@ -97,7 +98,7 @@ impl SpreadsheetError {
                 reference: addr.clone(),
             },
             SpreadsheetError::NameError => ErrorType::NameError {
-                name: "unknown".to_string(),
+                name: ERROR_UNKNOWN.to_string(),
             },
             SpreadsheetError::UnknownFunction(name) => ErrorType::NameError { name: name.clone() },
             SpreadsheetError::NumError => ErrorType::NumError,
@@ -112,7 +113,7 @@ impl SpreadsheetError {
                 actual: actual.clone(),
             },
             SpreadsheetError::InvalidArguments(msg) => ErrorType::InvalidArguments {
-                function: "unknown".to_string(),
+                function: ERROR_UNKNOWN_FUNCTION.to_string(),
                 message: msg.clone(),
             },
             SpreadsheetError::Parse(msg) => {
@@ -156,7 +157,7 @@ mod tests {
         assert_eq!(
             error_type,
             ErrorType::InvalidRef {
-                reference: "unknown".to_string()
+                reference: ERROR_UNKNOWN.to_string()
             }
         );
     }
@@ -169,7 +170,7 @@ mod tests {
         assert_eq!(
             error_type,
             ErrorType::NameError {
-                name: "unknown".to_string()
+                name: ERROR_UNKNOWN.to_string()
             }
         );
 
@@ -190,8 +191,8 @@ mod tests {
         assert_eq!(
             error_type,
             ErrorType::ValueError {
-                expected: "valid value".to_string(),
-                actual: "invalid".to_string()
+                expected: ERROR_VALID_VALUE.to_string(),
+                actual: ERROR_INVALID.to_string()
             }
         );
     }

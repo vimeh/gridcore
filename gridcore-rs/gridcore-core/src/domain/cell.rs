@@ -1,3 +1,4 @@
+use crate::constants::*;
 use crate::types::{CellValue, ErrorType};
 use serde::{Deserialize, Serialize};
 
@@ -42,24 +43,24 @@ impl Cell {
     /// Create a cell with an error
     pub fn with_error(raw_value: CellValue, error: String) -> Self {
         // Parse the error string to determine the appropriate ErrorType
-        let error_type = if error.contains("#DIV/0!") || error.contains("Division by zero") {
+        let error_type = if error.contains(ERROR_DIV_ZERO) || error.contains(DESC_DIVISION_BY_ZERO) {
             ErrorType::DivideByZero
-        } else if error.contains("#REF!") || error.contains("Invalid reference") {
+        } else if error.contains(ERROR_REF) || error.contains(DESC_INVALID_REFERENCE) {
             ErrorType::InvalidRef {
                 reference: error.clone(),
             }
-        } else if error.contains("#NAME?") || error.contains("Unknown function") {
+        } else if error.contains(ERROR_NAME) || error.contains(DESC_UNKNOWN_FUNCTION) {
             ErrorType::NameError {
                 name: error.clone(),
             }
-        } else if error.contains("#VALUE!") || error.contains("Type mismatch") {
+        } else if error.contains(ERROR_VALUE) || error.contains(DESC_TYPE_MISMATCH) {
             ErrorType::ValueError {
-                expected: "valid".to_string(),
+                expected: ERROR_VALID_VALUE.to_string(),
                 actual: error.clone(),
             }
-        } else if error.contains("#CIRC!") || error.contains("Circular") {
+        } else if error.contains(ERROR_CIRC) || error.contains(DESC_CIRCULAR_REFERENCE) {
             ErrorType::CircularDependency { cells: Vec::new() }
-        } else if error.contains("#NUM!") {
+        } else if error.contains(ERROR_NUM) {
             ErrorType::NumError
         } else {
             ErrorType::ParseError {

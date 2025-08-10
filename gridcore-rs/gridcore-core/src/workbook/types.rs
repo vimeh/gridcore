@@ -1,16 +1,18 @@
 use super::sheet::Sheet;
+use crate::constants::{UNTITLED, VERSION_DEFAULT};
 use crate::domain::Cell;
 use crate::formula::Expr;
 use crate::types::{CellAddress, CellValue};
 use crate::{Result, SpreadsheetError};
 use chrono::{DateTime, Utc};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// Metadata for a workbook
 #[derive(Debug, Clone)]
 pub struct WorkbookMetadata {
     /// Title of the workbook
-    pub title: String,
+    pub title: Cow<'static, str>,
     /// Author of the workbook
     pub author: Option<String>,
     /// Description of the workbook
@@ -20,7 +22,7 @@ pub struct WorkbookMetadata {
     /// Last modified timestamp
     pub modified_at: DateTime<Utc>,
     /// Version number
-    pub version: String,
+    pub version: Cow<'static, str>,
     /// Custom properties
     pub custom_properties: HashMap<String, String>,
 }
@@ -29,12 +31,12 @@ impl Default for WorkbookMetadata {
     fn default() -> Self {
         let now = Utc::now();
         Self {
-            title: "Untitled".to_string(),
+            title: Cow::Borrowed(UNTITLED),
             author: None,
             description: None,
             created_at: now,
             modified_at: now,
-            version: "1.0.0".to_string(),
+            version: Cow::Borrowed(VERSION_DEFAULT),
             custom_properties: HashMap::new(),
         }
     }

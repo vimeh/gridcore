@@ -1,5 +1,6 @@
 pub mod adapters;
 pub mod command;
+pub mod constants;
 pub mod dependency;
 pub mod domain;
 pub mod error;
