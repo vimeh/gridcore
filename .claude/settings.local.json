@@ -36,7 +36,8 @@
       "Bash(bunx playwright test:*)",
       "Bash(trunk:*)",
       "Bash(awk:*)",
-      "Bash(cargo fmt:*)"
+      "Bash(cargo fmt:*)",
+      "Bash(cargo clippy:*)"
     ],
     "deny": []
   }

@@ -1,7 +1,10 @@
 use crate::Result;
 use crate::dependency::DependencyGraph;
 use crate::domain::Cell;
-use crate::evaluator::{Evaluator, context::BasicContext};
+use crate::evaluator::{
+    Evaluator,
+    context::{EvaluationContext, RepositoryContext},
+};
 use crate::formula::FormulaParser;
 use crate::references::ReferenceTracker;
 use crate::repository::CellRepository;
@@ -58,19 +61,42 @@ impl CellOperations {
         let parser = crate::references::ReferenceParser::new();
         let references = parser.extract_from_expr(&parsed);
 
-        // Add dependencies one by one
+        // Check for circular dependencies before adding
+        for dep in &references {
+            if self
+                .dependency_graph
+                .borrow()
+                .would_create_cycle(address, dep)
+            {
+                return Err(crate::error::SpreadsheetError::CircularDependency);
+            }
+        }
+
+        // Add dependencies after checking they're all safe
         for dep in &references {
             self.dependency_graph
                 .borrow_mut()
                 .add_dependency(*address, *dep);
         }
 
-        // Create evaluation context
-        let mut context = BasicContext::new();
-        let mut evaluator = Evaluator::new(&mut context);
+        // Create evaluation context with repository access
+        let value = {
+            let repo_borrow = self.repository.borrow();
+            let mut context = RepositoryContext::new(&*repo_borrow);
 
-        // Evaluate the formula
-        let value = evaluator.evaluate(&parsed)?;
+            // Push current cell to evaluation stack to detect self-references
+            context.push_evaluation(address);
+
+            let mut evaluator = Evaluator::new(&mut context);
+
+            // Evaluate the formula
+            let result = evaluator.evaluate(&parsed);
+
+            // Pop from evaluation stack
+            context.pop_evaluation(address);
+
+            result?
+        }; // repo_borrow is dropped here
 
         // Create the cell with formula
         let mut cell = Cell::with_formula(CellValue::String(formula.to_string()), parsed);
@@ -207,9 +233,11 @@ impl CellOperations {
             {
                 // Re-evaluate the formula
                 if let Some(formula_expr) = &cell.formula {
-                    let mut context = BasicContext::new();
+                    let repo_borrow = self.repository.borrow();
+                    let mut context = RepositoryContext::new(&*repo_borrow);
                     let mut evaluator = Evaluator::new(&mut context);
                     let value = evaluator.evaluate(formula_expr)?;
+                    drop(repo_borrow); // Release the borrow before mutating
 
                     let mut new_cell = cell.clone();
                     new_cell.set_computed_value(value);
