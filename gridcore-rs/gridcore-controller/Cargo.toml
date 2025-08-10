@@ -21,4 +21,3 @@ serde_json = { workspace = true }
 # [[bench]]
 # name = "controller_bench"
 # harness = false
-
