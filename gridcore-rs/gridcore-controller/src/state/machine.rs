@@ -1,5 +1,6 @@
 use crate::state::{
     create_command_state, create_editing_state, create_navigation_state, create_visual_state,
+    diff::StateDiff,
     BulkOperationStatus, CellMode, DeleteType, InsertMode, InsertPosition, InsertType,
     ParsedBulkCommand, ResizeMoveDirection, ResizeTarget, Selection, SpreadsheetVisualMode,
     UIState, ViewportInfo, VisualMode,
@@ -124,6 +125,7 @@ type StateListener = Box<dyn Fn(&UIState, &Action) + Send>;
 
 pub struct UIStateMachine {
     state: UIState,
+    initial_state: UIState,  // Store the initial state for history reconstruction
     listeners: Vec<StateListener>,
     history: VecDeque<HistoryEntry>,
     max_history_size: usize,
@@ -131,7 +133,8 @@ pub struct UIStateMachine {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryEntry {
-    pub state: UIState,
+    /// The state diff from the previous state
+    pub diff: StateDiff,
     pub action: Action,
     pub timestamp: u64,
 }
@@ -154,7 +157,8 @@ impl UIStateMachine {
         });
 
         Self {
-            state: default_state,
+            state: default_state.clone(),
+            initial_state: default_state,
             listeners: Vec::new(),
             history: VecDeque::new(),
             max_history_size: 100,
@@ -169,14 +173,18 @@ impl UIStateMachine {
         let new_state = self.apply_transition(&self.state, &action)?;
         log::debug!("UIStateMachine::transition - apply_transition succeeded");
 
-        // Add to history
-        log::debug!("UIStateMachine::transition - adding to history");
-        self.add_to_history(self.state.clone(), action.clone());
-        log::debug!("UIStateMachine::transition - history added");
+        // Store old state for history
+        log::debug!("UIStateMachine::transition - storing old state");
+        let old_state = self.state.clone();
 
         // Update state
         log::debug!("UIStateMachine::transition - updating state");
         self.state = new_state;
+        
+        // Add to history with the diff between old and new state
+        log::debug!("UIStateMachine::transition - adding to history");
+        self.add_to_history(old_state, action.clone());
+        log::debug!("UIStateMachine::transition - history added");
         log::debug!("UIStateMachine::transition - state updated");
 
         // Notify listeners
@@ -769,12 +777,31 @@ impl UIStateMachine {
     pub fn get_history(&self) -> Vec<HistoryEntry> {
         self.history.iter().cloned().collect()
     }
+    
+    /// Reconstruct a state from history at a given index
+    pub fn reconstruct_state_at(&self, index: usize) -> Option<UIState> {
+        if index >= self.history.len() {
+            return None;
+        }
+        
+        // Start with the stored initial state
+        let mut state = self.initial_state.clone();
+        
+        // Apply diffs up to the requested index
+        for i in 0..=index {
+            if let Some(entry) = self.history.get(i) {
+                state = entry.diff.apply(&state);
+            }
+        }
+        
+        Some(state)
+    }
 
     pub fn clear_history(&mut self) {
         self.history.clear();
     }
 
-    fn add_to_history(&mut self, state: UIState, action: Action) {
+    fn add_to_history(&mut self, old_state: UIState, action: Action) {
         // Use a WASM-compatible timestamp
         #[cfg(target_arch = "wasm32")]
         let timestamp = {
@@ -790,8 +817,11 @@ impl UIStateMachine {
             .unwrap_or_default()
             .as_secs();
 
+        // Create a diff between the old state and the current state
+        let diff = StateDiff::create(&old_state, &self.state);
+        
         let entry = HistoryEntry {
-            state,
+            diff,
             action,
             timestamp,
         };

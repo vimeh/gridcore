@@ -397,9 +397,12 @@ mod tests {
 
         // Check first entry
         assert!(matches!(history[0].action, Action::EnterCommandMode));
-        assert!(matches!(history[0].state, UIState::Navigation { .. }));
+        // Now we store diffs instead of full states, so check the diff
+        // The first diff should be a Full transition from Navigation to Command
+        assert!(matches!(history[0].diff, crate::state::diff::StateDiff::Full(_)));
 
-        // Check that timestamps are set
+        // Check that timestamps are set (non-wasm)
+        #[cfg(not(target_arch = "wasm32"))]
         assert!(history[0].timestamp > 0);
     }
 

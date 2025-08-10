@@ -24,10 +24,9 @@ pub fn CanvasGrid(
     set_formula_value: WriteSignal<String>,
     set_current_mode: WriteSignal<SpreadsheetMode>,
 ) -> impl IntoView {
-    // Get controller from context
+    // Get controller from context (keep as StoredValue to avoid cloning)
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
-    let controller = controller_stored.with_value(|c| c.clone());
 
     // Node refs
     let canvas_ref = NodeRef::<Canvas>::new();
@@ -64,10 +63,7 @@ pub fn CanvasGrid(
         }
     });
 
-    // Clone controller references for closures
-    let ctrl_render = controller.clone();
-    let ctrl_formula = controller.clone();
-    let ctrl_keyboard = controller.clone();
+    // No need to clone controller - we'll use controller_stored directly in closures
 
     // Clone viewport_rc for use in the effect
     let viewport_effect = viewport_rc.clone();
@@ -108,8 +104,7 @@ pub fn CanvasGrid(
             }
 
             // Render the grid - borrow immutably for rendering
-            let ctrl = ctrl_render.clone();
-            {
+            controller_stored.with_value(|ctrl| {
                 let ctrl_borrow = ctrl.borrow();
                 leptos::logging::log!("Rendering grid with active cell: {:?}", current_cell);
                 render_grid(
@@ -120,19 +115,18 @@ pub fn CanvasGrid(
                     device_pixel_ratio,
                     ctrl_borrow.get_config(),
                 );
-            } // ctrl_borrow is dropped here
+            }); // ctrl_borrow is dropped here
         }
     });
 
     // Update formula bar when cell changes
     Effect::new(move |_| {
         let cell = active_cell.get();
-        let ctrl = ctrl_formula.clone();
 
         debug_log!("Formula bar update: active_cell = {:?}", cell);
 
         // Get cell value and drop the borrow immediately
-        let cell_value = {
+        let cell_value = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             let facade = ctrl_borrow.get_facade();
 
@@ -155,7 +149,7 @@ pub fn CanvasGrid(
                 debug_log!("No cell found at {:?}", cell);
                 None
             }
-        }; // ctrl_borrow is dropped here
+        }); // ctrl_borrow is dropped here
 
         debug_log!("Setting formula value to: {:?}", cell_value);
         // Now update the formula value signal
@@ -163,7 +157,6 @@ pub fn CanvasGrid(
     });
 
     // Handle canvas click
-    let ctrl_click = controller.clone();
     let on_click = move |ev: MouseEvent| {
         leptos::logging::log!("Canvas click at ({}, {})", ev.offset_x(), ev.offset_y());
         if let Some(_canvas) = canvas_ref.get() {
@@ -177,8 +170,7 @@ pub fn CanvasGrid(
             let new_cell = {
                 let vp_borrow = vp.borrow();
                 let _theme = vp_borrow.get_theme();
-                let ctrl_borrow = ctrl_click.borrow();
-                let config = ctrl_borrow.get_config();
+                let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
                 if x > config.row_header_width && y > config.column_header_height {
                     // Subtract header offsets to get cell coordinates
                     let cell_x = x - config.row_header_width;
@@ -206,7 +198,6 @@ pub fn CanvasGrid(
     };
 
     // Handle double-click to edit
-    let ctrl_dblclick = controller.clone();
     let on_dblclick = move |ev: MouseEvent| {
         leptos::logging::log!(
             "Canvas double-click at ({}, {})",
@@ -224,8 +215,7 @@ pub fn CanvasGrid(
             let new_cell = {
                 let vp_borrow = vp.borrow();
                 let _theme = vp_borrow.get_theme();
-                let ctrl_borrow = ctrl_dblclick.borrow();
-                let config = ctrl_borrow.get_config();
+                let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
                 if x > config.row_header_width && y > config.column_header_height {
                     // Subtract header offsets to get cell coordinates
                     let cell_x = x - config.row_header_width;
@@ -242,8 +232,7 @@ pub fn CanvasGrid(
                 set_active_cell.set(cell);
 
                 // Get existing cell value
-                let existing_value = {
-                    let ctrl = ctrl_dblclick.clone();
+                let existing_value = controller_stored.with_value(|ctrl| {
                     let ctrl_borrow = ctrl.borrow();
                     let facade = ctrl_borrow.get_facade();
                     if let Some(cell_obj) = facade.get_cell(&cell) {
@@ -255,13 +244,13 @@ pub fn CanvasGrid(
                     } else {
                         String::new()
                     }
-                };
+                });
 
                 // Calculate cell position for the editor
                 let (pos, config) = {
                     let vp_borrow = vp.borrow();
                     let pos = vp_borrow.get_cell_position(&cell);
-                    let config = ctrl_dblclick.borrow().get_config().clone();
+                    let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
                     (pos, config)
                 }; // vp_borrow is dropped here
 
@@ -280,8 +269,7 @@ pub fn CanvasGrid(
                     cursor_position: Some(cursor_pos),
                 };
 
-                let mut ctrl_mut = ctrl_dblclick.borrow_mut();
-                if let Err(e) = ctrl_mut.dispatch_action(action) {
+                if let Err(e) = controller_stored.with_value(|c| c.borrow_mut().dispatch_action(action)) {
                     debug_log!("Error starting edit on double-click: {:?}", e);
                 } else {
                     // Update UI state
@@ -294,7 +282,6 @@ pub fn CanvasGrid(
 
     // Handle mouse move for resize cursor
     let resize_handler_move = resize_handler.clone();
-    let ctrl_move = controller.clone();
     let on_mouse_move = move |ev: MouseEvent| {
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
@@ -307,8 +294,7 @@ pub fn CanvasGrid(
         } else {
             // Check if we're hovering over a resize handle
             let _theme = default_theme();
-            let ctrl_borrow = ctrl_move.borrow();
-            let config = ctrl_borrow.get_config();
+            let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
             let is_col_header = y < config.column_header_height;
             let is_row_header = x < config.row_header_width;
 
@@ -327,13 +313,11 @@ pub fn CanvasGrid(
 
     // Handle mouse down for starting resize
     let resize_handler_down = resize_handler.clone();
-    let ctrl_down = controller.clone();
     let on_mouse_down = move |ev: MouseEvent| {
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
         let _theme = default_theme();
-        let ctrl_borrow = ctrl_down.borrow();
-        let config = ctrl_borrow.get_config();
+        let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
         let is_col_header = y < config.column_header_height;
         let is_row_header = x < config.row_header_width;
 
@@ -392,7 +376,6 @@ pub fn CanvasGrid(
     };
 
     // Handle keyboard events through controller
-    let ctrl_keydown = controller.clone();
     let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
         let shift_pressed = ev.shift_key();
@@ -407,14 +390,14 @@ pub fn CanvasGrid(
         );
 
         // Check if we're already in editing mode
-        let is_editing = {
-            let ctrl_borrow = ctrl_keydown.borrow();
+        let is_editing = controller_stored.with_value(|ctrl| {
+            let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
             matches!(
                 state.spreadsheet_mode(),
                 SpreadsheetMode::Editing | SpreadsheetMode::Insert
             )
-        };
+        });
 
         // If we're in editing mode, let the cell editor handle the key
         if is_editing {
@@ -440,19 +423,18 @@ pub fn CanvasGrid(
             .with_modifiers(shift_pressed, ctrl_pressed, alt_pressed, meta_pressed);
 
         // Get the current state before handling the event
-        let ctrl = ctrl_keyboard.clone();
-        let (old_mode, old_cursor) = {
+        let (old_mode, old_cursor) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
             (state.spreadsheet_mode(), *state.cursor())
-        };
+        });
 
         // Forward the event to the controller and drop the borrow immediately
         leptos::logging::log!("About to call handle_keyboard_event");
-        let result = {
+        let result = controller_stored.with_value(|ctrl| {
             let mut ctrl_borrow = ctrl.borrow_mut();
             ctrl_borrow.handle_keyboard_event(controller_event)
-        }; // ctrl_borrow is dropped here
+        }); // ctrl_borrow is dropped here
 
         leptos::logging::log!("Controller handle_keyboard_event returned: {:?}", result);
 
@@ -463,7 +445,7 @@ pub fn CanvasGrid(
         }
 
         // Get the updated state after handling - new borrow
-        let (new_mode, new_cursor) = {
+        let (new_mode, new_cursor) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
             let mode = state.spreadsheet_mode();
@@ -474,7 +456,7 @@ pub fn CanvasGrid(
                 cursor
             );
             (mode, cursor)
-        };
+        });
 
         leptos::logging::log!(
             "After keyboard event: old_cursor={:?}, new_cursor={:?}, equal={}",
@@ -517,7 +499,7 @@ pub fn CanvasGrid(
             let (pos, config) = {
                 let vp_borrow = vp.borrow();
                 let pos = vp_borrow.get_cell_position(&new_cursor);
-                let config = ctrl_keydown.borrow().get_config().clone();
+                let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
                 (pos, config)
             };
             set_cell_position.set((
@@ -545,7 +527,7 @@ pub fn CanvasGrid(
         }
 
         // Update formula bar based on current state
-        {
+        controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
             match state {
@@ -568,7 +550,7 @@ pub fn CanvasGrid(
                 }
                 _ => {}
             }
-        }
+        });
 
         // Auto-scroll to keep the active cell visible if cursor moved
         if new_cursor != old_cursor
@@ -588,8 +570,7 @@ pub fn CanvasGrid(
             let absolute_y = cell_pos.y + vp_borrow.get_scroll_position().y;
 
             // Check if we need to scroll
-            let ctrl_borrow = ctrl_keydown.borrow();
-            let config = ctrl_borrow.get_config();
+            let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
             let viewport_width = vp_borrow.get_viewport_width() - config.row_header_width;
             let viewport_height = vp_borrow.get_viewport_height() - config.column_header_height;
             let scroll_pos = vp_borrow.get_scroll_position();

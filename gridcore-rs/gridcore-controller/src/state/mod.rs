@@ -1,4 +1,5 @@
 pub mod context;
+pub mod diff;
 pub mod machine;
 pub mod spreadsheet;
 pub mod transitions;

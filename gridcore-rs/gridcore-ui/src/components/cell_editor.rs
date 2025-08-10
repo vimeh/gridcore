@@ -559,8 +559,7 @@ pub fn CellEditor(
             }
             _ => {
                 // Check if we're in Normal mode within editing
-                let ctrl_for_normal = StoredValue::<_, LocalStorage>::new_local(controller.clone());
-                let is_normal_mode = ctrl_for_normal.with_value(|ctrl| {
+                let is_normal_mode = controller_stored.with_value(|ctrl| {
                     let ctrl_borrow = ctrl.borrow();
                     matches!(
                         ctrl_borrow.get_state(),
@@ -576,7 +575,7 @@ pub fn CellEditor(
                         "i" => {
                             // Enter insert mode at current position
                             ev.prevent_default();
-                            ctrl_for_normal.with_value(|ctrl| {
+                            controller_stored.with_value(|ctrl| {
                                 let mut ctrl_mut = ctrl.borrow_mut();
                                 if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
                                     mode: Some(InsertMode::I),
@@ -589,7 +588,7 @@ pub fn CellEditor(
                         "a" => {
                             // Enter insert mode after current position
                             ev.prevent_default();
-                            ctrl_for_normal.with_value(|ctrl| {
+                            controller_stored.with_value(|ctrl| {
                                 let mut ctrl_mut = ctrl.borrow_mut();
                                 if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
                                     mode: Some(InsertMode::A),
@@ -606,7 +605,7 @@ pub fn CellEditor(
                                 "Entering visual character mode from normal mode"
                             );
                             use gridcore_controller::state::VisualMode;
-                            ctrl_for_normal.with_value(|ctrl| {
+                            controller_stored.with_value(|ctrl| {
                                 let mut ctrl_mut = ctrl.borrow_mut();
                                 if let Err(e) = ctrl_mut.dispatch_action(Action::EnterVisualMode {
                                     visual_type: VisualMode::Character,
@@ -623,7 +622,7 @@ pub fn CellEditor(
                             // Enter visual line mode
                             ev.prevent_default();
                             use gridcore_controller::state::VisualMode;
-                            ctrl_for_normal.with_value(|ctrl| {
+                            controller_stored.with_value(|ctrl| {
                                 let mut ctrl_mut = ctrl.borrow_mut();
                                 if let Err(e) = ctrl_mut.dispatch_action(Action::EnterVisualMode {
                                     visual_type: VisualMode::Line,
@@ -641,7 +640,7 @@ pub fn CellEditor(
                         "I" => {
                             // Enter insert mode at beginning of line
                             ev.prevent_default();
-                            ctrl_for_normal.with_value(|ctrl| {
+                            controller_stored.with_value(|ctrl| {
                                 let mut ctrl_mut = ctrl.borrow_mut();
                                 if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
                                     mode: Some(InsertMode::CapitalI),
@@ -657,7 +656,7 @@ pub fn CellEditor(
                         "A" => {
                             // Enter insert mode at end of line
                             ev.prevent_default();
-                            ctrl_for_normal.with_value(|ctrl| {
+                            controller_stored.with_value(|ctrl| {
                                 let mut ctrl_mut = ctrl.borrow_mut();
                                 if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
                                     mode: Some(InsertMode::CapitalA),
