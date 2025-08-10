@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod edge_case_tests {
     use super::super::*;
     use gridcore_core::types::CellAddress;
@@ -150,9 +151,7 @@ mod edge_case_tests {
         // Move cursor to maximum coordinates
         let max_cursor = CellAddress::new(u32::MAX, u32::MAX);
         machine
-            .transition(Action::UpdateCursor {
-                cursor: max_cursor.clone(),
-            })
+            .transition(Action::UpdateCursor { cursor: max_cursor })
             .unwrap();
 
         assert_eq!(machine.get_state().cursor(), &max_cursor);

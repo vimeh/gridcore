@@ -75,9 +75,9 @@ mod tests {
     fn test_can_handle_any_values() {
         let detector = CopyPatternDetector::new();
 
-        assert!(detector.can_handle(&vec![CellValue::Empty]));
-        assert!(detector.can_handle(&vec![CellValue::Number(1.0)]));
-        assert!(detector.can_handle(&vec![CellValue::String("text".to_string())]));
-        assert!(!detector.can_handle(&vec![]));
+        assert!(detector.can_handle(&[CellValue::Empty]));
+        assert!(detector.can_handle(&[CellValue::Number(1.0)]));
+        assert!(detector.can_handle(&[CellValue::String("text".to_string())]));
+        assert!(!detector.can_handle(&[]));
     }
 }

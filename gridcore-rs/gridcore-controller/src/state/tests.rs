@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use super::super::*;
     use gridcore_core::types::CellAddress;
@@ -7,6 +8,7 @@ mod tests {
         UIStateMachine::new(None)
     }
 
+    #[allow(dead_code)]
     fn create_test_viewport() -> ViewportInfo {
         ViewportInfo {
             start_row: 0,
@@ -356,9 +358,7 @@ mod tests {
 
         let new_cursor = CellAddress::new(5, 10);
         machine
-            .transition(Action::UpdateCursor {
-                cursor: new_cursor.clone(),
-            })
+            .transition(Action::UpdateCursor { cursor: new_cursor })
             .unwrap();
 
         assert_eq!(machine.get_state().cursor(), &new_cursor);

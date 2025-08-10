@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod performance_tests {
     use super::super::*;
     use gridcore_core::types::CellAddress;

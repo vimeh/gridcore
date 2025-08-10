@@ -131,7 +131,7 @@ mod tests {
         // Add operations
         let addr = CellAddress::new(0, 0);
         let op = BatchOperation::SetCell {
-            address: addr.clone(),
+            address: addr,
             value: CellValue::Number(42.0),
             formula: None,
         };

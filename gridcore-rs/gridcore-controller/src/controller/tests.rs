@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use crate::controller::events::{MouseButton, MouseEventType};
     use crate::controller::{KeyboardEvent, MouseEvent, SpreadsheetController};

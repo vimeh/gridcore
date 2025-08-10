@@ -371,8 +371,8 @@ mod tests {
         let anchor = CellAddress::new(5, 5);
         let cursor = CellAddress::new(10, 10);
         let selection = VisualSelection {
-            anchor: anchor.clone(),
-            cursor: cursor.clone(),
+            anchor,
+            cursor,
             mode: VimMode::Visual,
         };
 

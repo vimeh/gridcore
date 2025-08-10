@@ -153,7 +153,7 @@ mod tests {
 
     fn create_resize_state(target: ResizeTarget) -> UIState {
         UIState::Resize {
-            target: target.clone(),
+            target,
             resize_target: target,
             resize_index: match target {
                 ResizeTarget::Column { index } => index,

@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod complex_transition_tests {
     use super::super::*;
     use gridcore_core::types::CellAddress;
@@ -114,9 +115,9 @@ mod complex_transition_tests {
         let mut machine = UIStateMachine::new(None);
 
         // Simulate "5j" (move down 5 lines)
-        let start = machine.get_state().cursor().clone();
+        let start = *machine.get_state().cursor();
         for _ in 0..5 {
-            let current = machine.get_state().cursor().clone();
+            let current = *machine.get_state().cursor();
             machine
                 .transition(Action::UpdateCursor {
                     cursor: CellAddress::new(current.col, current.row + 1),
@@ -130,7 +131,7 @@ mod complex_transition_tests {
 
         // Simulate "3l2k" (move right 3, up 2)
         for _ in 0..3 {
-            let current = machine.get_state().cursor().clone();
+            let current = *machine.get_state().cursor();
             machine
                 .transition(Action::UpdateCursor {
                     cursor: CellAddress::new(current.col + 1, current.row),
@@ -139,7 +140,7 @@ mod complex_transition_tests {
         }
 
         for _ in 0..2 {
-            let current = machine.get_state().cursor().clone();
+            let current = *machine.get_state().cursor();
             machine
                 .transition(Action::UpdateCursor {
                     cursor: CellAddress::new(current.col, current.row.saturating_sub(1)),
@@ -166,9 +167,7 @@ mod complex_transition_tests {
 
         for pos in &positions {
             machine
-                .transition(Action::UpdateCursor {
-                    cursor: pos.clone(),
-                })
+                .transition(Action::UpdateCursor { cursor: *pos })
                 .unwrap();
         }
 

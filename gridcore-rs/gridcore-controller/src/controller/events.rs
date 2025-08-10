@@ -256,9 +256,12 @@ impl MouseEvent {
     }
 }
 
+/// Type alias for event listener functions
+type EventListener = Box<dyn Fn(&SpreadsheetEvent) + Send>;
+
 /// Event dispatcher for handling events
 pub struct EventDispatcher {
-    listeners: Vec<Box<dyn Fn(&SpreadsheetEvent) + Send>>,
+    listeners: Vec<EventListener>,
 }
 
 impl EventDispatcher {

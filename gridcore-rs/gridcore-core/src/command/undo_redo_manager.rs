@@ -375,7 +375,7 @@ mod tests {
 
         // Execute a command
         let addr = CellAddress::new(0, 0);
-        let command = SpreadsheetCommand::set_cell(addr.clone(), None, "test".to_string());
+        let command = SpreadsheetCommand::set_cell(addr, None, "test".to_string());
         manager.execute_command(command, &mut executor).unwrap();
 
         // Check that we can undo

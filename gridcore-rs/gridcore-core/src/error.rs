@@ -133,7 +133,6 @@ pub type Result<T> = std::result::Result<T, SpreadsheetError>;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::CellAddress;
 
     #[test]
     fn test_to_error_type_division_by_zero() {

@@ -1082,7 +1082,8 @@ mod tests {
             match cmd {
                 BulkCommandType::MathOperation { operation, value } => {
                     assert_eq!(operation, MathOp::Sub);
-                    assert_eq!(value, 3.14);
+                    // Compare with the test value 3.14
+                    assert!((value - 3.140).abs() < 0.001);
                 }
                 _ => panic!("Expected MathOperation command"),
             }

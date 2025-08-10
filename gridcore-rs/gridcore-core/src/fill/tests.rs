@@ -8,15 +8,6 @@ mod fill_integration_tests {
     use crate::types::{CellAddress, CellValue};
     use std::rc::Rc;
 
-    fn setup_repo_with_values(_values: Vec<(CellAddress, CellValue)>) -> Rc<CellRepository> {
-        let repo = CellRepository::new();
-        let repo_rc = Rc::new(repo);
-
-        // We can't modify through Rc, so we need to use unsafe or change the design
-        // For now, we'll create a test-friendly version
-        repo_rc
-    }
-
     #[test]
     fn test_linear_pattern_fill_down() {
         use crate::domain::Cell;

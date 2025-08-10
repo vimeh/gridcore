@@ -157,8 +157,8 @@ mod tests {
         let c1 = CellAddress::new(2, 0);
 
         // A1 depends on B1 and C1
-        graph.add_dependency(a1.clone(), b1.clone());
-        graph.add_dependency(a1.clone(), c1.clone());
+        graph.add_dependency(a1, b1);
+        graph.add_dependency(a1, c1);
 
         let deps = graph.get_dependencies(&a1);
         assert_eq!(deps.len(), 2);
@@ -179,8 +179,8 @@ mod tests {
 
         // A1 depends on B1, B1 depends on C1
         // So calculation order should be C1, B1, A1
-        graph.add_dependency(a1.clone(), b1.clone());
-        graph.add_dependency(b1.clone(), c1.clone());
+        graph.add_dependency(a1, b1);
+        graph.add_dependency(b1, c1);
 
         let order = graph.get_calculation_order().unwrap();
 
@@ -202,14 +202,14 @@ mod tests {
         let c1 = CellAddress::new(2, 0);
 
         // Create a cycle: A1 -> B1 -> C1 -> A1
-        graph.add_dependency(a1.clone(), b1.clone());
-        graph.add_dependency(b1.clone(), c1.clone());
+        graph.add_dependency(a1, b1);
+        graph.add_dependency(b1, c1);
 
         // Check if adding C1 -> A1 would create a cycle
         assert!(graph.would_create_cycle(&c1, &a1));
 
         // Actually add it to create the cycle
-        graph.add_dependency(c1.clone(), a1.clone());
+        graph.add_dependency(c1, a1);
 
         // Calculation order should fail due to cycle
         let result = graph.get_calculation_order();
@@ -228,8 +228,8 @@ mod tests {
         let c1 = CellAddress::new(2, 0);
 
         // A1 depends on B1 and C1
-        graph.add_dependency(a1.clone(), b1.clone());
-        graph.add_dependency(a1.clone(), c1.clone());
+        graph.add_dependency(a1, b1);
+        graph.add_dependency(a1, c1);
 
         assert_eq!(graph.get_dependencies(&a1).len(), 2);
 

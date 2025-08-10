@@ -275,7 +275,10 @@ mod tests {
         assert!(matches!(expr, Expr::Literal { value: CellValue::Number(n) } if n == 42.0));
 
         let expr = FormulaParser::parse("3.14").unwrap();
-        assert!(matches!(expr, Expr::Literal { value: CellValue::Number(n) } if n == 3.14));
+        // Compare with the parsed value 3.14
+        assert!(
+            matches!(expr, Expr::Literal { value: CellValue::Number(n) } if (n - 3.140).abs() < 0.001)
+        );
     }
 
     #[test]

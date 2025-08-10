@@ -1570,8 +1570,6 @@ mod tests {
 
     #[test]
     fn test_error_display_in_cell() {
-        use crate::types::ErrorType;
-
         let facade = SpreadsheetFacade::new();
 
         // Create various errors and check their display

@@ -183,29 +183,29 @@ mod references_integration_tests {
         // B1 depends on A1
         tracker
             .forward_dependencies
-            .insert(b1.clone(), vec![a1.clone()].into_iter().collect());
+            .insert(b1, vec![a1].into_iter().collect());
         tracker
             .reverse_dependencies
-            .insert(a1.clone(), vec![b1.clone()].into_iter().collect());
+            .insert(a1, vec![b1].into_iter().collect());
 
         // C1 depends on B1
         tracker
             .forward_dependencies
-            .insert(c1.clone(), vec![b1.clone()].into_iter().collect());
+            .insert(c1, vec![b1].into_iter().collect());
         tracker
             .reverse_dependencies
-            .insert(b1.clone(), vec![c1.clone()].into_iter().collect());
+            .insert(b1, vec![c1].into_iter().collect());
 
         // D1 depends on C1
         tracker
             .forward_dependencies
-            .insert(d1.clone(), vec![c1.clone()].into_iter().collect());
+            .insert(d1, vec![c1].into_iter().collect());
         tracker
             .reverse_dependencies
-            .insert(c1.clone(), vec![d1.clone()].into_iter().collect());
+            .insert(c1, vec![d1].into_iter().collect());
 
         // Changing A1 should affect B1, C1, and D1
-        let changed = vec![a1.clone()].into_iter().collect();
+        let changed = vec![a1].into_iter().collect();
         let affected = tracker.get_affected_cells(&changed);
 
         assert_eq!(affected.len(), 4);

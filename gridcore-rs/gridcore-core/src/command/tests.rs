@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use super::super::*;
     use crate::SpreadsheetError;
@@ -100,7 +101,7 @@ mod tests {
 
             // Collect addresses to remove (moved cells)
             let mut to_remove = Vec::new();
-            for (addr, _) in &self.cells {
+            for addr in self.cells.keys() {
                 if addr.row > index {
                     to_remove.push(*addr);
                 }
@@ -172,7 +173,7 @@ mod tests {
 
             // Collect addresses to remove (moved cells)
             let mut to_remove = Vec::new();
-            for (addr, _) in &self.cells {
+            for addr in self.cells.keys() {
                 if addr.col > index {
                     to_remove.push(*addr);
                 }

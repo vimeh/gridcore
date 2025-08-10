@@ -70,7 +70,7 @@ fn test_vim_mode_navigation() {
     let mut machine = UIStateMachine::new(None);
 
     // Navigate with vim keys
-    let start_cursor = machine.get_state().cursor().clone();
+    let start_cursor = *machine.get_state().cursor();
 
     // Move down (j)
     machine
