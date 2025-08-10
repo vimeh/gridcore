@@ -18,9 +18,11 @@ pub struct Viewport {
 
 impl Viewport {
     pub fn new(theme: GridTheme, total_rows: Option<usize>, total_cols: Option<usize>) -> Self {
-        let mut config = GridConfiguration::default();
-        config.total_rows = total_rows.unwrap_or(10000);
-        config.total_cols = total_cols.unwrap_or(256);
+        let config = GridConfiguration {
+            total_rows: total_rows.unwrap_or(10000),
+            total_cols: total_cols.unwrap_or(256),
+            ..GridConfiguration::default()
+        };
 
         Self {
             theme,

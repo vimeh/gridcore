@@ -31,8 +31,6 @@ pub fn App() -> impl IntoView {
 
     // Set up controller event listener for errors
     {
-        let set_errors = set_errors;
-        let error_counter = error_counter;
         let callback = Box::new(
             move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
                 leptos::logging::log!("Controller event received: {:?}", event);
