@@ -178,11 +178,16 @@ impl CellVimBehavior {
                     } else if key == "Space" {
                         ' '
                     } else {
-                        key.chars().next().unwrap()
+                        // Safe because we checked key.len() == 1
+                        key.chars().next().unwrap_or('\0')
                     };
-                    self.text.insert(self.cursor_position, ch);
-                    self.cursor_position += 1;
-                    self.update_editing_value()
+                    if ch != '\0' {
+                        self.text.insert(self.cursor_position, ch);
+                        self.cursor_position += 1;
+                        self.update_editing_value()
+                    } else {
+                        Ok(None)
+                    }
                 } else {
                     Ok(None)
                 }

@@ -5,7 +5,9 @@
       "Bash(sg:*)",
       "Bash(cargo test:*)",
       "Bash(find:*)",
-      "Bash(cargo clippy:*)"
+      "Bash(cargo clippy:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }
