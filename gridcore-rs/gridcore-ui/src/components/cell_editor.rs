@@ -320,8 +320,8 @@ pub fn CellEditor(
                         match facade.set_cell_value(&cell, &value) {
                             Ok(_) => {
                                 // Check if the cell now contains an error value
-                                if let Ok(gridcore_core::types::CellValue::Error(error_type)) =
-                                    facade.get_cell_value(&cell)
+                                if let Some(gridcore_core::types::CellValue::Error(error_type)) =
+                                    facade.get_cell_raw_value(&cell)
                                 {
                                     // Display the error with both code and description
                                     if let Some(error_ctx) = use_error_context() {
@@ -433,8 +433,8 @@ pub fn CellEditor(
                         match facade.set_cell_value(&cell, &value) {
                             Ok(_) => {
                                 // Check if the cell now contains an error value
-                                if let Ok(gridcore_core::types::CellValue::Error(error_type)) =
-                                    facade.get_cell_value(&cell)
+                                if let Some(gridcore_core::types::CellValue::Error(error_type)) =
+                                    facade.get_cell_raw_value(&cell)
                                 {
                                     // Display the error with both code and description
                                     if let Some(error_ctx) = use_error_context() {

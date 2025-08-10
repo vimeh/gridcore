@@ -541,8 +541,8 @@ impl SpreadsheetController {
             match self.facade.set_cell_value(&address, &value) {
                 Ok(_) => {
                     // Check if the cell now contains an error value (e.g., from formula evaluation)
-                    if let Ok(gridcore_core::types::CellValue::Error(error_type)) =
-                        self.facade.get_cell_value(&address)
+                    if let Some(gridcore_core::types::CellValue::Error(error_type)) =
+                        self.facade.get_cell_raw_value(&address)
                     {
                         // Use the ErrorType's built-in full_display method
                         let enhanced_message =

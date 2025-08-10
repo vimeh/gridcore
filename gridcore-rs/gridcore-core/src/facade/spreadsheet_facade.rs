@@ -108,9 +108,9 @@ impl SpreadsheetFacade {
     }
 
     // Methods for command system compatibility
-
-    /// Set cell value without command (for command system)
-    pub fn set_cell_value_without_command(&self, address: &CellAddress, value: &str) -> Result<()> {
+    
+    /// Set cell value (standard API)
+    pub fn set_cell_value(&self, address: &CellAddress, value: &str) -> Result<()> {
         // For now, just delegate to set_cell with parsed value
         let cell_value = if value.starts_with('=') {
             CellValue::String(value.to_string())
@@ -122,6 +122,41 @@ impl SpreadsheetFacade {
             CellValue::String(value.to_string())
         };
         self.set_cell(address, cell_value)
+    }
+    
+    /// Get raw cell value
+    pub fn get_cell_raw_value(&self, address: &CellAddress) -> Option<CellValue> {
+        self.get_cell(address).map(|cell| cell.get_computed_value())
+    }
+    
+    /// Get cell value as string
+    pub fn get_cell_value(&self, address: &CellAddress) -> Option<String> {
+        self.get_cell(address).map(|cell| {
+            match cell.get_computed_value() {
+                CellValue::Number(n) => n.to_string(),
+                CellValue::String(s) => s,
+                CellValue::Boolean(b) => b.to_string(),
+                CellValue::Error(e) => format!("#{}", e),
+                CellValue::Empty => String::new(),
+                CellValue::Array(arr) => {
+                    // Format array as comma-separated values in braces
+                    let values: Vec<String> = arr.iter().map(|v| match v {
+                        CellValue::Number(n) => n.to_string(),
+                        CellValue::String(s) => s.clone(),
+                        CellValue::Boolean(b) => b.to_string(),
+                        CellValue::Error(e) => format!("#{}", e),
+                        CellValue::Empty => String::new(),
+                        CellValue::Array(_) => "[nested array]".to_string(),
+                    }).collect();
+                    format!("{{{}}}", values.join(", "))
+                }
+            }
+        })
+    }
+
+    /// Set cell value without command (for command system)
+    pub fn set_cell_value_without_command(&self, address: &CellAddress, value: &str) -> Result<()> {
+        self.set_cell_value(address, value)
     }
 
     /// Delete cell without command (for command system)

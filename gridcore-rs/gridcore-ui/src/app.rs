@@ -181,27 +181,22 @@ pub fn App() -> impl IntoView {
                 match facade.set_cell_value(&cell, &value) {
                     Ok(_) => {
                         // Check if the cell now contains an error value
-                        if let Ok(cell_value) = facade.get_cell_value(&cell) {
-                            if let gridcore_core::types::CellValue::Error(error_type) = cell_value {
-                                // Display the error with both code and description
-                                set_errors.update(|errs| {
-                                    errs.push(ErrorMessage {
-                                        message: error_type.full_display(),
-                                        severity: ErrorSeverity::Error,
-                                        id: errs.len(),
-                                    });
+                        if let Some(gridcore_core::types::CellValue::Error(error_type)) = facade.get_cell_raw_value(&cell) {
+                            // Display the error with both code and description
+                            set_errors.update(|errs| {
+                                errs.push(ErrorMessage {
+                                    message: error_type.full_display(),
+                                    severity: ErrorSeverity::Error,
+                                    id: errs.len(),
                                 });
-                                leptos::logging::log!(
-                                    "Formula error detected: {}",
-                                    error_type.full_display()
-                                );
-                                // Don't clear the formula bar when there's an error - keep it for editing
-                            } else {
-                                // Only clear formula bar on successful evaluation
-                                set_formula_value.set(String::new());
-                            }
+                            });
+                            leptos::logging::log!(
+                                "Formula error detected: {}",
+                                error_type.full_display()
+                            );
+                            // Don't clear the formula bar when there's an error - keep it for editing
                         } else {
-                            // Clear formula bar if we can't get the cell value
+                            // Only clear formula bar on successful evaluation
                             set_formula_value.set(String::new());
                         }
                     }
