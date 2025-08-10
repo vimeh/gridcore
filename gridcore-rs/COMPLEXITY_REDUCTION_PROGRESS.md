@@ -98,14 +98,14 @@ This document tracks the progress of reducing complexity and increasing maintain
 
 ## Phase 3: Reduce Coupling (Week 3)
 
-**Status:** Not Started ⚪
+**Status:** In Progress 🟡
 
 ### 3.1 Replace Rc\<RefCell\<>> with DI
 
-- [ ] Create service traits
-- [ ] Implement constructor injection
-- [ ] Remove shared mutable state
-- [ ] Use message passing
+- [x] Create service traits
+- [x] Implement constructor injection
+- [x] Remove shared mutable state (partially)
+- [x] Use message passing (foundation laid)
 
 ### 3.2 Introduce domain boundaries
 
@@ -167,6 +167,22 @@ This document tracks the progress of reducing complexity and increasing maintain
 | `cell_vim.rs`           | 1,236         | 4 files \<400 each | ⚪     |
 
 ## Daily Progress Log
+
+### 2025-08-10 (continued 2)
+
+**Phase 3.1 Implementation:**
+- ✅ Created ServiceContainer for dependency injection
+- ✅ Implemented 5 trait-based service implementations:
+  - CellOperationsServiceImpl 
+  - StructuralOperationsServiceImpl
+  - CalculationServiceImpl
+  - BatchOperationsServiceImpl
+  - EventServiceImpl
+- ✅ Made EventManager thread-safe (RefCell -> RwLock)
+- ✅ Added repository methods for structural operations
+- ✅ Introduced Arc<Mutex<>> for thread-safe sharing
+- ⚠️ Note: API alignment with existing code still needed
+- 🔴 Reduced Rc<RefCell<>> from 44 to ~35 (partial progress)
 
 ### 2025-08-10 (continued)
 
