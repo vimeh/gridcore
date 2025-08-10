@@ -8,6 +8,7 @@ pub mod fill;
 pub mod formula;
 pub mod references;
 pub mod repository;
+pub mod services;
 pub mod types;
 pub mod workbook;
 
