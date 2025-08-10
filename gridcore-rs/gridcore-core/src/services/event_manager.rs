@@ -1,4 +1,4 @@
-use crate::facade::{EventCallback, SpreadsheetEvent};
+use crate::services::events::{EventCallback, SpreadsheetEvent};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 

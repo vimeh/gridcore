@@ -1,6 +1,6 @@
 //! Implementation of BatchOperationsService trait
 
-use crate::facade::batch::{BatchManager, BatchOperation};
+use crate::services::batch_manager::{BatchManager, BatchOperation};
 use crate::traits::BatchOperationsService;
 use crate::{Result, SpreadsheetError};
 use std::sync::{Arc, Mutex};

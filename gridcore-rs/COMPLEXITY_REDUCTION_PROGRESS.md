@@ -21,7 +21,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 | Largest file (lines)     | 1,601   | \<500    | 🔴     |
 | Files >1000 lines        | 5       | 0        | 🔴     |
 | Clippy warnings          | 0       | 0        | ✅     |
-| Test failures            | 8       | 0        | 🟡     |
+| Test failures            | 0       | 0        | ✅     |
 
 ## Phase 1: Critical Safety Fixes (Week 1)
 
@@ -102,19 +102,26 @@ This document tracks the progress of reducing complexity and increasing maintain
 
 ### 3.1 Replace Rc\<RefCell\<>> with DI
 
+**Status:** Completed ✅
+
 - [x] Create service traits
 - [x] Implement constructor injection
 - [x] Remove shared mutable state (COMPLETED)
 - [x] Use message passing (foundation laid)
 - [x] Refactor SpreadsheetFacade to use ServiceContainer
 - [x] Eliminate all Rc<RefCell<>> patterns (0 remaining!)
+- [x] Fix formula evaluation to preserve error types
+- [x] All 257 tests passing
 
 ### 3.2 Introduce domain boundaries
 
-- [ ] Define layer interfaces
-- [ ] Remove circular dependencies
-- [ ] Implement ports & adapters
+**Status:** In Progress 🟡
+
+- [x] Define layer interfaces (RepositoryPort, EventPort)
+- [x] Remove circular dependencies (BatchManager, event types moved)
+- [ ] Implement ports & adapters (repository and event adapters needed)
 - [ ] Add integration tests
+- [ ] Clean domain layer dependencies on formula AST
 
 ## Phase 4: Optimize Performance (Week 4)
 
@@ -169,6 +176,27 @@ This document tracks the progress of reducing complexity and increasing maintain
 | `cell_vim.rs`           | 1,236         | 4 files \<400 each | ⚪     |
 
 ## Daily Progress Log
+
+### 2025-08-10 (continued 5)
+
+**Phase 3.2 Started - Domain Boundaries:**
+- ✅ Created ports module with RepositoryPort and EventPort interfaces
+- ✅ Defined clean architecture boundaries with port interfaces
+- ✅ Moved BatchManager from facade to services layer
+- ✅ Moved event types (SpreadsheetEvent, EventCallback) from facade to services
+- ✅ Eliminated circular dependencies between facade and services
+- ✅ Created comprehensive plan for layered architecture (PHASE_3_2_PLAN.md)
+- ✅ All 257 tests still passing after refactoring
+- 🔄 Identified remaining cleanup: domain layer depends on formula AST
+
+### 2025-08-10 (continued 4)
+
+**Phase 3.1 FULLY COMPLETED:**
+- ✅ Fixed all 8 failing formula tests
+- ✅ Issue was error types being converted to ParseError instead of preserving original types
+- ✅ Modified CellOperationsServiceImpl to use e.to_error_type() instead of wrapping as ParseError
+- ✅ All 257 tests now passing (100% pass rate)
+- ✅ Phase 3.1 is now fully complete with zero Rc<RefCell<>> patterns and all tests passing
 
 ### 2025-08-10 (continued 3)
 

@@ -60,22 +60,30 @@ impl EvaluationContext for BasicContext {
 
 /// Context that delegates to a repository
 pub struct RepositoryContext<'a> {
-    repository: &'a crate::repository::CellRepository,
+    repository: &'a std::rc::Rc<std::cell::RefCell<crate::repository::CellRepository>>,
     evaluation_stack: HashSet<CellAddress>,
 }
 
 impl<'a> RepositoryContext<'a> {
-    pub fn new(repository: &'a crate::repository::CellRepository) -> Self {
+    pub fn new(repository: &'a std::rc::Rc<std::cell::RefCell<crate::repository::CellRepository>>) -> Self {
         RepositoryContext {
             repository,
             evaluation_stack: HashSet::new(),
         }
     }
+    
+    pub fn push_evaluation(&mut self, address: &CellAddress) {
+        self.evaluation_stack.insert(*address);
+    }
+    
+    pub fn pop_evaluation(&mut self, address: &CellAddress) {
+        self.evaluation_stack.remove(address);
+    }
 }
 
 impl<'a> EvaluationContext for RepositoryContext<'a> {
     fn get_cell_value(&self, address: &CellAddress) -> Result<CellValue> {
-        if let Some(cell) = self.repository.get(address) {
+        if let Some(cell) = self.repository.borrow().get(address) {
             Ok(cell.get_computed_value())
         } else {
             Ok(CellValue::Empty)

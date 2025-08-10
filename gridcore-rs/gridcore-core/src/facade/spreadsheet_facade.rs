@@ -22,7 +22,7 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use super::event::{EventCallback, SpreadsheetEvent};
+use crate::services::{EventCallback, SpreadsheetEvent};
 
 /// Main facade for spreadsheet operations
 pub struct SpreadsheetFacade {
@@ -1257,7 +1257,7 @@ impl Default for SpreadsheetFacade {
 mod tests {
     use super::*;
     use crate::SpreadsheetError;
-    use crate::facade::event::EventCollector;
+    use crate::services::events::EventCollector;
 
     #[test]
     fn test_facade_basic_operations() {
@@ -1364,6 +1364,8 @@ mod tests {
             .set_cell_value(&CellAddress::new(1, 0), "=UNKNOWNFUNC()")
             .unwrap();
         let value = facade.get_cell_value(&CellAddress::new(1, 0)).unwrap();
+        // Debug: print the actual value to see what we're getting
+        eprintln!("Invalid function test - got value: {:?}", value);
         assert!(matches!(
             value,
             CellValue::Error(ErrorType::NameError { .. })
