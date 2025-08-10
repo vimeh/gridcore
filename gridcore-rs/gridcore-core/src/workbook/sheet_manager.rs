@@ -126,7 +126,7 @@ impl SheetManager {
                 let mut adjusted_cells = Vec::new();
 
                 // Collect cells that need adjustment
-                for (address, cell) in cells.borrow().iter() {
+                for (address, cell) in cells.lock().unwrap().get_all() {
                     if cell.has_formula()
                         && let CellValue::String(formula_str) = &cell.raw_value
                         && formula_str.starts_with('=')
@@ -164,7 +164,7 @@ impl SheetManager {
         for sheet_name in self.workbook.sheet_names() {
             if let Some(sheet) = self.workbook.get_sheet(sheet_name) {
                 let cells = sheet.cells();
-                for (address, cell) in cells.borrow().iter() {
+                for (address, cell) in cells.lock().unwrap().get_all() {
                     if cell.has_formula() {
                         // Check if this formula references the target
                         // This would need proper formula parsing and analysis
@@ -190,7 +190,7 @@ impl SheetManager {
         for sheet_name in self.workbook.sheet_names() {
             if let Some(sheet) = self.workbook.get_sheet(sheet_name) {
                 let cells = sheet.cells();
-                for (address, cell) in cells.borrow().iter() {
+                for (address, cell) in cells.lock().unwrap().get_all() {
                     if cell.has_formula()
                         && let CellValue::String(formula) = &cell.raw_value
                         && formula.starts_with('=')
@@ -218,7 +218,7 @@ impl SheetManager {
                 stats.total_cells += cell_count;
 
                 let cells = sheet.cells();
-                for (_, cell) in cells.borrow().iter() {
+                for (_, cell) in cells.lock().unwrap().get_all() {
                     if cell.has_formula() {
                         stats.formula_cells += 1;
                     }

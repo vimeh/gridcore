@@ -3,9 +3,8 @@ use crate::dependency::DependencyGraph;
 use crate::domain::Cell;
 use crate::repository::CellRepository;
 use crate::types::CellAddress;
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 /// Properties for a spreadsheet sheet
 #[derive(Debug, Clone)]
@@ -45,9 +44,9 @@ pub struct Sheet {
     /// Unique name of the sheet
     name: String,
     /// Cell repository for this sheet
-    cells: Rc<RefCell<CellRepository>>,
+    cells: Arc<Mutex<CellRepository>>,
     /// Dependency graph for this sheet
-    dependencies: Rc<RefCell<DependencyGraph>>,
+    dependencies: Arc<Mutex<DependencyGraph>>,
     /// Sheet properties
     properties: SheetProperties,
     /// Named ranges in this sheet
@@ -59,8 +58,8 @@ impl Sheet {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
-            cells: Rc::new(RefCell::new(CellRepository::new())),
-            dependencies: Rc::new(RefCell::new(DependencyGraph::new())),
+            cells: Arc::new(Mutex::new(CellRepository::new())),
+            dependencies: Arc::new(Mutex::new(DependencyGraph::new())),
             properties: SheetProperties::default(),
             named_ranges: HashMap::new(),
         }
@@ -70,8 +69,8 @@ impl Sheet {
     pub fn with_properties(name: impl Into<String>, properties: SheetProperties) -> Self {
         Self {
             name: name.into(),
-            cells: Rc::new(RefCell::new(CellRepository::new())),
-            dependencies: Rc::new(RefCell::new(DependencyGraph::new())),
+            cells: Arc::new(Mutex::new(CellRepository::new())),
+            dependencies: Arc::new(Mutex::new(DependencyGraph::new())),
             properties,
             named_ranges: HashMap::new(),
         }
@@ -110,22 +109,24 @@ impl Sheet {
 
     /// Get a cell from the sheet
     pub fn get_cell(&self, address: &CellAddress) -> Option<Cell> {
-        self.cells.borrow().get(address).cloned()
+        self.cells.lock().ok()?.get(address).cloned()
     }
 
     /// Set a cell in the sheet
     pub fn set_cell(&self, address: &CellAddress, cell: Cell) -> Result<()> {
-        self.cells.borrow_mut().set(address, cell);
+        self.cells.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire cells lock".to_string())
+        })?.set(address, cell);
         Ok(())
     }
 
     /// Get the cell repository
-    pub fn cells(&self) -> Rc<RefCell<CellRepository>> {
+    pub fn cells(&self) -> Arc<Mutex<CellRepository>> {
         self.cells.clone()
     }
 
     /// Get the dependency graph
-    pub fn dependencies(&self) -> Rc<RefCell<DependencyGraph>> {
+    pub fn dependencies(&self) -> Arc<Mutex<DependencyGraph>> {
         self.dependencies.clone()
     }
 
@@ -174,21 +175,25 @@ impl Sheet {
 
     /// Clear all cells in the sheet
     pub fn clear(&self) {
-        self.cells.borrow_mut().clear();
-        self.dependencies.borrow_mut().clear();
+        if let Ok(mut cells) = self.cells.lock() {
+            cells.clear();
+        }
+        if let Ok(mut deps) = self.dependencies.lock() {
+            deps.clear();
+        }
     }
 
     /// Get the number of cells in the sheet
     pub fn cell_count(&self) -> usize {
-        self.cells.borrow().len()
+        self.cells.lock().ok().map(|c| c.len()).unwrap_or(0)
     }
 
     /// Clone the sheet with a new name
     pub fn clone_with_name(&self, new_name: impl Into<String>) -> Self {
         Self {
             name: new_name.into(),
-            cells: Rc::new(RefCell::new(self.cells.borrow().clone())),
-            dependencies: Rc::new(RefCell::new(self.dependencies.borrow().clone())),
+            cells: Arc::new(Mutex::new(self.cells.lock().unwrap().clone())),
+            dependencies: Arc::new(Mutex::new(self.dependencies.lock().unwrap().clone())),
             properties: self.properties.clone(),
             named_ranges: self.named_ranges.clone(),
         }

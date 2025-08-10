@@ -16,7 +16,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 | `.unwrap()` calls        | 700     | \<100    | 🔴     |
 | `panic!` in production   | 0       | 0        | ✅     |
 | TODO/FIXME comments      | 54      | 0        | 🟡     |
-| `Rc<RefCell<>>` patterns | 10?     | \<10     | 🟡     |
+| `Rc<RefCell<>>` patterns | 0       | \<10     | ✅     |
 | `.clone()` calls         | 320+    | \<100    | 🟡     |
 | Largest file (lines)     | 1,601   | \<500    | 🔴     |
 | Files >1000 lines        | 5       | 0        | 🔴     |
@@ -112,7 +112,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 - [x] Remove shared mutable state (COMPLETED)
 - [x] Use message passing (foundation laid)
 - [x] Refactor SpreadsheetFacade to use ServiceContainer
-- [ ] Eliminate all Rc\<RefCell\<>> patterns
+- [x] Eliminate all Rc\<RefCell\<>> patterns outside of the UI
 - [x] Fix formula evaluation to preserve error types
 - [x] All 257 tests passing
 

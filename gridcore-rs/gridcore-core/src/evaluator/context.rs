@@ -1,6 +1,7 @@
 use crate::Result;
 use crate::types::{CellAddress, CellValue};
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 
 /// Trait for providing cell values during formula evaluation
 pub trait EvaluationContext {
@@ -60,12 +61,12 @@ impl EvaluationContext for BasicContext {
 
 /// Context that delegates to a repository
 pub struct RepositoryContext<'a> {
-    repository: &'a std::rc::Rc<std::cell::RefCell<crate::repository::CellRepository>>,
+    repository: &'a Arc<Mutex<crate::repository::CellRepository>>,
     evaluation_stack: HashSet<CellAddress>,
 }
 
 impl<'a> RepositoryContext<'a> {
-    pub fn new(repository: &'a std::rc::Rc<std::cell::RefCell<crate::repository::CellRepository>>) -> Self {
+    pub fn new(repository: &'a Arc<Mutex<crate::repository::CellRepository>>) -> Self {
         RepositoryContext {
             repository,
             evaluation_stack: HashSet::new(),
@@ -83,7 +84,11 @@ impl<'a> RepositoryContext<'a> {
 
 impl<'a> EvaluationContext for RepositoryContext<'a> {
     fn get_cell_value(&self, address: &CellAddress) -> Result<CellValue> {
-        if let Some(cell) = self.repository.borrow().get(address) {
+        let repository = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
+        
+        if let Some(cell) = repository.get(address) {
             Ok(cell.get_computed_value())
         } else {
             Ok(CellValue::Empty)

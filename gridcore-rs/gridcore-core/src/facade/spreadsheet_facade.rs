@@ -19,8 +19,8 @@ use crate::traits::{
 use crate::types::{CellAddress, CellValue};
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::services::{EventCallback, SpreadsheetEvent};
 
@@ -95,12 +95,11 @@ impl SpreadsheetFacade {
 
     /// Create a facade with specific repositories (for sheet integration)
     pub fn with_repositories(
-        repository: Rc<RefCell<CellRepository>>,
-        dependency_graph: Rc<RefCell<DependencyGraph>>,
+        repository: Arc<Mutex<CellRepository>>,
+        dependency_graph: Arc<Mutex<DependencyGraph>>,
     ) -> Self {
-        // Convert Rc<RefCell<>> to Arc<Mutex<>> for the new architecture
-        let arc_repository = Arc::new(Mutex::new(repository.borrow().clone()));
-        let arc_dependency_graph = Arc::new(Mutex::new(dependency_graph.borrow().clone()));
+        let arc_repository = repository;
+        let arc_dependency_graph = dependency_graph;
         let reference_tracker = Arc::new(Mutex::new(ReferenceTracker::new()));
         let event_manager = Arc::new(EventManager::new());
 
@@ -653,16 +652,9 @@ impl SpreadsheetFacade {
             };
             if let Some(mut cell) = cell {
                 cell.formula = Some(new_ast.clone());
-                // Re-evaluate the formula in a separate scope
+                // Re-evaluate the formula
                 if let Ok(result) = {
-                    // Note: RepositoryContext expects Rc<RefCell<>>, needs conversion
-                    let repo_clone = if let Ok(repo) = self.repository.lock() {
-                        repo.clone()
-                    } else {
-                        continue; // Skip this cell if we can't get the repository
-                    };
-                    let repo_rc = Rc::new(RefCell::new(repo_clone));
-                    let mut context = RepositoryContext::new(&repo_rc);
+                    let mut context = RepositoryContext::new(&self.repository);
                     let mut evaluator = Evaluator::new(&mut context);
                     evaluator.evaluate(&new_ast)
                 } {
@@ -760,16 +752,9 @@ impl SpreadsheetFacade {
             };
             if let Some(mut cell) = cell {
                 cell.formula = Some(new_ast.clone());
-                // Re-evaluate the formula in a separate scope
+                // Re-evaluate the formula
                 if let Ok(result) = {
-                    // Note: RepositoryContext expects Rc<RefCell<>>, needs conversion
-                    let repo_clone = if let Ok(repo) = self.repository.lock() {
-                        repo.clone()
-                    } else {
-                        continue; // Skip this cell if we can't get the repository
-                    };
-                    let repo_rc = Rc::new(RefCell::new(repo_clone));
-                    let mut context = RepositoryContext::new(&repo_rc);
+                    let mut context = RepositoryContext::new(&self.repository);
                     let mut evaluator = Evaluator::new(&mut context);
                     evaluator.evaluate(&new_ast)
                 } {
@@ -853,16 +838,9 @@ impl SpreadsheetFacade {
             };
             if let Some(mut cell) = cell {
                 cell.formula = Some(new_ast.clone());
-                // Re-evaluate the formula in a separate scope
+                // Re-evaluate the formula
                 if let Ok(result) = {
-                    // Note: RepositoryContext expects Rc<RefCell<>>, needs conversion
-                    let repo_clone = if let Ok(repo) = self.repository.lock() {
-                        repo.clone()
-                    } else {
-                        continue; // Skip this cell if we can't get the repository
-                    };
-                    let repo_rc = Rc::new(RefCell::new(repo_clone));
-                    let mut context = RepositoryContext::new(&repo_rc);
+                    let mut context = RepositoryContext::new(&self.repository);
                     let mut evaluator = Evaluator::new(&mut context);
                     evaluator.evaluate(&new_ast)
                 } {
@@ -960,16 +938,9 @@ impl SpreadsheetFacade {
             };
             if let Some(mut cell) = cell {
                 cell.formula = Some(new_ast.clone());
-                // Re-evaluate the formula in a separate scope
+                // Re-evaluate the formula
                 if let Ok(result) = {
-                    // Note: RepositoryContext expects Rc<RefCell<>>, needs conversion
-                    let repo_clone = if let Ok(repo) = self.repository.lock() {
-                        repo.clone()
-                    } else {
-                        continue; // Skip this cell if we can't get the repository
-                    };
-                    let repo_rc = Rc::new(RefCell::new(repo_clone));
-                    let mut context = RepositoryContext::new(&repo_rc);
+                    let mut context = RepositoryContext::new(&self.repository);
                     let mut evaluator = Evaluator::new(&mut context);
                     evaluator.evaluate(&new_ast)
                 } {

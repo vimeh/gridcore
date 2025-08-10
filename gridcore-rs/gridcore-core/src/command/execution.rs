@@ -3,17 +3,16 @@ use crate::SpreadsheetError;
 use crate::domain::Cell;
 use crate::facade::SpreadsheetFacade;
 use crate::types::CellAddress;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 /// Command executor implementation that wraps SpreadsheetFacade
 pub struct CommandExecutorImpl {
-    facade: Rc<RefCell<SpreadsheetFacade>>,
+    facade: Arc<Mutex<SpreadsheetFacade>>,
 }
 
 impl CommandExecutorImpl {
     /// Create a new command executor
-    pub fn new(facade: Rc<RefCell<SpreadsheetFacade>>) -> Self {
+    pub fn new(facade: Arc<Mutex<SpreadsheetFacade>>) -> Self {
         CommandExecutorImpl { facade }
     }
 }
@@ -24,12 +23,15 @@ impl CommandExecutorTrait for CommandExecutorImpl {
         address: &CellAddress,
         value: &str,
     ) -> Result<Option<Cell>, SpreadsheetError> {
-        let facade = self.facade.borrow();
+        let facade = self.facade.lock().map_err(|_| {
+            SpreadsheetError::LockError("Failed to acquire facade lock".to_string())
+        })?;
         let old_cell = facade.get_cell(address);
         drop(facade);
 
         self.facade
-            .borrow()
+            .lock()
+            .map_err(|_| SpreadsheetError::LockError("Failed to acquire facade lock".to_string()))?
             .set_cell_value_without_command(address, value)?;
         Ok(old_cell)
     }
@@ -38,11 +40,16 @@ impl CommandExecutorTrait for CommandExecutorImpl {
         &mut self,
         address: &CellAddress,
     ) -> Result<Option<Cell>, SpreadsheetError> {
-        let facade = self.facade.borrow();
+        let facade = self.facade.lock().map_err(|_| {
+            SpreadsheetError::LockError("Failed to acquire facade lock".to_string())
+        })?;
         let old_cell = facade.get_cell(address);
         drop(facade);
 
-        self.facade.borrow().delete_cell_without_command(address)?;
+        self.facade
+            .lock()
+            .map_err(|_| SpreadsheetError::LockError("Failed to acquire facade lock".to_string()))?
+            .delete_cell_without_command(address)?;
         Ok(old_cell)
     }
 
@@ -52,7 +59,9 @@ impl CommandExecutorTrait for CommandExecutorImpl {
     ) -> Result<Vec<(CellAddress, Cell)>, SpreadsheetError> {
         // Collect affected cells before the operation
         let mut affected = Vec::new();
-        let facade = self.facade.borrow();
+        let facade = self.facade.lock().map_err(|_| {
+            SpreadsheetError::LockError("Failed to acquire facade lock".to_string())
+        })?;
 
         // Get all cells that will be affected
         for (addr, cell) in facade.get_all_cells() {
@@ -62,7 +71,10 @@ impl CommandExecutorTrait for CommandExecutorImpl {
         }
         drop(facade);
 
-        self.facade.borrow().insert_row_without_command(index)?;
+        self.facade
+            .lock()
+            .map_err(|_| SpreadsheetError::LockError("Failed to acquire facade lock".to_string()))?
+            .insert_row_without_command(index)?;
         Ok(affected)
     }
 
@@ -72,7 +84,9 @@ impl CommandExecutorTrait for CommandExecutorImpl {
     ) -> Result<Vec<(CellAddress, Cell)>, SpreadsheetError> {
         // Collect cells that will be deleted
         let mut deleted = Vec::new();
-        let facade = self.facade.borrow();
+        let facade = self.facade.lock().map_err(|_| {
+            SpreadsheetError::LockError("Failed to acquire facade lock".to_string())
+        })?;
 
         for (addr, cell) in facade.get_all_cells() {
             if addr.row == index {
@@ -81,7 +95,10 @@ impl CommandExecutorTrait for CommandExecutorImpl {
         }
         drop(facade);
 
-        self.facade.borrow().delete_row_without_command(index)?;
+        self.facade
+            .lock()
+            .map_err(|_| SpreadsheetError::LockError("Failed to acquire facade lock".to_string()))?
+            .delete_row_without_command(index)?;
         Ok(deleted)
     }
 
@@ -91,7 +108,9 @@ impl CommandExecutorTrait for CommandExecutorImpl {
     ) -> Result<Vec<(CellAddress, Cell)>, SpreadsheetError> {
         // Collect affected cells before the operation
         let mut affected = Vec::new();
-        let facade = self.facade.borrow();
+        let facade = self.facade.lock().map_err(|_| {
+            SpreadsheetError::LockError("Failed to acquire facade lock".to_string())
+        })?;
 
         for (addr, cell) in facade.get_all_cells() {
             if addr.col >= index {
@@ -100,7 +119,10 @@ impl CommandExecutorTrait for CommandExecutorImpl {
         }
         drop(facade);
 
-        self.facade.borrow().insert_column_without_command(index)?;
+        self.facade
+            .lock()
+            .map_err(|_| SpreadsheetError::LockError("Failed to acquire facade lock".to_string()))?
+            .insert_column_without_command(index)?;
         Ok(affected)
     }
 
@@ -110,7 +132,9 @@ impl CommandExecutorTrait for CommandExecutorImpl {
     ) -> Result<Vec<(CellAddress, Cell)>, SpreadsheetError> {
         // Collect cells that will be deleted
         let mut deleted = Vec::new();
-        let facade = self.facade.borrow();
+        let facade = self.facade.lock().map_err(|_| {
+            SpreadsheetError::LockError("Failed to acquire facade lock".to_string())
+        })?;
 
         for (addr, cell) in facade.get_all_cells() {
             if addr.col == index {
@@ -119,11 +143,14 @@ impl CommandExecutorTrait for CommandExecutorImpl {
         }
         drop(facade);
 
-        self.facade.borrow().delete_column_without_command(index)?;
+        self.facade
+            .lock()
+            .map_err(|_| SpreadsheetError::LockError("Failed to acquire facade lock".to_string()))?
+            .delete_column_without_command(index)?;
         Ok(deleted)
     }
 
     fn get_cell(&self, address: &CellAddress) -> Option<Cell> {
-        self.facade.borrow().get_cell(address)
+        self.facade.lock().ok()?.get_cell(address)
     }
 }

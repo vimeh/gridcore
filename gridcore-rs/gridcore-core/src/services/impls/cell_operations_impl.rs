@@ -10,8 +10,6 @@ use crate::traits::CellOperationsService;
 use crate::types::{CellAddress, CellValue};
 use crate::{Result, SpreadsheetError};
 use std::sync::{Arc, Mutex};
-use std::rc::Rc;
-use std::cell::RefCell;
 
 /// Concrete implementation of CellOperationsService
 pub struct CellOperationsServiceImpl {
@@ -99,12 +97,12 @@ impl CellOperationsService for CellOperationsServiceImpl {
 
             // Evaluate the formula
             let computed_value = {
-                // Create a temporary Rc<RefCell<>> for RepositoryContext
-                let repo_snapshot = repository.clone();
-                drop(repository); // Drop the MutexGuard before evaluation
+                // Drop the MutexGuard before evaluation to avoid deadlock
+                drop(repository);
+                drop(dependency_graph);
+                drop(reference_tracker);
                 
-                let repo_rc = Rc::new(RefCell::new(repo_snapshot));
-                let mut context = RepositoryContext::new(&repo_rc);
+                let mut context = RepositoryContext::new(&self.repository);
                 
                 // Push current cell to evaluation stack
                 context.push_evaluation(address);

@@ -2,9 +2,8 @@ use super::parser::ReferenceParser;
 use crate::dependency::DependencyGraph;
 use crate::formula::Expr;
 use crate::types::CellAddress;
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 /// Tracks references and their dependencies across the spreadsheet
 pub struct ReferenceTracker {
@@ -173,8 +172,8 @@ impl ReferenceTracker {
     }
 
     /// Integrate with existing dependency graph
-    pub fn sync_with_dependency_graph(&self, graph: &Rc<RefCell<DependencyGraph>>) {
-        let mut graph = graph.borrow_mut();
+    pub fn sync_with_dependency_graph(&self, graph: &Arc<Mutex<DependencyGraph>>) {
+        let mut graph = graph.lock().unwrap();
 
         // Clear and rebuild based on current tracking
         for (from, to_set) in &self.forward_dependencies {

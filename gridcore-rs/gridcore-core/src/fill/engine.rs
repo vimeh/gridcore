@@ -288,10 +288,10 @@ impl FillEngine {
 mod tests {
     use super::*;
     use crate::domain::Cell;
-    use std::cell::RefCell;
 
-    fn setup_repository() -> Rc<RefCell<CellRepository>> {
-        Rc::new(RefCell::new(CellRepository::new()))
+    fn setup_repository() -> Rc<CellRepository> {
+        // Note: FillEngine expects Rc<CellRepository>, not Rc<RefCell<CellRepository>>
+        Rc::new(CellRepository::new())
     }
 
     #[test]
@@ -315,19 +315,21 @@ mod tests {
 
     #[test]
     fn test_copy_pattern_generation() {
-        let repo = setup_repository();
-
-        // Add some source values
-        {
-            let mut repo_mut = repo.borrow_mut();
-            let cell1 = Cell::new(CellValue::Number(1.0));
-            let cell2 = Cell::new(CellValue::Number(2.0));
-            repo_mut.set(&CellAddress::new(0, 0), cell1);
-            repo_mut.set(&CellAddress::new(1, 0), cell2);
-        }
-
-        // Note: FillEngine expects Rc<CellRepository>, not Rc<RefCell<CellRepository>>
-        // We need to extract it for the test or modify the FillEngine
-        // For now, let's skip this test and focus on completing the implementation
+        // Create a repository with some values
+        let mut repo_inner = CellRepository::new();
+        let cell1 = Cell::new(CellValue::Number(1.0));
+        let cell2 = Cell::new(CellValue::Number(2.0));
+        repo_inner.set(&CellAddress::new(0, 0), cell1);
+        repo_inner.set(&CellAddress::new(1, 0), cell2);
+        
+        let repo = Rc::new(repo_inner);
+        let engine = FillEngine::new(repo.clone());
+        
+        // Test the copy pattern detection
+        let range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(1, 0));
+        let values = engine.get_source_values(&range).unwrap();
+        assert_eq!(values.len(), 2);
+        assert_eq!(values[0], CellValue::Number(1.0));
+        assert_eq!(values[1], CellValue::Number(2.0));
     }
 }
