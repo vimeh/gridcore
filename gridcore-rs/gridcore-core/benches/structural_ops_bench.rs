@@ -1,6 +1,7 @@
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use gridcore_core::facade::SpreadsheetFacade;
 use gridcore_core::types::CellAddress;
+use std::hint::black_box;
 use std::rc::Rc;
 
 /// Create a spreadsheet with a given number of formulas
