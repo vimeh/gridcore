@@ -123,12 +123,12 @@ impl SpreadsheetFacade {
 
     /// Set cell value (standard API)
     pub fn set_cell_value(&self, address: &CellAddress, value: &str) -> Result<()> {
-        if value.starts_with('=') {
+        if let Some(formula_text) = value.strip_prefix('=') {
             // It's a formula - create a cell with formula
             if let Some(repository) = self.container.repository() {
-                let formula_text = value[1..].to_string();
+                let formula_string = formula_text.to_string();
                 let mut cell =
-                    Cell::with_formula(CellValue::String(value.to_string()), formula_text.clone());
+                    Cell::with_formula(CellValue::String(value.to_string()), formula_string.clone());
 
                 // Try to evaluate the formula
                 if let Some(repo_for_eval) = self.container.repository() {
@@ -136,7 +136,7 @@ impl SpreadsheetFacade {
                     use crate::formula::FormulaParser;
 
                     // Parse the formula
-                    if let Ok(expr) = FormulaParser::parse(&formula_text) {
+                    if let Ok(expr) = FormulaParser::parse(&formula_string) {
                         let mut context = PortContext::new(repo_for_eval);
                         let mut evaluator = Evaluator::new(&mut context);
 

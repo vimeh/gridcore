@@ -246,12 +246,12 @@ mod tests {
 
     #[test]
     fn test_repository_adapter_basic_operations() {
-        let mut adapter = RepositoryAdapter::new_empty();
+        let adapter = RepositoryAdapter::new_empty();
         let address = CellAddress::new(0, 0);
         let cell = Cell::new(CellValue::Number(42.0));
 
         // Test set and get
-        adapter.set(&address, cell.clone());
+        let _ = adapter.set(&address, cell.clone());
         assert_eq!(adapter.get(&address), Some(cell.clone()));
 
         // Test contains
@@ -261,18 +261,18 @@ mod tests {
         assert_eq!(adapter.count(), 1);
 
         // Test delete
-        adapter.delete(&address);
+        let _ = adapter.delete(&address);
         assert_eq!(adapter.get(&address), None);
         assert!(!adapter.contains(&address));
     }
 
     #[test]
     fn test_repository_adapter_get_all() {
-        let mut adapter = RepositoryAdapter::new_empty();
+        let adapter = RepositoryAdapter::new_empty();
 
-        adapter.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
-        adapter.set(&CellAddress::new(1, 0), Cell::new(CellValue::Number(2.0)));
-        adapter.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(3.0)));
+        let _ = adapter.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
+        let _ = adapter.set(&CellAddress::new(1, 0), Cell::new(CellValue::Number(2.0)));
+        let _ = adapter.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(3.0)));
 
         let all = adapter.get_all();
         assert_eq!(all.len(), 3);
@@ -280,13 +280,13 @@ mod tests {
 
     #[test]
     fn test_repository_adapter_get_range() {
-        let mut adapter = RepositoryAdapter::new_empty();
+        let adapter = RepositoryAdapter::new_empty();
 
-        adapter.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
-        adapter.set(&CellAddress::new(1, 0), Cell::new(CellValue::Number(2.0)));
-        adapter.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(3.0)));
-        adapter.set(&CellAddress::new(1, 1), Cell::new(CellValue::Number(4.0)));
-        adapter.set(&CellAddress::new(2, 2), Cell::new(CellValue::Number(5.0))); // Outside range
+        let _ = adapter.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
+        let _ = adapter.set(&CellAddress::new(1, 0), Cell::new(CellValue::Number(2.0)));
+        let _ = adapter.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(3.0)));
+        let _ = adapter.set(&CellAddress::new(1, 1), Cell::new(CellValue::Number(4.0)));
+        let _ = adapter.set(&CellAddress::new(2, 2), Cell::new(CellValue::Number(5.0))); // Outside range
 
         let range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(1, 1));
         let cells = adapter.get_range(&range);
@@ -295,12 +295,12 @@ mod tests {
 
     #[test]
     fn test_repository_adapter_insert_row() {
-        let mut adapter = RepositoryAdapter::new_empty();
+        let adapter = RepositoryAdapter::new_empty();
 
         // Set up initial cells
-        adapter.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
-        adapter.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)));
-        adapter.set(&CellAddress::new(0, 2), Cell::new(CellValue::Number(3.0)));
+        let _ = adapter.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
+        let _ = adapter.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)));
+        let _ = adapter.set(&CellAddress::new(0, 2), Cell::new(CellValue::Number(3.0)));
 
         // Insert row at index 1
         adapter.insert_row(1).unwrap();
@@ -332,12 +332,12 @@ mod tests {
 
     #[test]
     fn test_repository_adapter_delete_row() {
-        let mut adapter = RepositoryAdapter::new_empty();
+        let adapter = RepositoryAdapter::new_empty();
 
         // Set up initial cells
-        adapter.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
-        adapter.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)));
-        adapter.set(&CellAddress::new(0, 2), Cell::new(CellValue::Number(3.0)));
+        let _ = adapter.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
+        let _ = adapter.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)));
+        let _ = adapter.set(&CellAddress::new(0, 2), Cell::new(CellValue::Number(3.0)));
 
         // Delete row at index 1
         adapter.delete_row(1).unwrap();

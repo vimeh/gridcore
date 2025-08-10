@@ -186,7 +186,7 @@ impl Sheet {
     /// Clear all cells in the sheet
     pub fn clear(&self) {
         // Clear the repository
-        self.cells.clear();
+        let _ = self.cells.clear();
 
         // Clear dependencies
         if let Ok(mut deps) = self.dependencies.lock() {

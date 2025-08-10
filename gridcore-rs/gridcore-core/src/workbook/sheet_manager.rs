@@ -127,7 +127,7 @@ impl SheetManager {
                     if cell.has_formula()
                         && let CellValue::String(formula_str) = &cell.raw_value
                         && formula_str.starts_with('=')
-                        && let Ok(adjusted) = adjuster.adjust_formula(&formula_str, &operation)
+                        && let Ok(adjusted) = adjuster.adjust_formula(formula_str, &operation)
                         && adjusted != *formula_str
                     {
                         adjusted_cells.push((address, adjusted));
