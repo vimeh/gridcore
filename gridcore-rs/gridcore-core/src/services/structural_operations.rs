@@ -1,8 +1,8 @@
+use crate::Result;
 use crate::dependency::DependencyGraph;
 use crate::references::{ReferenceAdjuster, StructuralOperation};
 use crate::repository::CellRepository;
 use crate::types::CellAddress;
-use crate::Result;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -32,7 +32,10 @@ impl StructuralOperations {
             return Ok(Vec::new());
         }
 
-        let operation = StructuralOperation::InsertRows { index, count };
+        let operation = StructuralOperation::InsertRows {
+            before_row: index,
+            count,
+        };
         self.apply_structural_operation(operation)
     }
 
@@ -42,23 +45,24 @@ impl StructuralOperations {
             return Ok(Vec::new());
         }
 
-        let operation = StructuralOperation::InsertColumns { index, count };
+        let operation = StructuralOperation::InsertColumns {
+            before_col: index,
+            count,
+        };
         self.apply_structural_operation(operation)
     }
 
-    /// Delete rows at the specified indices
-    pub fn delete_rows(&self, indices: Vec<u32>) -> Result<Vec<CellAddress>> {
-        if indices.is_empty() {
+    /// Delete rows starting from the specified row
+    pub fn delete_rows(&self, start_row: u32, count: u32) -> Result<Vec<CellAddress>> {
+        if count == 0 {
             return Ok(Vec::new());
         }
 
-        let operation = StructuralOperation::DeleteRows {
-            indices: indices.clone(),
-        };
-        
+        let operation = StructuralOperation::DeleteRows { start_row, count };
+
         // Collect cells to be deleted
         let mut deleted_cells = Vec::new();
-        for &row in &indices {
+        for row in start_row..(start_row + count) {
             let cells = self.get_cells_in_row(row);
             deleted_cells.extend(cells);
         }
@@ -71,23 +75,21 @@ impl StructuralOperations {
 
         // Apply the operation to adjust remaining cells
         self.apply_structural_operation(operation)?;
-        
+
         Ok(deleted_cells)
     }
 
-    /// Delete columns at the specified indices
-    pub fn delete_columns(&self, indices: Vec<u32>) -> Result<Vec<CellAddress>> {
-        if indices.is_empty() {
+    /// Delete columns starting from the specified column
+    pub fn delete_columns(&self, start_col: u32, count: u32) -> Result<Vec<CellAddress>> {
+        if count == 0 {
             return Ok(Vec::new());
         }
 
-        let operation = StructuralOperation::DeleteColumns {
-            indices: indices.clone(),
-        };
-        
+        let operation = StructuralOperation::DeleteColumns { start_col, count };
+
         // Collect cells to be deleted
         let mut deleted_cells = Vec::new();
-        for &col in &indices {
+        for col in start_col..(start_col + count) {
             let cells = self.get_cells_in_column(col);
             deleted_cells.extend(cells);
         }
@@ -100,31 +102,34 @@ impl StructuralOperations {
 
         // Apply the operation to adjust remaining cells
         self.apply_structural_operation(operation)?;
-        
+
         Ok(deleted_cells)
     }
 
     /// Apply a structural operation to the spreadsheet
-    fn apply_structural_operation(&self, operation: StructuralOperation) -> Result<Vec<CellAddress>> {
+    fn apply_structural_operation(
+        &self,
+        operation: StructuralOperation,
+    ) -> Result<Vec<CellAddress>> {
         let mut affected_addresses = Vec::new();
-        
+
         // Get all cells that need to be moved/adjusted
         let all_cells: Vec<(CellAddress, _)> = self
             .repository
             .borrow()
-            .all_cells()
-            .map(|(addr, cell)| (*addr, cell.clone()))
+            .iter()
+            .map(|(addr, cell)| (addr, cell.clone()))
             .collect();
 
         // Create a new repository with adjusted cells
         let mut new_cells = Vec::new();
-        
+
         for (addr, cell) in all_cells {
             if let Some(new_addr) = self.adjust_address(&addr, &operation) {
                 // Adjust formula references if the cell has a formula
                 let adjusted_cell = cell.clone();
                 // TODO: Implement formula adjustment when cell has a formula
-                
+
                 new_cells.push((new_addr, adjusted_cell));
                 affected_addresses.push(new_addr);
             }
@@ -133,47 +138,58 @@ impl StructuralOperations {
         // Clear the repository and re-add all cells with new addresses
         self.repository.borrow_mut().clear();
         for (addr, cell) in new_cells {
-            self.repository.borrow_mut().set(addr, cell);
+            self.repository.borrow_mut().set(&addr, cell);
         }
 
         // Update dependency graph
         self.rebuild_dependency_graph()?;
-        
+
         Ok(affected_addresses)
     }
 
     /// Adjust a cell address based on a structural operation
-    fn adjust_address(&self, address: &CellAddress, operation: &StructuralOperation) -> Option<CellAddress> {
+    fn adjust_address(
+        &self,
+        address: &CellAddress,
+        operation: &StructuralOperation,
+    ) -> Option<CellAddress> {
         match operation {
-            StructuralOperation::InsertRows { index, count } => {
-                if address.row >= *index {
-                    Some(CellAddress::new(address.row + count, address.column))
+            StructuralOperation::InsertRows { before_row, count } => {
+                if address.row >= *before_row {
+                    Some(CellAddress::new(address.col, address.row + count))
                 } else {
                     Some(*address)
                 }
             }
-            StructuralOperation::InsertColumns { index, count } => {
-                if address.column >= *index {
-                    Some(CellAddress::new(address.row, address.column + count))
+            StructuralOperation::InsertColumns { before_col, count } => {
+                if address.col >= *before_col {
+                    Some(CellAddress::new(address.col + count, address.row))
                 } else {
                     Some(*address)
                 }
             }
-            StructuralOperation::DeleteRows { indices } => {
-                if indices.contains(&address.row) {
+            StructuralOperation::DeleteRows { start_row, count } => {
+                if address.row >= *start_row && address.row < *start_row + *count {
                     None // Cell is deleted
+                } else if address.row >= *start_row + *count {
+                    Some(CellAddress::new(address.col, address.row - count))
                 } else {
-                    let rows_before = indices.iter().filter(|&&r| r < address.row).count() as u32;
-                    Some(CellAddress::new(address.row - rows_before, address.column))
+                    Some(*address)
                 }
             }
-            StructuralOperation::DeleteColumns { indices } => {
-                if indices.contains(&address.column) {
+            StructuralOperation::DeleteColumns { start_col, count } => {
+                if address.col >= *start_col && address.col < *start_col + *count {
                     None // Cell is deleted
+                } else if address.col >= *start_col + *count {
+                    Some(CellAddress::new(address.col - count, address.row))
                 } else {
-                    let cols_before = indices.iter().filter(|&&c| c < address.column).count() as u32;
-                    Some(CellAddress::new(address.row, address.column - cols_before))
+                    Some(*address)
                 }
+            }
+            StructuralOperation::MoveRange { from: _, to: _ } => {
+                // MoveRange is handled differently - not a simple address adjustment
+                // This would be handled at a higher level
+                Some(*address)
             }
         }
     }
@@ -182,14 +198,8 @@ impl StructuralOperations {
     fn get_cells_in_row(&self, row: u32) -> Vec<CellAddress> {
         self.repository
             .borrow()
-            .all_cells()
-            .filter_map(|(addr, _)| {
-                if addr.row == row {
-                    Some(*addr)
-                } else {
-                    None
-                }
-            })
+            .iter()
+            .filter_map(|(addr, _)| if addr.row == row { Some(addr) } else { None })
             .collect()
     }
 
@@ -197,43 +207,42 @@ impl StructuralOperations {
     fn get_cells_in_column(&self, column: u32) -> Vec<CellAddress> {
         self.repository
             .borrow()
-            .all_cells()
-            .filter_map(|(addr, _)| {
-                if addr.column == column {
-                    Some(*addr)
-                } else {
-                    None
-                }
-            })
+            .iter()
+            .filter_map(
+                |(addr, _)| {
+                    if addr.col == column { Some(addr) } else { None }
+                },
+            )
             .collect()
     }
 
     /// Rebuild the dependency graph after a structural operation
     fn rebuild_dependency_graph(&self) -> Result<()> {
         self.dependency_graph.borrow_mut().clear();
-        
+
         // Re-add all dependencies
         let cells: Vec<_> = self
             .repository
             .borrow()
-            .all_cells()
-            .map(|(addr, cell)| (*addr, cell.clone()))
+            .iter()
+            .map(|(addr, cell)| (addr, cell.clone()))
             .collect();
 
         for (addr, cell) in cells {
             if cell.has_formula() {
                 // Extract references from the formula AST
                 if let Some(formula_expr) = &cell.formula {
-                    let mut tracker = crate::references::ReferenceTracker::new();
-                    if let Ok(references) = tracker.extract_references(formula_expr) {
+                    let parser = crate::references::ReferenceParser::new();
+                    let references = parser.extract_from_expr(formula_expr);
+                    for dep in &references {
                         self.dependency_graph
                             .borrow_mut()
-                            .set_dependencies(&addr, &references)?;
+                            .add_dependency(addr, *dep);
                     }
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -241,12 +250,12 @@ impl StructuralOperations {
     pub fn get_bounds(&self) -> (u32, u32) {
         let mut max_row = 0;
         let mut max_col = 0;
-        
-        for (addr, _) in self.repository.borrow().all_cells() {
+
+        for (addr, _) in self.repository.borrow().iter() {
             max_row = max_row.max(addr.row);
-            max_col = max_col.max(addr.column);
+            max_col = max_col.max(addr.col);
         }
-        
+
         (max_row, max_col)
     }
 
@@ -276,57 +285,79 @@ mod tests {
     #[test]
     fn test_insert_rows() {
         let service = create_test_service();
-        
+
         // Add some cells
-        service.repository.borrow_mut().set_cell(
-            CellAddress::new(0, 0),
-            Cell::new(CellValue::Number(1.0)),
-        );
-        service.repository.borrow_mut().set_cell(
-            CellAddress::new(1, 0),
-            Cell::new(CellValue::Number(2.0)),
-        );
-        
+        service
+            .repository
+            .borrow_mut()
+            .set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
+        service
+            .repository
+            .borrow_mut()
+            .set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)));
+
         // Insert a row at index 1
         let affected = service.insert_rows(1, 1).unwrap();
-        
+
         // Check that the cell at row 1 moved to row 2
-        assert!(service.repository.borrow().get_cell(&CellAddress::new(1, 0)).is_none());
-        assert!(service.repository.borrow().get_cell(&CellAddress::new(2, 0)).is_some());
+        assert!(
+            service
+                .repository
+                .borrow()
+                .get_cell(&CellAddress::new(1, 0))
+                .is_none()
+        );
+        assert!(
+            service
+                .repository
+                .borrow()
+                .get_cell(&CellAddress::new(2, 0))
+                .is_some()
+        );
         assert!(!affected.is_empty());
     }
 
     #[test]
     fn test_delete_columns() {
         let service = create_test_service();
-        
+
         // Add cells in different columns
         for col in 0..3 {
-            service.repository.borrow_mut().set_cell(
-                CellAddress::new(0, col),
+            service.repository.borrow_mut().set(
+                &CellAddress::new(col, 0),
                 Cell::new(CellValue::Number(col as f64)),
             );
         }
-        
+
         // Delete column 1
         let deleted = service.delete_columns(vec![1]).unwrap();
-        
+
         assert_eq!(deleted.len(), 1);
-        assert!(service.repository.borrow().get_cell(&CellAddress::new(0, 1)).is_some());
+        assert!(
+            service
+                .repository
+                .borrow()
+                .get_cell(&CellAddress::new(0, 1))
+                .is_some()
+        );
         // Column 2 should now be at column 1
-        let cell = service.repository.borrow().get_cell(&CellAddress::new(0, 1)).unwrap();
+        let cell = service
+            .repository
+            .borrow()
+            .get_cell(&CellAddress::new(0, 1))
+            .unwrap();
         assert_eq!(cell.get_computed_value(), CellValue::Number(2.0));
     }
 
     #[test]
     fn test_get_bounds() {
         let service = create_test_service();
-        
-        service.repository.borrow_mut().set_cell(
-            CellAddress::new(5, 10),
-            Cell::new(CellValue::Number(42.0)),
-        );
-        
+
+        service
+            .repository
+            .borrow_mut()
+            .set(&CellAddress::new(10, 5), Cell::new(CellValue::Number(42.0)));
+
         let (max_row, max_col) = service.get_bounds();
         assert_eq!(max_row, 5);
         assert_eq!(max_col, 10);

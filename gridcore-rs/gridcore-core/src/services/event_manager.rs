@@ -112,13 +112,13 @@ mod tests {
     #[test]
     fn test_event_manager_clear() {
         let manager = EventManager::new();
-        
+
         manager.add_callback(Box::new(TestCallback {
             events: Rc::new(RefCell::new(Vec::new())),
         }));
 
         assert_eq!(manager.callback_count(), 1);
-        
+
         manager.clear_callbacks();
         assert_eq!(manager.callback_count(), 0);
     }
