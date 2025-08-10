@@ -1,4 +1,5 @@
-use leptos::*;
+use leptos::either::Either;
+use leptos::prelude::*;
 use web_sys::MouseEvent;
 
 #[derive(Clone, Debug)]
@@ -13,11 +14,11 @@ pub fn TabBar(
     active_sheet: ReadSignal<usize>,
     set_active_sheet: WriteSignal<usize>,
 ) -> impl IntoView {
-    let (show_context_menu, set_show_context_menu) = create_signal(false);
-    let (context_menu_sheet, set_context_menu_sheet) = create_signal(0usize);
-    let (context_menu_pos, set_context_menu_pos) = create_signal((0.0, 0.0));
-    let (editing_sheet, set_editing_sheet) = create_signal(None::<usize>);
-    let (edit_name, set_edit_name) = create_signal(String::new());
+    let (show_context_menu, set_show_context_menu) = signal(false);
+    let (context_menu_sheet, set_context_menu_sheet) = signal(0usize);
+    let (context_menu_pos, set_context_menu_pos) = signal((0.0, 0.0));
+    let (editing_sheet, set_editing_sheet) = signal(None::<usize>);
+    let (edit_name, set_edit_name) = signal(String::new());
 
     // Add new sheet
     let add_sheet = move |_| {
@@ -103,7 +104,7 @@ pub fn TabBar(
                             }
                         >
                             {move || if is_editing() {
-                                view! {
+                                Either::Left(view! {
                                     <input
                                         type="text"
                                         value=edit_name
@@ -119,13 +120,13 @@ pub fn TabBar(
                                         style="border: none; outline: none; background: transparent; width: 80px;"
                                         autofocus
                                     />
-                                }.into_view()
+                                })
                             } else {
-                                view! {
+                                Either::Right(view! {
                                     <span on:dblclick=move |_| start_rename(sheet_id)>
                                         {sheet_name.clone()}
                                     </span>
-                                }.into_view()
+                                })
                             }}
                         </div>
                     }
@@ -175,9 +176,9 @@ pub fn TabBar(
                             "Delete"
                         </div>
                     </div>
-                }.into_view()
+                }
             } else {
-                view! { }.into_view()
+                view! { <div style="display: none;" on:click=move |_| {}></div> }
             }}
         </div>
     }

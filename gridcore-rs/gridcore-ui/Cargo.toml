@@ -13,8 +13,6 @@ crate-type = ["cdylib"]
 gridcore-core = { path = "../gridcore-core" }
 gridcore-controller = { path = "../gridcore-controller" }
 leptos = { version = "0.8", features = ["csr"] }
-leptos_dom = "0.8"
-leptos_reactive = "0.6"
 wasm-logger = "0.2"
 web-sys = { version = "0.3", features = [
   "CanvasRenderingContext2d",

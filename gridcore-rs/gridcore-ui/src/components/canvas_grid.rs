@@ -2,7 +2,7 @@ use gridcore_controller::controller::SpreadsheetController;
 use gridcore_controller::state::{Action, InsertMode, SpreadsheetMode, UIState};
 use gridcore_core::types::CellAddress;
 use leptos::html::{Canvas, Div};
-use leptos::*;
+use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
@@ -25,12 +25,13 @@ pub fn CanvasGrid(
     set_current_mode: WriteSignal<SpreadsheetMode>,
 ) -> impl IntoView {
     // Get controller from context
-    let controller: Rc<RefCell<SpreadsheetController>> =
+    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
+    let controller = controller_stored.with_value(|c| c.clone());
 
     // Node refs
-    let canvas_ref = create_node_ref::<Canvas>();
-    let wrapper_ref = create_node_ref::<Div>();
+    let canvas_ref = NodeRef::<Canvas>::new();
+    let wrapper_ref = NodeRef::<Div>::new();
     let theme = default_theme();
 
     // State
@@ -39,11 +40,11 @@ pub fn CanvasGrid(
         Some(10000), // Support up to 10,000 rows
         Some(256),   // Support up to 256 columns (A-IV)
     )));
-    let (viewport, set_viewport) = create_signal(viewport_rc.clone());
-    let (editing_mode, set_editing_mode) = create_signal(false);
-    let (cell_position, set_cell_position) = create_signal((0.0, 0.0, 100.0, 25.0));
-    let (cursor_style, set_cursor_style) = create_signal("cell");
-    let (canvas_dimensions, set_canvas_dimensions) = create_signal((0.0, 0.0));
+    let (viewport, set_viewport) = signal_local(viewport_rc.clone());
+    let (editing_mode, set_editing_mode) = signal(false);
+    let (cell_position, set_cell_position) = signal((0.0, 0.0, 100.0, 25.0));
+    let (cursor_style, set_cursor_style) = signal("cell");
+    let (canvas_dimensions, set_canvas_dimensions) = signal((0.0, 0.0));
 
     // Get device pixel ratio once
     let device_pixel_ratio = web_sys::window()
@@ -55,7 +56,7 @@ pub fn CanvasGrid(
     let _resize_state = resize_handler.get_state();
 
     // Auto-focus the wrapper when component mounts
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(wrapper) = wrapper_ref.get() {
             let element: &HtmlDivElement = wrapper.as_ref();
             let result = element.focus();
@@ -72,7 +73,7 @@ pub fn CanvasGrid(
     let viewport_effect = viewport_rc.clone();
 
     // Set up canvas rendering after mount and when active cell changes
-    create_effect(move |_| {
+    Effect::new(move |_| {
         // Track active_cell to trigger re-render when it changes
         let current_cell = active_cell.get();
 
@@ -124,7 +125,7 @@ pub fn CanvasGrid(
     });
 
     // Update formula bar when cell changes
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let cell = active_cell.get();
         let ctrl = ctrl_formula.clone();
 

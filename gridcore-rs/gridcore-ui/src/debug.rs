@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // Global debug flag
@@ -44,10 +44,10 @@ macro_rules! debug_console {
 /// Create a debug mode signal for reactive UI updates
 #[component]
 pub fn DebugModeProvider(children: Children) -> impl IntoView {
-    let (debug_mode, set_debug_mode_signal) = create_signal(false);
+    let (debug_mode, set_debug_mode_signal) = signal(false);
 
     // Sync with global state
-    create_effect(move |_| {
+    Effect::new(move |_| {
         set_debug_mode(debug_mode.get());
     });
 

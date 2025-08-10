@@ -1,4 +1,5 @@
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 use gridcore_core::adapters::RepositoryAdapter;
 use gridcore_core::domain::Cell;
 use gridcore_core::fill::{CellRange, FillDirection, FillEngine, FillOperation, PatternType};

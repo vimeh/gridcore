@@ -1,5 +1,4 @@
 use crate::components::viewport::Viewport;
-use leptos::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 use web_sys::MouseEvent;

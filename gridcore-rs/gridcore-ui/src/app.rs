@@ -4,7 +4,7 @@ use crate::components::status_bar::{SelectionStats, StatusBar};
 use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_core::types::CellAddress;
-use leptos::*;
+use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -21,13 +21,15 @@ pub fn App() -> impl IntoView {
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
 
     // We'll initialize test data after ErrorDisplay is available
-    let init_data = create_rw_signal(false);
+    let init_data = RwSignal::new(false);
 
-    provide_context(controller.clone());
+    provide_context(StoredValue::<_, LocalStorage>::new_local(
+        controller.clone(),
+    ));
 
     // Create error handling signals
-    let (errors, set_errors) = create_signal::<Vec<ErrorMessage>>(Vec::new());
-    let error_counter = create_rw_signal(0usize);
+    let (errors, set_errors) = signal::<Vec<ErrorMessage>>(Vec::new());
+    let error_counter = RwSignal::new(0usize);
 
     // Set up controller event listener for errors
     {
@@ -83,8 +85,8 @@ pub fn App() -> impl IntoView {
     }
 
     // Create reactive signals for UI state
-    let (active_cell, set_active_cell) = create_signal(CellAddress::new(0, 0));
-    let (active_sheet, set_active_sheet) = create_signal(0);
+    let (active_cell, set_active_cell) = signal(CellAddress::new(0, 0));
+    let (active_sheet, set_active_sheet) = signal(0);
 
     // Initialize formula value with A1's content
     let initial_formula_value = {
@@ -100,7 +102,7 @@ pub fn App() -> impl IntoView {
             String::new()
         }
     };
-    let (formula_value, set_formula_value) = create_signal(initial_formula_value);
+    let (formula_value, set_formula_value) = signal(initial_formula_value);
 
     // Get initial mode from controller
     let initial_mode = controller.borrow().get_state().spreadsheet_mode();
@@ -108,7 +110,7 @@ pub fn App() -> impl IntoView {
     // Update formula bar when active cell changes
     let _ctrl_for_effect = controller.clone();
     // Removed duplicate create_effect - we have the better one below
-    let (current_mode, set_current_mode) = create_signal(initial_mode);
+    let (current_mode, set_current_mode) = signal(initial_mode);
 
     // Sheet management
     let initial_sheets = vec![
@@ -125,17 +127,17 @@ pub fn App() -> impl IntoView {
             name: "Sheet3".to_string(),
         },
     ];
-    let (sheets, _set_sheets) = create_signal(initial_sheets);
+    let (sheets, _set_sheets) = signal(initial_sheets);
 
     // Selection statistics (will be calculated from selection)
-    let (selection_stats, _set_selection_stats) = create_signal(SelectionStats::default());
+    let (selection_stats, _set_selection_stats) = signal(SelectionStats::default());
 
     // Keyboard-only mode state
-    let (keyboard_only_mode, set_keyboard_only_mode) = create_signal(false);
+    let (keyboard_only_mode, set_keyboard_only_mode) = signal(false);
 
     // Update formula bar when active cell changes (but not during editing)
     let controller_for_effect = controller.clone();
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let cell = active_cell.get();
         let ctrl = controller_for_effect.clone();
 
@@ -225,7 +227,7 @@ pub fn App() -> impl IntoView {
 
     // Initialize test data with error handling after ErrorDisplay is mounted
     let controller_for_init = controller.clone();
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if !init_data.get() {
             init_data.set(true);
 
@@ -338,7 +340,6 @@ pub fn App() -> impl IntoView {
                 <StatusBar
                     current_mode=current_mode
                     selection_stats=selection_stats
-                    controller=controller.clone()
                 />
             </div>
 

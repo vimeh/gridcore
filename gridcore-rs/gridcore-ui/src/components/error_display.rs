@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 
@@ -30,7 +30,7 @@ pub fn ErrorDisplay(
     // Don't need to create signals here, they're passed in
 
     // Provide context for other components to add errors (if needed)
-    let error_counter = create_rw_signal(0usize);
+    let error_counter = RwSignal::new(0usize);
     provide_context(ErrorContext {
         add_error: Callback::new(move |(message, severity): (String, ErrorSeverity)| {
             let id = error_counter.get();
@@ -116,16 +116,15 @@ pub fn ErrorDisplay(
 
 impl ErrorContext {
     pub fn show_error(&self, message: impl Into<String>) {
-        self.add_error.call((message.into(), ErrorSeverity::Error));
+        self.add_error.run((message.into(), ErrorSeverity::Error));
     }
 
     pub fn show_warning(&self, message: impl Into<String>) {
-        self.add_error
-            .call((message.into(), ErrorSeverity::Warning));
+        self.add_error.run((message.into(), ErrorSeverity::Warning));
     }
 
     pub fn show_info(&self, message: impl Into<String>) {
-        self.add_error.call((message.into(), ErrorSeverity::Info));
+        self.add_error.run((message.into(), ErrorSeverity::Info));
     }
 }
 

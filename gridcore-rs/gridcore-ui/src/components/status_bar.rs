@@ -1,6 +1,6 @@
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_controller::state::{CellMode, SpreadsheetMode, UIState, VisualMode};
-use leptos::*;
+use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -17,8 +17,12 @@ pub struct SelectionStats {
 pub fn StatusBar(
     current_mode: ReadSignal<SpreadsheetMode>,
     selection_stats: ReadSignal<SelectionStats>,
-    controller: Rc<RefCell<SpreadsheetController>>,
 ) -> impl IntoView {
+    // Get controller from context
+    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
+        use_context().expect("SpreadsheetController not found in context");
+    let controller = controller_stored.with_value(|c| c.clone());
+
     // Clone controller for closures
     let ctrl_for_display = controller.clone();
 
@@ -97,18 +101,21 @@ pub fn StatusBar(
         >
             // Left section: Selection statistics
             <div style="display: flex; align-items: center; gap: 16px;">
-                {move || if !stats_display().is_empty() {
-                    view! {
-                        <span style="color: #666;">
-                            {stats_display}
-                        </span>
-                    }.into_view()
-                } else {
-                    view! {
-                        <span style="color: #999;">
-                            "Ready"
-                        </span>
-                    }.into_view()
+                {move || {
+                    let stats = stats_display();
+                    if !stats.is_empty() {
+                        view! {
+                            <span style="color: #666;">
+                                {stats}
+                            </span>
+                        }
+                    } else {
+                        view! {
+                            <span style="color: #999;">
+                                {"Ready".to_string()}
+                            </span>
+                        }
+                    }
                 }}
             </div>
 
@@ -140,9 +147,9 @@ pub fn StatusBar(
                                     <span class="mode-detail" style="color: #666; font-size: 11px;">
                                         {mode_detail}
                                     </span>
-                                }.into_view()
+                                }
                             } else {
-                                view! { <span></span> }.into_view()
+                                view! { <span class="mode-detail" style="color: #666; font-size: 11px;">{""}</span> }
                             }}
                         </div>
                     </>

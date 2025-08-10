@@ -6,7 +6,7 @@ pub mod rendering;
 pub mod utils;
 
 use app::App;
-use leptos::*;
+use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -24,5 +24,5 @@ pub fn run_app() {
         .dyn_into::<web_sys::HtmlElement>()
         .expect("Could not cast to HtmlElement");
 
-    mount_to(app_element, || view! { <App/> })
+    mount_to(app_element, || view! { <App/> });
 }

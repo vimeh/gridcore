@@ -3,7 +3,7 @@ use gridcore_controller::controller::SpreadsheetController;
 use gridcore_controller::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState};
 use gridcore_core::types::CellAddress;
 use leptos::html::Textarea;
-use leptos::*;
+use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
@@ -45,13 +45,14 @@ pub fn CellEditor(
     set_current_mode: WriteSignal<SpreadsheetMode>,
 ) -> impl IntoView {
     // Get controller from context
-    let controller: Rc<RefCell<SpreadsheetController>> =
+    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
+    let controller = controller_stored.with_value(|c| c.clone());
 
-    let input_ref = create_node_ref::<Textarea>();
-    let (editor_value, set_editor_value) = create_signal(String::new());
-    let (suggestions, set_suggestions) = create_signal::<Vec<String>>(Vec::new());
-    let (selected_suggestion, set_selected_suggestion) = create_signal::<Option<usize>>(None);
+    let input_ref = NodeRef::<Textarea>::new();
+    let (editor_value, set_editor_value) = signal(String::new());
+    let (suggestions, set_suggestions) = signal::<Vec<String>>(Vec::new());
+    let (selected_suggestion, set_selected_suggestion) = signal::<Option<usize>>(None);
 
     // Clone controller refs for closures
     let ctrl_value = controller.clone();
@@ -59,7 +60,7 @@ pub fn CellEditor(
     let ctrl_cancel = controller.clone();
 
     // Initialize editor value when entering edit mode
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if editing_mode.get() {
             let _cell = active_cell.get();
             let ctrl = ctrl_value.clone();
@@ -168,7 +169,7 @@ pub fn CellEditor(
     });
 
     // Handle formula autocomplete
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let value = editor_value.get();
         if value.starts_with('=') {
             // Extract the last word being typed for function suggestions
@@ -218,7 +219,7 @@ pub fn CellEditor(
         }
     });
 
-    let on_keydown = Rc::new(move |ev: KeyboardEvent| {
+    let on_keydown = move |ev: KeyboardEvent| {
         let key = ev.key();
         let suggestions_list = suggestions.get();
 
@@ -668,7 +669,7 @@ pub fn CellEditor(
                 }
             }
         }
-    });
+    };
 
     view! {
         <Show when=move || editing_mode.get()>
@@ -692,7 +693,7 @@ pub fn CellEditor(
                         // Also update formula bar
                         set_formula_value.set(new_value);
                     }
-                    on:keydown={let on_keydown = on_keydown.clone(); move |ev| on_keydown(ev)}
+                    on:keydown=on_keydown
                     style="width: 100%; height: 100%; border: 2px solid #4285f4; padding: 2px 4px; font-family: monospace; font-size: 13px; outline: none; resize: none; overflow: hidden;"
                 />
 
