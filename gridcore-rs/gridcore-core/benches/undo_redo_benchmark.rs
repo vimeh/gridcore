@@ -1,11 +1,9 @@
-// TODO: Update for new facade API
-/*
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use gridcore_core::facade::SpreadsheetFacade;
 use gridcore_core::types::CellAddress;
 
-fn benchmark_single_undo_redo(c: &mut Criterion) {
-    c.bench_function("single_undo_redo", |b| {
+fn benchmark_simple_cell_operations(c: &mut Criterion) {
+    c.bench_function("set_and_get_cell_value", |b| {
         let facade = SpreadsheetFacade::new();
         let addr = CellAddress::new(0, 0);
 
@@ -13,76 +11,56 @@ fn benchmark_single_undo_redo(c: &mut Criterion) {
             // Set a value
             facade.set_cell_value(&addr, "42").unwrap();
 
-            // Undo
-            facade.undo().unwrap();
-
-            // Redo
-            facade.redo().unwrap();
-
+            // Get the value
             let _ = black_box(facade.get_cell_value(&addr));
         });
     });
 }
 
-fn benchmark_batch_undo_redo(c: &mut Criterion) {
-    c.bench_function("batch_undo_redo_10_cells", |b| {
+fn benchmark_formula_evaluation(c: &mut Criterion) {
+    c.bench_function("formula_evaluation_10_cells", |b| {
         let facade = SpreadsheetFacade::new();
 
         b.iter(|| {
-            // Set multiple values in a batch
-            let batch_id = facade.begin_batch(None);
+            // Set base values
             for i in 0..10 {
-                let addr = CellAddress::new(i, 0);
+                let addr = CellAddress::new(0, i);
                 facade.set_cell_value(&addr, &format!("{}", i)).unwrap();
             }
-            facade.commit_batch(&batch_id).unwrap();
 
-            // Undo the batch
-            facade.undo().unwrap();
+            // Set formulas that reference base values
+            for i in 0..10 {
+                let addr = CellAddress::new(1, i);
+                facade
+                    .set_cell_value(&addr, &format!("=A{} * 2", i + 1))
+                    .unwrap();
+            }
 
-            // Redo the batch
-            facade.redo().unwrap();
-
-            black_box(facade.get_cell_count());
+            black_box(facade.cell_count());
         });
     });
 }
 
-fn benchmark_deep_undo_stack(c: &mut Criterion) {
-    c.bench_function("deep_undo_stack_100_operations", |b| {
+fn benchmark_bulk_operations(c: &mut Criterion) {
+    c.bench_function("bulk_set_100_cells", |b| {
         let facade = SpreadsheetFacade::new();
 
         b.iter(|| {
-            // Perform 100 operations
+            // Perform 100 set operations
             for i in 0..100 {
                 let addr = CellAddress::new(i % 10, i / 10);
                 facade.set_cell_value(&addr, &format!("{}", i)).unwrap();
             }
 
-            // Undo 50 operations
-            for _ in 0..50 {
-                facade.undo().unwrap();
-            }
-
-            // Redo 25 operations
-            for _ in 0..25 {
-                facade.redo().unwrap();
-            }
-
-            black_box(facade.get_cell_count());
+            black_box(facade.cell_count());
         });
     });
 }
 
-criterion_group!(benches, benchmark_single_undo_redo, benchmark_batch_undo_redo, benchmark_deep_undo_stack);
-criterion_main!(benches);
-*/
-
-use criterion::{Criterion, criterion_group, criterion_main};
-
-fn placeholder_bench(_c: &mut Criterion) {
-    // Placeholder until benchmarks are updated
-}
-
-criterion_group!(benches, placeholder_bench);
+criterion_group!(
+    benches,
+    benchmark_simple_cell_operations,
+    benchmark_formula_evaluation,
+    benchmark_bulk_operations
+);
 criterion_main!(benches);

@@ -38,15 +38,17 @@ impl RepositoryPort for RepositoryAdapter {
     }
 
     fn set(&self, address: &CellAddress, cell: Cell) -> Result<()> {
-        let mut repo = self.repository.lock()
-            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        let mut repo = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
         repo.set(address, cell);
         Ok(())
     }
 
     fn delete(&self, address: &CellAddress) -> Result<()> {
-        let mut repo = self.repository.lock()
-            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        let mut repo = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
         repo.delete(address);
         Ok(())
     }
@@ -81,8 +83,9 @@ impl RepositoryPort for RepositoryAdapter {
     }
 
     fn clear(&self) -> Result<()> {
-        let mut repo = self.repository.lock()
-            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        let mut repo = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
         repo.clear();
         Ok(())
     }

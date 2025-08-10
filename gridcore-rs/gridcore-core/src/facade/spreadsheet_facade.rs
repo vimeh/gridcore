@@ -58,7 +58,7 @@ impl SpreadsheetFacade {
     /// Set a cell value (simplified version)
     pub fn set_cell(&self, address: &CellAddress, value: CellValue) -> Result<()> {
         let old_value = self.get_cell(address).map(|c| c.get_computed_value());
-        
+
         // Create and store the new cell
         if let Some(repository) = self.container.repository() {
             let cell = Cell::new(value.clone());
@@ -82,12 +82,12 @@ impl SpreadsheetFacade {
     /// Delete a cell
     pub fn delete_cell(&self, address: &CellAddress) -> Result<()> {
         let old_cell = self.get_cell(address);
-        
+
         // Delete from repository
         if let Some(repository) = self.container.repository() {
             repository.delete(address)?;
         }
-        
+
         // Emit event through the event port
         if let Some(events) = self.container.events() {
             use crate::ports::event_port::DomainEvent;
@@ -120,28 +120,26 @@ impl SpreadsheetFacade {
     }
 
     // Methods for command system compatibility
-    
+
     /// Set cell value (standard API)
     pub fn set_cell_value(&self, address: &CellAddress, value: &str) -> Result<()> {
         if value.starts_with('=') {
             // It's a formula - create a cell with formula
             if let Some(repository) = self.container.repository() {
                 let formula_text = value[1..].to_string();
-                let mut cell = Cell::with_formula(
-                    CellValue::String(value.to_string()),
-                    formula_text.clone()
-                );
-                
+                let mut cell =
+                    Cell::with_formula(CellValue::String(value.to_string()), formula_text.clone());
+
                 // Try to evaluate the formula
                 if let Some(repo_for_eval) = self.container.repository() {
                     use crate::evaluator::{Evaluator, PortContext};
                     use crate::formula::FormulaParser;
-                    
+
                     // Parse the formula
                     if let Ok(expr) = FormulaParser::parse(&formula_text) {
                         let mut context = PortContext::new(repo_for_eval);
                         let mut evaluator = Evaluator::new(&mut context);
-                        
+
                         // Evaluate and set the computed value
                         match evaluator.evaluate(&expr) {
                             Ok(result) => cell.set_computed_value(result),
@@ -149,7 +147,7 @@ impl SpreadsheetFacade {
                         }
                     }
                 }
-                
+
                 repository.set(address, cell)?;
             }
         } else {
@@ -163,15 +161,15 @@ impl SpreadsheetFacade {
             };
             self.set_cell(address, cell_value)?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Get raw cell value
     pub fn get_cell_raw_value(&self, address: &CellAddress) -> Option<CellValue> {
         self.get_cell(address).map(|cell| cell.get_computed_value())
     }
-    
+
     /// Get cell value as string
     pub fn get_cell_value(&self, address: &CellAddress) -> Option<String> {
         self.get_cell(address).map(|cell| {
@@ -183,14 +181,17 @@ impl SpreadsheetFacade {
                 CellValue::Empty => String::new(),
                 CellValue::Array(arr) => {
                     // Format array as comma-separated values in braces
-                    let values: Vec<String> = arr.iter().map(|v| match v {
-                        CellValue::Number(n) => n.to_string(),
-                        CellValue::String(s) => s.clone(),
-                        CellValue::Boolean(b) => b.to_string(),
-                        CellValue::Error(e) => format!("#{}", e),
-                        CellValue::Empty => String::new(),
-                        CellValue::Array(_) => "[nested array]".to_string(),
-                    }).collect();
+                    let values: Vec<String> = arr
+                        .iter()
+                        .map(|v| match v {
+                            CellValue::Number(n) => n.to_string(),
+                            CellValue::String(s) => s.clone(),
+                            CellValue::Boolean(b) => b.to_string(),
+                            CellValue::Error(e) => format!("#{}", e),
+                            CellValue::Empty => String::new(),
+                            CellValue::Array(_) => "[nested array]".to_string(),
+                        })
+                        .collect();
                     format!("{{{}}}", values.join(", "))
                 }
             }

@@ -1,7 +1,7 @@
 use crate::Result;
 use crate::dependency::DependencyGraph;
 use crate::domain::Cell;
-use crate::repository::CellRepository;
+use crate::ports::RepositoryPort;
 use crate::types::CellAddress;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -44,7 +44,7 @@ pub struct Sheet {
     /// Unique name of the sheet
     name: String,
     /// Cell repository for this sheet
-    cells: Arc<Mutex<CellRepository>>,
+    cells: Arc<dyn RepositoryPort>,
     /// Dependency graph for this sheet
     dependencies: Arc<Mutex<DependencyGraph>>,
     /// Sheet properties
@@ -56,9 +56,10 @@ pub struct Sheet {
 impl Sheet {
     /// Create a new sheet with the given name
     pub fn new(name: impl Into<String>) -> Self {
+        use crate::adapters::RepositoryAdapter;
         Self {
             name: name.into(),
-            cells: Arc::new(Mutex::new(CellRepository::new())),
+            cells: Arc::new(RepositoryAdapter::new_empty()),
             dependencies: Arc::new(Mutex::new(DependencyGraph::new())),
             properties: SheetProperties::default(),
             named_ranges: HashMap::new(),
@@ -67,11 +68,23 @@ impl Sheet {
 
     /// Create a new sheet with custom properties
     pub fn with_properties(name: impl Into<String>, properties: SheetProperties) -> Self {
+        use crate::adapters::RepositoryAdapter;
         Self {
             name: name.into(),
-            cells: Arc::new(Mutex::new(CellRepository::new())),
+            cells: Arc::new(RepositoryAdapter::new_empty()),
             dependencies: Arc::new(Mutex::new(DependencyGraph::new())),
             properties,
+            named_ranges: HashMap::new(),
+        }
+    }
+
+    /// Create a new sheet with a specific repository
+    pub fn with_repository(name: impl Into<String>, repository: Arc<dyn RepositoryPort>) -> Self {
+        Self {
+            name: name.into(),
+            cells: repository,
+            dependencies: Arc::new(Mutex::new(DependencyGraph::new())),
+            properties: SheetProperties::default(),
             named_ranges: HashMap::new(),
         }
     }
@@ -109,22 +122,16 @@ impl Sheet {
 
     /// Get a cell from the sheet
     pub fn get_cell(&self, address: &CellAddress) -> Option<Cell> {
-        self.cells.lock().ok()?.get(address).cloned()
+        self.cells.get(address)
     }
 
     /// Set a cell in the sheet
     pub fn set_cell(&self, address: &CellAddress, cell: Cell) -> Result<()> {
-        self.cells
-            .lock()
-            .map_err(|_| {
-                crate::SpreadsheetError::LockError("Failed to acquire cells lock".to_string())
-            })?
-            .set(address, cell);
-        Ok(())
+        self.cells.set(address, cell)
     }
 
     /// Get the cell repository
-    pub fn cells(&self) -> Arc<Mutex<CellRepository>> {
+    pub fn cells(&self) -> Arc<dyn RepositoryPort> {
         self.cells.clone()
     }
 
@@ -178,9 +185,10 @@ impl Sheet {
 
     /// Clear all cells in the sheet
     pub fn clear(&self) {
-        if let Ok(mut cells) = self.cells.lock() {
-            cells.clear();
-        }
+        // Clear the repository
+        self.cells.clear();
+
+        // Clear dependencies
         if let Ok(mut deps) = self.dependencies.lock() {
             deps.clear();
         }
@@ -188,14 +196,25 @@ impl Sheet {
 
     /// Get the number of cells in the sheet
     pub fn cell_count(&self) -> usize {
-        self.cells.lock().ok().map(|c| c.len()).unwrap_or(0)
+        self.cells.count()
     }
 
     /// Clone the sheet with a new name
     pub fn clone_with_name(&self, new_name: impl Into<String>) -> Self {
+        use crate::adapters::RepositoryAdapter;
+
+        // Create a new repository and copy all cells
+        let new_repo = Arc::new(RepositoryAdapter::new_empty());
+
+        // Copy all cells from the current sheet to the new one
+        let all_cells = self.cells.get_all();
+        for (address, cell) in all_cells {
+            let _ = new_repo.set(&address, cell);
+        }
+
         Self {
             name: new_name.into(),
-            cells: Arc::new(Mutex::new(self.cells.lock().unwrap().clone())),
+            cells: new_repo as Arc<dyn RepositoryPort>,
             dependencies: Arc::new(Mutex::new(self.dependencies.lock().unwrap().clone())),
             properties: self.properties.clone(),
             named_ranges: self.named_ranges.clone(),

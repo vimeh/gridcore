@@ -181,7 +181,9 @@ pub fn App() -> impl IntoView {
                 match facade.set_cell_value(&cell, &value) {
                     Ok(_) => {
                         // Check if the cell now contains an error value
-                        if let Some(gridcore_core::types::CellValue::Error(error_type)) = facade.get_cell_raw_value(&cell) {
+                        if let Some(gridcore_core::types::CellValue::Error(error_type)) =
+                            facade.get_cell_raw_value(&cell)
+                        {
                             // Display the error with both code and description
                             set_errors.update(|errs| {
                                 errs.push(ErrorMessage {

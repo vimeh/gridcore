@@ -10,7 +10,7 @@ use crate::types::{CellAddress, CellRange};
 use std::collections::HashMap;
 
 /// Port interface for repository operations
-/// 
+///
 /// Uses interior mutability to allow shared access while supporting mutations
 pub trait RepositoryPort: Send + Sync {
     /// Get a cell by address

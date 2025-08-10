@@ -1,26 +1,28 @@
 #[cfg(test)]
 mod fill_integration_tests {
+    use crate::adapters::RepositoryAdapter;
     use crate::fill::{
         CellRange, FillDirection, FillEngine, FillOperation, FormulaAdjuster, PatternType,
         adjuster::DefaultFormulaAdjuster,
     };
-    use crate::repository::CellRepository;
+    use crate::ports::RepositoryPort;
     use crate::types::{CellAddress, CellValue};
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     #[test]
     fn test_linear_pattern_fill_down() {
         use crate::domain::Cell;
 
         // Test filling down with linear pattern: 1, 2, 3 -> 4, 5, 6
-        let mut repo = CellRepository::new();
+        let repo = Arc::new(RepositoryAdapter::new_empty());
 
         // Add source values: 1, 2, 3
-        repo.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
-        repo.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)));
-        repo.set(&CellAddress::new(0, 2), Cell::new(CellValue::Number(3.0)));
-
-        let repo = Rc::new(repo);
+        repo.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)))
+            .unwrap();
+        repo.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)))
+            .unwrap();
+        repo.set(&CellAddress::new(0, 2), Cell::new(CellValue::Number(3.0)))
+            .unwrap();
         let engine = FillEngine::new(repo.clone());
 
         let source_range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(0, 2));
@@ -47,14 +49,16 @@ mod fill_integration_tests {
         use crate::domain::Cell;
 
         // Test filling right with exponential pattern: 2, 4, 8 -> 16, 32, 64
-        let mut repo = CellRepository::new();
+        let repo = Arc::new(RepositoryAdapter::new_empty());
 
         // Add source values: 2, 4, 8 (in a horizontal row)
-        repo.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(2.0)));
-        repo.set(&CellAddress::new(1, 0), Cell::new(CellValue::Number(4.0)));
-        repo.set(&CellAddress::new(2, 0), Cell::new(CellValue::Number(8.0)));
+        repo.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(2.0)))
+            .unwrap();
+        repo.set(&CellAddress::new(1, 0), Cell::new(CellValue::Number(4.0)))
+            .unwrap();
+        repo.set(&CellAddress::new(2, 0), Cell::new(CellValue::Number(8.0)))
+            .unwrap();
 
-        let repo = Rc::new(repo);
         let engine = FillEngine::new(repo.clone());
 
         let source_range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(2, 0));
@@ -78,8 +82,28 @@ mod fill_integration_tests {
 
     #[test]
     fn test_copy_pattern_fill() {
+        use crate::domain::Cell;
+
         // Test copy pattern: A, B, C -> A, B, C, A, B, C
-        let repo = Rc::new(CellRepository::new());
+        let repo = Arc::new(RepositoryAdapter::new_empty());
+
+        // Add source values: A, B, C
+        repo.set(
+            &CellAddress::new(0, 0),
+            Cell::new(CellValue::String("A".to_string())),
+        )
+        .unwrap();
+        repo.set(
+            &CellAddress::new(0, 1),
+            Cell::new(CellValue::String("B".to_string())),
+        )
+        .unwrap();
+        repo.set(
+            &CellAddress::new(0, 2),
+            Cell::new(CellValue::String("C".to_string())),
+        )
+        .unwrap();
+
         let engine = FillEngine::new(repo.clone());
 
         let source_range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(0, 2));
@@ -158,7 +182,7 @@ mod fill_integration_tests {
 
     #[test]
     fn test_pattern_detection_with_empty_cells() {
-        let repo = Rc::new(CellRepository::new());
+        let repo = Arc::new(RepositoryAdapter::new_empty());
         let engine = FillEngine::new(repo.clone());
 
         let source_range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(0, 2));
@@ -180,13 +204,14 @@ mod fill_integration_tests {
     fn test_fill_with_large_range() {
         use crate::domain::Cell;
 
-        let mut repo = CellRepository::new();
+        let repo = Arc::new(RepositoryAdapter::new_empty());
 
         // Add source values: 1, 2
-        repo.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)));
-        repo.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)));
+        repo.set(&CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0)))
+            .unwrap();
+        repo.set(&CellAddress::new(0, 1), Cell::new(CellValue::Number(2.0)))
+            .unwrap();
 
-        let repo = Rc::new(repo);
         let engine = FillEngine::new(repo.clone());
 
         // Test with a large range (100 cells)

@@ -1,5 +1,3 @@
-// TODO: Update for new facade API
-/*
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use gridcore_core::facade::SpreadsheetFacade;
 use gridcore_core::types::CellAddress;
@@ -38,7 +36,7 @@ fn bench_insert_row_operations(c: &mut Criterion) {
                 || setup_spreadsheet(num_cells),
                 |facade| {
                     // Insert a row in the middle
-                    let _ = facade.insert_row(black_box(5));
+                    let _ = facade.insert_row_without_command(black_box(5));
                 },
             );
         });
@@ -56,51 +54,11 @@ fn bench_delete_column_operations(c: &mut Criterion) {
                 || setup_spreadsheet(num_cells),
                 |facade| {
                     // Delete column B (index 1)
-                    let _ = facade.delete_column(black_box(1));
+                    let _ = facade.delete_column_without_command(black_box(1));
                 },
             );
         });
     }
-
-    group.finish();
-}
-
-fn bench_batch_structural_operations(c: &mut Criterion) {
-    let mut group = c.benchmark_group("batch_structural_ops");
-
-    group.bench_function("mixed_operations_100_cells", |b| {
-        b.iter_with_setup(
-            || setup_spreadsheet(100),
-            |facade| {
-                let batch_id = facade.begin_batch(None);
-
-                // Perform multiple structural operations
-                let _ = facade.insert_row(black_box(5));
-                let _ = facade.delete_column(black_box(2));
-                let _ = facade.insert_column(black_box(10));
-                let _ = facade.delete_row(black_box(8));
-
-                facade.commit_batch(&batch_id).ok();
-            },
-        );
-    });
-
-    group.bench_function("mixed_operations_1000_cells", |b| {
-        b.iter_with_setup(
-            || setup_spreadsheet(1000),
-            |facade| {
-                let batch_id = facade.begin_batch(None);
-
-                // Perform multiple structural operations
-                let _ = facade.insert_row(black_box(50));
-                let _ = facade.delete_column(black_box(5));
-                let _ = facade.insert_column(black_box(20));
-                let _ = facade.delete_row(black_box(80));
-
-                facade.commit_batch(&batch_id).ok();
-            },
-        );
-    });
 
     group.finish();
 }
@@ -128,7 +86,7 @@ fn bench_recalculation_after_structural_change(c: &mut Criterion) {
             },
             |facade| {
                 // Insert a row which requires recalculation
-                let _ = facade.insert_row(black_box(50));
+                let _ = facade.insert_row_without_command(black_box(50));
                 facade.recalculate().ok();
             },
         );
@@ -141,17 +99,6 @@ criterion_group!(
     benches,
     bench_insert_row_operations,
     bench_delete_column_operations,
-    bench_batch_structural_operations,
     bench_recalculation_after_structural_change
 );
-criterion_main!(benches);
-*/
-
-use criterion::{Criterion, criterion_group, criterion_main};
-
-fn placeholder_bench(_c: &mut Criterion) {
-    // Placeholder until benchmarks are updated
-}
-
-criterion_group!(benches, placeholder_bench);
 criterion_main!(benches);

@@ -243,7 +243,7 @@ mod tests {
                     .unwrap_or(CellValue::Empty))
             }
 
-            fn check_circular(&self, address: &CellAddress) -> bool {
+            fn is_evaluating(&self, address: &CellAddress) -> bool {
                 self.evaluation_stack.contains(address)
             }
 

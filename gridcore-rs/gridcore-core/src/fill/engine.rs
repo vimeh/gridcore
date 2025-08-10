@@ -2,19 +2,19 @@ use super::{
     CellRange, FillDirection, FillOperation, FillResult, FormulaAdjuster, PatternDetector,
     PatternType,
 };
-use crate::repository::CellRepository;
+use crate::ports::RepositoryPort;
 use crate::types::{CellAddress, CellValue};
 use crate::{Result, SpreadsheetError};
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct FillEngine {
-    cell_repository: Rc<CellRepository>,
+    cell_repository: Arc<dyn RepositoryPort>,
     detectors: Vec<Box<dyn PatternDetector>>,
     formula_adjuster: Option<Box<dyn FormulaAdjuster>>,
 }
 
 impl FillEngine {
-    pub fn new(cell_repository: Rc<CellRepository>) -> Self {
+    pub fn new(cell_repository: Arc<dyn RepositoryPort>) -> Self {
         use super::patterns::{
             CopyPatternDetector, DatePatternDetector, ExponentialPatternDetector,
             LinearPatternDetector, TextPatternDetector,
@@ -113,7 +113,7 @@ impl FillEngine {
 
         for addr in range.iter_cells() {
             if let Some(cell) = self.cell_repository.get(&addr) {
-                values.push(cell.computed_value.clone());
+                values.push(cell.get_computed_value());
             } else {
                 values.push(CellValue::Empty);
             }
@@ -267,15 +267,18 @@ impl FillEngine {
 
         // For each source cell with a formula
         for source_addr in source_range.iter_cells() {
-            if let Some(cell) = self.cell_repository.get(&source_addr)
-                && let CellValue::String(ref text) = cell.computed_value
-                && text.starts_with('=')
-            {
-                // Generate adjusted formulas for each target cell
-                for target_addr in target_range.iter_cells() {
-                    let adjusted_formula =
-                        adjuster.adjust_formula(text, &source_addr, &target_addr, direction)?;
-                    adjusted.push((target_addr, adjusted_formula));
+            if let Some(cell) = self.cell_repository.get(&source_addr) {
+                if let Some(ref formula) = cell.formula_text {
+                    // Generate adjusted formulas for each target cell
+                    for target_addr in target_range.iter_cells() {
+                        let adjusted_formula = adjuster.adjust_formula(
+                            formula,
+                            &source_addr,
+                            &target_addr,
+                            direction,
+                        )?;
+                        adjusted.push((target_addr, adjusted_formula));
+                    }
                 }
             }
         }
@@ -287,18 +290,19 @@ impl FillEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adapters::RepositoryAdapter;
     use crate::domain::Cell;
 
     #[test]
     fn test_fill_engine_creation() {
-        let repo = Rc::new(CellRepository::new());
+        let repo = Arc::new(RepositoryAdapter::new_empty());
         let engine = FillEngine::new(repo);
         assert!(!engine.detectors.is_empty());
     }
 
     #[test]
     fn test_get_source_values_empty_range() {
-        let repo = Rc::new(CellRepository::new());
+        let repo = Arc::new(RepositoryAdapter::new_empty());
         let engine = FillEngine::new(repo);
 
         let range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(2, 0));
@@ -311,13 +315,12 @@ mod tests {
     #[test]
     fn test_copy_pattern_generation() {
         // Create a repository with some values
-        let mut repo_inner = CellRepository::new();
+        let repo = Arc::new(RepositoryAdapter::new_empty());
         let cell1 = Cell::new(CellValue::Number(1.0));
         let cell2 = Cell::new(CellValue::Number(2.0));
-        repo_inner.set(&CellAddress::new(0, 0), cell1);
-        repo_inner.set(&CellAddress::new(1, 0), cell2);
+        repo.set(&CellAddress::new(0, 0), cell1).unwrap();
+        repo.set(&CellAddress::new(1, 0), cell2).unwrap();
 
-        let repo = Rc::new(repo_inner);
         let engine = FillEngine::new(repo.clone());
 
         // Test the copy pattern detection
