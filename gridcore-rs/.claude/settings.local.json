@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cargo test)",
       "Bash(sg:*)",
-      "Bash(cargo test:*)"
+      "Bash(cargo test:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

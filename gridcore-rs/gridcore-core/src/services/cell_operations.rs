@@ -82,7 +82,7 @@ impl CellOperations {
         // Create evaluation context with repository access
         let value = {
             let repo_borrow = self.repository.borrow();
-            let mut context = RepositoryContext::new(&*repo_borrow);
+            let mut context = RepositoryContext::new(&repo_borrow);
 
             // Push current cell to evaluation stack to detect self-references
             context.push_evaluation(address);
@@ -234,7 +234,7 @@ impl CellOperations {
                 // Re-evaluate the formula
                 if let Some(formula_expr) = &cell.formula {
                     let repo_borrow = self.repository.borrow();
-                    let mut context = RepositoryContext::new(&*repo_borrow);
+                    let mut context = RepositoryContext::new(&repo_borrow);
                     let mut evaluator = Evaluator::new(&mut context);
                     let value = evaluator.evaluate(formula_expr)?;
                     drop(repo_borrow); // Release the borrow before mutating
