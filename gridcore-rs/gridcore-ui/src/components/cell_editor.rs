@@ -1,6 +1,6 @@
 // use crate::components::error_display::use_error_context; // TODO: Re-enable when full keyboard support is restored
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{/*Action, CellMode, InsertMode, UIState,*/ SpreadsheetMode};
+use gridcore_controller::state::{InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Textarea;
 use leptos::prelude::*;
