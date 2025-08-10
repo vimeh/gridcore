@@ -68,9 +68,10 @@ impl CellOperationsService for CellOperationsServiceImpl {
                 Ok(ast) => ast,
                 Err(e) => {
                     // If parse fails, store the error in the cell
-                    let error_cell = Cell::new(CellValue::Error(crate::types::ErrorType::ParseError {
-                        message: e.to_string(),
-                    }));
+                    let error_cell =
+                        Cell::new(CellValue::Error(crate::types::ErrorType::ParseError {
+                            message: e.to_string(),
+                        }));
                     repository.set(address, error_cell.clone());
                     return Ok(error_cell);
                 }
@@ -101,18 +102,18 @@ impl CellOperationsService for CellOperationsServiceImpl {
                 drop(repository);
                 drop(dependency_graph);
                 drop(reference_tracker);
-                
+
                 let mut context = RepositoryContext::new(&self.repository);
-                
+
                 // Push current cell to evaluation stack
                 context.push_evaluation(address);
-                
+
                 let mut evaluator = Evaluator::new(&mut context);
                 let result = evaluator.evaluate(&formula);
-                
+
                 // Pop from evaluation stack
                 context.pop_evaluation(address);
-                
+
                 match result {
                     Ok(val) => val,
                     Err(e) => {
@@ -127,13 +128,13 @@ impl CellOperationsService for CellOperationsServiceImpl {
             let formula_text = value[1..].to_string(); // Store without leading '='
             let mut cell = Cell::with_formula(raw_value, formula_text);
             cell.set_computed_value(computed_value);
-            
+
             // Re-acquire repository lock and store
             let mut repository = self.repository.lock().map_err(|_| {
                 SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
             })?;
             repository.set(address, cell.clone());
-            
+
             cell
         } else {
             // Parse as direct value

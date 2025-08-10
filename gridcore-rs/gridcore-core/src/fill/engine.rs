@@ -321,10 +321,10 @@ mod tests {
         let cell2 = Cell::new(CellValue::Number(2.0));
         repo_inner.set(&CellAddress::new(0, 0), cell1);
         repo_inner.set(&CellAddress::new(1, 0), cell2);
-        
+
         let repo = Rc::new(repo_inner);
         let engine = FillEngine::new(repo.clone());
-        
+
         // Test the copy pattern detection
         let range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(1, 0));
         let values = engine.get_source_values(&range).unwrap();

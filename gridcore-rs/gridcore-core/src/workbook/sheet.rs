@@ -114,9 +114,12 @@ impl Sheet {
 
     /// Set a cell in the sheet
     pub fn set_cell(&self, address: &CellAddress, cell: Cell) -> Result<()> {
-        self.cells.lock().map_err(|_| {
-            crate::SpreadsheetError::LockError("Failed to acquire cells lock".to_string())
-        })?.set(address, cell);
+        self.cells
+            .lock()
+            .map_err(|_| {
+                crate::SpreadsheetError::LockError("Failed to acquire cells lock".to_string())
+            })?
+            .set(address, cell);
         Ok(())
     }
 

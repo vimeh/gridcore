@@ -139,7 +139,8 @@ impl SheetManager {
                 for (address, adjusted_formula) in adjusted_cells {
                     // Store the formula text without the leading '='
                     let formula_text = adjusted_formula[1..].to_string();
-                    let new_cell = Cell::with_formula(CellValue::String(adjusted_formula), formula_text);
+                    let new_cell =
+                        Cell::with_formula(CellValue::String(adjusted_formula), formula_text);
 
                     if let Some(sheet) = self.workbook.get_sheet(&sheet_name) {
                         sheet.set_cell(&address, new_cell)?;

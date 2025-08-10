@@ -20,6 +20,6 @@ pub use domain::Cell;
 pub use error::{Result, SpreadsheetError};
 pub use evaluator::{EvaluationContext, Evaluator};
 pub use facade::SpreadsheetFacade;
-pub use services::{EventCallback, SpreadsheetEvent};
 pub use formula::{BinaryOperator, CellRange, Expr, FormulaParser, UnaryOperator};
 pub use repository::CellRepository;
+pub use services::{EventCallback, SpreadsheetEvent};

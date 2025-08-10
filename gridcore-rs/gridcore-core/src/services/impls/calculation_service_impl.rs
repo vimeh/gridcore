@@ -65,36 +65,36 @@ impl CalculationService for CalculationServiceImpl {
         // Recalculate each cell in order
         for address in order {
             if let Some(cell) = repository.get(&address)
-                && cell.has_formula() {
-                    // Parse and evaluate formula
-                    if let CellValue::String(ref formula_str) = cell.raw_value {
-                        if formula_str.starts_with('=') {
-                            let formula_text = &formula_str[1..];
-                            match FormulaParser::parse(formula_text) {
-                                Ok(ast) => match evaluator.evaluate(&ast) {
-                        Ok(value) => {
-                            // Note: In real implementation, we'd need mutable access
-                            // to update the cell's computed value
-                            // This is simplified for demonstration
-                            let mut updated_cell = cell.clone();
-                            updated_cell.set_computed_value(value);
-                            // Would need to save back to repository
-                        }
+                && cell.has_formula()
+            {
+                // Parse and evaluate formula
+                if let CellValue::String(ref formula_str) = cell.raw_value
+                    && let Some(formula_text) = formula_str.strip_prefix('=')
+                {
+                    match FormulaParser::parse(formula_text) {
+                        Ok(ast) => match evaluator.evaluate(&ast) {
+                            Ok(value) => {
+                                // Note: In real implementation, we'd need mutable access
+                                // to update the cell's computed value
+                                // This is simplified for demonstration
+                                let mut updated_cell = cell.clone();
+                                updated_cell.set_computed_value(value);
+                                // Would need to save back to repository
+                            }
+                            Err(e) => {
+                                let mut updated_cell = cell.clone();
+                                updated_cell.set_error(format!("Error: {}", e));
+                                // Would need to save back to repository
+                            }
+                        },
                         Err(e) => {
                             let mut updated_cell = cell.clone();
-                            updated_cell.set_error(format!("Error: {}", e));
+                            updated_cell.set_error(format!("Parse error: {:?}", e));
                             // Would need to save back to repository
-                                    }
-                                }
-                                Err(e) => {
-                                    let mut updated_cell = cell.clone();
-                                    updated_cell.set_error(format!("Parse error: {:?}", e));
-                                    // Would need to save back to repository
-                                }
-                            }
                         }
                     }
                 }
+            }
         }
 
         self.clear_recalculation_flag();
@@ -132,33 +132,33 @@ impl CalculationService for CalculationServiceImpl {
         // Recalculate each affected cell
         for address in order {
             if let Some(cell) = repository.get(&address)
-                && cell.has_formula() {
-                    // Parse and evaluate formula
-                    if let CellValue::String(ref formula_str) = cell.raw_value {
-                        if formula_str.starts_with('=') {
-                            let formula_text = &formula_str[1..];
-                            match FormulaParser::parse(formula_text) {
-                                Ok(ast) => match evaluator.evaluate(&ast) {
-                        Ok(value) => {
-                            let mut updated_cell = cell.clone();
-                            updated_cell.set_computed_value(value);
-                            // Would need to save back to repository
-                        }
+                && cell.has_formula()
+            {
+                // Parse and evaluate formula
+                if let CellValue::String(ref formula_str) = cell.raw_value
+                    && let Some(formula_text) = formula_str.strip_prefix('=')
+                {
+                    match FormulaParser::parse(formula_text) {
+                        Ok(ast) => match evaluator.evaluate(&ast) {
+                            Ok(value) => {
+                                let mut updated_cell = cell.clone();
+                                updated_cell.set_computed_value(value);
+                                // Would need to save back to repository
+                            }
+                            Err(e) => {
+                                let mut updated_cell = cell.clone();
+                                updated_cell.set_error(format!("Error: {}", e));
+                                // Would need to save back to repository
+                            }
+                        },
                         Err(e) => {
                             let mut updated_cell = cell.clone();
-                            updated_cell.set_error(format!("Error: {}", e));
+                            updated_cell.set_error(format!("Parse error: {:?}", e));
                             // Would need to save back to repository
-                                    }
-                                }
-                                Err(e) => {
-                                    let mut updated_cell = cell.clone();
-                                    updated_cell.set_error(format!("Parse error: {:?}", e));
-                                    // Would need to save back to repository
-                                }
-                            }
                         }
                     }
                 }
+            }
         }
 
         Ok(())

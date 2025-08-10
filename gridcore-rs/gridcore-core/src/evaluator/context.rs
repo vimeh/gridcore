@@ -72,11 +72,11 @@ impl<'a> RepositoryContext<'a> {
             evaluation_stack: HashSet::new(),
         }
     }
-    
+
     pub fn push_evaluation(&mut self, address: &CellAddress) {
         self.evaluation_stack.insert(*address);
     }
-    
+
     pub fn pop_evaluation(&mut self, address: &CellAddress) {
         self.evaluation_stack.remove(address);
     }
@@ -87,7 +87,7 @@ impl<'a> EvaluationContext for RepositoryContext<'a> {
         let repository = self.repository.lock().map_err(|_| {
             crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
         })?;
-        
+
         if let Some(cell) = repository.get(address) {
             Ok(cell.get_computed_value())
         } else {

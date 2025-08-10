@@ -36,7 +36,8 @@ impl BatchOperationsServiceImpl {
         })?;
 
         Ok(manager
-            .get_operations(batch_id).cloned()
+            .get_operations(batch_id)
+            .cloned()
             .unwrap_or_default())
     }
 }

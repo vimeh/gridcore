@@ -7,19 +7,18 @@ use crate::formula::FormulaParser;
 use crate::references::{ReferenceAdjuster, ReferenceTracker, StructuralOperation};
 use crate::repository::CellRepository;
 use crate::services::{
-    ServiceContainer, ServiceContainerBuilder, EventManager,
-    CellOperationsServiceImpl, StructuralOperationsServiceImpl, CalculationServiceImpl,
-    BatchOperationsServiceImpl, EventServiceImpl,
+    BatchOperationsServiceImpl, CalculationServiceImpl, CellOperationsServiceImpl, EventManager,
+    EventServiceImpl, ServiceContainer, ServiceContainerBuilder, StructuralOperationsServiceImpl,
 };
 use crate::traits::{
-    CellOperationsService, StructuralOperationsService, CalculationService,
-    BatchOperationsService, EventService,
+    BatchOperationsService, CalculationService, CellOperationsService, EventService,
+    StructuralOperationsService,
 };
 use crate::types::{CellAddress, CellValue};
-use std::sync::{Arc, Mutex};
-use std::collections::HashSet;
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use crate::services::{EventCallback, SpreadsheetEvent};
 
@@ -71,14 +70,20 @@ impl SpreadsheetFacade {
         // Build the service container
         let container = Arc::new(
             ServiceContainerBuilder::new()
-                .with_repositories(repository.clone(), dependency_graph.clone(), reference_tracker.clone())
+                .with_repositories(
+                    repository.clone(),
+                    dependency_graph.clone(),
+                    reference_tracker.clone(),
+                )
                 .with_event_manager(event_manager.clone())
                 .with_cell_operations(cell_operations as Arc<dyn CellOperationsService>)
-                .with_structural_operations(structural_operations as Arc<dyn StructuralOperationsService>)
+                .with_structural_operations(
+                    structural_operations as Arc<dyn StructuralOperationsService>,
+                )
                 .with_calculation_service(calculation_service as Arc<dyn CalculationService>)
                 .with_batch_operations(batch_operations as Arc<dyn BatchOperationsService>)
                 .with_event_service(event_service as Arc<dyn EventService>)
-                .build()
+                .build(),
         );
 
         SpreadsheetFacade {
@@ -123,14 +128,20 @@ impl SpreadsheetFacade {
         // Build the service container
         let container = Arc::new(
             ServiceContainerBuilder::new()
-                .with_repositories(arc_repository.clone(), arc_dependency_graph.clone(), reference_tracker.clone())
+                .with_repositories(
+                    arc_repository.clone(),
+                    arc_dependency_graph.clone(),
+                    reference_tracker.clone(),
+                )
                 .with_event_manager(event_manager.clone())
                 .with_cell_operations(cell_operations as Arc<dyn CellOperationsService>)
-                .with_structural_operations(structural_operations as Arc<dyn StructuralOperationsService>)
+                .with_structural_operations(
+                    structural_operations as Arc<dyn StructuralOperationsService>,
+                )
                 .with_calculation_service(calculation_service as Arc<dyn CalculationService>)
                 .with_batch_operations(batch_operations as Arc<dyn BatchOperationsService>)
                 .with_event_service(event_service as Arc<dyn EventService>)
-                .build()
+                .build(),
         );
 
         SpreadsheetFacade {
@@ -172,7 +183,7 @@ impl SpreadsheetFacade {
             // Note: Current BatchOperationsService trait doesn't support queuing operations
             // For now, we'll directly set the cell in batch mode
             // TODO: Extend BatchOperationsService trait to support operation queuing
-            
+
             let cell = if value.starts_with('=') {
                 // Store formula text without the leading '='
                 let formula_text = value[1..].to_string();
@@ -180,17 +191,19 @@ impl SpreadsheetFacade {
             } else {
                 Cell::new(parsed_value.clone())
             };
-            
+
             if let Ok(mut repo) = self.repository.lock() {
                 repo.set(address, cell.clone());
             }
-            
+
             // Return the cell
             return Ok(cell);
         }
 
         // Get old value for event
-        let cell_ops = self.container.cell_operations()
+        let cell_ops = self
+            .container
+            .cell_operations()
             .expect("Cell operations service not configured");
         let old_value = cell_ops
             .get_cell(address)
@@ -237,7 +250,9 @@ impl SpreadsheetFacade {
 
     /// Get a cell value
     pub fn get_cell_value(&self, address: &CellAddress) -> Result<CellValue> {
-        Ok(self.container.cell_operations()
+        Ok(self
+            .container
+            .cell_operations()
             .expect("Cell operations service not configured")
             .get_cell(address)
             .map(|cell| cell.get_computed_value())
@@ -246,7 +261,8 @@ impl SpreadsheetFacade {
 
     /// Get a cell
     pub fn get_cell(&self, address: &CellAddress) -> Option<Cell> {
-        self.container.cell_operations()
+        self.container
+            .cell_operations()
             .expect("Cell operations service not configured")
             .get_cell(address)
     }
@@ -258,7 +274,7 @@ impl SpreadsheetFacade {
             // Note: Current BatchOperationsService trait doesn't support queuing delete operations
             // For now, we'll directly delete the cell in batch mode
             // TODO: Extend BatchOperationsService trait to support operation queuing
-            
+
             if let Ok(mut repo) = self.repository.lock() {
                 repo.delete(address);
             }
@@ -266,7 +282,8 @@ impl SpreadsheetFacade {
         }
 
         // Delegate to CellOperations service
-        self.container.cell_operations()
+        self.container
+            .cell_operations()
             .expect("Cell operations service not configured")
             .delete_cell(address)?;
 
@@ -281,7 +298,8 @@ impl SpreadsheetFacade {
 
     /// Recalculate all cells
     pub fn recalculate(&self) -> Result<()> {
-        self.container.calculation_service()
+        self.container
+            .calculation_service()
             .expect("Calculation service not configured")
             .recalculate()
     }
@@ -290,18 +308,23 @@ impl SpreadsheetFacade {
     pub fn recalculate_cell(&self, address: &CellAddress) -> Result<Cell> {
         // Note: CalculationService trait doesn't have recalculate_cell method
         // We need to use recalculate_cells instead
-        self.container.calculation_service()
+        self.container
+            .calculation_service()
             .expect("Calculation service not configured")
             .recalculate_cells(&[*address])?;
         // Get the cell after recalculation
-        self.get_cell(address).ok_or(crate::SpreadsheetError::InvalidOperation(
-            format!("Cell not found at address {}", address)
-        ))
+        self.get_cell(address)
+            .ok_or(crate::SpreadsheetError::InvalidOperation(format!(
+                "Cell not found at address {}",
+                address
+            )))
     }
 
     /// Begin a batch operation
     pub fn begin_batch(&self, batch_id: Option<String>) -> String {
-        let batch_ops = self.container.batch_operations()
+        let batch_ops = self
+            .container
+            .batch_operations()
             .expect("Batch operations service not configured");
         let id = batch_ops.start_batch(batch_id);
         *self.current_batch_id.borrow_mut() = Some(id.clone());
@@ -311,7 +334,9 @@ impl SpreadsheetFacade {
     /// Commit a batch operation
     pub fn commit_batch(&self, batch_id: &str) -> Result<()> {
         *self.current_batch_id.borrow_mut() = None;
-        let batch_ops = self.container.batch_operations()
+        let batch_ops = self
+            .container
+            .batch_operations()
             .expect("Batch operations service not configured");
         batch_ops.commit_batch(batch_id)
     }
@@ -319,7 +344,8 @@ impl SpreadsheetFacade {
     /// Rollback a batch operation
     pub fn rollback_batch(&self, batch_id: &str) -> Result<()> {
         *self.current_batch_id.borrow_mut() = None;
-        self.container.batch_operations()
+        self.container
+            .batch_operations()
             .expect("Batch operations service not configured")
             .rollback_batch(batch_id)
     }
@@ -338,16 +364,15 @@ impl SpreadsheetFacade {
 
     /// Get the number of cells
     pub fn get_cell_count(&self) -> usize {
-        self.repository.lock()
-            .map(|repo| repo.len())
-            .unwrap_or(0)
+        self.repository.lock().map(|repo| repo.len()).unwrap_or(0)
     }
 
     /// Perform a fill operation
     pub fn fill(&self, operation: &FillOperation) -> Result<FillResult> {
         // Create a read-only clone of the repository for the fill engine
-        let repo = self.repository.lock()
-            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        let repo = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
         let repo_clone = repo.clone();
         let repo_rc = Rc::new(repo_clone);
 
@@ -384,8 +409,9 @@ impl SpreadsheetFacade {
     /// Preview a fill operation without applying it
     pub fn preview_fill(&self, operation: &FillOperation) -> Result<Vec<(CellAddress, CellValue)>> {
         // Create a read-only clone of the repository for the fill engine
-        let repo = self.repository.lock()
-            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        let repo = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
         let repo_clone = repo.clone();
         let repo_rc = Rc::new(repo_clone);
 
@@ -401,7 +427,9 @@ impl SpreadsheetFacade {
     /// Insert rows and adjust all affected references
     pub fn insert_rows(&self, before_row: u32, count: u32) -> Result<()> {
         // Apply the structural operation
-        let structural_ops = self.container.structural_operations()
+        let structural_ops = self
+            .container
+            .structural_operations()
             .expect("Structural operations service not configured");
         let affected = structural_ops.insert_rows(before_row, count)?;
 
@@ -441,10 +469,11 @@ impl SpreadsheetFacade {
     /// Insert columns and adjust all affected references
     pub fn insert_columns(&self, before_col: u32, count: u32) -> Result<()> {
         // Apply the structural operation
-        let structural_ops = self.container.structural_operations()
+        let structural_ops = self
+            .container
+            .structural_operations()
             .expect("Structural operations service not configured");
-        let affected = structural_ops
-            .insert_columns(before_col, count)?;
+        let affected = structural_ops.insert_columns(before_col, count)?;
 
         // Apply formula adjustments
         let operation = StructuralOperation::InsertColumns { before_col, count };
@@ -482,7 +511,9 @@ impl SpreadsheetFacade {
     /// Delete rows and adjust all affected references
     pub fn delete_rows(&self, start_row: u32, count: u32) -> Result<()> {
         // Apply the structural operation
-        let structural_ops = self.container.structural_operations()
+        let structural_ops = self
+            .container
+            .structural_operations()
             .expect("Structural operations service not configured");
         let deleted = structural_ops.delete_rows(start_row, count)?;
 
@@ -504,10 +535,11 @@ impl SpreadsheetFacade {
     /// Delete columns and adjust all affected references
     pub fn delete_columns(&self, start_col: u32, count: u32) -> Result<()> {
         // Apply the structural operation
-        let structural_ops = self.container.structural_operations()
+        let structural_ops = self
+            .container
+            .structural_operations()
             .expect("Structural operations service not configured");
-        let deleted = structural_ops
-            .delete_columns(start_col, count)?;
+        let deleted = structural_ops.delete_columns(start_col, count)?;
 
         // Apply formula adjustments
         let operation = StructuralOperation::DeleteColumns { start_col, count };
@@ -531,8 +563,9 @@ impl SpreadsheetFacade {
 
         // First pass: collect all cells with formulas that need adjustment
         {
-            let repo = self.repository.lock()
-                .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+            let repo = self.repository.lock().map_err(|_| {
+                crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+            })?;
             for (address, cell) in repo.iter() {
                 if cell.has_formula() {
                     // Get the original formula string from raw_value
@@ -565,12 +598,12 @@ impl SpreadsheetFacade {
     /// Update reference tracker when a cell formula changes
     #[allow(dead_code)]
     fn update_reference_tracking(&self, address: &CellAddress, formula: &str) -> Result<()> {
-        if let Ok(expr) = FormulaParser::parse(formula) {
-            if let Ok(mut tracker) = self.reference_tracker.lock() {
-                tracker.update_dependencies(address, &expr);
-                // Note: sync_with_dependency_graph method doesn't exist
-                // Dependencies are managed separately in dependency graph
-            }
+        if let Ok(expr) = FormulaParser::parse(formula)
+            && let Ok(mut tracker) = self.reference_tracker.lock()
+        {
+            tracker.update_dependencies(address, &expr);
+            // Note: sync_with_dependency_graph method doesn't exist
+            // Dependencies are managed separately in dependency graph
         }
         Ok(())
     }
@@ -579,7 +612,8 @@ impl SpreadsheetFacade {
     /// Recalculate cells that depend on the given address
     fn recalculate_dependents(&self, address: &CellAddress) -> Result<()> {
         // Use the calculation service to recalculate specific cells
-        self.container.calculation_service()
+        self.container
+            .calculation_service()
             .expect("Calculation service not configured")
             .recalculate_cells(&[*address])
     }
@@ -597,12 +631,13 @@ impl SpreadsheetFacade {
         // This was doing manual cell movement and formula adjustment
         // Now handled by insert_rows -> StructuralOperations service
         let transformer = crate::formula::FormulaTransformer::new();
-        let mut cells_to_update: Vec<(CellAddress, ())> = Vec::new();
+        let cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
 
         // Collect all cells that need to be updated
-        let repo = self.repository.lock()
-            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        let repo = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
         for (address, cell) in repo.iter() {
             if address.row >= row_index {
                 // This cell needs to be moved down
@@ -620,7 +655,7 @@ impl SpreadsheetFacade {
         let update_count = cells_to_update.len();
 
         // Move cells that are shifting down
-        for (old_addr, new_addr, mut cell) in cells_to_move {
+        for (old_addr, new_addr, cell) in cells_to_move {
             // Update the formula if it exists
             if cell.has_formula() {
                 // TODO: Implement formula adjustment without direct AST access
@@ -674,13 +709,14 @@ impl SpreadsheetFacade {
     #[allow(dead_code)]
     fn old_delete_row_impl(&self, row_index: u32) -> Result<()> {
         let transformer = crate::formula::FormulaTransformer::new();
-        let mut cells_to_update: Vec<(CellAddress, ())> = Vec::new();
+        let cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
         let mut cells_to_delete = Vec::new();
 
         // Collect all cells that need to be updated
-        let repo = self.repository.lock()
-            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        let repo = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
         for (address, cell) in repo.iter() {
             if address.row == row_index {
                 // This cell is being deleted
@@ -711,7 +747,7 @@ impl SpreadsheetFacade {
         }
 
         // Move cells that are shifting up
-        for (old_addr, new_addr, mut cell) in cells_to_move {
+        for (old_addr, new_addr, cell) in cells_to_move {
             // Update the formula if it exists
             if cell.has_formula() {
                 // TODO: Implement formula adjustment without direct AST access
@@ -764,12 +800,13 @@ impl SpreadsheetFacade {
     #[allow(dead_code)]
     fn old_insert_column_impl(&self, col_index: u32) -> Result<()> {
         let transformer = crate::formula::FormulaTransformer::new();
-        let mut cells_to_update: Vec<(CellAddress, ())> = Vec::new();
+        let cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
 
         // Collect all cells that need to be updated
-        let repo = self.repository.lock()
-            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        let repo = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
         for (address, cell) in repo.iter() {
             if address.col >= col_index {
                 // This cell needs to be moved right
@@ -787,7 +824,7 @@ impl SpreadsheetFacade {
         let update_count = cells_to_update.len();
 
         // Move cells that are shifting right
-        for (old_addr, new_addr, mut cell) in cells_to_move {
+        for (old_addr, new_addr, cell) in cells_to_move {
             // Update the formula if it exists
             if cell.has_formula() {
                 // TODO: Implement formula adjustment without direct AST access
@@ -841,13 +878,14 @@ impl SpreadsheetFacade {
     #[allow(dead_code)]
     fn old_delete_column_impl(&self, col_index: u32) -> Result<()> {
         let transformer = crate::formula::FormulaTransformer::new();
-        let mut cells_to_update: Vec<(CellAddress, ())> = Vec::new();
+        let cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
         let mut cells_to_delete = Vec::new();
 
         // Collect all cells that need to be updated
-        let repo = self.repository.lock()
-            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        let repo = self.repository.lock().map_err(|_| {
+            crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
+        })?;
         for (address, cell) in repo.iter() {
             if address.col == col_index {
                 // This cell is being deleted
@@ -878,7 +916,7 @@ impl SpreadsheetFacade {
         }
 
         // Move cells that are shifting left
-        for (old_addr, new_addr, mut cell) in cells_to_move {
+        for (old_addr, new_addr, cell) in cells_to_move {
             // Update the formula if it exists
             if cell.has_formula() {
                 // TODO: Implement formula adjustment without direct AST access
@@ -1109,7 +1147,11 @@ impl SpreadsheetFacade {
     pub fn get_all_cells(&self) -> Vec<(CellAddress, Cell)> {
         self.repository
             .lock()
-            .map(|repo| repo.iter().map(|(addr, cell)| (addr, cell.clone())).collect())
+            .map(|repo| {
+                repo.iter()
+                    .map(|(addr, cell)| (addr, cell.clone()))
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -1154,7 +1196,8 @@ impl SpreadsheetFacade {
     /// Internal method to set a cell value (delegates to CellOperations)
     fn set_cell_value_internal(&self, address: &CellAddress, value: &str) -> Result<()> {
         // Note: CellOperationsService trait doesn't have set_value, only set_cell
-        self.container.cell_operations()
+        self.container
+            .cell_operations()
             .expect("Cell operations service not configured")
             .set_cell(address, value)?;
         Ok(())
@@ -1162,7 +1205,8 @@ impl SpreadsheetFacade {
 
     /// Internal method to delete a cell (delegates to CellOperations)
     fn delete_cell_internal(&self, address: &CellAddress) -> Result<()> {
-        self.container.cell_operations()
+        self.container
+            .cell_operations()
             .expect("Cell operations service not configured")
             .delete_cell(address)
     }
@@ -1170,7 +1214,8 @@ impl SpreadsheetFacade {
     /// Internal method to batch recalculate cells (delegates to CalculationService)
     fn batch_recalculate(&self, cells: HashSet<CellAddress>) -> Result<()> {
         let cells_vec: Vec<CellAddress> = cells.into_iter().collect();
-        self.container.calculation_service()
+        self.container
+            .calculation_service()
             .expect("Calculation service not configured")
             .recalculate_cells(&cells_vec)
     }

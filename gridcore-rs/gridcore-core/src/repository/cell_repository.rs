@@ -117,15 +117,16 @@ impl CellRepository {
         // Collect cells that need to be shifted
         for (addr_str, cell) in self.cells.iter() {
             if let Ok(address) = CellAddress::from_str(addr_str)
-                && address.row >= start_row {
-                    let new_row = (address.row as i32 + shift_amount) as u32;
-                    if new_row < 1000000 {
-                        // Reasonable upper limit
-                        let new_address = CellAddress::new(address.col, new_row);
-                        updates.push((address, new_address, cell.clone()));
-                        affected.push(address);
-                    }
+                && address.row >= start_row
+            {
+                let new_row = (address.row as i32 + shift_amount) as u32;
+                if new_row < 1000000 {
+                    // Reasonable upper limit
+                    let new_address = CellAddress::new(address.col, new_row);
+                    updates.push((address, new_address, cell.clone()));
+                    affected.push(address);
                 }
+            }
         }
 
         // Apply updates
@@ -145,15 +146,16 @@ impl CellRepository {
         // Collect cells that need to be shifted
         for (addr_str, cell) in self.cells.iter() {
             if let Ok(address) = CellAddress::from_str(addr_str)
-                && address.col >= start_col {
-                    let new_col = (address.col as i32 + shift_amount) as u32;
-                    if new_col < 10000 {
-                        // Reasonable upper limit
-                        let new_address = CellAddress::new(new_col, address.row);
-                        updates.push((address, new_address, cell.clone()));
-                        affected.push(address);
-                    }
+                && address.col >= start_col
+            {
+                let new_col = (address.col as i32 + shift_amount) as u32;
+                if new_col < 10000 {
+                    // Reasonable upper limit
+                    let new_address = CellAddress::new(new_col, address.row);
+                    updates.push((address, new_address, cell.clone()));
+                    affected.push(address);
                 }
+            }
         }
 
         // Apply updates
