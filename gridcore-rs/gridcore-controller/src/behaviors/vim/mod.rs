@@ -151,7 +151,7 @@ impl VimBehavior {
 
     fn process_normal_key(&mut self, key: &str, current_state: &UIState) -> Result<Option<Action>> {
         // Handle count prefix
-        if key.len() == 1 && key.chars().next().unwrap().is_ascii_digit() && key != "0" {
+        if key.len() == 1 && key.chars().next().unwrap_or('\0').is_ascii_digit() && key != "0" {
             self.count_buffer.push_str(key);
             return Ok(None);
         }

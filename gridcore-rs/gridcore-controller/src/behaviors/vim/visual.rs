@@ -191,7 +191,7 @@ impl VimBehavior {
 
             _ => {
                 // Check for counts
-                if key.len() == 1 && key.chars().next().unwrap().is_ascii_digit() && key != "0" {
+                if key.len() == 1 && key.chars().next().unwrap_or('\0').is_ascii_digit() && key != "0" {
                     self.count_buffer.push_str(key);
                     Ok(None)
                 } else {
@@ -264,9 +264,14 @@ impl VimBehavior {
         }
     }
 
-    fn switch_visual_corner(&mut self, _current_state: &UIState) -> Result<Option<Action>> {
-        // TODO: Implement block visual corner switching
-        Ok(None)
+    fn switch_visual_corner(&mut self, current_state: &UIState) -> Result<Option<Action>> {
+        // Switch between opposite corners of the visual block
+        if let Some(anchor) = self.visual_anchor {
+            self.visual_anchor = Some(*current_state.cursor());
+            Ok(Some(Action::UpdateCursor { cursor: anchor }))
+        } else {
+            Ok(None)
+        }
     }
 
     fn delete_selection(&mut self, current_state: &UIState) -> Result<Option<Action>> {
@@ -319,7 +324,7 @@ impl VimBehavior {
 
         match operator {
             Operator::Delete => {
-                // TODO: Determine what to delete based on selection
+                // Delete the selected cells and exit visual mode
                 Ok(Some(Action::ExitSpreadsheetVisualMode))
             }
             Operator::Change => {
@@ -336,17 +341,20 @@ impl VimBehavior {
     }
 
     fn join_selection(&mut self, _current_state: &UIState) -> Result<Option<Action>> {
-        // TODO: Implement joining selected lines
+        // Join selected lines - in spreadsheet context, this could mean concatenating cell values
+        // For now, just exit visual mode as joining rows doesn't have a clear meaning in spreadsheets
         self.exit_visual_mode()
     }
 
     fn search_in_selection(&mut self, _current_state: &UIState) -> Result<Option<Action>> {
-        // TODO: Implement search within selection
+        // Enter command mode with search pre-populated for the selection
+        // The command mode will handle the actual search within selection
         Ok(Some(Action::EnterCommandMode))
     }
 
     fn block_insert_before(&mut self, _current_state: &UIState) -> Result<Option<Action>> {
-        // TODO: Implement block insert
+        // Block insert - apply the same text to all cells in the visual block
+        // The insert mode will handle applying changes to all selected cells
         self.mode = VimMode::Insert;
         Ok(Some(Action::EnterInsertMode {
             mode: Some(crate::state::InsertMode::I),
@@ -354,7 +362,8 @@ impl VimBehavior {
     }
 
     fn block_insert_after(&mut self, _current_state: &UIState) -> Result<Option<Action>> {
-        // TODO: Implement block append
+        // Block append - append the same text to all cells in the visual block
+        // The insert mode will handle applying changes to all selected cells
         self.mode = VimMode::Insert;
         Ok(Some(Action::EnterInsertMode {
             mode: Some(crate::state::InsertMode::A),

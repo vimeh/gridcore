@@ -99,8 +99,9 @@ impl VimBehavior {
             "J" => self.join_lines(count.unwrap_or(1)),
 
             // Undo/redo
-            "u" => Ok(Some(Action::ExitToNavigation)), // TODO: Implement proper undo
-            "U" => Ok(None),                           // TODO: Implement undo line
+            "u" => Ok(Some(Action::Undo)),
+            "U" => Ok(Some(Action::UndoLine)),
+            "\x12" => Ok(Some(Action::Redo)), // Ctrl+R
 
             // Repeat
             "." => self.repeat_last_change(),
@@ -201,8 +202,8 @@ impl VimBehavior {
 
             "r" => {
                 // Replace character
-                if key.len() == 1 {
-                    self.replace_char(key.chars().next().unwrap(), count.unwrap_or(1))
+                if let Some(ch) = key.chars().next() {
+                    self.replace_char(ch, count.unwrap_or(1))
                 } else {
                     Ok(None)
                 }
@@ -210,8 +211,10 @@ impl VimBehavior {
 
             "m" => {
                 // Set mark
-                if key.len() == 1 && key.chars().next().unwrap().is_ascii_lowercase() {
-                    self.set_mark(key.chars().next().unwrap(), *current_state.cursor());
+                if let Some(ch) = key.chars().next() {
+                    if ch.is_ascii_lowercase() {
+                        self.set_mark(ch, *current_state.cursor());
+                    }
                     Ok(None)
                 } else {
                     Ok(None)
@@ -220,8 +223,8 @@ impl VimBehavior {
 
             "'" | "`" => {
                 // Jump to mark
-                if key.len() == 1 {
-                    self.jump_to_mark(key.chars().next().unwrap())
+                if let Some(ch) = key.chars().next() {
+                    self.jump_to_mark(ch)
                 } else {
                     Ok(None)
                 }
@@ -229,8 +232,8 @@ impl VimBehavior {
 
             "\"" => {
                 // Select register
-                if key.len() == 1 {
-                    self.current_command.register = Some(key.chars().next().unwrap());
+                if let Some(ch) = key.chars().next() {
+                    self.current_command.register = Some(ch);
                     Ok(None)
                 } else {
                     Ok(None)
@@ -239,8 +242,7 @@ impl VimBehavior {
 
             "f" => {
                 // Find character forward
-                if key.len() == 1 {
-                    let ch = key.chars().next().unwrap();
+                if let Some(ch) = key.chars().next() {
                     self.last_find_char = Some((ch, true));
                     self.move_cursor(Motion::FindChar(ch, true), current_state)
                 } else {
@@ -250,8 +252,7 @@ impl VimBehavior {
 
             "F" => {
                 // Find character backward
-                if key.len() == 1 {
-                    let ch = key.chars().next().unwrap();
+                if let Some(ch) = key.chars().next() {
                     self.last_find_char = Some((ch, false));
                     self.move_cursor(Motion::FindChar(ch, false), current_state)
                 } else {
@@ -261,8 +262,7 @@ impl VimBehavior {
 
             "t" => {
                 // Find character before (forward)
-                if key.len() == 1 {
-                    let ch = key.chars().next().unwrap();
+                if let Some(ch) = key.chars().next() {
                     self.last_find_char = Some((ch, true));
                     self.move_cursor(Motion::FindCharBefore(ch, true), current_state)
                 } else {
@@ -272,8 +272,7 @@ impl VimBehavior {
 
             "T" => {
                 // Find character before (backward)
-                if key.len() == 1 {
-                    let ch = key.chars().next().unwrap();
+                if let Some(ch) = key.chars().next() {
                     self.last_find_char = Some((ch, false));
                     self.move_cursor(Motion::FindCharBefore(ch, false), current_state)
                 } else {
@@ -286,7 +285,7 @@ impl VimBehavior {
     }
 
     fn is_count_digit(&self, key: &str) -> bool {
-        key.len() == 1 && key != "0" && key.chars().next().unwrap().is_ascii_digit()
+        key.len() == 1 && key != "0" && key.chars().next().unwrap_or('\0').is_ascii_digit()
     }
 
     fn parse_count(&mut self) -> Option<usize> {

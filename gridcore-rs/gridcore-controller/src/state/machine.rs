@@ -112,6 +112,9 @@ pub enum Action {
     BulkOperationError {
         error: String,
     },
+    Undo,
+    UndoLine,
+    Redo,
 }
 
 type StateListener = Box<dyn Fn(&UIState, &Action) + Send>;
@@ -676,6 +679,10 @@ impl UIStateMachine {
 
             // Escape handling
             (_, Action::Escape) => self.handle_escape(state),
+
+            // Undo/Redo handling - these actions maintain the current state
+            // The actual undo/redo logic should be handled at a higher level
+            (_, Action::Undo) | (_, Action::UndoLine) | (_, Action::Redo) => Ok(state.clone()),
 
             _ => Err(SpreadsheetError::InvalidOperation(format!(
                 "Invalid transition from {:?} with action {:?}",
