@@ -112,7 +112,7 @@ impl CellOperations {
         };
 
         // Create the cell with or without parsed formula
-        let mut cell = match parsed {
+        let cell = match parsed {
             Some(ast) => {
                 let mut c = Cell::with_formula(CellValue::String(formula.to_string()), ast);
                 c.set_computed_value(value);
