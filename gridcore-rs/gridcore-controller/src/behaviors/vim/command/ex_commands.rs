@@ -60,9 +60,7 @@ impl ExCommandExecutor for VimBehavior {
     fn execute_goto(&self, parsed: &ExCommand) -> CommandResult {
         if let Some(ref range) = parsed.range {
             match range {
-                CommandRange::Line(line) => Ok(Some(Action::GotoLine {
-                    line: *line as i32,
-                })),
+                CommandRange::Line(line) => Ok(Some(Action::GotoLine { line: *line as i32 })),
                 CommandRange::Lines(start, _) => Ok(Some(Action::GotoLine {
                     line: *start as i32,
                 })),
@@ -156,7 +154,7 @@ impl ExCommandExecutor for VimBehavior {
         }
 
         let setting = parsed.args.join(" ");
-        
+
         // Parse setting
         if setting.starts_with("no") {
             // Disable setting
@@ -269,9 +267,10 @@ impl VimBehavior {
             "ignorecase" | "ic" => self.ignore_case = enable,
             "smartcase" | "scs" => self.smart_case = enable,
             _ => {
-                return Err(SpreadsheetError::InvalidCommand(
-                    format!("Unknown option: {}", option)
-                ));
+                return Err(SpreadsheetError::InvalidCommand(format!(
+                    "Unknown option: {}",
+                    option
+                )));
             }
         }
         Ok(())
@@ -280,17 +279,20 @@ impl VimBehavior {
     fn apply_setting_value(&mut self, option: &str, value: &str) -> Result<()> {
         match option {
             "tabstop" | "ts" => {
-                self.tab_size = value.parse()
-                    .map_err(|_| SpreadsheetError::InvalidCommand("Invalid tabstop value".to_string()))?;
+                self.tab_size = value.parse().map_err(|_| {
+                    SpreadsheetError::InvalidCommand("Invalid tabstop value".to_string())
+                })?;
             }
             "shiftwidth" | "sw" => {
-                self.shift_width = value.parse()
-                    .map_err(|_| SpreadsheetError::InvalidCommand("Invalid shiftwidth value".to_string()))?;
+                self.shift_width = value.parse().map_err(|_| {
+                    SpreadsheetError::InvalidCommand("Invalid shiftwidth value".to_string())
+                })?;
             }
             _ => {
-                return Err(SpreadsheetError::InvalidCommand(
-                    format!("Unknown option: {}", option)
-                ));
+                return Err(SpreadsheetError::InvalidCommand(format!(
+                    "Unknown option: {}",
+                    option
+                )));
             }
         }
         Ok(())

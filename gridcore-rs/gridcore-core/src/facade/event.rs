@@ -202,7 +202,10 @@ impl EventCollector {
     }
 
     pub fn get_events(&self) -> Vec<SpreadsheetEvent> {
-        self.events.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        self.events
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     pub fn clear(&self) {
@@ -212,6 +215,9 @@ impl EventCollector {
 
 impl EventCallback for EventCollector {
     fn on_event(&self, event: &SpreadsheetEvent) {
-        let _ = self.events.lock().map(|mut events| events.push(event.clone()));
+        let _ = self
+            .events
+            .lock()
+            .map(|mut events| events.push(event.clone()));
     }
 }

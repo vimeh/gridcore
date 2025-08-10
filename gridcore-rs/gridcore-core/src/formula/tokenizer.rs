@@ -82,7 +82,8 @@ impl Tokenizer {
     }
 
     /// Parse a single cell reference as an expression
-    pub fn cell_reference<'a>() -> impl Parser<'a, &'a str, Expr, extra::Err<Rich<'a, char>>> + Clone {
+    pub fn cell_reference<'a>() -> impl Parser<'a, &'a str, Expr, extra::Err<Rich<'a, char>>> + Clone
+    {
         Self::cell_reference_parts()
             .map(|(addr, abs_col, abs_row)| Expr::Reference {
                 address: addr,
@@ -116,7 +117,8 @@ impl Tokenizer {
     }
 
     /// Parse a function name (case insensitive)
-    pub fn function_name<'a>() -> impl Parser<'a, &'a str, String, extra::Err<Rich<'a, char>>> + Clone {
+    pub fn function_name<'a>()
+    -> impl Parser<'a, &'a str, String, extra::Err<Rich<'a, char>>> + Clone {
         text::ascii::ident()
             .map(|s: &str| s.to_uppercase())
             .padded()

@@ -3,17 +3,17 @@
 //! This module provides utilities for recovering from errors gracefully
 //! instead of panicking or propagating errors that could crash the application.
 
+use super::{Result, SpreadsheetError};
 use crate::types::CellValue;
-use super::{SpreadsheetError, Result};
 
 /// Trait for types that can recover from errors
 pub trait ErrorRecovery {
     /// The type to return when recovery succeeds
     type RecoveryValue;
-    
+
     /// Attempt to recover from an error with a default value
     fn recover_with_default(self) -> Self::RecoveryValue;
-    
+
     /// Attempt to recover from an error with a custom fallback
     fn recover_with<F>(self, fallback: F) -> Self::RecoveryValue
     where
@@ -21,16 +21,16 @@ pub trait ErrorRecovery {
 }
 
 /// Extension trait for Result types to add recovery methods
-impl<T> ErrorRecovery for Result<T> 
+impl<T> ErrorRecovery for Result<T>
 where
     T: Default,
 {
     type RecoveryValue = T;
-    
+
     fn recover_with_default(self) -> Self::RecoveryValue {
         self.unwrap_or_default()
     }
-    
+
     fn recover_with<F>(self, fallback: F) -> Self::RecoveryValue
     where
         F: FnOnce() -> Self::RecoveryValue,
@@ -43,7 +43,7 @@ where
 pub trait SafeUnwrap<T> {
     /// Unwrap with a context message for debugging
     fn unwrap_or_log(self, context: &str) -> Option<T>;
-    
+
     /// Unwrap with a default value and log the issue
     fn unwrap_or_default_with_log(self, context: &str) -> T
     where
@@ -58,7 +58,7 @@ impl<T> SafeUnwrap<T> for Option<T> {
         }
         self
     }
-    
+
     fn unwrap_or_default_with_log(self, context: &str) -> T
     where
         T: Default,
@@ -85,9 +85,10 @@ macro_rules! safe_unwrap {
             Some(val) => val,
             None => {
                 eprintln!("Unwrap failed at {}:{} - {}", file!(), line!(), $context);
-                return Err($crate::error::SpreadsheetError::Parse(
-                    format!("Unexpected None value: {}", $context)
-                ));
+                return Err($crate::error::SpreadsheetError::Parse(format!(
+                    "Unexpected None value: {}",
+                    $context
+                )));
             }
         }
     };
@@ -95,7 +96,12 @@ macro_rules! safe_unwrap {
         match $expr {
             Some(val) => val,
             None => {
-                eprintln!("Using default value at {}:{} - {}", file!(), line!(), $context);
+                eprintln!(
+                    "Using default value at {}:{} - {}",
+                    file!(),
+                    line!(),
+                    $context
+                );
                 $default
             }
         }
@@ -142,7 +148,7 @@ mod tests {
             let result = safe_unwrap!(value, "test context", 0);
             Ok(result)
         }
-        
+
         assert_eq!(test_function().unwrap(), 42);
     }
 }

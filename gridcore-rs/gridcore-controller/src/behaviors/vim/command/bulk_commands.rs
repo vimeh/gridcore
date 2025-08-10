@@ -33,7 +33,7 @@ impl BulkCommandParser {
 
         // Parse other commands
         let parts: Vec<&str> = cmd.split_whitespace().collect();
-        
+
         if parts.is_empty() {
             return None;
         }
@@ -76,7 +76,7 @@ impl BulkCommandParser {
         let mut parts = Vec::new();
         let mut current = String::new();
         let mut escaped = false;
-        
+
         for ch in content.chars() {
             if escaped {
                 current.push(ch);
@@ -91,7 +91,7 @@ impl BulkCommandParser {
                 current.push(ch);
             }
         }
-        
+
         if !current.is_empty() || parts.len() == 2 {
             parts.push(current);
         }
@@ -138,12 +138,13 @@ impl BulkCommandParser {
             return None;
         }
 
-        args[0].parse::<f64>().ok().map(|value| {
-            BulkCommandType::MathOperation {
+        args[0]
+            .parse::<f64>()
+            .ok()
+            .map(|value| BulkCommandType::MathOperation {
                 operation: op,
                 value,
-            }
-        })
+            })
     }
 
     fn parse_fill(&self, args: &[&str]) -> Option<BulkCommandType> {

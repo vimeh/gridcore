@@ -191,7 +191,10 @@ impl VimBehavior {
 
             _ => {
                 // Check for counts
-                if key.len() == 1 && key.chars().next().unwrap_or('\0').is_ascii_digit() && key != "0" {
+                if key.len() == 1
+                    && key.chars().next().unwrap_or('\0').is_ascii_digit()
+                    && key != "0"
+                {
                     self.count_buffer.push_str(key);
                     Ok(None)
                 } else {

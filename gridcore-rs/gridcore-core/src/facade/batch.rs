@@ -90,6 +90,11 @@ impl BatchManager {
         !self.batches.is_empty()
     }
 
+    /// Check if a batch is active (alias for has_active_batches)
+    pub fn is_batch_active(&self) -> bool {
+        self.has_active_batches()
+    }
+
     /// Get all active batch IDs
     pub fn active_batch_ids(&self) -> Vec<String> {
         self.batches.keys().cloned().collect()

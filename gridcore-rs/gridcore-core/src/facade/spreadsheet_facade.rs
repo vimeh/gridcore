@@ -1,20 +1,22 @@
 use crate::command::{CommandExecutor, UndoRedoManager};
 use crate::dependency::DependencyGraph;
 use crate::domain::Cell;
-use crate::evaluator::{EvaluationContext, Evaluator};
+use crate::evaluator::Evaluator;
 use crate::fill::{FillEngine, FillOperation, FillResult};
 use crate::formula::FormulaParser;
 use crate::references::{ReferenceAdjuster, ReferenceTracker, StructuralOperation};
 use crate::repository::CellRepository;
-use crate::services::{CellOperations, EventManager, StructuralOperations};
+use crate::services::{
+    BatchService, CalculationService, CellOperations, EventManager, RepositoryContext,
+    StructuralOperations,
+};
 use crate::types::{CellAddress, CellValue};
 use crate::{Result, SpreadsheetError};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Rc;
-use std::time::Instant;
 
-use super::batch::{BatchManager, BatchOperation};
+use super::batch::BatchOperation;
 use super::event::{EventCallback, SpreadsheetEvent};
 
 /// Main facade for spreadsheet operations
@@ -24,9 +26,11 @@ pub struct SpreadsheetFacade {
     /// Dependency graph for tracking cell dependencies
     dependency_graph: Rc<RefCell<DependencyGraph>>,
     /// Reference tracker for formula reference management
-    reference_tracker: RefCell<ReferenceTracker>,
-    /// Batch manager for batch operations
-    batch_manager: RefCell<BatchManager>,
+    reference_tracker: Rc<RefCell<ReferenceTracker>>,
+    /// Batch service for batch operations
+    batch_service: Rc<BatchService>,
+    /// Calculation service for recalculations
+    calculation_service: Rc<CalculationService>,
     /// Event manager service for handling callbacks
     event_manager: Rc<EventManager>,
     /// Cell operations service
@@ -35,6 +39,8 @@ pub struct SpreadsheetFacade {
     structural_operations: Rc<StructuralOperations>,
     /// Undo/redo manager
     undo_redo_manager: RefCell<UndoRedoManager>,
+    /// Current active batch ID
+    current_batch_id: RefCell<Option<String>>,
 }
 
 impl SpreadsheetFacade {
@@ -43,6 +49,8 @@ impl SpreadsheetFacade {
         let repository = Rc::new(RefCell::new(CellRepository::new()));
         let dependency_graph = Rc::new(RefCell::new(DependencyGraph::new()));
         let event_manager = Rc::new(EventManager::new());
+        let reference_tracker = Rc::new(RefCell::new(ReferenceTracker::new()));
+
         let cell_operations = Rc::new(CellOperations::new(
             repository.clone(),
             dependency_graph.clone(),
@@ -51,16 +59,29 @@ impl SpreadsheetFacade {
             repository.clone(),
             dependency_graph.clone(),
         ));
+        let batch_service = Rc::new(BatchService::new(
+            repository.clone(),
+            dependency_graph.clone(),
+            event_manager.clone(),
+            reference_tracker.clone(),
+        ));
+        let calculation_service = Rc::new(CalculationService::new(
+            repository.clone(),
+            dependency_graph.clone(),
+            event_manager.clone(),
+        ));
 
         SpreadsheetFacade {
             repository,
             dependency_graph,
-            reference_tracker: RefCell::new(ReferenceTracker::new()),
-            batch_manager: RefCell::new(BatchManager::new()),
+            reference_tracker,
+            batch_service,
+            calculation_service,
             event_manager,
             cell_operations,
             structural_operations,
             undo_redo_manager: RefCell::new(UndoRedoManager::new()),
+            current_batch_id: RefCell::new(None),
         }
     }
 
@@ -70,6 +91,8 @@ impl SpreadsheetFacade {
         dependency_graph: Rc<RefCell<DependencyGraph>>,
     ) -> Self {
         let event_manager = Rc::new(EventManager::new());
+        let reference_tracker = Rc::new(RefCell::new(ReferenceTracker::new()));
+
         let cell_operations = Rc::new(CellOperations::new(
             repository.clone(),
             dependency_graph.clone(),
@@ -78,16 +101,29 @@ impl SpreadsheetFacade {
             repository.clone(),
             dependency_graph.clone(),
         ));
+        let batch_service = Rc::new(BatchService::new(
+            repository.clone(),
+            dependency_graph.clone(),
+            event_manager.clone(),
+            reference_tracker.clone(),
+        ));
+        let calculation_service = Rc::new(CalculationService::new(
+            repository.clone(),
+            dependency_graph.clone(),
+            event_manager.clone(),
+        ));
 
         SpreadsheetFacade {
             repository,
             dependency_graph,
-            reference_tracker: RefCell::new(ReferenceTracker::new()),
-            batch_manager: RefCell::new(BatchManager::new()),
+            reference_tracker,
+            batch_service,
+            calculation_service,
             event_manager,
             cell_operations,
             structural_operations,
             undo_redo_manager: RefCell::new(UndoRedoManager::new()),
+            current_batch_id: RefCell::new(None),
         }
     }
 
@@ -104,29 +140,33 @@ impl SpreadsheetFacade {
     /// Set a cell value (formula or direct value)
     pub fn set_cell_value(&self, address: &CellAddress, value: &str) -> Result<Cell> {
         // Check if we're in a batch
-        let batch_manager = self.batch_manager.borrow();
-        if batch_manager.has_active_batches() {
+        if let Some(batch_id) = self.current_batch_id.borrow().as_ref() {
             // Queue the operation for batch processing
-            let batch_ids = batch_manager.active_batch_ids();
-            if let Some(batch_id) = batch_ids.first() {
-                drop(batch_manager); // Release borrow
-                self.queue_batch_operation(
-                    batch_id,
-                    BatchOperation::SetCell {
-                        address: *address,
-                        value: CellValue::String(value.to_string()),
-                        formula: if value.starts_with('=') {
-                            Some(value.to_string())
-                        } else {
-                            None
-                        },
-                    },
-                )?;
-                // Return a placeholder cell for now
-                return Ok(Cell::new(CellValue::String(value.to_string())));
-            }
+            let parsed_value = if value.starts_with('=') {
+                CellValue::Empty // Formula will be evaluated on commit
+            } else if let Ok(num) = value.parse::<f64>() {
+                CellValue::Number(num)
+            } else if let Ok(bool_val) = value.parse::<bool>() {
+                CellValue::Boolean(bool_val)
+            } else {
+                CellValue::String(value.to_string())
+            };
+
+            let operation = BatchOperation::SetCell {
+                address: *address,
+                value: parsed_value.clone(),
+                formula: if value.starts_with('=') {
+                    Some(value.to_string())
+                } else {
+                    None
+                },
+            };
+
+            self.batch_service.add_to_batch(batch_id, operation)?;
+
+            // Return a placeholder cell
+            return Ok(Cell::new(parsed_value));
         }
-        drop(batch_manager);
 
         // Get old value for event
         let old_value = self
@@ -190,19 +230,12 @@ impl SpreadsheetFacade {
     /// Delete a cell
     pub fn delete_cell(&self, address: &CellAddress) -> Result<()> {
         // Check if we're in a batch
-        let batch_manager = self.batch_manager.borrow();
-        if batch_manager.has_active_batches() {
-            let batch_ids = batch_manager.active_batch_ids();
-            if let Some(batch_id) = batch_ids.first() {
-                drop(batch_manager);
-                self.queue_batch_operation(
-                    batch_id,
-                    BatchOperation::DeleteCell { address: *address },
-                )?;
-                return Ok(());
-            }
+        if let Some(batch_id) = self.current_batch_id.borrow().as_ref() {
+            // Queue the operation for batch processing
+            let operation = BatchOperation::DeleteCell { address: *address };
+            self.batch_service.add_to_batch(batch_id, operation)?;
+            return Ok(());
         }
-        drop(batch_manager);
 
         // Delegate to CellOperations service
         self.cell_operations.delete_cell(address)?;
@@ -218,177 +251,40 @@ impl SpreadsheetFacade {
 
     /// Recalculate all cells
     pub fn recalculate(&self) -> Result<()> {
-        let start = Instant::now();
-
-        // Get calculation order
-        let order = self.dependency_graph.borrow().get_calculation_order()?;
-
-        // Emit calculation started event
-        let affected_cells: Vec<String> = order.iter().map(|a| a.to_string()).collect();
-        self.emit_event(SpreadsheetEvent::calculation_started(
-            affected_cells.clone(),
-        ));
-
-        // Recalculate each cell in order
-        for address in &order {
-            // Get the cell, ensuring the borrow is dropped immediately
-            let cell_opt = self.repository.borrow().get(address).cloned();
-            if let Some(mut cell) = cell_opt
-                && let Some(ast) = &cell.formula
-            {
-                // Evaluate in a separate scope to ensure context is dropped before mutable borrow
-                let result = {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    // Push the current cell to the evaluation stack for circular reference detection
-                    context.push_evaluation(address);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    // Try to evaluate, but store error values if evaluation fails
-                    let eval_result = match evaluator.evaluate(ast) {
-                        Ok(val) => val,
-                        Err(e) => CellValue::Error(e.to_error_type()),
-                    };
-                    // Pop the current cell from the evaluation stack
-                    context.pop_evaluation(address);
-                    eval_result
-                };
-                cell.set_computed_value(result);
-                self.repository.borrow_mut().set(address, cell);
-            }
-        }
-
-        // Emit calculation completed event
-        let duration_ms = start.elapsed().as_millis() as u64;
-        self.emit_event(SpreadsheetEvent::calculation_completed(
-            affected_cells,
-            duration_ms,
-        ));
-
-        Ok(())
+        self.calculation_service.recalculate()
     }
 
     /// Recalculate a specific cell
     pub fn recalculate_cell(&self, address: &CellAddress) -> Result<Cell> {
-        let mut cell = self
-            .repository
-            .borrow()
-            .get(address)
-            .cloned()
-            .ok_or_else(|| SpreadsheetError::InvalidRef(address.to_string()))?;
-
-        if let Some(ast) = &cell.formula {
-            // Evaluate in a separate scope to ensure context is dropped before mutable borrow
-            let result = {
-                let mut context = RepositoryContext::new(&self.repository);
-                let mut evaluator = Evaluator::new(&mut context);
-                evaluator.evaluate(ast)?
-            };
-            cell.set_computed_value(result);
-            self.repository.borrow_mut().set(address, cell.clone());
-        }
-
-        Ok(cell)
+        self.calculation_service.recalculate_cell(address)
     }
 
     /// Begin a batch operation
     pub fn begin_batch(&self, batch_id: Option<String>) -> String {
-        let mut batch_manager = self.batch_manager.borrow_mut();
-        let id = batch_manager.begin_batch(batch_id);
-
-        // Emit batch started event
-        self.emit_event(SpreadsheetEvent::batch_started(id.clone()));
-
+        let id = self.batch_service.begin_batch(batch_id);
+        *self.current_batch_id.borrow_mut() = Some(id.clone());
         id
     }
 
     /// Commit a batch operation
     pub fn commit_batch(&self, batch_id: &str) -> Result<()> {
-        // Take operations from batch manager
-        let operations = self
-            .batch_manager
-            .borrow_mut()
-            .take_operations(batch_id)
-            .ok_or_else(|| SpreadsheetError::BatchNotFound(batch_id.to_string()))?;
-
-        let operation_count = operations.len();
-
-        // Track affected cells for recalculation
-        let mut affected_cells = HashSet::new();
-
-        // Execute all operations
-        for operation in operations {
-            match operation {
-                BatchOperation::SetCell {
-                    address,
-                    value,
-                    formula,
-                } => {
-                    affected_cells.insert(address);
-                    // Convert CellValue to string for set_cell_value
-                    let value_str = if let Some(formula) = formula {
-                        formula
-                    } else {
-                        match value {
-                            CellValue::Number(n) => n.to_string(),
-                            CellValue::String(s) => s,
-                            CellValue::Boolean(b) => b.to_string(),
-                            CellValue::Error(e) => e.excel_code().to_string(),
-                            _ => String::new(),
-                        }
-                    };
-                    // Temporarily disable batch mode for individual operations
-                    self.set_cell_value_internal(&address, &value_str)?;
-                }
-                BatchOperation::DeleteCell { address } => {
-                    affected_cells.insert(address);
-                    self.delete_cell_internal(&address)?;
-                }
-                BatchOperation::SetRange {
-                    start,
-                    end,
-                    values: _,
-                } => {
-                    // Add range operations
-                    for row in start.row..=end.row {
-                        for col in start.col..=end.col {
-                            let addr = CellAddress::new(col, row);
-                            affected_cells.insert(addr);
-                        }
-                    }
-                }
-                BatchOperation::DeleteRange { start, end } => {
-                    for row in start.row..=end.row {
-                        for col in start.col..=end.col {
-                            let addr = CellAddress::new(col, row);
-                            affected_cells.insert(addr);
-                            self.delete_cell_internal(&addr)?;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Batch recalculation of all affected cells and their dependents
-        self.batch_recalculate(affected_cells)?;
-
-        // Emit batch completed event
-        self.emit_event(SpreadsheetEvent::batch_completed(
-            batch_id.to_string(),
-            operation_count,
-        ));
-
-        Ok(())
+        *self.current_batch_id.borrow_mut() = None;
+        let calc_service = self.calculation_service.clone();
+        self.batch_service
+            .commit_batch(batch_id, move |cells| calc_service.batch_recalculate(cells))
     }
 
     /// Rollback a batch operation
     pub fn rollback_batch(&self, batch_id: &str) -> Result<()> {
-        self.batch_manager.borrow_mut().rollback_batch(batch_id)
+        *self.current_batch_id.borrow_mut() = None;
+        self.batch_service.rollback_batch(batch_id)
     }
 
     /// Clear all cells
     pub fn clear(&self) {
         self.repository.borrow_mut().clear();
         self.dependency_graph.borrow_mut().clear();
-        self.batch_manager.borrow_mut().clear();
+        self.batch_service.clear();
     }
 
     /// Get the number of cells
@@ -449,9 +345,7 @@ impl SpreadsheetFacade {
 
     /// Queue an operation for batch processing
     fn queue_batch_operation(&self, batch_id: &str, operation: BatchOperation) -> Result<()> {
-        self.batch_manager
-            .borrow_mut()
-            .add_operation(batch_id, operation)
+        self.batch_service.add_to_batch(batch_id, operation)
     }
 
     /// Insert rows and adjust all affected references
@@ -612,119 +506,12 @@ impl SpreadsheetFacade {
     }
 
     /// Internal set cell value (without batch check or events)
-    fn set_cell_value_internal(&self, address: &CellAddress, value: &str) -> Result<()> {
-        // Delegate to CellOperations service
-        self.cell_operations.set_cell(address, value)?;
-        Ok(())
-    }
-
-    /// Internal delete cell (without batch check)
-    fn delete_cell_internal(&self, address: &CellAddress) -> Result<()> {
-        // Delegate to CellOperations service
-        self.cell_operations.delete_cell(address)?;
-        Ok(())
-    }
 
     /// Recalculate cells that depend on the given address
     fn recalculate_dependents(&self, address: &CellAddress) -> Result<()> {
-        let dependents = self.dependency_graph.borrow().get_dependents(address);
-
-        for dependent in dependents {
-            // Get cell and immediately drop the borrow
-            let cell = self.repository.borrow().get(&dependent).cloned();
-
-            if let Some(mut cell) = cell
-                && let Some(ast) = &cell.formula
-            {
-                // Evaluate in a separate scope to ensure context is dropped before mutable borrow
-                let result = {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    // Push the current cell to the evaluation stack for circular reference detection
-                    context.push_evaluation(&dependent);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    // Try to evaluate, but store error values if evaluation fails
-                    let eval_result = match evaluator.evaluate(ast) {
-                        Ok(val) => val,
-                        Err(e) => CellValue::Error(e.to_error_type()),
-                    };
-                    // Pop the current cell from the evaluation stack
-                    context.pop_evaluation(&dependent);
-                    eval_result
-                };
-
-                // If the dependent formula now evaluates to an error, emit an error event
-                if matches!(result, CellValue::Error(_))
-                    && let CellValue::Error(e) = &result
-                {
-                    let error_msg = format!("Formula error in {}: {}", dependent, e);
-                    self.emit_event(SpreadsheetEvent::error(error_msg, Some(&dependent)));
-                }
-
-                cell.set_computed_value(result);
-                self.repository.borrow_mut().set(&dependent, cell);
-
-                // Recursively recalculate cells that depend on this one
-                self.recalculate_dependents(&dependent)?;
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Batch recalculate multiple cells and their dependents
-    fn batch_recalculate(&self, cells: HashSet<CellAddress>) -> Result<()> {
-        // Collect all cells that need recalculation (including dependents)
-        let mut to_recalculate = HashSet::new();
-        for cell in cells {
-            to_recalculate.insert(cell);
-            self.collect_all_dependents(&cell, &mut to_recalculate);
-        }
-
-        // Get calculation order for affected cells
-        let full_order = self.dependency_graph.borrow().get_calculation_order()?;
-        let ordered_cells: Vec<CellAddress> = full_order
-            .into_iter()
-            .filter(|addr| to_recalculate.contains(addr))
-            .collect();
-
-        // Recalculate in order
-        for address in ordered_cells {
-            // Get the cell, ensuring the borrow is dropped immediately
-            let cell_opt = self.repository.borrow().get(&address).cloned();
-            if let Some(mut cell) = cell_opt
-                && let Some(ast) = &cell.formula
-            {
-                // Evaluate in a separate scope to ensure context is dropped before mutable borrow
-                let result = {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    // Push the current cell to the evaluation stack for circular reference detection
-                    context.push_evaluation(&address);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    // Try to evaluate, but store error values if evaluation fails
-                    let eval_result = match evaluator.evaluate(ast) {
-                        Ok(val) => val,
-                        Err(e) => CellValue::Error(e.to_error_type()),
-                    };
-                    // Pop the current cell from the evaluation stack
-                    context.pop_evaluation(&address);
-                    eval_result
-                };
-                cell.set_computed_value(result);
-                self.repository.borrow_mut().set(&address, cell);
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Recursively collect all dependents of a cell
-    fn collect_all_dependents(&self, address: &CellAddress, collected: &mut HashSet<CellAddress>) {
-        let dependents = self.dependency_graph.borrow().get_dependents(address);
-        for dependent in dependents {
-            if collected.insert(dependent) {
-                self.collect_all_dependents(&dependent, collected);
-            }
-        }
+        let mut affected = HashSet::new();
+        affected.insert(*address);
+        self.calculation_service.batch_recalculate(affected)
     }
 
     /// Insert a row at the specified index
@@ -1270,49 +1057,29 @@ impl SpreadsheetFacade {
     pub fn delete_column_without_command(&self, index: u32) -> Result<()> {
         self.delete_column(index)
     }
+
+    // Internal helper methods
+
+    /// Internal method to set a cell value (delegates to CellOperations)
+    fn set_cell_value_internal(&self, address: &CellAddress, value: &str) -> Result<()> {
+        self.cell_operations.set_value(address, value)?;
+        Ok(())
+    }
+
+    /// Internal method to delete a cell (delegates to CellOperations)
+    fn delete_cell_internal(&self, address: &CellAddress) -> Result<()> {
+        self.cell_operations.delete_cell(address)
+    }
+
+    /// Internal method to batch recalculate cells (delegates to CalculationService)
+    fn batch_recalculate(&self, cells: HashSet<CellAddress>) -> Result<()> {
+        self.calculation_service.batch_recalculate(cells)
+    }
 }
 
 impl Default for SpreadsheetFacade {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-/// Evaluation context that uses the cell repository
-struct RepositoryContext<'a> {
-    repository: &'a Rc<RefCell<CellRepository>>,
-    evaluation_stack: RefCell<HashSet<CellAddress>>,
-}
-
-impl<'a> RepositoryContext<'a> {
-    fn new(repository: &'a Rc<RefCell<CellRepository>>) -> Self {
-        RepositoryContext {
-            repository,
-            evaluation_stack: RefCell::new(HashSet::new()),
-        }
-    }
-}
-
-impl<'a> EvaluationContext for RepositoryContext<'a> {
-    fn get_cell_value(&self, address: &CellAddress) -> Result<CellValue> {
-        Ok(self
-            .repository
-            .borrow()
-            .get(address)
-            .map(|cell| cell.get_computed_value())
-            .unwrap_or(CellValue::Empty))
-    }
-
-    fn check_circular(&self, address: &CellAddress) -> bool {
-        self.evaluation_stack.borrow().contains(address)
-    }
-
-    fn push_evaluation(&mut self, address: &CellAddress) {
-        self.evaluation_stack.borrow_mut().insert(*address);
-    }
-
-    fn pop_evaluation(&mut self, address: &CellAddress) {
-        self.evaluation_stack.borrow_mut().remove(address);
     }
 }
 
