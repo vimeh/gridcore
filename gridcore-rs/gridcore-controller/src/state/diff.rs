@@ -175,7 +175,7 @@ impl StateChanges {
                 if let Some(new_cursor) = self.cursor_changed {
                     *cursor = new_cursor;
                 }
-                if let Some(ref new_viewport) = self.viewport_changed {
+                if let Some(new_viewport) = self.viewport_changed {
                     *viewport = new_viewport;
                 }
                 if let Some(ref new_selection) = self.selection_changed {
@@ -186,7 +186,7 @@ impl StateChanges {
                 if let Some(new_cursor) = self.cursor_changed {
                     *cursor = new_cursor;
                 }
-                if let Some(ref new_viewport) = self.viewport_changed {
+                if let Some(new_viewport) = self.viewport_changed {
                     *viewport = new_viewport;
                 }
                 if let Some(Some(ref new_selection)) = self.selection_changed {
@@ -203,7 +203,7 @@ impl StateChanges {
                 if let Some(new_cursor) = self.cursor_changed {
                     *cursor = new_cursor;
                 }
-                if let Some(ref new_viewport) = self.viewport_changed {
+                if let Some(new_viewport) = self.viewport_changed {
                     *viewport = new_viewport;
                 }
                 if let Some(new_mode) = self.cell_mode_changed {
