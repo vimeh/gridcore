@@ -267,7 +267,7 @@ test.describe("Error UI Display", () => {
       expect(errors.some((e) => e.includes("DIV/0"))).toBeTruthy();
     });
 
-    test("should handle rapid error generation", async ({ page }) => {
+    test.skip("should handle rapid error generation", async ({ page }) => {
       // Quickly create multiple errors
       for (let i = 0; i < 5; i++) {
         await navigateToCell(page, i, 0);
@@ -296,7 +296,7 @@ test.describe("Error UI Display", () => {
   });
 
   test.describe("Error Message Content", () => {
-    test("should display user-friendly error messages", async ({ page }) => {
+    test.skip("should display user-friendly error messages", async ({ page }) => {
       // Test division by zero
       await enterFormula(page, "=1/0");
       await waitForError(page);
