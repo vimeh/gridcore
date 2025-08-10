@@ -5,6 +5,8 @@
 
 mod repository_adapter;
 mod event_adapter;
+mod event_adapter_v2;
 
 pub use repository_adapter::RepositoryAdapter;
 pub use event_adapter::EventAdapter;
+pub use event_adapter_v2::ThreadSafeEventAdapter;
