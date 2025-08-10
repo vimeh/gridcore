@@ -34,7 +34,9 @@
       "WebFetch(domain:book.leptos.dev)",
       "Bash(trunk build:*)",
       "Bash(bunx playwright test:*)",
-      "Bash(trunk:*)"
+      "Bash(trunk:*)",
+      "Bash(awk:*)",
+      "Bash(cargo fmt:*)"
     ],
     "deny": []
   }

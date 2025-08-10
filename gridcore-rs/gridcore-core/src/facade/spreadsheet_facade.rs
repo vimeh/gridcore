@@ -1,5 +1,5 @@
 use crate::command::{CommandExecutor, UndoRedoManager};
-use crate::dependency::{DependencyAnalyzer, DependencyGraph};
+use crate::dependency::DependencyGraph;
 use crate::domain::Cell;
 use crate::evaluator::{EvaluationContext, Evaluator};
 use crate::fill::{FillEngine, FillOperation, FillResult};
@@ -7,7 +7,7 @@ use crate::formula::FormulaParser;
 use crate::references::{ReferenceAdjuster, ReferenceTracker, StructuralOperation};
 use crate::repository::CellRepository;
 use crate::services::{CellOperations, EventManager, StructuralOperations};
-use crate::types::{CellAddress, CellValue, ErrorType};
+use crate::types::{CellAddress, CellValue};
 use crate::{Result, SpreadsheetError};
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -130,86 +130,13 @@ impl SpreadsheetFacade {
 
         // Get old value for event
         let old_value = self
-            .repository
-            .borrow()
-            .get(address)
+            .cell_operations
+            .get_cell(address)
             .map(|cell| cell.get_computed_value());
 
-        // Parse and create cell
-        let cell = if let Some(formula) = value.strip_prefix('=') {
-            // Parse formula
-            let ast = FormulaParser::parse(formula)?;
-
-            // Analyze dependencies
-            let dependencies = DependencyAnalyzer::extract_dependencies(&ast);
-
-            // Update dependency graph
-            {
-                let mut graph = self.dependency_graph.borrow_mut();
-                graph.remove_dependencies_for(address);
-                for dep in &dependencies {
-                    // Check for circular dependencies
-                    if graph.would_create_cycle(address, dep) {
-                        // Store the cell with circular reference error
-                        let mut cell =
-                            Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
-                        cell.set_computed_value(CellValue::Error(ErrorType::CircularDependency {
-                            cells: vec![*address],
-                        }));
-                        self.repository.borrow_mut().set(address, cell.clone());
-
-                        // Emit event
-                        self.emit_event(SpreadsheetEvent::cell_updated(
-                            address,
-                            old_value,
-                            CellValue::Error(ErrorType::CircularDependency {
-                                cells: vec![*address],
-                            }),
-                            Some(value.to_string()),
-                        ));
-
-                        return Err(SpreadsheetError::CircularDependency);
-                    }
-                    graph.add_dependency(*address, *dep);
-                }
-            }
-
-            // Update reference tracker
-            self.reference_tracker
-                .borrow_mut()
-                .update_dependencies(address, &ast);
-
-            // Create cell with formula
-            let mut cell = Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
-
-            // Evaluate the formula
-            let mut context = RepositoryContext::new(&self.repository);
-            // Push the current cell to the evaluation stack for circular reference detection
-            context.push_evaluation(address);
-            let mut evaluator = Evaluator::new(&mut context);
-            // Try to evaluate the formula, but store error values if evaluation fails
-            let computed_value = match evaluator.evaluate(&ast) {
-                Ok(val) => val,
-                Err(e) => {
-                    let error_type = e.to_error_type();
-                    // Debug: Evaluation error for formula
-                    CellValue::Error(error_type)
-                }
-            };
-            // Pop the current cell from the evaluation stack
-            context.pop_evaluation(address);
-            cell.set_computed_value(computed_value.clone());
-
-            cell
-        } else {
-            // Parse as direct value
-            let cell_value = Self::parse_value(value);
-            Cell::new(cell_value.clone())
-        };
-
-        // Store the cell
+        // Delegate to CellOperations service
+        let cell = self.cell_operations.set_cell(address, value)?;
         let computed_value = cell.get_computed_value();
-        self.repository.borrow_mut().set(address, cell.clone());
 
         // Emit event
         self.emit_event(SpreadsheetEvent::cell_updated(
@@ -249,16 +176,15 @@ impl SpreadsheetFacade {
     /// Get a cell value
     pub fn get_cell_value(&self, address: &CellAddress) -> Result<CellValue> {
         Ok(self
-            .repository
-            .borrow()
-            .get(address)
+            .cell_operations
+            .get_cell(address)
             .map(|cell| cell.get_computed_value())
             .unwrap_or(CellValue::Empty))
     }
 
     /// Get a cell
     pub fn get_cell(&self, address: &CellAddress) -> Option<Cell> {
-        self.repository.borrow().get(address).cloned()
+        self.cell_operations.get_cell(address)
     }
 
     /// Delete a cell
@@ -685,82 +611,17 @@ impl SpreadsheetFacade {
         Ok(())
     }
 
-    /// Internal set cell value (without batch check)
+    /// Internal set cell value (without batch check or events)
     fn set_cell_value_internal(&self, address: &CellAddress, value: &str) -> Result<()> {
-        // Similar to set_cell_value but without batch check
-        let cell = if let Some(formula) = value.strip_prefix('=') {
-            // Try to parse the formula
-            match FormulaParser::parse(formula) {
-                Ok(ast) => {
-                    // Successfully parsed, check for dependencies
-                    let dependencies = DependencyAnalyzer::extract_dependencies(&ast);
-
-                    let mut graph = self.dependency_graph.borrow_mut();
-                    graph.remove_dependencies_for(address);
-
-                    // Check for circular dependencies
-                    let mut has_circular = false;
-                    for dep in &dependencies {
-                        if graph.would_create_cycle(address, dep) {
-                            has_circular = true;
-                            break;
-                        }
-                        graph.add_dependency(*address, *dep);
-                    }
-
-                    if has_circular {
-                        // Store as error cell with circular reference error
-                        let mut cell = Cell::new(CellValue::String(value.to_string()));
-                        cell.set_computed_value(CellValue::Error(ErrorType::CircularDependency {
-                            cells: vec![*address],
-                        }));
-                        cell.set_error("#CIRC!".to_string());
-                        cell
-                    } else {
-                        // Normal formula evaluation
-                        let mut cell =
-                            Cell::with_formula(CellValue::String(value.to_string()), ast.clone());
-                        let mut context = RepositoryContext::new(&self.repository);
-                        // Push the current cell to the evaluation stack for circular reference detection
-                        context.push_evaluation(address);
-                        let mut evaluator = Evaluator::new(&mut context);
-                        // Try to evaluate the formula, but store error values if evaluation fails
-                        let computed_value = match evaluator.evaluate(&ast) {
-                            Ok(val) => val,
-                            Err(e) => CellValue::Error(e.to_error_type()),
-                        };
-                        // Pop the current cell from the evaluation stack
-                        context.pop_evaluation(address);
-                        cell.set_computed_value(computed_value);
-                        cell
-                    }
-                }
-                Err(parse_error) => {
-                    // Parse error - store the formula with an error value
-                    let mut cell = Cell::new(CellValue::String(value.to_string()));
-                    // Convert parse error to Excel-compatible error code
-                    let error_type = parse_error.to_error_type();
-                    let error_code = error_type.excel_code().to_string();
-                    // Store the error type for UI display
-                    // Debug: Parse error for formula
-                    cell.set_computed_value(CellValue::Error(error_type));
-                    cell.set_error(error_code);
-                    cell
-                }
-            }
-        } else {
-            let cell_value = Self::parse_value(value);
-            Cell::new(cell_value)
-        };
-
-        self.repository.borrow_mut().set(address, cell);
+        // Delegate to CellOperations service
+        self.cell_operations.set_cell(address, value)?;
         Ok(())
     }
 
     /// Internal delete cell (without batch check)
     fn delete_cell_internal(&self, address: &CellAddress) -> Result<()> {
-        self.repository.borrow_mut().delete(address);
-        self.dependency_graph.borrow_mut().remove_cell(address);
+        // Delegate to CellOperations service
+        self.cell_operations.delete_cell(address)?;
         Ok(())
     }
 
@@ -866,51 +727,18 @@ impl SpreadsheetFacade {
         }
     }
 
-    /// Parse a string value into a CellValue
-    fn parse_value(value: &str) -> CellValue {
-        // Try to parse as number
-        if let Ok(num) = value.parse::<f64>() {
-            return CellValue::Number(num);
-        }
-
-        // Try to parse as boolean
-        if value.eq_ignore_ascii_case("true") {
-            return CellValue::Boolean(true);
-        }
-        if value.eq_ignore_ascii_case("false") {
-            return CellValue::Boolean(false);
-        }
-
-        // Check for error values
-        if value.starts_with('#') && value.ends_with('!') {
-            // Parse Excel-style error codes
-            let error_type = match value {
-                "#DIV/0!" => ErrorType::DivideByZero,
-                "#REF!" => ErrorType::InvalidRef {
-                    reference: "unknown".to_string(),
-                },
-                "#NAME?" => ErrorType::NameError {
-                    name: "unknown".to_string(),
-                },
-                "#VALUE!" => ErrorType::ValueError {
-                    expected: "valid".to_string(),
-                    actual: "invalid".to_string(),
-                },
-                "#NUM!" => ErrorType::NumError,
-                "#CIRC!" => ErrorType::CircularDependency { cells: Vec::new() },
-                _ => ErrorType::ParseError {
-                    message: value.to_string(),
-                },
-            };
-            return CellValue::Error(error_type);
-        }
-
-        // Default to string
-        CellValue::String(value.to_string())
-    }
-
     /// Insert a row at the specified index
     pub fn insert_row(&self, row_index: u32) -> Result<()> {
+        self.insert_rows(row_index, 1)
+    }
+
+    // Old implementation removed - now delegating to insert_rows
+
+    #[allow(dead_code)]
+    fn old_insert_row_impl(&self, row_index: u32) -> Result<()> {
+        // Removed: Full implementation body
+        // This was doing manual cell movement and formula adjustment
+        // Now handled by insert_rows -> StructuralOperations service
         let transformer = crate::formula::FormulaTransformer::new();
         let mut cells_to_update = Vec::new();
         let mut cells_to_move = Vec::new();
@@ -979,6 +807,11 @@ impl SpreadsheetFacade {
 
     /// Delete a row at the specified index
     pub fn delete_row(&self, row_index: u32) -> Result<()> {
+        self.delete_rows(row_index, 1)
+    }
+
+    #[allow(dead_code)]
+    fn old_delete_row_impl(&self, row_index: u32) -> Result<()> {
         let transformer = crate::formula::FormulaTransformer::new();
         let mut cells_to_update = Vec::new();
         let mut cells_to_move = Vec::new();
@@ -1057,6 +890,11 @@ impl SpreadsheetFacade {
 
     /// Insert a column at the specified index
     pub fn insert_column(&self, col_index: u32) -> Result<()> {
+        self.insert_columns(col_index, 1)
+    }
+
+    #[allow(dead_code)]
+    fn old_insert_column_impl(&self, col_index: u32) -> Result<()> {
         let transformer = crate::formula::FormulaTransformer::new();
         let mut cells_to_update = Vec::new();
         let mut cells_to_move = Vec::new();
@@ -1125,6 +963,11 @@ impl SpreadsheetFacade {
 
     /// Delete a column at the specified index
     pub fn delete_column(&self, col_index: u32) -> Result<()> {
+        self.delete_columns(col_index, 1)
+    }
+
+    #[allow(dead_code)]
+    fn old_delete_column_impl(&self, col_index: u32) -> Result<()> {
         let transformer = crate::formula::FormulaTransformer::new();
         let mut cells_to_update = Vec::new();
         let mut cells_to_move = Vec::new();
