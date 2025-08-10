@@ -9,7 +9,8 @@
       "Bash(grep:*)",
       "Bash(rg:*)",
       "Bash(awk:*)",
-      "Bash(cargo build:*)"
+      "Bash(cargo build:*)",
+      "Bash(cargo check:*)"
     ],
     "deny": []
   }
