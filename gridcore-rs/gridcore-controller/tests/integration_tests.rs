@@ -176,11 +176,8 @@ fn test_bulk_operation_workflow() {
     let mut machine = UIStateMachine::new(None);
 
     // Start bulk operation
-    let parsed_command = gridcore_controller::state::ParsedBulkCommand {
-        command: ":format A1:B10 bold".to_string(),
-        operation: "format".to_string(),
-        range_spec: "A1:B10".to_string(),
-        parameters: vec!["bold".to_string()],
+    let parsed_command = gridcore_controller::state::ParsedBulkCommand::Format {
+        format_type: "bold".to_string(),
     };
 
     machine

@@ -64,10 +64,10 @@ impl BulkCommandParser {
 
     fn parse_find_replace(&self, cmd: &str) -> Option<BulkCommandType> {
         // Remove %s/ or s/ prefix
-        let content = if cmd.starts_with("%s/") {
-            &cmd[3..]
-        } else if cmd.starts_with("s/") {
-            &cmd[2..]
+        let content = if let Some(stripped) = cmd.strip_prefix("%s/") {
+            stripped
+        } else if let Some(stripped) = cmd.strip_prefix("s/") {
+            stripped
         } else {
             return None;
         };

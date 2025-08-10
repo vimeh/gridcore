@@ -205,11 +205,8 @@ mod complex_transition_tests {
         let mut machine = UIStateMachine::new(None);
 
         // Start bulk operation
-        let parsed_command = ParsedBulkCommand {
-            command: ":format A1:Z100 bold".to_string(),
-            operation: "format".to_string(),
-            range_spec: "A1:Z100".to_string(),
-            parameters: vec!["bold".to_string()],
+        let parsed_command = ParsedBulkCommand::Format {
+            format_type: "bold".to_string(),
         };
 
         machine
@@ -255,11 +252,8 @@ mod complex_transition_tests {
         // Start bulk operation
         machine
             .transition(Action::StartBulkOperation {
-                parsed_command: ParsedBulkCommand {
-                    command: ":delete A:A".to_string(),
-                    operation: "delete".to_string(),
-                    range_spec: "A:A".to_string(),
-                    parameters: vec![],
+                parsed_command: ParsedBulkCommand::Clear {
+                    clear_type: "all".to_string(),
                 },
                 affected_cells: None,
             })

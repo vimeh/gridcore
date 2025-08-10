@@ -11,7 +11,7 @@ use crate::services::{
     StructuralOperations,
 };
 use crate::types::{CellAddress, CellValue};
-use crate::Result;
+use crate::{Result, SpreadsheetError};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Rc;
@@ -501,7 +501,6 @@ impl SpreadsheetFacade {
     }
 
     /// Internal set cell value (without batch check or events)
-
     /// Recalculate cells that depend on the given address
     fn recalculate_dependents(&self, address: &CellAddress) -> Result<()> {
         let mut affected = HashSet::new();

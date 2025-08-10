@@ -156,9 +156,8 @@ impl BatchService {
     /// Internal method to set a cell value without triggering batch logic
     fn set_cell_value_internal(&self, address: &CellAddress, value: &str) -> Result<()> {
         // Parse the value
-        let cell = if value.starts_with('=') {
+        let cell = if let Some(formula_str) = value.strip_prefix('=') {
             // Formula cell
-            let formula_str = &value[1..];
             let ast = FormulaParser::parse(formula_str)?;
 
             // Track references

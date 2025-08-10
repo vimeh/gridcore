@@ -168,9 +168,8 @@ impl ExCommandExecutor for VimBehavior {
         let setting = parsed.args.join(" ");
 
         // Parse setting
-        if setting.starts_with("no") {
+        if let Some(option) = setting.strip_prefix("no") {
             // Disable setting
-            let option = &setting[2..];
             self.apply_setting(option, false)?;
         } else if let Some(eq_pos) = setting.find('=') {
             // Set value

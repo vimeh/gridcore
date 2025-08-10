@@ -113,26 +113,26 @@ impl CalculationService {
     fn recalculate_single_cell(&self, address: &CellAddress) -> Result<()> {
         // Get the cell, ensuring the borrow is dropped immediately
         let cell_opt = self.repository.borrow().get(address).cloned();
-        if let Some(mut cell) = cell_opt {
-            if let Some(ast) = &cell.formula {
-                // Evaluate in a separate scope to ensure context is dropped before mutable borrow
-                let result = {
-                    let mut context = RepositoryContext::new(&self.repository);
-                    // Push the current cell to the evaluation stack for circular reference detection
-                    context.push_evaluation(address);
-                    let mut evaluator = Evaluator::new(&mut context);
-                    // Try to evaluate, but store error values if evaluation fails
-                    let eval_result = match evaluator.evaluate(ast) {
-                        Ok(val) => val,
-                        Err(e) => CellValue::Error(e.to_error_type()),
-                    };
-                    // Pop the current cell from the evaluation stack
-                    context.pop_evaluation(address);
-                    eval_result
+        if let Some(mut cell) = cell_opt
+            && let Some(ast) = &cell.formula
+        {
+            // Evaluate in a separate scope to ensure context is dropped before mutable borrow
+            let result = {
+                let mut context = RepositoryContext::new(&self.repository);
+                // Push the current cell to the evaluation stack for circular reference detection
+                context.push_evaluation(address);
+                let mut evaluator = Evaluator::new(&mut context);
+                // Try to evaluate, but store error values if evaluation fails
+                let eval_result = match evaluator.evaluate(ast) {
+                    Ok(val) => val,
+                    Err(e) => CellValue::Error(e.to_error_type()),
                 };
-                cell.set_computed_value(result);
-                self.repository.borrow_mut().set(address, cell);
-            }
+                // Pop the current cell from the evaluation stack
+                context.pop_evaluation(address);
+                eval_result
+            };
+            cell.set_computed_value(result);
+            self.repository.borrow_mut().set(address, cell);
         }
         Ok(())
     }
@@ -191,7 +191,7 @@ mod tests {
     use super::*;
     use crate::domain::Cell;
     use crate::facade::event::EventCollector;
-    use crate::formula::{Expr, FormulaParser};
+    use crate::formula::FormulaParser;
 
     #[test]
     fn test_calculation_service() {

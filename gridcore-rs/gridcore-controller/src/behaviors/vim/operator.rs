@@ -198,12 +198,12 @@ impl VimBehavior {
     }
 
     /// Convert a cell address to Excel-style notation (A1, B2, etc.)
-    fn address_to_string(&self, addr: &CellAddress) -> String {
-        let col_letter = self.col_to_letter(addr.col);
+    fn _address_to_string(&self, addr: &CellAddress) -> String {
+        let col_letter = self._col_to_letter(addr.col);
         format!("{}{}", col_letter, addr.row + 1)
     }
 
-    fn col_to_letter(&self, col: u32) -> String {
+    fn _col_to_letter(&self, col: u32) -> String {
         if col < 26 {
             ((b'A' + col as u8) as char).to_string()
         } else {
@@ -291,21 +291,21 @@ mod tests {
     fn test_address_to_string() {
         let vim = VimBehavior::new();
 
-        assert_eq!(vim.address_to_string(&CellAddress::new(0, 0)), "A1");
-        assert_eq!(vim.address_to_string(&CellAddress::new(1, 0)), "B1");
-        assert_eq!(vim.address_to_string(&CellAddress::new(25, 0)), "Z1");
-        assert_eq!(vim.address_to_string(&CellAddress::new(26, 0)), "AA1");
-        assert_eq!(vim.address_to_string(&CellAddress::new(0, 9)), "A10");
+        assert_eq!(vim._address_to_string(&CellAddress::new(0, 0)), "A1");
+        assert_eq!(vim._address_to_string(&CellAddress::new(1, 0)), "B1");
+        assert_eq!(vim._address_to_string(&CellAddress::new(25, 0)), "Z1");
+        assert_eq!(vim._address_to_string(&CellAddress::new(26, 0)), "AA1");
+        assert_eq!(vim._address_to_string(&CellAddress::new(0, 9)), "A10");
     }
 
     #[test]
     fn test_col_to_letter() {
         let vim = VimBehavior::new();
 
-        assert_eq!(vim.col_to_letter(0), "A");
-        assert_eq!(vim.col_to_letter(25), "Z");
-        assert_eq!(vim.col_to_letter(26), "AA");
-        assert_eq!(vim.col_to_letter(51), "AZ");
-        assert_eq!(vim.col_to_letter(52), "BA");
+        assert_eq!(vim._col_to_letter(0), "A");
+        assert_eq!(vim._col_to_letter(25), "Z");
+        assert_eq!(vim._col_to_letter(26), "AA");
+        assert_eq!(vim._col_to_letter(51), "AZ");
+        assert_eq!(vim._col_to_letter(52), "BA");
     }
 }

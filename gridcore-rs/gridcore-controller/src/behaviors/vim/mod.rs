@@ -102,7 +102,7 @@ pub struct VimBehavior {
     last_find_char: Option<(char, bool)>, // char, forward?
     visual_anchor: Option<CellAddress>,
     count_buffer: String,
-    settings: HashMap<String, String>,
+    _settings: HashMap<String, String>,
 }
 
 impl VimBehavior {
@@ -117,7 +117,7 @@ impl VimBehavior {
             last_find_char: None,
             visual_anchor: None,
             count_buffer: String::new(),
-            settings: HashMap::new(),
+            _settings: HashMap::new(),
         }
     }
 
