@@ -1,3 +1,4 @@
+pub mod adapters;
 pub mod command;
 pub mod dependency;
 pub mod domain;
