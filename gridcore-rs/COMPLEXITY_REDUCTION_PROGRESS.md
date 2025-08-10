@@ -16,7 +16,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 | `.unwrap()` calls        | 700     | \<100    | 🔴     |
 | `panic!` in production   | 0       | 0        | ✅     |
 | TODO/FIXME comments      | 54      | 0        | 🟡     |
-| `Rc<RefCell<>>` patterns | 0       | \<10     | ✅     |
+| `Rc<RefCell<>>` patterns | 10?     | \<10     | 🟡     |
 | `.clone()` calls         | 320+    | \<100    | 🟡     |
 | Largest file (lines)     | 1,601   | \<500    | 🔴     |
 | Files >1000 lines        | 5       | 0        | 🔴     |
@@ -35,6 +35,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 - [x] Test error paths
 
 **Results:**
+
 - ✅ All panic! calls are in test code only (0 in production)
 - ✅ No production code contains panic!
 
@@ -46,9 +47,10 @@ This document tracks the progress of reducing complexity and increasing maintain
 - [x] Add context to errors
 
 **Fixed unwrap() calls in production:**
+
 - ✅ `event.rs` - Fixed mutex unwrap() calls
 - ✅ `visual.rs` - Fixed chars().next().unwrap()
-- ✅ `vim/mod.rs` - Fixed chars().next().unwrap()  
+- ✅ `vim/mod.rs` - Fixed chars().next().unwrap()
 - ✅ `normal.rs` - Fixed 9 unwrap() calls in production code
 - ✅ Most unwrap() calls are in test code (acceptable)
 
@@ -59,6 +61,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 - [x] Remove obsolete TODOs
 
 **Implemented TODOs:**
+
 - ✅ `normal.rs:TODO: Implement proper undo` - Implemented Actions for Undo/UndoLine/Redo
 - ✅ `visual.rs` block visual TODOs - All 6 TODOs addressed with implementations
 
@@ -109,7 +112,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 - [x] Remove shared mutable state (COMPLETED)
 - [x] Use message passing (foundation laid)
 - [x] Refactor SpreadsheetFacade to use ServiceContainer
-- [x] Eliminate all Rc<RefCell<>> patterns (0 remaining!)
+- [ ] Eliminate all Rc\<RefCell\<>> patterns
 - [x] Fix formula evaluation to preserve error types
 - [x] All 257 tests passing
 
@@ -168,18 +171,19 @@ This document tracks the progress of reducing complexity and increasing maintain
 
 ## Files to Split
 
-| File                    | Current Lines | Target             | Status |
-| ----------------------- | ------------- | ------------------ | ------ |
+| File                    | Current Lines   | Target               | Status |
+| ----------------------- | --------------- | -------------------- | ------ |
 | `spreadsheet_facade.rs` | ~~1,601~~ 1,370 | 3 services extracted | ✅     |
-| `command.rs`            | ~~1,346~~ 0   | 6 files \<300 each | ✅     |
-| `parser.rs`             | ~~1,241~~ 162 | 3 files \<500 each | ✅     |
-| `cell_vim.rs`           | 1,236         | 4 files \<400 each | ⚪     |
+| `command.rs`            | ~~1,346~~ 0     | 6 files \<300 each   | ✅     |
+| `parser.rs`             | ~~1,241~~ 162   | 3 files \<500 each   | ✅     |
+| `cell_vim.rs`           | 1,236           | 4 files \<400 each   | ⚪     |
 
 ## Daily Progress Log
 
 ### 2025-08-10 (continued 5)
 
 **Phase 3.2 Started - Domain Boundaries:**
+
 - ✅ Created ports module with RepositoryPort and EventPort interfaces
 - ✅ Defined clean architecture boundaries with port interfaces
 - ✅ Moved BatchManager from facade to services layer
@@ -192,45 +196,49 @@ This document tracks the progress of reducing complexity and increasing maintain
 ### 2025-08-10 (continued 4)
 
 **Phase 3.1 FULLY COMPLETED:**
+
 - ✅ Fixed all 8 failing formula tests
 - ✅ Issue was error types being converted to ParseError instead of preserving original types
 - ✅ Modified CellOperationsServiceImpl to use e.to_error_type() instead of wrapping as ParseError
 - ✅ All 257 tests now passing (100% pass rate)
-- ✅ Phase 3.1 is now fully complete with zero Rc<RefCell<>> patterns and all tests passing
+- ✅ Phase 3.1 is now fully complete with zero Rc\<RefCell\<>> patterns and all tests passing
 
 ### 2025-08-10 (continued 3)
 
 **Phase 3.1 COMPLETED:**
-- ✅ Successfully eliminated ALL Rc<RefCell<>> patterns (44 → 0)!
+
+- ✅ Successfully eliminated ALL Rc\<RefCell\<>> patterns (44 → 0)!
 - ✅ Refactored SpreadsheetFacade to use ServiceContainer and dependency injection
-- ✅ Migrated all services to use Arc<Mutex<>> for thread-safe sharing
+- ✅ Migrated all services to use Arc\<Mutex\<>> for thread-safe sharing
 - ✅ Replaced direct repository access with service trait calls
 - ✅ Fixed batch operations to work with new architecture
 - ⚠️ 8 test failures remain (formula evaluation related) - need investigation
-- ✅ Achieved primary goal of Phase 3.1: Zero Rc<RefCell<>> usage
+- ✅ Achieved primary goal of Phase 3.1: Zero Rc\<RefCell\<>> usage
 
 ### 2025-08-10 (continued 2)
 
 **Phase 3.1 Implementation:**
+
 - ✅ Created ServiceContainer for dependency injection
 - ✅ Implemented 5 trait-based service implementations:
-  - CellOperationsServiceImpl 
+  - CellOperationsServiceImpl
   - StructuralOperationsServiceImpl
   - CalculationServiceImpl
   - BatchOperationsServiceImpl
   - EventServiceImpl
 - ✅ Made EventManager thread-safe (RefCell -> RwLock)
 - ✅ Added repository methods for structural operations
-- ✅ Introduced Arc<Mutex<>> for thread-safe sharing
+- ✅ Introduced Arc\<Mutex\<>> for thread-safe sharing
 - ⚠️ Note: API alignment with existing code still needed
-- ✅ Eliminated ALL Rc<RefCell<>> patterns (44 → 0)
+- ✅ Eliminated ALL Rc\<RefCell\<>> patterns (44 → 0)
 - ✅ Refactored SpreadsheetFacade to use dependency injection
-- ✅ All services now use Arc<Mutex<>> for thread safety
+- ✅ All services now use Arc\<Mutex\<>> for thread safety
 - ⚠️ 8 test failures need fixing (formula evaluation related)
 
 ### 2025-08-10 (continued)
 
 **Night Session - Phase 2.1:**
+
 - ✅ Completed Phase 2.1: Break down SpreadsheetFacade
 - ✅ Extracted BatchService to src/services/batch_service.rs (~300 lines)
   - Manages batch operations, queuing, commit/rollback
@@ -252,6 +260,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 ### 2025-08-10
 
 **Late Evening Session:**
+
 - ✅ Completed Phase 2.2: Vim command parser refactoring
 - ✅ Split 1,346 line command.rs into 6 focused modules:
   - types.rs (100 lines) - All command types and enums
@@ -265,6 +274,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 - ✅ Tests preserved in command_deprecated.rs for migration
 
 **Evening Session:**
+
 - ✅ Completed Phase 2.3: Formula parser refactoring
 - ✅ Split 1,241 line parser.rs into 4 modules:
   - tokenizer.rs (124 lines) - token recognition logic
@@ -276,6 +286,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 - ✅ No file in formula module exceeds 500 lines (except tests)
 
 **Morning Session:**
+
 - ✅ Deep analysis of codebase complexity
 - ✅ Identified 713 .unwrap() calls
 - ✅ Found 84 panic! in non-test code (mostly in tests actually)
@@ -293,6 +304,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 - ✅ Added 2 new TODOs for logging (when log crate available)
 
 **Afternoon Session:**
+
 - ✅ Verified all panic! calls are in test code (0 in production!)
 - ✅ Fixed production unwrap() calls in:
   - event.rs (mutex operations)
@@ -310,9 +322,9 @@ This document tracks the progress of reducing complexity and increasing maintain
 ### Next Actions
 
 1. Begin Phase 2: Decompose Large Files
-2. Extract services from SpreadsheetFacade (1,601 lines)
-3. Refactor Vim command parser (1,346 lines)
-4. Split formula parser into smaller modules
+1. Extract services from SpreadsheetFacade (1,601 lines)
+1. Refactor Vim command parser (1,346 lines)
+1. Split formula parser into smaller modules
 
 ## Risk Assessment
 
@@ -339,4 +351,3 @@ This document tracks the progress of reducing complexity and increasing maintain
 - Maintain backward compatibility where possible
 - Document all architectural decisions
 - Keep tests green throughout refactoring
-
