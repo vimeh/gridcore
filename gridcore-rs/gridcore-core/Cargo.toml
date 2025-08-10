@@ -19,7 +19,7 @@ chrono = { workspace = true, default-features = false, features = [
   "clock",
   "std",
 ] }
-uuid = { version = "1.17", features = ["v4"] }
+uuid = { version = "1.17", features = ["v4", "js"] }
 
 [dev-dependencies]
 criterion = "0.7"
