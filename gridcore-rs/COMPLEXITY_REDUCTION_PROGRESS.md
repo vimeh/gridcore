@@ -64,7 +64,7 @@ This document tracks the progress of reducing complexity and increasing maintain
 
 ## Phase 2: Decompose Large Files (Week 2)
 
-**Status:** Not Started ⚪
+**Status:** In Progress 🟡
 
 ### 2.1 Break down SpreadsheetFacade (1,601 lines)
 
@@ -76,17 +76,23 @@ This document tracks the progress of reducing complexity and increasing maintain
 
 ### 2.2 Refactor Vim command parser (1,346 lines)
 
-- [ ] Split command categories
-- [ ] Extract execution logic
-- [ ] Implement command factory
-- [ ] Simplify parsing logic
+**Status:** Completed ✅
+
+- [x] Split command categories into separate modules
+- [x] Extract execution logic to ex_commands.rs
+- [x] Implement command factory pattern
+- [x] Simplify parsing logic in parser.rs
+- [x] Created bulk_commands.rs for bulk operations
+- [x] Extracted all types to types.rs
 
 ### 2.3 Simplify formula parser (1,241 lines)
 
-- [ ] Separate tokenizer
-- [ ] Extract expression builders
-- [ ] Move tests to separate module
-- [ ] Reduce function complexity
+**Status:** Completed ✅
+
+- [x] Separate tokenizer (124 lines)
+- [x] Extract expression builders (161 lines)
+- [x] Move tests to separate module (972 lines)
+- [x] Reduce function complexity (parser.rs now 162 lines)
 
 ## Phase 3: Reduce Coupling (Week 3)
 
@@ -154,13 +160,37 @@ This document tracks the progress of reducing complexity and increasing maintain
 | File                    | Current Lines | Target             | Status |
 | ----------------------- | ------------- | ------------------ | ------ |
 | `spreadsheet_facade.rs` | 1,601         | 5 files \<400 each | ⚪     |
-| `command.rs`            | 1,346         | 3 files \<500 each | ⚪     |
-| `parser.rs`             | 1,241         | 3 files \<500 each | ⚪     |
+| `command.rs`            | ~~1,346~~ 0   | 6 files \<300 each | ✅     |
+| `parser.rs`             | ~~1,241~~ 162 | 3 files \<500 each | ✅     |
 | `cell_vim.rs`           | 1,236         | 4 files \<400 each | ⚪     |
 
 ## Daily Progress Log
 
 ### 2025-08-10
+
+**Late Evening Session:**
+- ✅ Completed Phase 2.2: Vim command parser refactoring
+- ✅ Split 1,346 line command.rs into 6 focused modules:
+  - types.rs (100 lines) - All command types and enums
+  - parser.rs (125 lines) - Core command parsing logic
+  - bulk_commands.rs (220 lines) - Bulk command parsing and execution
+  - ex_commands.rs (254 lines) - Ex command execution logic
+  - factory.rs (215 lines) - Command factory and dispatch
+  - mod.rs (115 lines) - Module coordination
+- ✅ Implemented command factory pattern for better extensibility
+- ✅ Clear separation between parsing, execution, and dispatch
+- ✅ Tests preserved in command_deprecated.rs for migration
+
+**Evening Session:**
+- ✅ Completed Phase 2.3: Formula parser refactoring
+- ✅ Split 1,241 line parser.rs into 4 modules:
+  - tokenizer.rs (124 lines) - token recognition logic
+  - expression_builder.rs (161 lines) - expression construction
+  - parser.rs (162 lines) - simplified coordinator
+  - parser_tests.rs (972 lines) - all test functions
+- ✅ Maintained all functionality while improving maintainability
+- ✅ Better separation of concerns with focused modules
+- ✅ No file in formula module exceeds 500 lines (except tests)
 
 **Morning Session:**
 - ✅ Deep analysis of codebase complexity
