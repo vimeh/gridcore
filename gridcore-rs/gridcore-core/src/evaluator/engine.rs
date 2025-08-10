@@ -257,8 +257,8 @@ mod tests {
         
         let mut evaluator = Evaluator::new(&mut context);
         
-        // Try to add a string and a number
-        let expr = FormulaParser::parse("A1 + 5").unwrap();
+        // Try to subtract a number from a string (should fail with type error)
+        let expr = FormulaParser::parse("A1 - 5").unwrap();
         let result = evaluator.evaluate(&expr).unwrap();
         
         assert!(matches!(result, CellValue::Error(_)));
