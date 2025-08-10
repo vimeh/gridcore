@@ -1,40 +1,97 @@
 use crate::facade::{EventCallback, SpreadsheetEvent};
-use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{Arc, RwLock};
+
+/// Thread-safe callback function type
+pub type ThreadSafeCallback = Arc<dyn Fn(&str) + Send + Sync>;
 
 /// Manages event callbacks and event emission for the spreadsheet
 pub struct EventManager {
-    callbacks: RefCell<Vec<Box<dyn EventCallback>>>,
+    callbacks: RwLock<Vec<Box<dyn EventCallback>>>,
+    thread_safe_callbacks: RwLock<Vec<(usize, ThreadSafeCallback)>>,
+    next_id: RwLock<usize>,
 }
 
 impl EventManager {
     /// Create a new event manager
     pub fn new() -> Self {
         EventManager {
-            callbacks: RefCell::new(Vec::new()),
+            callbacks: RwLock::new(Vec::new()),
+            thread_safe_callbacks: RwLock::new(Vec::new()),
+            next_id: RwLock::new(0),
         }
     }
 
     /// Add an event callback
     pub fn add_callback(&self, callback: Box<dyn EventCallback>) {
-        self.callbacks.borrow_mut().push(callback);
+        if let Ok(mut callbacks) = self.callbacks.write() {
+            callbacks.push(callback);
+        }
+    }
+
+    /// Subscribe with a thread-safe callback
+    pub fn subscribe(&self, callback: Box<dyn Fn(&str) + Send + Sync>) -> usize {
+        let mut callbacks = self
+            .thread_safe_callbacks
+            .write()
+            .unwrap_or_else(|e| e.into_inner());
+        let mut next_id = self.next_id.write().unwrap_or_else(|e| e.into_inner());
+
+        let id = *next_id;
+        *next_id += 1;
+
+        callbacks.push((id, Arc::from(callback)));
+        id
+    }
+
+    /// Unsubscribe a thread-safe callback
+    pub fn unsubscribe(&self, id: usize) {
+        if let Ok(mut callbacks) = self.thread_safe_callbacks.write() {
+            callbacks.retain(|(callback_id, _)| *callback_id != id);
+        }
     }
 
     /// Remove all callbacks
     pub fn clear_callbacks(&self) {
-        self.callbacks.borrow_mut().clear();
+        if let Ok(mut callbacks) = self.callbacks.write() {
+            callbacks.clear();
+        }
+        if let Ok(mut callbacks) = self.thread_safe_callbacks.write() {
+            callbacks.clear();
+        }
     }
 
     /// Emit an event to all registered callbacks
     pub fn emit(&self, event: SpreadsheetEvent) {
-        for callback in self.callbacks.borrow().iter() {
-            callback.on_event(&event);
+        if let Ok(callbacks) = self.callbacks.read() {
+            for callback in callbacks.iter() {
+                callback.on_event(&event);
+            }
+        }
+
+        // Also emit to thread-safe callbacks as string
+        let event_str = format!("{:?}", event);
+        self.emit_raw(&event_str);
+    }
+
+    /// Emit a raw string event to thread-safe callbacks
+    pub fn emit_raw(&self, event: &str) {
+        if let Ok(callbacks) = self.thread_safe_callbacks.read() {
+            for (_, callback) in callbacks.iter() {
+                callback(event);
+            }
         }
     }
 
     /// Get the number of registered callbacks
     pub fn callback_count(&self) -> usize {
-        self.callbacks.borrow().len()
+        let regular = self.callbacks.read().map(|c| c.len()).unwrap_or(0);
+        let thread_safe = self
+            .thread_safe_callbacks
+            .read()
+            .map(|c| c.len())
+            .unwrap_or(0);
+        regular + thread_safe
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::Result;
 use crate::command::{CommandExecutor, UndoRedoManager};
 use crate::dependency::DependencyGraph;
 use crate::domain::Cell;
@@ -11,7 +12,6 @@ use crate::services::{
     StructuralOperations,
 };
 use crate::types::{CellAddress, CellValue};
-use crate::Result;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Rc;
@@ -1080,8 +1080,8 @@ impl Default for SpreadsheetFacade {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::facade::event::EventCollector;
     use crate::SpreadsheetError;
+    use crate::facade::event::EventCollector;
 
     #[test]
     fn test_facade_basic_operations() {

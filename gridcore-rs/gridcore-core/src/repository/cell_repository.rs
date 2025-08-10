@@ -1,6 +1,7 @@
+use crate::Result;
 use crate::domain::Cell;
 use crate::types::CellAddress;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
 /// Repository for storing and managing spreadsheet cells
@@ -98,6 +99,72 @@ impl CellRepository {
             .keys()
             .filter_map(|addr_str| CellAddress::from_str(addr_str).ok())
             .collect()
+    }
+
+    /// Get all cell addresses as a HashSet
+    pub fn get_all_addresses(&self) -> HashSet<CellAddress> {
+        self.cells
+            .keys()
+            .filter_map(|addr_str| CellAddress::from_str(addr_str).ok())
+            .collect()
+    }
+
+    /// Shift rows by the specified amount
+    pub fn shift_rows(&mut self, start_row: u32, shift_amount: i32) -> Result<Vec<CellAddress>> {
+        let mut affected = Vec::new();
+        let mut updates = Vec::new();
+
+        // Collect cells that need to be shifted
+        for (addr_str, cell) in self.cells.iter() {
+            if let Ok(address) = CellAddress::from_str(addr_str) {
+                if address.row >= start_row {
+                    let new_row = (address.row as i32 + shift_amount) as u32;
+                    if new_row < 1000000 {
+                        // Reasonable upper limit
+                        let new_address = CellAddress::new(address.col, new_row);
+                        updates.push((address.clone(), new_address, cell.clone()));
+                        affected.push(address);
+                    }
+                }
+            }
+        }
+
+        // Apply updates
+        for (old_addr, new_addr, cell) in updates {
+            self.cells.remove(&old_addr.to_string());
+            self.cells.insert(new_addr.to_string(), cell);
+        }
+
+        Ok(affected)
+    }
+
+    /// Shift columns by the specified amount
+    pub fn shift_columns(&mut self, start_col: u32, shift_amount: i32) -> Result<Vec<CellAddress>> {
+        let mut affected = Vec::new();
+        let mut updates = Vec::new();
+
+        // Collect cells that need to be shifted
+        for (addr_str, cell) in self.cells.iter() {
+            if let Ok(address) = CellAddress::from_str(addr_str) {
+                if address.col >= start_col {
+                    let new_col = (address.col as i32 + shift_amount) as u32;
+                    if new_col < 10000 {
+                        // Reasonable upper limit
+                        let new_address = CellAddress::new(new_col, address.row);
+                        updates.push((address.clone(), new_address, cell.clone()));
+                        affected.push(address);
+                    }
+                }
+            }
+        }
+
+        // Apply updates
+        for (old_addr, new_addr, cell) in updates {
+            self.cells.remove(&old_addr.to_string());
+            self.cells.insert(new_addr.to_string(), cell);
+        }
+
+        Ok(affected)
     }
 }
 

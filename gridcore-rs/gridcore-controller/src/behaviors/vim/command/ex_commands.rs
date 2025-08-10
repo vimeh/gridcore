@@ -294,17 +294,15 @@ impl VimBehavior {
         //     }
         // }
         match option {
-            "number" | "nu" | "relativenumber" | "rnu" | "wrap" | 
-            "expandtab" | "et" | "ignorecase" | "ic" | "smartcase" | "scs" => {
+            "number" | "nu" | "relativenumber" | "rnu" | "wrap" | "expandtab" | "et"
+            | "ignorecase" | "ic" | "smartcase" | "scs" => {
                 // Settings recognized but not yet implemented
                 Ok(())
             }
-            _ => {
-                Err(SpreadsheetError::InvalidCommand(format!(
-                    "Unknown option: {}",
-                    option
-                )))
-            }
+            _ => Err(SpreadsheetError::InvalidCommand(format!(
+                "Unknown option: {}",
+                option
+            ))),
         }
     }
 
@@ -332,17 +330,18 @@ impl VimBehavior {
             "tabstop" | "ts" | "shiftwidth" | "sw" => {
                 // Validate the value is numeric
                 value.parse::<u32>().map_err(|_| {
-                    SpreadsheetError::InvalidCommand(format!("Invalid value for {}: {}", option, value))
+                    SpreadsheetError::InvalidCommand(format!(
+                        "Invalid value for {}: {}",
+                        option, value
+                    ))
                 })?;
                 // Settings recognized but not yet implemented
                 Ok(())
             }
-            _ => {
-                Err(SpreadsheetError::InvalidCommand(format!(
-                    "Unknown option: {}",
-                    option
-                )))
-            }
+            _ => Err(SpreadsheetError::InvalidCommand(format!(
+                "Unknown option: {}",
+                option
+            ))),
         }
     }
 }

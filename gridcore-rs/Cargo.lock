@@ -662,6 +662,7 @@ dependencies = [
  "regex",
  "serde",
  "thiserror 2.0.12",
+ "uuid",
 ]
 
 [[package]]

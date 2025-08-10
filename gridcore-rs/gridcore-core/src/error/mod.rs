@@ -38,6 +38,9 @@ pub enum SpreadsheetError {
     #[error("Type mismatch: expected {expected}, got {actual}")]
     TypeMismatch { expected: String, actual: String },
 
+    #[error("Lock error: {0}")]
+    LockError(String),
+
     #[error("Division by zero")]
     DivisionByZero,
 

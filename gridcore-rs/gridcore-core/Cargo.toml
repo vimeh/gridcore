@@ -13,6 +13,7 @@ serde = { workspace = true, features = ["derive", "std"] }
 petgraph = { workspace = true }
 regex = { workspace = true, default-features = false, features = ["std", "perf"] }
 chrono = { workspace = true, default-features = false, features = ["clock", "std"] }
+uuid = { version = "1.17.0", features = ["v4"] }
 
 [dev-dependencies]
 criterion = "0.5"
