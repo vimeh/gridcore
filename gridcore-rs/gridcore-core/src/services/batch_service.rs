@@ -1,4 +1,3 @@
-use crate::command::CommandExecutor;
 use crate::dependency::DependencyGraph;
 use crate::domain::Cell;
 use crate::facade::batch::{BatchManager, BatchOperation};

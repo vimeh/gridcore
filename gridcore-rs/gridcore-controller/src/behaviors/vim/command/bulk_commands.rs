@@ -235,7 +235,7 @@ impl BulkCommandParser {
                 };
                 Action::BulkCommand {
                     command: ParsedBulkCommand::Transform {
-                        operation: transform.to_string(),
+                        transformation: transform.to_string(),
                     },
                 }
             }

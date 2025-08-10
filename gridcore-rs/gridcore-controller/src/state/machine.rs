@@ -112,6 +112,9 @@ pub enum Action {
     BulkOperationError {
         error: String,
     },
+    BulkCommand {
+        command: ParsedBulkCommand,
+    },
     Undo,
     UndoLine,
     Redo,

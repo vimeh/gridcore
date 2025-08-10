@@ -11,7 +11,7 @@ use crate::services::{
     StructuralOperations,
 };
 use crate::types::{CellAddress, CellValue};
-use crate::{Result, SpreadsheetError};
+use crate::Result;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Rc;
@@ -342,11 +342,6 @@ impl SpreadsheetFacade {
     }
 
     // Helper methods
-
-    /// Queue an operation for batch processing
-    fn queue_batch_operation(&self, batch_id: &str, operation: BatchOperation) -> Result<()> {
-        self.batch_service.add_to_batch(batch_id, operation)
-    }
 
     /// Insert rows and adjust all affected references
     pub fn insert_rows(&self, before_row: u32, count: u32) -> Result<()> {

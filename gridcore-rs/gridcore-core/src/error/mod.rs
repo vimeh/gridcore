@@ -64,6 +64,9 @@ pub enum SpreadsheetError {
 
     #[error("Invalid operation: {0}")]
     InvalidOperation(String),
+
+    #[error("Invalid command: {0}")]
+    InvalidCommand(String),
 }
 
 impl SpreadsheetError {

@@ -139,18 +139,11 @@ impl VimBehavior {
 
     fn execute_format_operator(
         &mut self,
-        range: (CellAddress, CellAddress),
+        _range: (CellAddress, CellAddress),
     ) -> Result<Option<Action>> {
         // Format the range
-        let command = crate::state::ParsedBulkCommand {
-            command: "format".to_string(),
-            operation: "format".to_string(),
-            range_spec: format!(
-                "{}:{}",
-                self.address_to_string(&range.0),
-                self.address_to_string(&range.1)
-            ),
-            parameters: vec![],
+        let command = crate::state::ParsedBulkCommand::Format {
+            format_type: "number".to_string(),
         };
 
         Ok(Some(Action::StartBulkOperation {
@@ -161,18 +154,11 @@ impl VimBehavior {
 
     fn execute_lowercase_operator(
         &mut self,
-        range: (CellAddress, CellAddress),
+        _range: (CellAddress, CellAddress),
     ) -> Result<Option<Action>> {
         // Convert to lowercase
-        let command = crate::state::ParsedBulkCommand {
-            command: "lowercase".to_string(),
-            operation: "lowercase".to_string(),
-            range_spec: format!(
-                "{}:{}",
-                self.address_to_string(&range.0),
-                self.address_to_string(&range.1)
-            ),
-            parameters: vec![],
+        let command = crate::state::ParsedBulkCommand::Transform {
+            transformation: "lower".to_string(),
         };
 
         Ok(Some(Action::StartBulkOperation {
@@ -183,18 +169,11 @@ impl VimBehavior {
 
     fn execute_uppercase_operator(
         &mut self,
-        range: (CellAddress, CellAddress),
+        _range: (CellAddress, CellAddress),
     ) -> Result<Option<Action>> {
         // Convert to uppercase
-        let command = crate::state::ParsedBulkCommand {
-            command: "uppercase".to_string(),
-            operation: "uppercase".to_string(),
-            range_spec: format!(
-                "{}:{}",
-                self.address_to_string(&range.0),
-                self.address_to_string(&range.1)
-            ),
-            parameters: vec![],
+        let command = crate::state::ParsedBulkCommand::Transform {
+            transformation: "upper".to_string(),
         };
 
         Ok(Some(Action::StartBulkOperation {
@@ -205,18 +184,11 @@ impl VimBehavior {
 
     fn execute_togglecase_operator(
         &mut self,
-        range: (CellAddress, CellAddress),
+        _range: (CellAddress, CellAddress),
     ) -> Result<Option<Action>> {
-        // Toggle case
-        let command = crate::state::ParsedBulkCommand {
-            command: "togglecase".to_string(),
-            operation: "togglecase".to_string(),
-            range_spec: format!(
-                "{}:{}",
-                self.address_to_string(&range.0),
-                self.address_to_string(&range.1)
-            ),
-            parameters: vec![],
+        // Toggle case - we'll use transform with "toggle" as a special case
+        let command = crate::state::ParsedBulkCommand::Transform {
+            transformation: "toggle".to_string(),
         };
 
         Ok(Some(Action::StartBulkOperation {

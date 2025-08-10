@@ -1,5 +1,4 @@
-use super::ast::{BinaryOperator, CellRange, Expr, UnaryOperator};
-use crate::types::{CellAddress, CellValue};
+use super::ast::{BinaryOperator, Expr, UnaryOperator};
 use crate::{Result, SpreadsheetError};
 use chumsky::pratt::*;
 use chumsky::prelude::*;

@@ -97,13 +97,39 @@ pub enum BulkOperationStatus {
     Error,
 }
 
-// Placeholder for ParsedBulkCommand - will be implemented later
+// ParsedBulkCommand represents different types of bulk operations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ParsedBulkCommand {
-    pub command: String,
-    pub operation: String,
-    pub range_spec: String,
-    pub parameters: Vec<String>,
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum ParsedBulkCommand {
+    FindReplace {
+        pattern: String,
+        replacement: String,
+        global: bool,
+        case_sensitive: bool,
+    },
+    SetValue {
+        value: String,
+    },
+    MathOperation {
+        operation: String,
+        value: f64,
+    },
+    Fill {
+        direction: String,
+    },
+    Transform {
+        transformation: String,
+    },
+    Format {
+        format_type: String,
+    },
+    Clear {
+        clear_type: String,
+    },
+    Sort {
+        direction: String,
+        column: Option<u32>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

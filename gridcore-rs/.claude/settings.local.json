@@ -8,7 +8,8 @@
       "Bash(cargo clippy:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(cargo build:*)"
     ],
     "deny": []
   }
