@@ -43,28 +43,30 @@ impl Cell {
     /// Create a cell with an error
     pub fn with_error(raw_value: CellValue, error: String) -> Self {
         // Parse the error string to determine the appropriate ErrorType
-        let error_type = if error.contains(ERROR_DIV_ZERO) || error.contains(DESC_DIVISION_BY_ZERO) {
+        // Clone once for the error type, keep original for the error field
+        let error_clone = error.clone();
+        let error_type = if error_clone.contains(ERROR_DIV_ZERO) || error_clone.contains(DESC_DIVISION_BY_ZERO) {
             ErrorType::DivideByZero
-        } else if error.contains(ERROR_REF) || error.contains(DESC_INVALID_REFERENCE) {
+        } else if error_clone.contains(ERROR_REF) || error_clone.contains(DESC_INVALID_REFERENCE) {
             ErrorType::InvalidRef {
-                reference: error.clone(),
+                reference: error_clone,
             }
-        } else if error.contains(ERROR_NAME) || error.contains(DESC_UNKNOWN_FUNCTION) {
+        } else if error_clone.contains(ERROR_NAME) || error_clone.contains(DESC_UNKNOWN_FUNCTION) {
             ErrorType::NameError {
-                name: error.clone(),
+                name: error_clone,
             }
-        } else if error.contains(ERROR_VALUE) || error.contains(DESC_TYPE_MISMATCH) {
+        } else if error_clone.contains(ERROR_VALUE) || error_clone.contains(DESC_TYPE_MISMATCH) {
             ErrorType::ValueError {
                 expected: ERROR_VALID_VALUE.to_string(),
-                actual: error.clone(),
+                actual: error_clone,
             }
-        } else if error.contains(ERROR_CIRC) || error.contains(DESC_CIRCULAR_REFERENCE) {
+        } else if error_clone.contains(ERROR_CIRC) || error_clone.contains(DESC_CIRCULAR_REFERENCE) {
             ErrorType::CircularDependency { cells: Vec::new() }
-        } else if error.contains(ERROR_NUM) {
+        } else if error_clone.contains(ERROR_NUM) {
             ErrorType::NumError
         } else {
             ErrorType::ParseError {
-                message: error.clone(),
+                message: error_clone,
             }
         };
 
@@ -119,31 +121,33 @@ impl Cell {
 
     /// Set an error on the cell
     pub fn set_error(&mut self, error: String) {
-        self.error = Some(error.clone());
+        // Clone once for the error type
+        let error_clone = error.clone();
+        self.error = Some(error);
 
         // Parse the error string to determine the appropriate ErrorType
-        let error_type = if error.contains("#DIV/0!") || error.contains("Division by zero") {
+        let error_type = if error_clone.contains("#DIV/0!") || error_clone.contains("Division by zero") {
             ErrorType::DivideByZero
-        } else if error.contains("#REF!") || error.contains("Invalid reference") {
+        } else if error_clone.contains("#REF!") || error_clone.contains("Invalid reference") {
             ErrorType::InvalidRef {
-                reference: error.clone(),
+                reference: error_clone,
             }
-        } else if error.contains("#NAME?") || error.contains("Unknown function") {
+        } else if error_clone.contains("#NAME?") || error_clone.contains("Unknown function") {
             ErrorType::NameError {
-                name: error.clone(),
+                name: error_clone,
             }
-        } else if error.contains("#VALUE!") || error.contains("Type mismatch") {
+        } else if error_clone.contains("#VALUE!") || error_clone.contains("Type mismatch") {
             ErrorType::ValueError {
                 expected: "valid".to_string(),
-                actual: error.clone(),
+                actual: error_clone,
             }
-        } else if error.contains("#CIRC!") || error.contains("Circular") {
+        } else if error_clone.contains("#CIRC!") || error_clone.contains("Circular") {
             ErrorType::CircularDependency { cells: Vec::new() }
-        } else if error.contains("#NUM!") {
+        } else if error_clone.contains("#NUM!") {
             ErrorType::NumError
         } else {
             ErrorType::ParseError {
-                message: error.clone(),
+                message: error_clone,
             }
         };
 

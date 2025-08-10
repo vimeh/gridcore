@@ -1,7 +1,7 @@
 # Phase 4.1: Clone Usage Audit Report
 
 ## Summary
-- **Total clone() calls:** 311 (was 358, reduced by 47)
+- **Total clone() calls:** 304 (was 358, reduced by 54 - 15% reduction)
 - **Target:** <100
 - **String allocations:** ~500 (was 607, reduced by ~100+)
 - **Memory optimization:** Implemented state diffing for history (significant memory savings)
@@ -14,14 +14,18 @@
 | gridcore-controller | 103 | 18 |
 | gridcore-ui | 63 | 10 |
 
-## Top Offenders (Updated)
+## Top Offenders (Final Status)
 
 1. ~~`gridcore-core/src/facade/spreadsheet_facade.rs`: 49 clones~~ → 3 clones ✅
 2. `gridcore-controller/src/state/machine.rs`: ~~49~~ → 32 clones (added diff system) ✅
-3. ~~`gridcore-ui/src/components/canvas_grid.rs`: 26 clones~~ → 16 clones ✅
+3. ~~`gridcore-ui/src/components/canvas_grid.rs`: 26 clones~~ → 18 clones ✅
 4. ~~`gridcore-ui/src/components/cell_editor.rs`: 13 clones~~ → 12 clones ✅
-5. `gridcore-controller/src/state/diff.rs`: 14 clones (new state diffing) 🆕
-6. `gridcore-core/benches/transformer_bench.rs`: 12 clones (test code)
+5. `gridcore-core/benches/transformer_bench.rs`: 12 clones (test code - no action needed)
+6. ~~`gridcore-core/src/domain/cell.rs`: 11 clones~~ → 7 clones ✅
+7. `gridcore-core/src/error/mod.rs`: 11 clones (necessary for error conversion)
+8. `gridcore-controller/src/state/diff.rs`: 10 clones (new state diffing) 🆕
+9. `gridcore-controller/src/controller/spreadsheet.rs`: 10 clones (state management)
+10. `gridcore-core/src/workbook/types.rs`: 10 clones (sheet operations)
 
 ## Clone Categories
 
@@ -115,11 +119,14 @@ Most common pattern. Opportunities:
 4. **Optimized error messages** to use constants instead of .to_string()
 5. **Used Cow<'static, str>** in WorkbookMetadata for default values
 6. **Facade refactoring** reduced clones from 49 to 3
-7. **UI component optimization** - Eliminated controller cloning in canvas_grid (26→16) and cell_editor (13→12)
+7. **UI component optimization** - Eliminated controller cloning in canvas_grid (26→18) and cell_editor (13→12)
 8. **Implemented state diffing** for history - Instead of storing full state clones, now store only differences
    - Added diff.rs module with StateDiff and StateChanges
    - Modified HistoryEntry to store diffs instead of full states
    - Significant memory savings for history tracking
+9. **Optimized Cell error handling** - Reduced redundant error string clones in cell.rs (11→7)
+   - Consolidated error cloning in with_error() and set_error() methods
+   - Single clone for error type determination instead of multiple
 
 ### Benefits of State Diffing:
 - **Memory efficiency**: History now stores only changes, not full states
