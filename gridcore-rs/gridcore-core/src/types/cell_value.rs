@@ -256,32 +256,32 @@ mod tests {
         assert!(div_error.is_error());
         assert_eq!(div_error.to_display_string(), "#DIV/0!");
         assert_eq!(div_error.type_name(), "error");
-        
+
         let ref_error = CellValue::Error(ErrorType::InvalidRef {
             reference: "Sheet1!A0".to_string(),
         });
         assert!(ref_error.is_error());
         assert_eq!(ref_error.to_display_string(), "#REF!");
-        
+
         let name_error = CellValue::Error(ErrorType::NameError {
             name: "VLOOKUP".to_string(),
         });
         assert!(name_error.is_error());
         assert_eq!(name_error.to_display_string(), "#NAME?");
-        
+
         let value_error = CellValue::Error(ErrorType::ValueError {
             expected: "number".to_string(),
             actual: "text".to_string(),
         });
         assert!(value_error.is_error());
         assert_eq!(value_error.to_display_string(), "#VALUE!");
-        
+
         let circ_error = CellValue::Error(ErrorType::CircularDependency {
             cells: vec![CellAddress::new(0, 0), CellAddress::new(1, 1)],
         });
         assert!(circ_error.is_error());
         assert_eq!(circ_error.to_display_string(), "#CIRC!");
-        
+
         let num_error = CellValue::Error(ErrorType::NumError);
         assert!(num_error.is_error());
         assert_eq!(num_error.to_display_string(), "#NUM!");
@@ -290,7 +290,7 @@ mod tests {
     #[test]
     fn test_error_not_convertible() {
         let error = CellValue::Error(ErrorType::DivideByZero);
-        
+
         // Errors should not convert to other types
         assert_eq!(error.as_number(), None);
         assert_eq!(error.as_string(), None);
@@ -307,10 +307,10 @@ mod tests {
         let error1 = CellValue::Error(ErrorType::DivideByZero);
         let error2 = CellValue::Error(ErrorType::DivideByZero);
         let error3 = CellValue::Error(ErrorType::NumError);
-        
+
         assert_eq!(error1, error2);
         assert_ne!(error1, error3);
-        
+
         let ref_error1 = CellValue::Error(ErrorType::InvalidRef {
             reference: "A1".to_string(),
         });
@@ -320,7 +320,7 @@ mod tests {
         let ref_error3 = CellValue::Error(ErrorType::InvalidRef {
             reference: "B1".to_string(),
         });
-        
+
         assert_eq!(ref_error1, ref_error2);
         assert_ne!(ref_error1, ref_error3);
     }

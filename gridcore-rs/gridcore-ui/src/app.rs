@@ -11,7 +11,7 @@ use std::rc::Rc;
 #[component]
 pub fn App() -> impl IntoView {
     // Initialize wasm-logger once for the entire application
-    wasm_logger::init(wasm_logger::Config::default());;
+    wasm_logger::init(wasm_logger::Config::default());
 
     // Set panic hook for better error messages
     #[cfg(feature = "debug")]

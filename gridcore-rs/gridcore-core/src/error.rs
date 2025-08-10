@@ -165,7 +165,7 @@ mod tests {
                 name: "unknown".to_string()
             }
         );
-        
+
         let error = SpreadsheetError::UnknownFunction("VLOOKUP".to_string());
         let error_type = error.to_error_type();
         assert_eq!(
@@ -200,7 +200,10 @@ mod tests {
     fn test_to_error_type_circular_dependency() {
         let error = SpreadsheetError::CircularDependency;
         let error_type = error.to_error_type();
-        assert_eq!(error_type, ErrorType::CircularDependency { cells: Vec::new() });
+        assert_eq!(
+            error_type,
+            ErrorType::CircularDependency { cells: Vec::new() }
+        );
     }
 
     #[test]
@@ -307,16 +310,16 @@ mod tests {
     fn test_error_display() {
         let error = SpreadsheetError::DivisionByZero;
         assert_eq!(error.to_string(), "Division by zero");
-        
+
         let error = SpreadsheetError::RefError;
         assert_eq!(error.to_string(), "#REF!");
-        
+
         let error = SpreadsheetError::NameError;
         assert_eq!(error.to_string(), "#NAME?");
-        
+
         let error = SpreadsheetError::ValueError;
         assert_eq!(error.to_string(), "#VALUE!");
-        
+
         let error = SpreadsheetError::NumError;
         assert_eq!(error.to_string(), "#NUM!");
     }

@@ -211,7 +211,7 @@ mod tests {
 
         let expr = FormulaParser::parse("10/0").unwrap();
         let result = evaluator.evaluate(&expr).unwrap();
-        
+
         assert_eq!(result, CellValue::Error(ErrorType::DivideByZero));
     }
 
@@ -219,12 +219,12 @@ mod tests {
     fn test_type_mismatch_in_arithmetic() {
         // Create a test context with values
         use std::collections::HashMap;
-        
+
         struct TestContext {
             values: HashMap<CellAddress, CellValue>,
             evaluation_stack: std::collections::HashSet<CellAddress>,
         }
-        
+
         impl TestContext {
             fn new() -> Self {
                 TestContext {
@@ -233,34 +233,41 @@ mod tests {
                 }
             }
         }
-        
+
         impl crate::evaluator::context::EvaluationContext for TestContext {
             fn get_cell_value(&self, address: &CellAddress) -> crate::Result<CellValue> {
-                Ok(self.values.get(address).cloned().unwrap_or(CellValue::Empty))
+                Ok(self
+                    .values
+                    .get(address)
+                    .cloned()
+                    .unwrap_or(CellValue::Empty))
             }
-            
+
             fn check_circular(&self, address: &CellAddress) -> bool {
                 self.evaluation_stack.contains(address)
             }
-            
+
             fn push_evaluation(&mut self, address: &CellAddress) {
                 self.evaluation_stack.insert(*address);
             }
-            
+
             fn pop_evaluation(&mut self, address: &CellAddress) {
                 self.evaluation_stack.remove(address);
             }
         }
-        
+
         let mut context = TestContext::new();
-        context.values.insert(CellAddress::new(0, 0), CellValue::String("text".to_string()));
-        
+        context.values.insert(
+            CellAddress::new(0, 0),
+            CellValue::String("text".to_string()),
+        );
+
         let mut evaluator = Evaluator::new(&mut context);
-        
+
         // Try to subtract a number from a string (should fail with type error)
         let expr = FormulaParser::parse("A1 - 5").unwrap();
         let result = evaluator.evaluate(&expr).unwrap();
-        
+
         assert!(matches!(result, CellValue::Error(_)));
         if let CellValue::Error(error_type) = result {
             assert!(matches!(error_type, ErrorType::ValueError { .. }));

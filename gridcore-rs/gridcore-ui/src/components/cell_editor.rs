@@ -106,10 +106,11 @@ pub fn CellEditor(
 
                 // Set cursor position based on edit mode
                 if let gridcore_controller::state::UIState::Editing {
-                        edit_variant,
-                        cursor_position,
-                        ..
-                    } = editing_state {
+                    edit_variant,
+                    cursor_position,
+                    ..
+                } = editing_state
+                {
                     if let Some(variant) = edit_variant {
                         match variant {
                             InsertMode::I => {
@@ -264,7 +265,7 @@ pub fn CellEditor(
                         let new_cursor_pos = cursor_pos + 1;
                         let _ = input.set_selection_start(Some(new_cursor_pos as u32));
                         let _ = input.set_selection_end(Some(new_cursor_pos as u32));
-                    }// Don't save, just add newline
+                    } // Don't save, just add newline
                 } else {
                     // Not in Insert mode - Enter saves the value
                     ev.prevent_default();
