@@ -1,24 +1,22 @@
-//! Service container for dependency injection
+//! Service container using port interfaces
 //!
-//! This module provides a container for managing service dependencies
-//! and their lifecycle, replacing Rc<RefCell<>> with Arc-based sharing.
+//! This module provides a container that uses port interfaces
+//! instead of concrete implementations, enabling clean architecture.
 
-use crate::dependency::DependencyGraph;
-use crate::references::ReferenceTracker;
-use crate::repository::CellRepository;
-use crate::services::EventManager;
+use crate::ports::{EventPort, RepositoryPort};
 use crate::traits::{
     BatchOperationsService, CalculationService, CellOperationsService, EventService,
     StructuralOperationsService,
 };
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-/// Container for all spreadsheet services
+/// Container for all spreadsheet services using port interfaces
 pub struct ServiceContainer {
-    cell_repository: Arc<Mutex<CellRepository>>,
-    dependency_graph: Arc<Mutex<DependencyGraph>>,
-    reference_tracker: Arc<Mutex<ReferenceTracker>>,
-    event_manager: Arc<EventManager>,
+    // Port interfaces
+    repository_port: Option<Arc<dyn RepositoryPort>>,
+    event_port: Option<Arc<dyn EventPort>>,
+
+    // Service interfaces
     cell_operations: Option<Arc<dyn CellOperationsService>>,
     structural_operations: Option<Arc<dyn StructuralOperationsService>>,
     calculation_service: Option<Arc<dyn CalculationService>>,
@@ -27,13 +25,11 @@ pub struct ServiceContainer {
 }
 
 impl ServiceContainer {
-    /// Create a new service container with default repositories
+    /// Create a new service container
     pub fn new() -> Self {
         Self {
-            cell_repository: Arc::new(Mutex::new(CellRepository::new())),
-            dependency_graph: Arc::new(Mutex::new(DependencyGraph::new())),
-            reference_tracker: Arc::new(Mutex::new(ReferenceTracker::new())),
-            event_manager: Arc::new(EventManager::new()),
+            repository_port: None,
+            event_port: None,
             cell_operations: None,
             structural_operations: None,
             calculation_service: None,
@@ -42,57 +38,14 @@ impl ServiceContainer {
         }
     }
 
-    /// Get the cell repository
-    pub fn cell_repository(&self) -> Arc<Mutex<CellRepository>> {
-        Arc::clone(&self.cell_repository)
+    /// Get the repository port
+    pub fn repository(&self) -> Option<Arc<dyn RepositoryPort>> {
+        self.repository_port.clone()
     }
 
-    /// Get the dependency graph
-    pub fn dependency_graph(&self) -> Arc<Mutex<DependencyGraph>> {
-        Arc::clone(&self.dependency_graph)
-    }
-
-    /// Get the reference tracker
-    pub fn reference_tracker(&self) -> Arc<Mutex<ReferenceTracker>> {
-        Arc::clone(&self.reference_tracker)
-    }
-
-    /// Get the event manager
-    pub fn event_manager(&self) -> Arc<EventManager> {
-        Arc::clone(&self.event_manager)
-    }
-
-    /// Set the cell operations service
-    pub fn with_cell_operations(mut self, service: Arc<dyn CellOperationsService>) -> Self {
-        self.cell_operations = Some(service);
-        self
-    }
-
-    /// Set the structural operations service
-    pub fn with_structural_operations(
-        mut self,
-        service: Arc<dyn StructuralOperationsService>,
-    ) -> Self {
-        self.structural_operations = Some(service);
-        self
-    }
-
-    /// Set the calculation service
-    pub fn with_calculation_service(mut self, service: Arc<dyn CalculationService>) -> Self {
-        self.calculation_service = Some(service);
-        self
-    }
-
-    /// Set the batch operations service
-    pub fn with_batch_operations(mut self, service: Arc<dyn BatchOperationsService>) -> Self {
-        self.batch_operations = Some(service);
-        self
-    }
-
-    /// Set the event service
-    pub fn with_event_service(mut self, service: Arc<dyn EventService>) -> Self {
-        self.event_service = Some(service);
-        self
+    /// Get the event port
+    pub fn events(&self) -> Option<Arc<dyn EventPort>> {
+        self.event_port.clone()
     }
 
     /// Get the cell operations service
@@ -134,22 +87,15 @@ impl ServiceContainerBuilder {
         }
     }
 
-    /// Set custom repositories
-    pub fn with_repositories(
-        mut self,
-        repository: Arc<Mutex<CellRepository>>,
-        dependency_graph: Arc<Mutex<DependencyGraph>>,
-        reference_tracker: Arc<Mutex<ReferenceTracker>>,
-    ) -> Self {
-        self.container.cell_repository = repository;
-        self.container.dependency_graph = dependency_graph;
-        self.container.reference_tracker = reference_tracker;
+    /// Set the repository port
+    pub fn with_repository(mut self, repository: Arc<dyn RepositoryPort>) -> Self {
+        self.container.repository_port = Some(repository);
         self
     }
 
-    /// Set the event manager
-    pub fn with_event_manager(mut self, event_manager: Arc<EventManager>) -> Self {
-        self.container.event_manager = event_manager;
+    /// Set the event port
+    pub fn with_events(mut self, events: Arc<dyn EventPort>) -> Self {
+        self.container.event_port = Some(events);
         self
     }
 
@@ -201,5 +147,38 @@ impl Default for ServiceContainer {
 impl Default for ServiceContainerBuilder {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::adapters::{EventAdapter, RepositoryAdapter};
+
+    #[test]
+    fn test_service_container_builder() {
+        let repository = Arc::new(RepositoryAdapter::new_empty());
+        let events = Arc::new(EventAdapter::new_empty());
+
+        let container = ServiceContainerBuilder::new()
+            .with_repository(repository as Arc<dyn RepositoryPort>)
+            .with_events(events as Arc<dyn EventPort>)
+            .build();
+
+        assert!(container.repository().is_some());
+        assert!(container.events().is_some());
+    }
+
+    #[test]
+    fn test_service_container_default() {
+        let container = ServiceContainer::default();
+
+        assert!(container.repository().is_none());
+        assert!(container.events().is_none());
+        assert!(container.cell_operations().is_none());
+        assert!(container.structural_operations().is_none());
+        assert!(container.calculation_service().is_none());
+        assert!(container.batch_operations().is_none());
+        assert!(container.event_service().is_none());
     }
 }
