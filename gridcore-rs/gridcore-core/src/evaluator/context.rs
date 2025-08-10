@@ -1,4 +1,5 @@
 use crate::Result;
+use crate::ports::RepositoryPort;
 use crate::types::{CellAddress, CellValue};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -8,27 +9,19 @@ pub trait EvaluationContext {
     /// Get the value of a cell
     fn get_cell_value(&self, address: &CellAddress) -> Result<CellValue>;
 
-    /// Check if we're in a circular dependency
-    fn check_circular(&self, address: &CellAddress) -> bool;
+    /// Check if a cell is currently being evaluated (for circular dependency detection)
+    fn is_evaluating(&self, address: &CellAddress) -> bool;
 
-    /// Mark a cell as being evaluated (for circular dependency detection)
+    /// Push a cell address to the evaluation stack
     fn push_evaluation(&mut self, address: &CellAddress);
 
-    /// Unmark a cell as being evaluated
+    /// Pop a cell address from the evaluation stack
     fn pop_evaluation(&mut self, address: &CellAddress);
 }
 
-/// Basic implementation of EvaluationContext for testing
-#[derive(Debug, Clone)]
+/// Basic context for testing
 pub struct BasicContext {
-    /// Stack of cells currently being evaluated
     evaluation_stack: HashSet<CellAddress>,
-}
-
-impl Default for BasicContext {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl BasicContext {
@@ -39,14 +32,19 @@ impl BasicContext {
     }
 }
 
+impl Default for BasicContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EvaluationContext for BasicContext {
     fn get_cell_value(&self, _address: &CellAddress) -> Result<CellValue> {
-        // In a real implementation, this would look up the cell value
-        // For now, return empty
+        // Return empty for testing
         Ok(CellValue::Empty)
     }
 
-    fn check_circular(&self, address: &CellAddress) -> bool {
+    fn is_evaluating(&self, address: &CellAddress) -> bool {
         self.evaluation_stack.contains(address)
     }
 
@@ -88,6 +86,12 @@ impl<'a> EvaluationContext for RepositoryContext<'a> {
             crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string())
         })?;
 
+        // Check for circular dependency
+        if self.is_evaluating(address) {
+            return Err(crate::SpreadsheetError::CircularDependency);
+        }
+
+        // Get the cell from the repository
         if let Some(cell) = repository.get(address) {
             Ok(cell.get_computed_value())
         } else {
@@ -95,7 +99,50 @@ impl<'a> EvaluationContext for RepositoryContext<'a> {
         }
     }
 
-    fn check_circular(&self, address: &CellAddress) -> bool {
+    fn is_evaluating(&self, address: &CellAddress) -> bool {
+        self.evaluation_stack.contains(address)
+    }
+
+    fn push_evaluation(&mut self, address: &CellAddress) {
+        self.evaluation_stack.insert(*address);
+    }
+
+    fn pop_evaluation(&mut self, address: &CellAddress) {
+        self.evaluation_stack.remove(address);
+    }
+}
+
+/// Context that uses a repository port
+pub struct PortContext {
+    repository: Arc<dyn RepositoryPort>,
+    evaluation_stack: HashSet<CellAddress>,
+}
+
+impl PortContext {
+    pub fn new(repository: Arc<dyn RepositoryPort>) -> Self {
+        PortContext {
+            repository,
+            evaluation_stack: HashSet::new(),
+        }
+    }
+}
+
+impl EvaluationContext for PortContext {
+    fn get_cell_value(&self, address: &CellAddress) -> Result<CellValue> {
+        // Check for circular dependency
+        if self.is_evaluating(address) {
+            return Err(crate::SpreadsheetError::CircularDependency);
+        }
+
+        // Get the cell from the repository
+        if let Some(cell) = self.repository.get(address) {
+            Ok(cell.get_computed_value())
+        } else {
+            Ok(CellValue::Empty)
+        }
+    }
+
+    fn is_evaluating(&self, address: &CellAddress) -> bool {
         self.evaluation_stack.contains(address)
     }
 

@@ -27,7 +27,7 @@ impl<'a> Evaluator<'a> {
 
             Expr::Reference { address, .. } => {
                 // Check for circular dependency
-                if self.context.check_circular(address) {
+                if self.context.is_evaluating(address) {
                     // Return as CellValue::Error for proper propagation
                     return Ok(CellValue::Error(ErrorType::CircularDependency {
                         cells: vec![*address],
@@ -87,7 +87,7 @@ impl<'a> Evaluator<'a> {
                     // For ranges, collect all cell values
                     let mut values = Vec::new();
                     for cell_addr in range.cells() {
-                        if self.context.check_circular(&cell_addr) {
+                        if self.context.is_evaluating(&cell_addr) {
                             // Return circular reference error as CellValue::Error
                             return Ok(CellValue::Error(ErrorType::CircularDependency {
                                 cells: vec![cell_addr],
@@ -121,7 +121,7 @@ impl<'a> Evaluator<'a> {
         let mut values = Vec::new();
 
         for cell_addr in range.cells() {
-            if self.context.check_circular(&cell_addr) {
+            if self.context.is_evaluating(&cell_addr) {
                 // Add circular reference error to the array
                 values.push(CellValue::Error(ErrorType::CircularDependency {
                     cells: vec![cell_addr],

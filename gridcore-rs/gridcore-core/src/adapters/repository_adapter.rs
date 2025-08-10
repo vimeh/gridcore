@@ -37,16 +37,18 @@ impl RepositoryPort for RepositoryAdapter {
             .and_then(|repo| repo.get(address).cloned())
     }
 
-    fn set(&mut self, address: &CellAddress, cell: Cell) {
-        if let Ok(mut repo) = self.repository.lock() {
-            repo.set(address, cell);
-        }
+    fn set(&self, address: &CellAddress, cell: Cell) -> Result<()> {
+        let mut repo = self.repository.lock()
+            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        repo.set(address, cell);
+        Ok(())
     }
 
-    fn delete(&mut self, address: &CellAddress) {
-        if let Ok(mut repo) = self.repository.lock() {
-            repo.delete(address);
-        }
+    fn delete(&self, address: &CellAddress) -> Result<()> {
+        let mut repo = self.repository.lock()
+            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        repo.delete(address);
+        Ok(())
     }
 
     fn get_all(&self) -> HashMap<CellAddress, Cell> {
@@ -78,10 +80,11 @@ impl RepositoryPort for RepositoryAdapter {
         result
     }
 
-    fn clear(&mut self) {
-        if let Ok(mut repo) = self.repository.lock() {
-            repo.clear();
-        }
+    fn clear(&self) -> Result<()> {
+        let mut repo = self.repository.lock()
+            .map_err(|_| crate::SpreadsheetError::LockError("Failed to acquire repository lock".to_string()))?;
+        repo.clear();
+        Ok(())
     }
 
     fn count(&self) -> usize {
@@ -100,7 +103,7 @@ impl RepositoryPort for RepositoryAdapter {
             .unwrap_or(false)
     }
 
-    fn insert_row(&mut self, row_index: u32) -> Result<()> {
+    fn insert_row(&self, row_index: u32) -> Result<()> {
         let mut cells_to_move = Vec::new();
 
         // Collect cells that need to be moved
@@ -129,7 +132,7 @@ impl RepositoryPort for RepositoryAdapter {
         Ok(())
     }
 
-    fn insert_column(&mut self, col_index: u32) -> Result<()> {
+    fn insert_column(&self, col_index: u32) -> Result<()> {
         let mut cells_to_move = Vec::new();
 
         // Collect cells that need to be moved
@@ -158,7 +161,7 @@ impl RepositoryPort for RepositoryAdapter {
         Ok(())
     }
 
-    fn delete_row(&mut self, row_index: u32) -> Result<()> {
+    fn delete_row(&self, row_index: u32) -> Result<()> {
         let mut cells_to_delete = Vec::new();
         let mut cells_to_move = Vec::new();
 
@@ -195,7 +198,7 @@ impl RepositoryPort for RepositoryAdapter {
         Ok(())
     }
 
-    fn delete_column(&mut self, col_index: u32) -> Result<()> {
+    fn delete_column(&self, col_index: u32) -> Result<()> {
         let mut cells_to_delete = Vec::new();
         let mut cells_to_move = Vec::new();
 

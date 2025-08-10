@@ -10,15 +10,17 @@ use crate::types::{CellAddress, CellRange};
 use std::collections::HashMap;
 
 /// Port interface for repository operations
+/// 
+/// Uses interior mutability to allow shared access while supporting mutations
 pub trait RepositoryPort: Send + Sync {
     /// Get a cell by address
     fn get(&self, address: &CellAddress) -> Option<Cell>;
 
     /// Set a cell at address
-    fn set(&mut self, address: &CellAddress, cell: Cell);
+    fn set(&self, address: &CellAddress, cell: Cell) -> Result<()>;
 
     /// Delete a cell at address
-    fn delete(&mut self, address: &CellAddress);
+    fn delete(&self, address: &CellAddress) -> Result<()>;
 
     /// Get all cells
     fn get_all(&self) -> HashMap<CellAddress, Cell>;
@@ -27,7 +29,7 @@ pub trait RepositoryPort: Send + Sync {
     fn get_range(&self, range: &CellRange) -> Vec<(CellAddress, Cell)>;
 
     /// Clear all cells
-    fn clear(&mut self);
+    fn clear(&self) -> Result<()>;
 
     /// Get count of non-empty cells
     fn count(&self) -> usize;
@@ -36,14 +38,14 @@ pub trait RepositoryPort: Send + Sync {
     fn contains(&self, address: &CellAddress) -> bool;
 
     /// Insert a row at the specified index
-    fn insert_row(&mut self, row_index: u32) -> Result<()>;
+    fn insert_row(&self, row_index: u32) -> Result<()>;
 
     /// Insert a column at the specified index
-    fn insert_column(&mut self, col_index: u32) -> Result<()>;
+    fn insert_column(&self, col_index: u32) -> Result<()>;
 
     /// Delete a row at the specified index
-    fn delete_row(&mut self, row_index: u32) -> Result<()>;
+    fn delete_row(&self, row_index: u32) -> Result<()>;
 
     /// Delete a column at the specified index
-    fn delete_column(&mut self, col_index: u32) -> Result<()>;
+    fn delete_column(&self, col_index: u32) -> Result<()>;
 }

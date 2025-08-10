@@ -57,15 +57,20 @@ impl SpreadsheetFacade {
 
     /// Set a cell value (simplified version)
     pub fn set_cell(&self, address: &CellAddress, value: CellValue) -> Result<()> {
-        // This would need a mutable repository port
-        // For now, we demonstrate the architecture
+        let old_value = self.get_cell(address).map(|c| c.get_computed_value());
+        
+        // Create and store the new cell
+        if let Some(repository) = self.container.repository() {
+            let cell = Cell::new(value.clone());
+            repository.set(address, cell)?;
+        }
 
         // Emit event through the event port
         if let Some(events) = self.container.events() {
             use crate::ports::event_port::DomainEvent;
             let event = DomainEvent::CellChanged {
                 address: *address,
-                old_value: self.get_cell(address).map(|c| c.get_computed_value()),
+                old_value,
                 new_value: value,
             };
             events.publish(event)?;
@@ -76,10 +81,17 @@ impl SpreadsheetFacade {
 
     /// Delete a cell
     pub fn delete_cell(&self, address: &CellAddress) -> Result<()> {
+        let old_cell = self.get_cell(address);
+        
+        // Delete from repository
+        if let Some(repository) = self.container.repository() {
+            repository.delete(address)?;
+        }
+        
         // Emit event through the event port
         if let Some(events) = self.container.events() {
             use crate::ports::event_port::DomainEvent;
-            if let Some(cell) = self.get_cell(address) {
+            if let Some(cell) = old_cell {
                 let event = DomainEvent::CellDeleted {
                     address: *address,
                     old_value: cell.get_computed_value(),
@@ -111,17 +123,48 @@ impl SpreadsheetFacade {
     
     /// Set cell value (standard API)
     pub fn set_cell_value(&self, address: &CellAddress, value: &str) -> Result<()> {
-        // For now, just delegate to set_cell with parsed value
-        let cell_value = if value.starts_with('=') {
-            CellValue::String(value.to_string())
-        } else if let Ok(num) = value.parse::<f64>() {
-            CellValue::Number(num)
-        } else if let Ok(bool_val) = value.parse::<bool>() {
-            CellValue::Boolean(bool_val)
+        if value.starts_with('=') {
+            // It's a formula - create a cell with formula
+            if let Some(repository) = self.container.repository() {
+                let formula_text = value[1..].to_string();
+                let mut cell = Cell::with_formula(
+                    CellValue::String(value.to_string()),
+                    formula_text.clone()
+                );
+                
+                // Try to evaluate the formula
+                if let Some(repo_for_eval) = self.container.repository() {
+                    use crate::evaluator::{Evaluator, PortContext};
+                    use crate::formula::FormulaParser;
+                    
+                    // Parse the formula
+                    if let Ok(expr) = FormulaParser::parse(&formula_text) {
+                        let mut context = PortContext::new(repo_for_eval);
+                        let mut evaluator = Evaluator::new(&mut context);
+                        
+                        // Evaluate and set the computed value
+                        match evaluator.evaluate(&expr) {
+                            Ok(result) => cell.set_computed_value(result),
+                            Err(e) => cell.set_error(e.to_string()),
+                        }
+                    }
+                }
+                
+                repository.set(address, cell)?;
+            }
         } else {
-            CellValue::String(value.to_string())
-        };
-        self.set_cell(address, cell_value)
+            // Regular value
+            let cell_value = if let Ok(num) = value.parse::<f64>() {
+                CellValue::Number(num)
+            } else if let Ok(bool_val) = value.parse::<bool>() {
+                CellValue::Boolean(bool_val)
+            } else {
+                CellValue::String(value.to_string())
+            };
+            self.set_cell(address, cell_value)?;
+        }
+        
+        Ok(())
     }
     
     /// Get raw cell value
