@@ -142,44 +142,44 @@ pub fn TabBar(
             </button>
 
             // Context menu
-            {move || if show_context_menu.get() {
-                let (x, y) = context_menu_pos.get();
-                let menu_sheet = context_menu_sheet.get();
-                view! {
-                    <div
-                        style=format!("position: fixed; left: {}px; top: {}px; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px;", x, y)
-                        on:click=move |ev| ev.stop_propagation()
-                    >
+            <Show when=move || show_context_menu.get()>
+                {move || {
+                    let (x, y) = context_menu_pos.get();
+                    let menu_sheet = context_menu_sheet.get();
+                    view! {
                         <div
-                            on:click=move |_| start_rename(menu_sheet)
-                            style="padding: 8px 12px; cursor: pointer; hover:background: #f5f5f5;"
-                            onmouseover="this.style.background='#f5f5f5'"
-                            onmouseout="this.style.background='white'"
+                            style=format!("position: fixed; left: {}px; top: {}px; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px;", x, y)
+                            on:click=move |ev| ev.stop_propagation()
                         >
-                            "Rename"
+                            <div
+                                on:click=move |_| start_rename(menu_sheet)
+                                style="padding: 8px 12px; cursor: pointer; hover:background: #f5f5f5;"
+                                onmouseover="this.style.background='#f5f5f5'"
+                                onmouseout="this.style.background='white'"
+                            >
+                                "Rename"
+                            </div>
+                            <div
+                                on:click=move |_| duplicate_sheet(menu_sheet)
+                                style="padding: 8px 12px; cursor: pointer;"
+                                onmouseover="this.style.background='#f5f5f5'"
+                                onmouseout="this.style.background='white'"
+                            >
+                                "Duplicate"
+                            </div>
+                            <div style="border-top: 1px solid #e0e0e0; margin: 4px 0;"></div>
+                            <div
+                                on:click=move |_| delete_sheet(menu_sheet)
+                                style="padding: 8px 12px; cursor: pointer; color: #d32f2f;"
+                                onmouseover="this.style.background='#ffebee'"
+                                onmouseout="this.style.background='white'"
+                            >
+                                "Delete"
+                            </div>
                         </div>
-                        <div
-                            on:click=move |_| duplicate_sheet(menu_sheet)
-                            style="padding: 8px 12px; cursor: pointer;"
-                            onmouseover="this.style.background='#f5f5f5'"
-                            onmouseout="this.style.background='white'"
-                        >
-                            "Duplicate"
-                        </div>
-                        <div style="border-top: 1px solid #e0e0e0; margin: 4px 0;"></div>
-                        <div
-                            on:click=move |_| delete_sheet(menu_sheet)
-                            style="padding: 8px 12px; cursor: pointer; color: #d32f2f;"
-                            onmouseover="this.style.background='#ffebee'"
-                            onmouseout="this.style.background='white'"
-                        >
-                            "Delete"
-                        </div>
-                    </div>
-                }
-            } else {
-                view! { <div style="display: none;" on:click=move |_| {}></div> }
-            }}
+                    }
+                }}
+            </Show>
         </div>
     }
 }

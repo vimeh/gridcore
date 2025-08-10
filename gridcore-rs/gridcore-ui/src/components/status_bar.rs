@@ -23,8 +23,8 @@ pub fn StatusBar(
         use_context().expect("SpreadsheetController not found in context");
     let controller = controller_stored.with_value(|c| c.clone());
 
-    // Clone controller for closures
-    let ctrl_for_display = controller.clone();
+    // Store controller in LocalStorage for non-Send access
+    let controller_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
 
     // Create a reactive signal that updates when current_mode changes
     // This ensures the UI updates when mode changes
@@ -33,8 +33,10 @@ pub fn StatusBar(
         let signal_mode = current_mode.get();
         leptos::logging::log!("Status bar update: signal mode = {:?}", signal_mode);
 
-        let ctrl_borrow = ctrl_for_display.borrow();
-        let state = ctrl_borrow.get_state();
+        let state = controller_stored.with_value(|ctrl| {
+            let ctrl_borrow = ctrl.borrow();
+            ctrl_borrow.get_state().clone()
+        });
         leptos::logging::log!("Status bar update: controller state = {:?}", state);
 
         let (text, color, detail) = match state {
