@@ -6,6 +6,7 @@ use crate::fill::{FillEngine, FillOperation, FillResult};
 use crate::formula::FormulaParser;
 use crate::references::{ReferenceAdjuster, ReferenceTracker, StructuralOperation};
 use crate::repository::CellRepository;
+use crate::services::{CellOperations, EventManager, StructuralOperations};
 use crate::types::{CellAddress, CellValue, ErrorType};
 use crate::{Result, SpreadsheetError};
 use std::cell::RefCell;
@@ -26,8 +27,12 @@ pub struct SpreadsheetFacade {
     reference_tracker: RefCell<ReferenceTracker>,
     /// Batch manager for batch operations
     batch_manager: RefCell<BatchManager>,
-    /// Event callbacks
-    event_callbacks: RefCell<Vec<Box<dyn EventCallback>>>,
+    /// Event manager service for handling callbacks
+    event_manager: Rc<EventManager>,
+    /// Cell operations service
+    cell_operations: Rc<CellOperations>,
+    /// Structural operations service
+    structural_operations: Rc<StructuralOperations>,
     /// Undo/redo manager
     undo_redo_manager: RefCell<UndoRedoManager>,
 }
@@ -35,12 +40,26 @@ pub struct SpreadsheetFacade {
 impl SpreadsheetFacade {
     /// Create a new spreadsheet facade
     pub fn new() -> Self {
+        let repository = Rc::new(RefCell::new(CellRepository::new()));
+        let dependency_graph = Rc::new(RefCell::new(DependencyGraph::new()));
+        let event_manager = Rc::new(EventManager::new());
+        let cell_operations = Rc::new(CellOperations::new(
+            repository.clone(),
+            dependency_graph.clone(),
+        ));
+        let structural_operations = Rc::new(StructuralOperations::new(
+            repository.clone(),
+            dependency_graph.clone(),
+        ));
+
         SpreadsheetFacade {
-            repository: Rc::new(RefCell::new(CellRepository::new())),
-            dependency_graph: Rc::new(RefCell::new(DependencyGraph::new())),
+            repository,
+            dependency_graph,
             reference_tracker: RefCell::new(ReferenceTracker::new()),
             batch_manager: RefCell::new(BatchManager::new()),
-            event_callbacks: RefCell::new(Vec::new()),
+            event_manager,
+            cell_operations,
+            structural_operations,
             undo_redo_manager: RefCell::new(UndoRedoManager::new()),
         }
     }
@@ -50,26 +69,36 @@ impl SpreadsheetFacade {
         repository: Rc<RefCell<CellRepository>>,
         dependency_graph: Rc<RefCell<DependencyGraph>>,
     ) -> Self {
+        let event_manager = Rc::new(EventManager::new());
+        let cell_operations = Rc::new(CellOperations::new(
+            repository.clone(),
+            dependency_graph.clone(),
+        ));
+        let structural_operations = Rc::new(StructuralOperations::new(
+            repository.clone(),
+            dependency_graph.clone(),
+        ));
+
         SpreadsheetFacade {
             repository,
             dependency_graph,
             reference_tracker: RefCell::new(ReferenceTracker::new()),
             batch_manager: RefCell::new(BatchManager::new()),
-            event_callbacks: RefCell::new(Vec::new()),
+            event_manager,
+            cell_operations,
+            structural_operations,
             undo_redo_manager: RefCell::new(UndoRedoManager::new()),
         }
     }
 
     /// Add an event callback
     pub fn add_event_callback(&self, callback: Box<dyn EventCallback>) {
-        self.event_callbacks.borrow_mut().push(callback);
+        self.event_manager.add_callback(callback);
     }
 
     /// Emit an event to all callbacks
     fn emit_event(&self, event: SpreadsheetEvent) {
-        for callback in self.event_callbacks.borrow().iter() {
-            callback.on_event(&event);
-        }
+        self.event_manager.emit(event);
     }
 
     /// Set a cell value (formula or direct value)
@@ -249,11 +278,8 @@ impl SpreadsheetFacade {
         }
         drop(batch_manager);
 
-        // Remove from repository
-        self.repository.borrow_mut().delete(address);
-
-        // Remove from dependency graph
-        self.dependency_graph.borrow_mut().remove_cell(address);
+        // Delegate to CellOperations service
+        self.cell_operations.delete_cell(address)?;
 
         // Emit event
         self.emit_event(SpreadsheetEvent::cell_deleted(address));
@@ -504,30 +530,110 @@ impl SpreadsheetFacade {
 
     /// Insert rows and adjust all affected references
     pub fn insert_rows(&self, before_row: u32, count: u32) -> Result<()> {
+        // Apply the structural operation
+        let affected = self.structural_operations.insert_rows(before_row, count)?;
+
+        // Apply formula adjustments
         let operation = StructuralOperation::InsertRows { before_row, count };
-        self.apply_structural_operation(operation)
+        self.apply_formula_adjustments(operation)?;
+
+        // Emit events for affected cells
+        for addr in affected {
+            if let Some(cell) = self.repository.borrow().get(&addr) {
+                let formula = if cell.has_formula() {
+                    if let CellValue::String(s) = &cell.raw_value {
+                        Some(s.clone())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                self.emit_event(SpreadsheetEvent::cell_updated(
+                    &addr,
+                    None,
+                    cell.get_computed_value(),
+                    formula,
+                ));
+            }
+        }
+
+        Ok(())
     }
 
     /// Insert columns and adjust all affected references
     pub fn insert_columns(&self, before_col: u32, count: u32) -> Result<()> {
+        // Apply the structural operation
+        let affected = self
+            .structural_operations
+            .insert_columns(before_col, count)?;
+
+        // Apply formula adjustments
         let operation = StructuralOperation::InsertColumns { before_col, count };
-        self.apply_structural_operation(operation)
+        self.apply_formula_adjustments(operation)?;
+
+        // Emit events for affected cells
+        for addr in affected {
+            if let Some(cell) = self.repository.borrow().get(&addr) {
+                let formula = if cell.has_formula() {
+                    if let CellValue::String(s) = &cell.raw_value {
+                        Some(s.clone())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                self.emit_event(SpreadsheetEvent::cell_updated(
+                    &addr,
+                    None,
+                    cell.get_computed_value(),
+                    formula,
+                ));
+            }
+        }
+
+        Ok(())
     }
 
     /// Delete rows and adjust all affected references
     pub fn delete_rows(&self, start_row: u32, count: u32) -> Result<()> {
+        // Apply the structural operation
+        let deleted = self.structural_operations.delete_rows(start_row, count)?;
+
+        // Apply formula adjustments
         let operation = StructuralOperation::DeleteRows { start_row, count };
-        self.apply_structural_operation(operation)
+        self.apply_formula_adjustments(operation)?;
+
+        // Emit events for deleted cells
+        for addr in deleted {
+            self.emit_event(SpreadsheetEvent::cell_deleted(&addr));
+        }
+
+        Ok(())
     }
 
     /// Delete columns and adjust all affected references
     pub fn delete_columns(&self, start_col: u32, count: u32) -> Result<()> {
+        // Apply the structural operation
+        let deleted = self
+            .structural_operations
+            .delete_columns(start_col, count)?;
+
+        // Apply formula adjustments
         let operation = StructuralOperation::DeleteColumns { start_col, count };
-        self.apply_structural_operation(operation)
+        self.apply_formula_adjustments(operation)?;
+
+        // Emit events for deleted cells
+        for addr in deleted {
+            self.emit_event(SpreadsheetEvent::cell_deleted(&addr));
+        }
+
+        Ok(())
     }
 
-    /// Apply a structural operation and adjust all formulas
-    fn apply_structural_operation(&self, operation: StructuralOperation) -> Result<()> {
+    /// Apply formula adjustments after a structural operation
+    fn apply_formula_adjustments(&self, operation: StructuralOperation) -> Result<()> {
         let adjuster = ReferenceAdjuster::new();
         let mut adjusted_cells = Vec::new();
 
