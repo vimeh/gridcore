@@ -184,9 +184,9 @@ impl SpreadsheetFacade {
             // For now, we'll directly set the cell in batch mode
             // TODO: Extend BatchOperationsService trait to support operation queuing
 
-            let cell = if value.starts_with('=') {
+            let cell = if let Some(stripped) = value.strip_prefix('=') {
                 // Store formula text without the leading '='
-                let formula_text = value[1..].to_string();
+                let formula_text = stripped.to_string();
                 Cell::with_formula(CellValue::String(value.to_string()), formula_text)
             } else {
                 Cell::new(parsed_value.clone())
@@ -630,7 +630,7 @@ impl SpreadsheetFacade {
         // Removed: Full implementation body
         // This was doing manual cell movement and formula adjustment
         // Now handled by insert_rows -> StructuralOperations service
-        let transformer = crate::formula::FormulaTransformer::new();
+        let _transformer = crate::formula::FormulaTransformer::new();
         let cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
 
@@ -708,7 +708,7 @@ impl SpreadsheetFacade {
 
     #[allow(dead_code)]
     fn old_delete_row_impl(&self, row_index: u32) -> Result<()> {
-        let transformer = crate::formula::FormulaTransformer::new();
+        let _transformer = crate::formula::FormulaTransformer::new();
         let cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
         let mut cells_to_delete = Vec::new();
@@ -799,7 +799,7 @@ impl SpreadsheetFacade {
 
     #[allow(dead_code)]
     fn old_insert_column_impl(&self, col_index: u32) -> Result<()> {
-        let transformer = crate::formula::FormulaTransformer::new();
+        let _transformer = crate::formula::FormulaTransformer::new();
         let cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
 
@@ -877,7 +877,7 @@ impl SpreadsheetFacade {
 
     #[allow(dead_code)]
     fn old_delete_column_impl(&self, col_index: u32) -> Result<()> {
-        let transformer = crate::formula::FormulaTransformer::new();
+        let _transformer = crate::formula::FormulaTransformer::new();
         let cells_to_update: Vec<(CellAddress, ())> = Vec::new();
         let mut cells_to_move = Vec::new();
         let mut cells_to_delete = Vec::new();

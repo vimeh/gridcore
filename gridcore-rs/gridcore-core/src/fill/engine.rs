@@ -289,11 +289,6 @@ mod tests {
     use super::*;
     use crate::domain::Cell;
 
-    fn setup_repository() -> Rc<CellRepository> {
-        // Note: FillEngine expects Rc<CellRepository>, not Rc<RefCell<CellRepository>>
-        Rc::new(CellRepository::new())
-    }
-
     #[test]
     fn test_fill_engine_creation() {
         let repo = Rc::new(CellRepository::new());

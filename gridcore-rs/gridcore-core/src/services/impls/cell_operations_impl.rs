@@ -62,9 +62,9 @@ impl CellOperationsService for CellOperationsServiceImpl {
         })?;
 
         // Parse the value to determine if it's a formula
-        let cell = if value.starts_with('=') {
+        let cell = if let Some(formula_text) = value.strip_prefix('=') {
             // Parse formula
-            let formula = match FormulaParser::parse(value) {
+            let formula = match FormulaParser::parse(formula_text) {
                 Ok(ast) => ast,
                 Err(e) => {
                     // If parse fails, store the error in the cell
@@ -125,7 +125,7 @@ impl CellOperationsService for CellOperationsServiceImpl {
 
             // Create cell with formula and computed value
             let raw_value = CellValue::String(value.to_string());
-            let formula_text = value[1..].to_string(); // Store without leading '='
+            let formula_text = formula_text.to_string(); // Store without leading '='
             let mut cell = Cell::with_formula(raw_value, formula_text);
             cell.set_computed_value(computed_value);
 
