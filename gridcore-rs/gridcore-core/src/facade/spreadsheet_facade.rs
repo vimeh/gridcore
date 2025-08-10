@@ -11,7 +11,7 @@ use crate::services::{
     StructuralOperations,
 };
 use crate::types::{CellAddress, CellValue};
-use crate::{Result, SpreadsheetError};
+use crate::Result;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Rc;
@@ -1081,6 +1081,7 @@ impl Default for SpreadsheetFacade {
 mod tests {
     use super::*;
     use crate::facade::event::EventCollector;
+    use crate::SpreadsheetError;
 
     #[test]
     fn test_facade_basic_operations() {
