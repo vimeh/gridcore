@@ -74,22 +74,29 @@ test.describe("Formula Error Types", () => {
       await waitForError(page);
     });
 
-    test.skip("#NAME? - Unknown function names", async ({ page }) => {
+    test("#NAME? - Unknown function names", async ({ page }) => {
       await navigateToCell(page, 0, 7); // A8
 
       // Unknown function
       await enterFormula(page, "=NOTAFUNCTION(A1)");
-      await waitForError(page, "Unknown function");
+      await waitForError(page);
+      const errors1 = await getErrorMessages(page);
+      expect(
+        errors1.some(
+          (e) =>
+            e.includes("#NAME?") || e.includes("Unknown name or function") || e.includes("NOTAFUNCTION"),
+        ),
+      ).toBeTruthy();
 
       // Misspelled function
       await navigateToCell(page, 1, 7); // B8
       await enterFormula(page, "=SUMM(A1:A3)"); // Should be SUM
       await waitForError(page);
-      const errors = await getErrorMessages(page);
+      const errors2 = await getErrorMessages(page);
       expect(
-        errors.some(
+        errors2.some(
           (e) =>
-            e.includes("NAME") || e.includes("Unknown") || e.includes("SUMM"),
+            e.includes("#NAME?") || e.includes("Unknown") || e.includes("SUMM"),
         ),
       ).toBeTruthy();
     });
@@ -145,11 +152,15 @@ test.describe("Formula Error Types", () => {
       await waitForError(page); // Should error due to division by zero in range
     });
 
-    test.skip("should handle circular references", async ({ page }) => {
+    test("should handle circular references", async ({ page }) => {
       // Simple circular reference
       await navigateToCell(page, 4, 4); // E5
       await enterFormula(page, "=E5");
-      await waitForError(page, "Circular");
+      await waitForError(page);
+      let errors = await getErrorMessages(page);
+      expect(
+        errors.some((e) => e.includes("#CIRC!") || e.toLowerCase().includes("circular"))
+      ).toBeTruthy();
 
       // Two-cell circular reference
       await navigateToCell(page, 5, 5); // F6
@@ -157,7 +168,11 @@ test.describe("Formula Error Types", () => {
 
       await navigateToCell(page, 6, 5); // G6
       await enterFormula(page, "=F6");
-      await waitForError(page, "Circular");
+      await waitForError(page);
+      errors = await getErrorMessages(page);
+      expect(
+        errors.some((e) => e.includes("#CIRC!") || e.toLowerCase().includes("circular"))
+      ).toBeTruthy();
 
       // Complex circular reference through multiple cells
       await navigateToCell(page, 4, 6); // E7
@@ -168,7 +183,11 @@ test.describe("Formula Error Types", () => {
 
       await navigateToCell(page, 6, 6); // G7
       await enterFormula(page, "=E7+1");
-      await waitForError(page, "Circular");
+      await waitForError(page);
+      errors = await getErrorMessages(page);
+      expect(
+        errors.some((e) => e.includes("#CIRC!") || e.toLowerCase().includes("circular"))
+      ).toBeTruthy();
     });
   });
 
@@ -218,7 +237,7 @@ test.describe("Formula Error Types", () => {
   });
 
   test.describe("Error Recovery", () => {
-    test.skip("should recover from errors when formula is fixed", async ({
+    test("should recover from errors when formula is fixed", async ({
       page,
     }) => {
       await navigateToCell(page, 3, 3); // D4
@@ -257,7 +276,7 @@ test.describe("Formula Error Types", () => {
       await expect(page.locator(selectors.formulaBarInput)).toHaveValue("");
     });
 
-    test.skip("should update dependent cells when error is fixed", async ({
+    test("should update dependent cells when error is fixed", async ({
       page,
     }) => {
       // Create an error cell

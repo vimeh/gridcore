@@ -39,16 +39,16 @@ test.describe("Error UI Display", () => {
       }
     });
 
-    test.skip("should display multiple errors stacked vertically", async ({
+    test("should display multiple errors stacked vertically", async ({
       page,
     }) => {
       // Create multiple errors
       await enterFormula(page, "=1/0");
-      await waitForError(page, "DIV/0");
+      await waitForError(page);
 
       await navigateToCell(page, 1, 0); // B1
       await enterFormula(page, "=UNKNOWN()");
-      await waitForError(page, "Unknown");
+      await waitForError(page);
 
       await navigateToCell(page, 2, 0); // C1
       await enterFormula(page, "=INVALID()");
@@ -86,16 +86,16 @@ test.describe("Error UI Display", () => {
       expect(buttonText).toBe("×");
     });
 
-    test.skip("should dismiss individual errors when X is clicked", async ({
+    test("should dismiss individual errors when X is clicked", async ({
       page,
     }) => {
       // Create two different errors
       await enterFormula(page, "=1/0");
-      await waitForError(page, "DIV/0");
+      await waitForError(page);
 
       await navigateToCell(page, 1, 0);
       await enterFormula(page, "=UNKNOWN()");
-      await waitForError(page, "Unknown");
+      await waitForError(page);
 
       // Count initial errors
       const initialCount = await page.locator(selectors.errorMessage).count();
@@ -113,7 +113,7 @@ test.describe("Error UI Display", () => {
 
       // The remaining error should be the second one
       const remainingErrors = await getErrorMessages(page);
-      expect(remainingErrors.some((e) => e.includes("Unknown"))).toBeTruthy();
+      expect(remainingErrors.some((e) => e.includes("#NAME?") || e.includes("Unknown"))).toBeTruthy();
     });
   });
 
@@ -267,7 +267,7 @@ test.describe("Error UI Display", () => {
       expect(errors.some((e) => e.includes("DIV/0"))).toBeTruthy();
     });
 
-    test.skip("should handle rapid error generation", async ({ page }) => {
+    test("should handle rapid error generation", async ({ page }) => {
       // Quickly create multiple errors
       for (let i = 0; i < 5; i++) {
         await navigateToCell(page, i, 0);
@@ -296,14 +296,14 @@ test.describe("Error UI Display", () => {
   });
 
   test.describe("Error Message Content", () => {
-    test.skip("should display user-friendly error messages", async ({ page }) => {
+    test("should display user-friendly error messages", async ({ page }) => {
       // Test division by zero
       await enterFormula(page, "=1/0");
       await waitForError(page);
       let errors = await getErrorMessages(page);
       expect(
         errors.some(
-          (e) => e.includes("DIV/0") || e.includes("Division by zero"),
+          (e) => e.includes("#DIV/0!") || e.includes("Division by zero"),
         ),
       ).toBeTruthy();
 
@@ -317,7 +317,7 @@ test.describe("Error UI Display", () => {
       errors = await getErrorMessages(page);
       expect(
         errors.some(
-          (e) => e.includes("Unknown function") || e.includes("NOTREAL"),
+          (e) => e.includes("#NAME?") || e.includes("Unknown name or function") || e.includes("NOTREAL"),
         ),
       ).toBeTruthy();
     });

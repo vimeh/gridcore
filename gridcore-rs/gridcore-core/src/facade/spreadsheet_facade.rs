@@ -1458,4 +1458,142 @@ mod tests {
             SpreadsheetError::CircularDependency
         ));
     }
+
+    #[test]
+    fn test_error_type_creation_from_formula() {
+        use crate::types::ErrorType;
+        
+        let facade = SpreadsheetFacade::new();
+        
+        // Division by zero
+        facade.set_cell_value(&CellAddress::new(0, 0), "=1/0").unwrap();
+        let value = facade.get_cell_value(&CellAddress::new(0, 0)).unwrap();
+        assert_eq!(value, CellValue::Error(ErrorType::DivideByZero));
+        
+        // Invalid function name
+        facade.set_cell_value(&CellAddress::new(1, 0), "=UNKNOWNFUNC()").unwrap();
+        let value = facade.get_cell_value(&CellAddress::new(1, 0)).unwrap();
+        assert!(matches!(value, CellValue::Error(ErrorType::NameError { .. })));
+        
+        // Type mismatch
+        facade.set_cell_value(&CellAddress::new(2, 0), "text").unwrap();
+        facade.set_cell_value(&CellAddress::new(3, 0), "=C1 + 5").unwrap();
+        let value = facade.get_cell_value(&CellAddress::new(3, 0)).unwrap();
+        assert!(matches!(value, CellValue::Error(ErrorType::ValueError { .. })));
+    }
+
+    #[test]
+    fn test_error_propagation_through_references() {
+        use crate::types::ErrorType;
+        
+        let facade = SpreadsheetFacade::new();
+        
+        // Create an error in A1
+        facade.set_cell_value(&CellAddress::new(0, 0), "=1/0").unwrap();
+        
+        // Reference the error in B1
+        facade.set_cell_value(&CellAddress::new(1, 0), "=A1 + 10").unwrap();
+        
+        // Error should propagate
+        let value = facade.get_cell_value(&CellAddress::new(1, 0)).unwrap();
+        assert_eq!(value, CellValue::Error(ErrorType::DivideByZero));
+        
+        // Reference B1 in C1
+        facade.set_cell_value(&CellAddress::new(2, 0), "=B1 * 2").unwrap();
+        
+        // Error should continue to propagate
+        let value = facade.get_cell_value(&CellAddress::new(2, 0)).unwrap();
+        assert_eq!(value, CellValue::Error(ErrorType::DivideByZero));
+    }
+
+    #[test]
+    fn test_parse_error_to_error_type() {
+        let facade = SpreadsheetFacade::new();
+        
+        // Invalid formula syntax should create parse error
+        let result = facade.set_cell_value(&CellAddress::new(0, 0), "=A1 +");
+        assert!(result.is_err());
+        
+        // Malformed reference
+        let result = facade.set_cell_value(&CellAddress::new(1, 0), "=A");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_circular_dependency_error_cells() {
+        let facade = SpreadsheetFacade::new();
+        
+        // Create a circular dependency chain
+        facade.set_cell_value(&CellAddress::new(0, 0), "=B1").unwrap();
+        facade.set_cell_value(&CellAddress::new(1, 0), "=C1").unwrap();
+        
+        // This should create a circular dependency
+        let result = facade.set_cell_value(&CellAddress::new(2, 0), "=A1");
+        assert!(result.is_err());
+        
+        // Check that we get a circular dependency error
+        assert!(matches!(result, Err(SpreadsheetError::CircularDependency)));
+    }
+
+    #[test]
+    fn test_invalid_range_error() {
+        let facade = SpreadsheetFacade::new();
+        
+        // Try to use an invalid range - this will fail at parse time
+        let result = facade.set_cell_value(&CellAddress::new(0, 0), "=SUM(A1:)");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_error_display_in_cell() {
+        use crate::types::ErrorType;
+        
+        let facade = SpreadsheetFacade::new();
+        
+        // Create various errors and check their display
+        facade.set_cell_value(&CellAddress::new(0, 0), "=1/0").unwrap();
+        if let Some(cell) = facade.get_cell(&CellAddress::new(0, 0)) {
+            assert_eq!(cell.get_display_value().to_string(), "#DIV/0!");
+        }
+        
+        facade.set_cell_value(&CellAddress::new(1, 0), "=UNKNOWNFUNC()").unwrap();
+        if let Some(cell) = facade.get_cell(&CellAddress::new(1, 0)) {
+            assert_eq!(cell.get_display_value().to_string(), "#NAME?");
+        }
+    }
+
+    #[test]
+    fn test_error_persistence() {
+        let facade = SpreadsheetFacade::new();
+        
+        // Create an error
+        facade.set_cell_value(&CellAddress::new(0, 0), "=1/0").unwrap();
+        
+        // Verify error is stored
+        let cell = facade.get_cell(&CellAddress::new(0, 0)).unwrap();
+        assert!(matches!(cell.computed_value, CellValue::Error(_)));
+        
+        // Clear the cell
+        facade.delete_cell(&CellAddress::new(0, 0)).unwrap();
+        
+        // Verify error is cleared
+        assert!(facade.get_cell(&CellAddress::new(0, 0)).is_none());
+    }
+
+    #[test]
+    fn test_error_in_sum_function() {
+        use crate::types::ErrorType;
+        
+        let facade = SpreadsheetFacade::new();
+        
+        // Set up some values with an error
+        facade.set_cell_value(&CellAddress::new(0, 0), "10").unwrap();
+        facade.set_cell_value(&CellAddress::new(0, 1), "=1/0").unwrap(); // Error
+        facade.set_cell_value(&CellAddress::new(0, 2), "20").unwrap();
+        
+        // SUM should propagate the error
+        facade.set_cell_value(&CellAddress::new(0, 3), "=SUM(A1:A3)").unwrap();
+        let value = facade.get_cell_value(&CellAddress::new(0, 3)).unwrap();
+        assert_eq!(value, CellValue::Error(ErrorType::DivideByZero));
+    }
 }

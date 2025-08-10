@@ -32,7 +32,8 @@
       "Bash(sg:*)",
       "Bash(bun install:*)",
       "WebFetch(domain:book.leptos.dev)",
-      "Bash(trunk build:*)"
+      "Bash(trunk build:*)",
+      "Bash(bunx playwright test:*)"
     ],
     "deny": []
   }
