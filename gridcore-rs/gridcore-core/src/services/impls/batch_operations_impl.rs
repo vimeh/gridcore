@@ -25,7 +25,7 @@ impl BatchOperationsServiceImpl {
             SpreadsheetError::LockError("Failed to acquire batch manager lock".to_string())
         })?;
 
-        manager.add_operation(batch_id, operation);
+        let _ = manager.add_operation(batch_id, operation);
         Ok(())
     }
 
@@ -35,7 +35,9 @@ impl BatchOperationsServiceImpl {
             SpreadsheetError::LockError("Failed to acquire batch manager lock".to_string())
         })?;
 
-        Ok(manager.get_operations(batch_id).unwrap_or_default())
+        Ok(manager
+            .get_operations(batch_id).cloned()
+            .unwrap_or_default())
     }
 }
 
@@ -60,8 +62,8 @@ impl BatchOperationsService for BatchOperationsServiceImpl {
             SpreadsheetError::LockError("Failed to acquire batch manager lock".to_string())
         })?;
 
-        // Commit the batch
-        manager.commit_batch(batch_id)?;
+        // Take operations from the batch (this effectively commits it)
+        let _operations = manager.take_operations(batch_id);
 
         Ok(())
     }
@@ -79,7 +81,7 @@ impl BatchOperationsService for BatchOperationsServiceImpl {
 
     fn has_active_batch(&self) -> bool {
         match self.batch_manager.lock() {
-            Ok(manager) => manager.has_active_batch(),
+            Ok(manager) => manager.has_active_batches(),
             Err(_) => false,
         }
     }

@@ -58,26 +58,30 @@ impl CalculationService for CalculationServiceImpl {
 
         // Create evaluator with basic context
         // TODO: Create a repository-backed context implementation
-        let context = BasicContext::new();
-        let mut evaluator = Evaluator::new(context);
+        let mut context = BasicContext::new();
+        let mut evaluator = Evaluator::new(&mut context);
 
         // Recalculate each cell in order
         for address in order {
-            if let Some(mut cell) = repository.get(&address) {
-                if let Some(formula) = cell.get_formula() {
+            if let Some(cell) = repository.get(&address)
+                && let Some(ref formula) = cell.formula {
                     // Evaluate formula
-                    match evaluator.evaluate(&formula) {
+                    match evaluator.evaluate(formula) {
                         Ok(value) => {
-                            cell.set_value(value);
                             // Note: In real implementation, we'd need mutable access
+                            // to update the cell's computed value
                             // This is simplified for demonstration
+                            let mut updated_cell = cell.clone();
+                            updated_cell.set_computed_value(value);
+                            // Would need to save back to repository
                         }
                         Err(e) => {
-                            cell.set_error(format!("Error: {}", e));
+                            let mut updated_cell = cell.clone();
+                            updated_cell.set_error(format!("Error: {}", e));
+                            // Would need to save back to repository
                         }
                     }
                 }
-            }
         }
 
         self.clear_recalculation_flag();
@@ -95,34 +99,41 @@ impl CalculationService for CalculationServiceImpl {
         // Find all cells affected by the given addresses
         let mut affected = HashSet::new();
         for address in addresses {
-            affected.insert(address.clone());
+            affected.insert(*address);
             affected.extend(dependency_graph.get_dependents(address));
         }
 
-        // Get calculation order for affected cells
-        let order = dependency_graph
-            .get_calculation_order_for(&affected.into_iter().collect::<Vec<_>>())?;
+        // Get calculation order for all cells (filtering to affected only)
+        let all_order = dependency_graph.get_calculation_order()?;
+        let affected_set = affected;
+        let order: Vec<_> = all_order
+            .into_iter()
+            .filter(|addr| affected_set.contains(addr))
+            .collect();
 
         // Create evaluator with basic context
         // TODO: Create a repository-backed context implementation
-        let context = BasicContext::new();
-        let mut evaluator = Evaluator::new(context);
+        let mut context = BasicContext::new();
+        let mut evaluator = Evaluator::new(&mut context);
 
         // Recalculate each affected cell
         for address in order {
-            if let Some(mut cell) = repository.get(&address) {
-                if let Some(formula) = cell.get_formula() {
+            if let Some(cell) = repository.get(&address)
+                && let Some(ref formula) = cell.formula {
                     // Evaluate formula
-                    match evaluator.evaluate(&formula) {
+                    match evaluator.evaluate(formula) {
                         Ok(value) => {
-                            cell.set_value(value);
+                            let mut updated_cell = cell.clone();
+                            updated_cell.set_computed_value(value);
+                            // Would need to save back to repository
                         }
                         Err(e) => {
-                            cell.set_error(format!("Error: {}", e));
+                            let mut updated_cell = cell.clone();
+                            updated_cell.set_error(format!("Error: {}", e));
+                            // Would need to save back to repository
                         }
                     }
                 }
-            }
         }
 
         Ok(())
