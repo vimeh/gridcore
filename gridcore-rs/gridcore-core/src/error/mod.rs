@@ -1,3 +1,5 @@
+pub mod recovery;
+
 use crate::types::ErrorType;
 use thiserror::Error;
 

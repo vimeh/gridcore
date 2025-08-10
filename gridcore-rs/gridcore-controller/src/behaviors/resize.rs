@@ -33,9 +33,13 @@ impl ResizeBehavior {
     /// Process a key press in resize mode
     pub fn handle_key(&mut self, key: &str, state: &UIState) -> Result<Option<Action>> {
         // Accumulate number buffer for multipliers
-        if key.len() == 1 && key.chars().next().unwrap().is_ascii_digit() {
-            self.number_buffer.push_str(key);
-            return Ok(None);
+        if key.len() == 1 {
+            if let Some(ch) = key.chars().next() {
+                if ch.is_ascii_digit() {
+                    self.number_buffer.push_str(key);
+                    return Ok(None);
+                }
+            }
         }
 
         let multiplier = self.get_multiplier();
