@@ -13,10 +13,10 @@ use web_sys::KeyboardEvent;
 pub fn CellEditor(
     active_cell: ReadSignal<CellAddress>,
     editing_mode: ReadSignal<bool>,
-    set_editing_mode: WriteSignal<bool>,
+    _set_editing_mode: WriteSignal<bool>,
     cell_position: ReadSignal<(f64, f64, f64, f64)>, // x, y, width, height
     set_formula_value: WriteSignal<String>,
-    set_current_mode: WriteSignal<SpreadsheetMode>,
+    _set_current_mode: WriteSignal<SpreadsheetMode>,
 ) -> impl IntoView {
     // Get controller from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
@@ -273,7 +273,7 @@ pub fn CellEditor(
                                         }
                                     });
 
-                                    set_editing_mode.set(false);
+                                    // Don't set editing_mode here - canvas_grid manages it based on controller state
                                     set_formula_value.set(value);
                                 }
                             }
@@ -301,8 +301,7 @@ pub fn CellEditor(
                                         if let Err(e) = ctrl_mut.dispatch_action(Action::ExitInsertMode) {
                                             leptos::logging::log!("Error exiting insert mode: {:?}", e);
                                         }
-                                        // Stay in editing mode but switch to Normal mode
-                                        set_current_mode.set(SpreadsheetMode::Editing);
+                                        // Controller will handle mode transition
                                     } else if is_visual_mode {
                                         // Escape from Visual mode goes to Normal mode (stay in editor)
                                         drop(ctrl_borrow);
@@ -310,8 +309,7 @@ pub fn CellEditor(
                                         if let Err(e) = ctrl_mut.dispatch_action(Action::ExitVisualMode) {
                                             leptos::logging::log!("Error exiting visual mode: {:?}", e);
                                         }
-                                        // Stay in editing mode but switch to Normal mode
-                                        set_current_mode.set(SpreadsheetMode::Editing);
+                                        // Controller will handle mode transition
                                     } else if is_normal_mode {
                                         // In Normal mode - save and exit
                                         let value = editor_value.get();
@@ -325,10 +323,9 @@ pub fn CellEditor(
                                             leptos::logging::log!("Error submitting cell edit: {:?}", e);
                                         }
 
-                                        // Exit editing mode
-                                        set_editing_mode.set(false);
+                                        // Don't set editing_mode here - canvas_grid manages it based on controller state
                                         set_formula_value.set(value);
-                                        set_current_mode.set(SpreadsheetMode::Navigation);
+                                        // Controller will handle mode transition to Navigation
 
                                         // Return focus to grid container
                                         if let Some(window) = web_sys::window() {
@@ -343,8 +340,8 @@ pub fn CellEditor(
                                     } else {
                                         // Fallback - just exit
                                         drop(ctrl_borrow);
-                                        set_editing_mode.set(false);
-                                        set_current_mode.set(SpreadsheetMode::Navigation);
+                                        // Don't set editing_mode here - canvas_grid manages it based on controller state
+                                        // Controller will handle mode transition
 
                                         // Return focus to grid container
                                         if let Some(window) = web_sys::window() {
@@ -386,7 +383,7 @@ pub fn CellEditor(
                                                     leptos::logging::log!("Error entering insert mode: {:?}", e);
                                                 }
                                             });
-                                            set_current_mode.set(SpreadsheetMode::Insert);
+                                            // Controller will handle mode transition to Insert
                                         }
                                         "a" => {
                                             // Enter insert mode after current position
@@ -398,7 +395,7 @@ pub fn CellEditor(
                                                     leptos::logging::log!("Error entering insert mode: {:?}", e);
                                                 }
                                             });
-                                            set_current_mode.set(SpreadsheetMode::Insert);
+                                            // Controller will handle mode transition to Insert
                                         }
                                         "v" => {
                                             // Enter visual character mode
@@ -412,7 +409,7 @@ pub fn CellEditor(
                                                     leptos::logging::log!("Error entering visual mode: {:?}", e);
                                                 }
                                             });
-                                            set_current_mode.set(SpreadsheetMode::Visual);
+                                            // Controller will handle mode transition to Visual
                                         }
                                         "V" => {
                                             // Enter visual line mode
@@ -426,7 +423,7 @@ pub fn CellEditor(
                                                     leptos::logging::log!("Error entering visual line mode: {:?}", e);
                                                 }
                                             });
-                                            set_current_mode.set(SpreadsheetMode::Visual);
+                                            // Controller will handle mode transition to Visual
                                         }
                                         "I" => {
                                             // Enter insert mode at beginning of line
@@ -438,7 +435,7 @@ pub fn CellEditor(
                                                     leptos::logging::log!("Error entering insert mode (I): {:?}", e);
                                                 }
                                             });
-                                            set_current_mode.set(SpreadsheetMode::Insert);
+                                            // Controller will handle mode transition to Insert
                                         }
                                         "A" => {
                                             // Enter insert mode at end of line
@@ -450,7 +447,7 @@ pub fn CellEditor(
                                                     leptos::logging::log!("Error entering insert mode (A): {:?}", e);
                                                 }
                                             });
-                                            set_current_mode.set(SpreadsheetMode::Insert);
+                                            // Controller will handle mode transition to Insert
                                         }
                                         _ => {}
                                     }
