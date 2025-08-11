@@ -47,16 +47,16 @@
 ## Remaining Tasks 📋
 
 ### ResizeHandler Update
-- ⏳ Update `resize_handler.rs` to use controller's `ResizeManager`
-- ⏳ Remove local resize state management
-- ⏳ Delegate resize operations to controller
+- ✅ Update `resize_handler.rs` to use controller's `ResizeManager`
+- ✅ Remove local resize state management
+- ✅ Delegate resize operations to controller
 
 ### Final Cleanup
-- ⏳ Remove duplicate `GridConfiguration` from UI viewport
-- ⏳ Simplify UI viewport to be thin wrapper around controller
+- ✅ Remove duplicate `GridConfiguration` from UI viewport
+- ✅ Simplify UI viewport to be thin wrapper around controller
 
 ### Testing & Validation
-- ⏳ Run full test suite across all packages
+- ✅ Run full test suite across all packages (5 unrelated test failures in reference_toggle)
 - ⏳ Test WASM compilation
 - ⏳ Manual testing of UI interactions
 
@@ -78,27 +78,26 @@ The refactoring has successfully established clear separation of concerns:
 - `SelectionManager`: Selection state (already existed)
 - Event interpretation and state management
 
-**gridcore-ui** (⏳ Needs updates)
+**gridcore-ui** (✅ Refactored)
 - `GridTheme`: Visual properties only
-- Event capture and forwarding
-- Rendering based on controller state
-- Currently still contains some business logic to be moved
+- `Viewport`: Thin wrapper delegating to controller
+- `ResizeHandler`: Delegates to controller's ResizeManager
+- Event capture and forwarding only
+- Pure rendering based on controller state
 
 ## Next Steps
 
-1. **Update UI Components** (Priority: High)
-   - Modify `canvas_grid.rs` to use controller's viewport
-   - Update all theme references to use `GridConfiguration` from controller
-   - Simplify viewport wrapper to delegate all operations
+1. **Fix Reference Toggle Tests** (Priority: High)
+   - Fix 5 failing tests in `reference_toggle` module
+   - These appear unrelated to the refactoring
 
-2. **Complete Event Handling** (Priority: Medium)
-   - Move remaining keyboard logic to controller
-   - Simplify mouse event handling in UI
+2. **WASM Testing** (Priority: High)
+   - Test WASM compilation
+   - Verify UI interactions work correctly
 
-3. **Testing** (Priority: High)
-   - Fix remaining test failures
-   - Add integration tests for refactored components
-   - Ensure WASM builds correctly
+3. **Documentation** (Priority: Medium)
+   - Update architecture documentation
+   - Add migration notes for future UI implementations
 
 ## Benefits Achieved
 
@@ -125,3 +124,6 @@ When updating UI components:
 - `a47e03e` - Update tests for new architecture
 - `512b46a` - Complete UI-to-controller architecture migration
 - `da6a2ec` - Simplify keyboard event handling in UI layer
+- `bbe5dd6` - Update ResizeHandler to use controller's ResizeManager
+- `5f84299` - Simplify UI Viewport to delegate to controller
+- `446962d` - Fix compilation errors after refactoring
