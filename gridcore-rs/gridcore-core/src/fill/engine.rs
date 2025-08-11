@@ -272,12 +272,8 @@ impl FillEngine {
             {
                 // Generate adjusted formulas for each target cell
                 for target_addr in target_range.iter_cells() {
-                    let adjusted_formula = adjuster.adjust_formula(
-                        formula,
-                        &source_addr,
-                        &target_addr,
-                        direction,
-                    )?;
+                    let adjusted_formula =
+                        adjuster.adjust_formula(formula, &source_addr, &target_addr, direction)?;
                     adjusted.push((target_addr, adjusted_formula));
                 }
             }

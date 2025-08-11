@@ -44,7 +44,7 @@ mod tests {
     fn test_copy_pattern_always_detected() {
         let detector = CopyPatternDetector::new();
         let values = vec![
-            CellValue::String("random".to_string()),
+            CellValue::from_string("random".to_string()),
             CellValue::Number(42.0),
             CellValue::Boolean(true),
         ];
@@ -77,7 +77,7 @@ mod tests {
 
         assert!(detector.can_handle(&[CellValue::Empty]));
         assert!(detector.can_handle(&[CellValue::Number(1.0)]));
-        assert!(detector.can_handle(&[CellValue::String("text".to_string())]));
+        assert!(detector.can_handle(&[CellValue::from_string("text".to_string())]));
         assert!(!detector.can_handle(&[]));
     }
 }

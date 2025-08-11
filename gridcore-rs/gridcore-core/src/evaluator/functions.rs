@@ -56,13 +56,13 @@ impl FunctionLibrary {
             Box::new(|args| {
                 let mut sum = 0.0;
                 let mut has_error = false;
-                let mut error_value = ErrorType::default();
+                let mut error_value = None;
 
                 for arg in args {
                     // Check for errors first and propagate them
                     if let CellValue::Error(e) = arg {
                         has_error = true;
-                        error_value = e.clone();
+                        error_value = Some(e.clone());
                         break;
                     }
 
@@ -76,21 +76,23 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error(ErrorType::DivideByZero))
+                                    Ok(CellValue::from_error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                    Ok(CellValue::from_error(ErrorType::ValueError {
                                         expected: "numeric".to_string(),
                                         actual: "non-numeric".to_string(),
                                     }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error(ErrorType::NumError))
+                                    Ok(CellValue::from_error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
+                                    Ok(CellValue::from_error(ErrorType::ParseError {
+                                        message: err_str,
+                                    }))
                                 }
-                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                _ => Ok(CellValue::from_error(ErrorType::ValueError {
                                     expected: "numeric".to_string(),
                                     actual: "non-numeric".to_string(),
                                 })),
@@ -100,7 +102,7 @@ impl FunctionLibrary {
                 }
 
                 if has_error {
-                    Ok(CellValue::Error(error_value))
+                    Ok(CellValue::Error(error_value.unwrap()))
                 } else {
                     Ok(CellValue::Number(sum))
                 }
@@ -128,21 +130,23 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error(ErrorType::DivideByZero))
+                                    Ok(CellValue::from_error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                    Ok(CellValue::from_error(ErrorType::ValueError {
                                         expected: "numeric".to_string(),
                                         actual: "non-numeric".to_string(),
                                     }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error(ErrorType::NumError))
+                                    Ok(CellValue::from_error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
+                                    Ok(CellValue::from_error(ErrorType::ParseError {
+                                        message: err_str,
+                                    }))
                                 }
-                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                _ => Ok(CellValue::from_error(ErrorType::ValueError {
                                     expected: "numeric".to_string(),
                                     actual: "non-numeric".to_string(),
                                 })),
@@ -183,21 +187,23 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error(ErrorType::DivideByZero))
+                                    Ok(CellValue::from_error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                    Ok(CellValue::from_error(ErrorType::ValueError {
                                         expected: "numeric".to_string(),
                                         actual: "non-numeric".to_string(),
                                     }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error(ErrorType::NumError))
+                                    Ok(CellValue::from_error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
+                                    Ok(CellValue::from_error(ErrorType::ParseError {
+                                        message: err_str,
+                                    }))
                                 }
-                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                _ => Ok(CellValue::from_error(ErrorType::ValueError {
                                     expected: "numeric".to_string(),
                                     actual: "non-numeric".to_string(),
                                 })),
@@ -239,21 +245,23 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error(ErrorType::DivideByZero))
+                                    Ok(CellValue::from_error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                    Ok(CellValue::from_error(ErrorType::ValueError {
                                         expected: "numeric".to_string(),
                                         actual: "non-numeric".to_string(),
                                     }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error(ErrorType::NumError))
+                                    Ok(CellValue::from_error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
+                                    Ok(CellValue::from_error(ErrorType::ParseError {
+                                        message: err_str,
+                                    }))
                                 }
-                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                _ => Ok(CellValue::from_error(ErrorType::ValueError {
                                     expected: "numeric".to_string(),
                                     actual: "non-numeric".to_string(),
                                 })),
@@ -295,21 +303,23 @@ impl FunctionLibrary {
                             return match e {
                                 SpreadsheetError::DivisionByZero
                                 | SpreadsheetError::DivideByZero => {
-                                    Ok(CellValue::Error(ErrorType::DivideByZero))
+                                    Ok(CellValue::from_error(ErrorType::DivideByZero))
                                 }
                                 SpreadsheetError::ValueError | SpreadsheetError::TypeError(_) => {
-                                    Ok(CellValue::Error(ErrorType::ValueError {
+                                    Ok(CellValue::from_error(ErrorType::ValueError {
                                         expected: "numeric".to_string(),
                                         actual: "non-numeric".to_string(),
                                     }))
                                 }
                                 SpreadsheetError::NumError => {
-                                    Ok(CellValue::Error(ErrorType::NumError))
+                                    Ok(CellValue::from_error(ErrorType::NumError))
                                 }
                                 SpreadsheetError::FormulaError(err_str) => {
-                                    Ok(CellValue::Error(ErrorType::ParseError { message: err_str }))
+                                    Ok(CellValue::from_error(ErrorType::ParseError {
+                                        message: err_str,
+                                    }))
                                 }
-                                _ => Ok(CellValue::Error(ErrorType::ValueError {
+                                _ => Ok(CellValue::from_error(ErrorType::ValueError {
                                     expected: "numeric".to_string(),
                                     actual: "non-numeric".to_string(),
                                 })),
@@ -391,7 +401,7 @@ impl FunctionLibrary {
                 for arg in args {
                     result.push_str(&coerce_to_string(arg));
                 }
-                Ok(CellValue::String(result))
+                Ok(CellValue::from_string(result))
             }),
         );
 
@@ -421,7 +431,7 @@ impl FunctionLibrary {
                 }
 
                 let text = coerce_to_string(&args[0]);
-                Ok(CellValue::String(text.to_uppercase()))
+                Ok(CellValue::from_string(text.to_uppercase()))
             }),
         );
 
@@ -436,7 +446,7 @@ impl FunctionLibrary {
                 }
 
                 let text = coerce_to_string(&args[0]);
-                Ok(CellValue::String(text.to_lowercase()))
+                Ok(CellValue::from_string(text.to_lowercase()))
             }),
         );
 
@@ -451,7 +461,7 @@ impl FunctionLibrary {
                 }
 
                 let text = coerce_to_string(&args[0]);
-                Ok(CellValue::String(text.trim().to_string()))
+                Ok(CellValue::from_string(text.trim().to_string()))
             }),
         );
     }
@@ -539,7 +549,7 @@ fn extract_numbers(value: &CellValue) -> Result<Vec<f64>> {
         CellValue::Error(e) => Err(SpreadsheetError::FormulaError(e.to_string())),
         CellValue::Array(arr) => {
             let mut numbers = Vec::new();
-            for val in arr {
+            for val in arr.iter() {
                 match val {
                     CellValue::Error(e) => {
                         return Err(SpreadsheetError::FormulaError(e.to_string()));

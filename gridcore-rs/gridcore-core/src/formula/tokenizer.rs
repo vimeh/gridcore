@@ -41,7 +41,7 @@ impl Tokenizer {
             .ignore_then(none_of('"').repeated().to_slice())
             .then_ignore(just('"'))
             .map(|s: &str| Expr::Literal {
-                value: CellValue::String(s.to_string()),
+                value: CellValue::from_string(s.to_string()),
             })
             .padded()
     }

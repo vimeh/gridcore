@@ -124,7 +124,7 @@ impl FormulaTransformer {
                     absolute_row: new_abs_row,
                 },
                 Err(_) => Expr::Literal {
-                    value: CellValue::Error(ErrorType::InvalidRef {
+                    value: CellValue::from_error(ErrorType::InvalidRef {
                         reference: "deleted".to_string(),
                     }),
                 },
@@ -152,7 +152,7 @@ impl FormulaTransformer {
                         absolute_end_row: end_abs_row,
                     },
                     _ => Expr::Literal {
-                        value: CellValue::Error(ErrorType::InvalidRef {
+                        value: CellValue::from_error(ErrorType::InvalidRef {
                             reference: "deleted".to_string(),
                         }),
                     },
@@ -249,7 +249,7 @@ mod tests {
             Expr::Literal { value } => {
                 assert_eq!(
                     value,
-                    CellValue::Error(ErrorType::InvalidRef {
+                    CellValue::from_error(ErrorType::InvalidRef {
                         reference: "deleted".to_string()
                     })
                 );

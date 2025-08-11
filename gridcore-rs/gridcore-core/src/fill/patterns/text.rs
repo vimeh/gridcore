@@ -109,9 +109,9 @@ mod tests {
     fn test_detect_text_pattern_with_prefix() {
         let detector = TextPatternDetector::new();
         let values = vec![
-            CellValue::String("Item 1".to_string()),
-            CellValue::String("Item 2".to_string()),
-            CellValue::String("Item 3".to_string()),
+            CellValue::from_string("Item 1".to_string()),
+            CellValue::from_string("Item 2".to_string()),
+            CellValue::from_string("Item 3".to_string()),
         ];
 
         let pattern = detector.detect(&values);
@@ -122,9 +122,9 @@ mod tests {
     fn test_detect_text_pattern_with_zeros() {
         let detector = TextPatternDetector::new();
         let values = vec![
-            CellValue::String("Product-001".to_string()),
-            CellValue::String("Product-002".to_string()),
-            CellValue::String("Product-003".to_string()),
+            CellValue::from_string("Product-001".to_string()),
+            CellValue::from_string("Product-002".to_string()),
+            CellValue::from_string("Product-003".to_string()),
         ];
 
         let pattern = detector.detect(&values);
@@ -135,9 +135,9 @@ mod tests {
     fn test_detect_text_pattern_alphanumeric() {
         let detector = TextPatternDetector::new();
         let values = vec![
-            CellValue::String("A1".to_string()),
-            CellValue::String("A2".to_string()),
-            CellValue::String("A3".to_string()),
+            CellValue::from_string("A1".to_string()),
+            CellValue::from_string("A2".to_string()),
+            CellValue::from_string("A3".to_string()),
         ];
 
         let pattern = detector.detect(&values);
@@ -148,9 +148,9 @@ mod tests {
     fn test_no_pattern_inconsistent_prefix() {
         let detector = TextPatternDetector::new();
         let values = vec![
-            CellValue::String("Item 1".to_string()),
-            CellValue::String("Product 2".to_string()),
-            CellValue::String("Item 3".to_string()),
+            CellValue::from_string("Item 1".to_string()),
+            CellValue::from_string("Product 2".to_string()),
+            CellValue::from_string("Item 3".to_string()),
         ];
 
         let pattern = detector.detect(&values);
@@ -161,9 +161,9 @@ mod tests {
     fn test_no_pattern_non_incrementing() {
         let detector = TextPatternDetector::new();
         let values = vec![
-            CellValue::String("Item 1".to_string()),
-            CellValue::String("Item 3".to_string()),
-            CellValue::String("Item 5".to_string()),
+            CellValue::from_string("Item 1".to_string()),
+            CellValue::from_string("Item 3".to_string()),
+            CellValue::from_string("Item 5".to_string()),
         ];
 
         let pattern = detector.detect(&values);
@@ -174,9 +174,9 @@ mod tests {
     fn test_can_handle_mixed_values() {
         let detector = TextPatternDetector::new();
         let values = vec![
-            CellValue::String("Item 1".to_string()),
+            CellValue::from_string("Item 1".to_string()),
             CellValue::Number(42.0),
-            CellValue::String("Item 2".to_string()),
+            CellValue::from_string("Item 2".to_string()),
         ];
 
         assert!(detector.can_handle(&values));

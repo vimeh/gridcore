@@ -93,9 +93,9 @@ mod tests {
     fn test_detect_daily_pattern() {
         let detector = DatePatternDetector::new();
         let values = vec![
-            CellValue::String("2024-01-01".to_string()),
-            CellValue::String("2024-01-02".to_string()),
-            CellValue::String("2024-01-03".to_string()),
+            CellValue::from_string("2024-01-01".to_string()),
+            CellValue::from_string("2024-01-02".to_string()),
+            CellValue::from_string("2024-01-03".to_string()),
         ];
 
         let pattern = detector.detect(&values);
@@ -108,9 +108,9 @@ mod tests {
     fn test_detect_weekly_pattern() {
         let detector = DatePatternDetector::new();
         let values = vec![
-            CellValue::String("2024-01-01".to_string()),
-            CellValue::String("2024-01-08".to_string()),
-            CellValue::String("2024-01-15".to_string()),
+            CellValue::from_string("2024-01-01".to_string()),
+            CellValue::from_string("2024-01-08".to_string()),
+            CellValue::from_string("2024-01-15".to_string()),
         ];
 
         let pattern = detector.detect(&values);
@@ -123,9 +123,9 @@ mod tests {
     fn test_detect_pattern_with_different_formats() {
         let detector = DatePatternDetector::new();
         let values = vec![
-            CellValue::String("01/01/2024".to_string()),
-            CellValue::String("01/02/2024".to_string()),
-            CellValue::String("01/03/2024".to_string()),
+            CellValue::from_string("01/01/2024".to_string()),
+            CellValue::from_string("01/02/2024".to_string()),
+            CellValue::from_string("01/03/2024".to_string()),
         ];
 
         let pattern = detector.detect(&values);
@@ -136,9 +136,9 @@ mod tests {
     fn test_no_pattern_irregular_dates() {
         let detector = DatePatternDetector::new();
         let values = vec![
-            CellValue::String("2024-01-01".to_string()),
-            CellValue::String("2024-01-03".to_string()),
-            CellValue::String("2024-01-07".to_string()),
+            CellValue::from_string("2024-01-01".to_string()),
+            CellValue::from_string("2024-01-03".to_string()),
+            CellValue::from_string("2024-01-07".to_string()),
         ];
 
         let pattern = detector.detect(&values);
@@ -149,9 +149,9 @@ mod tests {
     fn test_can_handle_mixed_values() {
         let detector = DatePatternDetector::new();
         let values = vec![
-            CellValue::String("2024-01-01".to_string()),
+            CellValue::from_string("2024-01-01".to_string()),
             CellValue::Number(42.0),
-            CellValue::String("2024-01-02".to_string()),
+            CellValue::from_string("2024-01-02".to_string()),
         ];
 
         assert!(detector.can_handle(&values));
@@ -161,7 +161,7 @@ mod tests {
     fn test_cannot_handle_non_dates() {
         let detector = DatePatternDetector::new();
         let values = vec![
-            CellValue::String("not a date".to_string()),
+            CellValue::from_string("not a date".to_string()),
             CellValue::Number(42.0),
         ];
 

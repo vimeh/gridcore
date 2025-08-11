@@ -209,10 +209,8 @@ impl VimBehavior {
         motion: Motion,
         current_state: &UIState,
     ) -> Result<Option<Action>> {
-        let context = super::motion::MotionContext::new(
-            *current_state.cursor(),
-            current_state.viewport().clone(),
-        );
+        let context =
+            super::motion::MotionContext::new(*current_state.cursor(), *current_state.viewport());
 
         let new_cursor = super::motion::apply_motion(&motion, &context)?;
 

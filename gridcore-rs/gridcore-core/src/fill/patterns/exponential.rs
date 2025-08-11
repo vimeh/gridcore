@@ -164,7 +164,7 @@ mod tests {
         let detector = ExponentialPatternDetector::new();
         let values = vec![
             CellValue::Number(2.0),
-            CellValue::String("text".to_string()),
+            CellValue::from_string("text".to_string()),
             CellValue::Number(4.0),
             CellValue::Number(8.0),
         ];

@@ -223,7 +223,7 @@ mod tests {
             (CellAddress::new(0, 0), Cell::new(CellValue::Number(1.0))),
             (
                 CellAddress::new(1, 0),
-                Cell::new(CellValue::String("test".to_string())),
+                Cell::new(CellValue::from_string("test".to_string())),
             ),
             (CellAddress::new(2, 0), Cell::new(CellValue::Boolean(true))),
         ];

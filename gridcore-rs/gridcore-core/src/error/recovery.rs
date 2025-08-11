@@ -74,7 +74,7 @@ impl<T> SafeUnwrap<T> for Option<T> {
 /// Helper to convert any error into a cell error value
 pub fn to_cell_error<E: std::fmt::Display>(error: E) -> CellValue {
     let spreadsheet_error = SpreadsheetError::Parse(error.to_string());
-    CellValue::Error(spreadsheet_error.to_error_type())
+    CellValue::from_error(spreadsheet_error.to_error_type())
 }
 
 /// Macro to safely unwrap with context

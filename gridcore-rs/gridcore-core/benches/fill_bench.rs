@@ -1,10 +1,10 @@
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use std::hint::black_box;
 use gridcore_core::adapters::RepositoryAdapter;
 use gridcore_core::domain::Cell;
 use gridcore_core::fill::{CellRange, FillDirection, FillEngine, FillOperation, PatternType};
 use gridcore_core::ports::RepositoryPort;
 use gridcore_core::types::{CellAddress, CellValue};
+use std::hint::black_box;
 use std::sync::Arc;
 
 fn setup_linear_data(size: usize) -> Arc<dyn RepositoryPort> {
@@ -40,7 +40,7 @@ fn setup_text_data(size: usize) -> Arc<dyn RepositoryPort> {
     // Create a text sequence with numbers
     for i in 0..size {
         let addr = CellAddress::new(0, i as u32);
-        let value = CellValue::String(format!("Item {}", i + 1));
+        let value = CellValue::from_string(format!("Item {}", i + 1));
         let _ = repo.set(&addr, Cell::new(value));
     }
 
@@ -210,8 +210,7 @@ fn bench_large_fill_operations(c: &mut Criterion) {
 
         b.iter(|| {
             let source_range = CellRange::new(CellAddress::new(0, 0), CellAddress::new(0, 99));
-            let target_range =
-                CellRange::new(CellAddress::new(0, 100), CellAddress::new(0, 9999));
+            let target_range = CellRange::new(CellAddress::new(0, 100), CellAddress::new(0, 9999));
 
             let operation = FillOperation {
                 source_range,

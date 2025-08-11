@@ -45,7 +45,7 @@ impl CellOperationsServiceImpl {
         }
 
         // Treat as string
-        CellValue::String(value.to_string())
+        CellValue::from_string(value.to_string())
     }
 }
 
@@ -69,7 +69,7 @@ impl CellOperationsService for CellOperationsServiceImpl {
                 Err(e) => {
                     // If parse fails, store the error in the cell
                     let error_cell =
-                        Cell::new(CellValue::Error(crate::types::ErrorType::ParseError {
+                        Cell::new(CellValue::from_error(crate::types::ErrorType::ParseError {
                             message: e.to_string(),
                         }));
                     repository.set(address, error_cell.clone());
@@ -118,13 +118,13 @@ impl CellOperationsService for CellOperationsServiceImpl {
                     Ok(val) => val,
                     Err(e) => {
                         // Convert SpreadsheetError to appropriate ErrorType
-                        CellValue::Error(e.to_error_type())
+                        CellValue::from_error(e.to_error_type())
                     }
                 }
             };
 
             // Create cell with formula and computed value
-            let raw_value = CellValue::String(value.to_string());
+            let raw_value = CellValue::from_string(value.to_string());
             let formula_text = formula_text.to_string(); // Store without leading '='
             let mut cell = Cell::with_formula(raw_value, formula_text);
             cell.set_computed_value(computed_value);

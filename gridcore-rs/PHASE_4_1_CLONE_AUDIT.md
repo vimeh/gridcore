@@ -1,10 +1,12 @@
 # Phase 4.1: Clone Usage Audit Report
 
 ## Summary
-- **Total clone() calls:** 304 (was 358, reduced by 54 - 15% reduction)
+- **Total clone() calls:** 303 (was 358, reduced by 55 - 15.4% reduction)
 - **Target:** <100
-- **String allocations:** ~500 (was 607, reduced by ~100+)
+- **String allocations:** ~589 (was 607, reduced by ~18)
 - **Memory optimization:** Implemented state diffing for history (significant memory savings)
+- **CellValue optimization:** Now uses Arc for heap types (String, Error, Array) - clones are now O(1)
+- **State machine optimization:** Reduced clones from 31 to 28 by reconstructing states instead of cloning
 
 ## Clone Distribution by Module
 
@@ -17,7 +19,7 @@
 ## Top Offenders (Final Status)
 
 1. ~~`gridcore-core/src/facade/spreadsheet_facade.rs`: 49 clones~~ → 3 clones ✅
-2. `gridcore-controller/src/state/machine.rs`: ~~49~~ → 32 clones (added diff system) ✅
+2. `gridcore-controller/src/state/machine.rs`: ~~49~~ → ~~32~~ → 28 clones (optimized transitions) ✅
 3. ~~`gridcore-ui/src/components/canvas_grid.rs`: 26 clones~~ → 18 clones ✅
 4. ~~`gridcore-ui/src/components/cell_editor.rs`: 13 clones~~ → 12 clones ✅
 5. `gridcore-core/benches/transformer_bench.rs`: 12 clones (test code - no action needed)
@@ -127,6 +129,18 @@ Most common pattern. Opportunities:
 9. **Optimized Cell error handling** - Reduced redundant error string clones in cell.rs (11→7)
    - Consolidated error cloning in with_error() and set_error() methods
    - Single clone for error type determination instead of multiple
+10. **CellValue Arc optimization** - Most significant change
+   - Changed String(String) to String(Arc<String>)
+   - Changed Error(ErrorType) to Error(Arc<ErrorType>)
+   - Changed Array(Vec<CellValue>) to Array(Arc<Vec<CellValue>>)
+   - Now cloning strings, errors, and arrays is O(1) reference count increment
+   - Added helper methods from_string(), from_error(), from_array()
+   - Enabled serde "rc" feature for Arc serialization support
+11. **State machine transition optimization** - Reduced clones from 31 to 28
+   - Replaced `let mut new_state = state.clone()` pattern with state reconstruction
+   - Each transition now only clones the String fields that need to be preserved
+   - Copy types (cursor, viewport, cell_mode, etc.) are just copied, not cloned
+   - 3 clone reduction in state machine (10% improvement in this module)
 
 ### Benefits of State Diffing:
 - **Memory efficiency**: History now stores only changes, not full states

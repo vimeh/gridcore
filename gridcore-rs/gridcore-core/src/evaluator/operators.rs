@@ -6,20 +6,20 @@ use crate::{Result, SpreadsheetError};
 pub fn apply_unary(op: &UnaryOperator, value: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = value {
-        return Ok(CellValue::Error(e));
+        return Ok(CellValue::Error(e.clone()));
     }
 
     match op {
         UnaryOperator::Negate => match coerce_to_number(&value) {
             Ok(n) => Ok(CellValue::Number(-n)),
-            Err(_) => Ok(CellValue::Error(ErrorType::ValueError {
+            Err(_) => Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "number".to_string(),
                 actual: value.type_name().to_string(),
             })),
         },
         UnaryOperator::Percent => match coerce_to_number(&value) {
             Ok(n) => Ok(CellValue::Number(n / 100.0)),
-            Err(_) => Ok(CellValue::Error(ErrorType::ValueError {
+            Err(_) => Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "number".to_string(),
                 actual: value.type_name().to_string(),
             })),
@@ -54,10 +54,10 @@ pub fn apply_binary(op: &BinaryOperator, left: CellValue, right: CellValue) -> R
 fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = left {
-        return Ok(CellValue::Error(e));
+        return Ok(CellValue::Error(e.clone()));
     }
     if let CellValue::Error(e) = right {
-        return Ok(CellValue::Error(e));
+        return Ok(CellValue::Error(e.clone()));
     }
 
     // Try numeric addition first
@@ -71,7 +71,7 @@ fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     }
 
     // Return #VALUE! error for type mismatch
-    Ok(CellValue::Error(ErrorType::ValueError {
+    Ok(CellValue::from_error(ErrorType::ValueError {
         expected: "compatible types".to_string(),
         actual: "incompatible types".to_string(),
     }))
@@ -81,16 +81,16 @@ fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = left {
-        return Ok(CellValue::Error(e));
+        return Ok(CellValue::Error(e.clone()));
     }
     if let CellValue::Error(e) = right {
-        return Ok(CellValue::Error(e));
+        return Ok(CellValue::Error(e.clone()));
     }
 
     let l = match coerce_to_number(&left) {
         Ok(n) => n,
         Err(_) => {
-            return Ok(CellValue::Error(ErrorType::ValueError {
+            return Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "compatible types".to_string(),
                 actual: "incompatible types".to_string(),
             }));
@@ -100,7 +100,7 @@ fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
         Err(_) => {
-            return Ok(CellValue::Error(ErrorType::ValueError {
+            return Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "compatible types".to_string(),
                 actual: "incompatible types".to_string(),
             }));
@@ -114,16 +114,16 @@ fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = left {
-        return Ok(CellValue::Error(e));
+        return Ok(CellValue::Error(e.clone()));
     }
     if let CellValue::Error(e) = right {
-        return Ok(CellValue::Error(e));
+        return Ok(CellValue::Error(e.clone()));
     }
 
     let l = match coerce_to_number(&left) {
         Ok(n) => n,
         Err(_) => {
-            return Ok(CellValue::Error(ErrorType::ValueError {
+            return Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "compatible types".to_string(),
                 actual: "incompatible types".to_string(),
             }));
@@ -133,7 +133,7 @@ fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
         Err(_) => {
-            return Ok(CellValue::Error(ErrorType::ValueError {
+            return Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "compatible types".to_string(),
                 actual: "incompatible types".to_string(),
             }));
@@ -156,18 +156,18 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Handle array division - check for zeros and errors in the array
     if let CellValue::Array(arr) = &right {
         // Check if any value in the array is zero or would cause an error
-        for val in arr {
+        for val in arr.iter() {
             if let CellValue::Error(e) = val {
                 return Ok(CellValue::Error(e.clone()));
             }
             match coerce_to_number(val) {
                 Ok(0.0) => {
                     // Division by zero found in array
-                    return Ok(CellValue::Error(ErrorType::DivideByZero));
+                    return Ok(CellValue::from_error(ErrorType::DivideByZero));
                 }
                 Err(_) => {
                     // Type error in array
-                    return Ok(CellValue::Error(ErrorType::ValueError {
+                    return Ok(CellValue::from_error(ErrorType::ValueError {
                         expected: "compatible types".to_string(),
                         actual: "incompatible types".to_string(),
                     }));
@@ -177,7 +177,7 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
         }
         // If we have an array on the right, we can't perform scalar division
         // But we should return a VALUE error, not throw
-        return Ok(CellValue::Error(ErrorType::ValueError {
+        return Ok(CellValue::from_error(ErrorType::ValueError {
             expected: "compatible types".to_string(),
             actual: "incompatible types".to_string(),
         }));
@@ -186,7 +186,7 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     let l = match coerce_to_number(&left) {
         Ok(n) => n,
         Err(_) => {
-            return Ok(CellValue::Error(ErrorType::ValueError {
+            return Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "compatible types".to_string(),
                 actual: "incompatible types".to_string(),
             }));
@@ -196,7 +196,7 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
         Err(_) => {
-            return Ok(CellValue::Error(ErrorType::ValueError {
+            return Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "compatible types".to_string(),
                 actual: "incompatible types".to_string(),
             }));
@@ -204,7 +204,7 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     };
 
     if r == 0.0 {
-        return Ok(CellValue::Error(ErrorType::DivideByZero));
+        return Ok(CellValue::from_error(ErrorType::DivideByZero));
     }
 
     Ok(CellValue::Number(l / r))
@@ -214,16 +214,16 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = left {
-        return Ok(CellValue::Error(e));
+        return Ok(CellValue::Error(e.clone()));
     }
     if let CellValue::Error(e) = right {
-        return Ok(CellValue::Error(e));
+        return Ok(CellValue::Error(e.clone()));
     }
 
     let l = match coerce_to_number(&left) {
         Ok(n) => n,
         Err(_) => {
-            return Ok(CellValue::Error(ErrorType::ValueError {
+            return Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "compatible types".to_string(),
                 actual: "incompatible types".to_string(),
             }));
@@ -233,7 +233,7 @@ fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     let r = match coerce_to_number(&right) {
         Ok(n) => n,
         Err(_) => {
-            return Ok(CellValue::Error(ErrorType::ValueError {
+            return Ok(CellValue::from_error(ErrorType::ValueError {
                 expected: "compatible types".to_string(),
                 actual: "incompatible types".to_string(),
             }));
@@ -243,7 +243,7 @@ fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for invalid power operations that result in NaN or infinite
     let result = l.powf(r);
     if result.is_nan() || result.is_infinite() {
-        return Ok(CellValue::Error(ErrorType::NumError));
+        return Ok(CellValue::from_error(ErrorType::NumError));
     }
 
     Ok(CellValue::Number(result))
@@ -253,7 +253,7 @@ fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 fn concatenate_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     let l = coerce_to_string(&left);
     let r = coerce_to_string(&right);
-    Ok(CellValue::String(format!("{}{}", l, r)))
+    Ok(CellValue::from_string(format!("{}{}", l, r)))
 }
 
 /// Compare two values
@@ -363,7 +363,7 @@ pub fn coerce_to_number(value: &CellValue) -> Result<f64> {
 /// Coerce a value to a string
 pub fn coerce_to_string(value: &CellValue) -> String {
     match value {
-        CellValue::String(s) => s.clone(),
+        CellValue::String(s) => s.as_ref().clone(),
         CellValue::Number(n) => {
             // Format number nicely (remove unnecessary decimals)
             if n.fract() == 0.0 && n.abs() < 1e10 {

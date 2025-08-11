@@ -41,10 +41,8 @@ impl VimBehavior {
         motion: &Motion,
         current_state: &UIState,
     ) -> Result<(CellAddress, CellAddress)> {
-        let context = super::motion::MotionContext::new(
-            *current_state.cursor(),
-            current_state.viewport().clone(),
-        );
+        let context =
+            super::motion::MotionContext::new(*current_state.cursor(), *current_state.viewport());
 
         super::motion::motion_range(motion, &context)
     }

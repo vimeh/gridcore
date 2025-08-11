@@ -40,7 +40,7 @@ fn test_parse_string() {
         Expr::Literal {
             value: CellValue::String(s),
         } => {
-            assert_eq!(s, "hello world");
+            assert_eq!(s.as_ref(), "hello world");
         }
         _ => panic!("Expected string literal"),
     }
@@ -823,7 +823,7 @@ fn test_empty_string() {
         Expr::Literal {
             value: CellValue::String(s),
         } => {
-            assert_eq!(s, "");
+            assert_eq!(s.as_ref(), "");
         }
         _ => panic!("Expected empty string"),
     }
@@ -836,7 +836,7 @@ fn test_string_with_spaces() {
         Expr::Literal {
             value: CellValue::String(s),
         } => {
-            assert_eq!(s, "  spaces  ");
+            assert_eq!(s.as_ref(), "  spaces  ");
         }
         _ => panic!("Expected string with spaces"),
     }

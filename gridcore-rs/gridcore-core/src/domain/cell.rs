@@ -45,22 +45,23 @@ impl Cell {
         // Parse the error string to determine the appropriate ErrorType
         // Clone once for the error type, keep original for the error field
         let error_clone = error.clone();
-        let error_type = if error_clone.contains(ERROR_DIV_ZERO) || error_clone.contains(DESC_DIVISION_BY_ZERO) {
+        let error_type = if error_clone.contains(ERROR_DIV_ZERO)
+            || error_clone.contains(DESC_DIVISION_BY_ZERO)
+        {
             ErrorType::DivideByZero
         } else if error_clone.contains(ERROR_REF) || error_clone.contains(DESC_INVALID_REFERENCE) {
             ErrorType::InvalidRef {
                 reference: error_clone,
             }
         } else if error_clone.contains(ERROR_NAME) || error_clone.contains(DESC_UNKNOWN_FUNCTION) {
-            ErrorType::NameError {
-                name: error_clone,
-            }
+            ErrorType::NameError { name: error_clone }
         } else if error_clone.contains(ERROR_VALUE) || error_clone.contains(DESC_TYPE_MISMATCH) {
             ErrorType::ValueError {
                 expected: ERROR_VALID_VALUE.to_string(),
                 actual: error_clone,
             }
-        } else if error_clone.contains(ERROR_CIRC) || error_clone.contains(DESC_CIRCULAR_REFERENCE) {
+        } else if error_clone.contains(ERROR_CIRC) || error_clone.contains(DESC_CIRCULAR_REFERENCE)
+        {
             ErrorType::CircularDependency { cells: Vec::new() }
         } else if error_clone.contains(ERROR_NUM) {
             ErrorType::NumError
@@ -72,7 +73,7 @@ impl Cell {
 
         Cell {
             raw_value,
-            computed_value: CellValue::Error(error_type),
+            computed_value: CellValue::from_error(error_type),
             formula_text: None,
             error: Some(error),
         }
@@ -126,32 +127,31 @@ impl Cell {
         self.error = Some(error);
 
         // Parse the error string to determine the appropriate ErrorType
-        let error_type = if error_clone.contains("#DIV/0!") || error_clone.contains("Division by zero") {
-            ErrorType::DivideByZero
-        } else if error_clone.contains("#REF!") || error_clone.contains("Invalid reference") {
-            ErrorType::InvalidRef {
-                reference: error_clone,
-            }
-        } else if error_clone.contains("#NAME?") || error_clone.contains("Unknown function") {
-            ErrorType::NameError {
-                name: error_clone,
-            }
-        } else if error_clone.contains("#VALUE!") || error_clone.contains("Type mismatch") {
-            ErrorType::ValueError {
-                expected: "valid".to_string(),
-                actual: error_clone,
-            }
-        } else if error_clone.contains("#CIRC!") || error_clone.contains("Circular") {
-            ErrorType::CircularDependency { cells: Vec::new() }
-        } else if error_clone.contains("#NUM!") {
-            ErrorType::NumError
-        } else {
-            ErrorType::ParseError {
-                message: error_clone,
-            }
-        };
+        let error_type =
+            if error_clone.contains("#DIV/0!") || error_clone.contains("Division by zero") {
+                ErrorType::DivideByZero
+            } else if error_clone.contains("#REF!") || error_clone.contains("Invalid reference") {
+                ErrorType::InvalidRef {
+                    reference: error_clone,
+                }
+            } else if error_clone.contains("#NAME?") || error_clone.contains("Unknown function") {
+                ErrorType::NameError { name: error_clone }
+            } else if error_clone.contains("#VALUE!") || error_clone.contains("Type mismatch") {
+                ErrorType::ValueError {
+                    expected: "valid".to_string(),
+                    actual: error_clone,
+                }
+            } else if error_clone.contains("#CIRC!") || error_clone.contains("Circular") {
+                ErrorType::CircularDependency { cells: Vec::new() }
+            } else if error_clone.contains("#NUM!") {
+                ErrorType::NumError
+            } else {
+                ErrorType::ParseError {
+                    message: error_clone,
+                }
+            };
 
-        self.computed_value = CellValue::Error(error_type);
+        self.computed_value = CellValue::from_error(error_type);
     }
 }
 
@@ -170,9 +170,12 @@ mod tests {
 
     #[test]
     fn test_cell_with_string_value() {
-        let cell = Cell::new(CellValue::String("hello".to_string()));
-        assert_eq!(cell.raw_value, CellValue::String("hello".to_string()));
-        assert_eq!(cell.computed_value, CellValue::String("hello".to_string()));
+        let cell = Cell::new(CellValue::from_string("hello".to_string()));
+        assert_eq!(cell.raw_value, CellValue::from_string("hello".to_string()));
+        assert_eq!(
+            cell.computed_value,
+            CellValue::from_string("hello".to_string())
+        );
         assert!(!cell.has_formula());
         assert!(!cell.has_error());
     }
@@ -197,10 +200,13 @@ mod tests {
 
     #[test]
     fn test_cell_with_formula() {
-        let cell = Cell::with_formula(CellValue::String("=A1+B1".to_string()), "A1+B1".to_string());
+        let cell = Cell::with_formula(
+            CellValue::from_string("=A1+B1".to_string()),
+            "A1+B1".to_string(),
+        );
         assert!(cell.has_formula());
         assert_eq!(cell.formula_text, Some("A1+B1".to_string()));
-        assert_eq!(cell.raw_value, CellValue::String("=A1+B1".to_string()));
+        assert_eq!(cell.raw_value, CellValue::from_string("=A1+B1".to_string()));
         assert_eq!(cell.computed_value, CellValue::Empty);
         assert!(!cell.has_error());
     }
@@ -208,14 +214,14 @@ mod tests {
     #[test]
     fn test_cell_with_error() {
         let cell = Cell::with_error(
-            CellValue::String("=INVALID()".to_string()),
+            CellValue::from_string("=INVALID()".to_string()),
             "Unknown function".to_string(),
         );
         assert!(cell.has_error());
         assert_eq!(cell.error, Some("Unknown function".to_string()));
         assert_eq!(
             cell.computed_value,
-            CellValue::Error(ErrorType::NameError {
+            CellValue::from_error(ErrorType::NameError {
                 name: "Unknown function".to_string()
             })
         );
@@ -238,7 +244,7 @@ mod tests {
         assert_eq!(cell.error, Some("Division by zero".to_string()));
         assert_eq!(
             cell.computed_value,
-            CellValue::Error(ErrorType::DivideByZero)
+            CellValue::from_error(ErrorType::DivideByZero)
         );
         assert_eq!(cell.raw_value, CellValue::Number(42.0));
     }
@@ -249,12 +255,12 @@ mod tests {
         assert_eq!(cell.get_display_value(), &CellValue::Number(42.0));
 
         let cell_with_error = Cell::with_error(
-            CellValue::String("=1/0".to_string()),
+            CellValue::from_string("=1/0".to_string()),
             "Division by zero".to_string(),
         );
         assert_eq!(
             cell_with_error.get_display_value(),
-            &CellValue::Error(ErrorType::DivideByZero)
+            &CellValue::from_error(ErrorType::DivideByZero)
         );
     }
 
@@ -270,8 +276,14 @@ mod tests {
 
     #[test]
     fn test_cells_with_same_formula_are_equal() {
-        let cell1 = Cell::with_formula(CellValue::String("=1+2".to_string()), "1+2".to_string());
-        let cell2 = Cell::with_formula(CellValue::String("=1+2".to_string()), "1+2".to_string());
+        let cell1 = Cell::with_formula(
+            CellValue::from_string("=1+2".to_string()),
+            "1+2".to_string(),
+        );
+        let cell2 = Cell::with_formula(
+            CellValue::from_string("=1+2".to_string()),
+            "1+2".to_string(),
+        );
         assert_eq!(cell1, cell2);
     }
 
@@ -285,7 +297,7 @@ mod tests {
     #[test]
     fn test_computed_value_update_clears_error() {
         let mut cell = Cell::with_error(
-            CellValue::String("=1/0".to_string()),
+            CellValue::from_string("=1/0".to_string()),
             "Division by zero".to_string(),
         );
         assert!(cell.has_error());
@@ -298,11 +310,12 @@ mod tests {
 
     #[test]
     fn test_formula_cell_computed_value() {
-        let mut cell = Cell::with_formula(CellValue::String("=42".to_string()), "42".to_string());
+        let mut cell =
+            Cell::with_formula(CellValue::from_string("=42".to_string()), "42".to_string());
         assert_eq!(cell.computed_value, CellValue::Empty);
 
         cell.set_computed_value(CellValue::Number(42.0));
         assert_eq!(cell.computed_value, CellValue::Number(42.0));
-        assert_eq!(cell.raw_value, CellValue::String("=42".to_string()));
+        assert_eq!(cell.raw_value, CellValue::from_string("=42".to_string()));
     }
 }

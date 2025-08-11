@@ -1,7 +1,7 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use std::hint::black_box;
 use gridcore_core::facade::SpreadsheetFacade;
 use gridcore_core::types::CellAddress;
+use std::hint::black_box;
 
 fn benchmark_simple_cell_operations(c: &mut Criterion) {
     c.bench_function("set_and_get_cell_value", |b| {

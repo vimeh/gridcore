@@ -128,7 +128,7 @@ impl SheetManager {
                         && let CellValue::String(formula_str) = &cell.raw_value
                         && formula_str.starts_with('=')
                         && let Ok(adjusted) = adjuster.adjust_formula(formula_str, &operation)
-                        && adjusted != *formula_str
+                        && adjusted != formula_str.as_ref().as_str()
                     {
                         adjusted_cells.push((address, adjusted));
                     }
@@ -140,7 +140,7 @@ impl SheetManager {
                     // Store the formula text without the leading '='
                     let formula_text = adjusted_formula[1..].to_string();
                     let new_cell =
-                        Cell::with_formula(CellValue::String(adjusted_formula), formula_text);
+                        Cell::with_formula(CellValue::from_string(adjusted_formula), formula_text);
 
                     if let Some(sheet) = self.workbook.get_sheet(&sheet_name) {
                         sheet.set_cell(&address, new_cell)?;
@@ -311,7 +311,7 @@ mod tests {
         sheet
             .set_cell(
                 &CellAddress::new(1, 0),
-                Cell::new(CellValue::String("=A1+1".to_string())),
+                Cell::new(CellValue::from_string("=A1+1".to_string())),
             )
             .unwrap();
 

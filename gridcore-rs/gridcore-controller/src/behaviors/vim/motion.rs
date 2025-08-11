@@ -160,7 +160,7 @@ pub fn adjust_viewport_for_motion(
     new_position: &CellAddress,
     viewport: &ViewportInfo,
 ) -> Option<ViewportInfo> {
-    let mut adjusted = viewport.clone();
+    let mut adjusted = *viewport;
     let mut needs_adjustment = false;
 
     // Check if new position is outside current viewport

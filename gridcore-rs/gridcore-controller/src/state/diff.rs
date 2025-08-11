@@ -1,4 +1,6 @@
-use super::{UIState, ViewportInfo, Selection, SpreadsheetVisualMode, CellMode, VisualMode, InsertMode};
+use super::{
+    CellMode, InsertMode, Selection, SpreadsheetVisualMode, UIState, ViewportInfo, VisualMode,
+};
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
 
@@ -12,7 +14,7 @@ pub enum StateDiff {
 }
 
 /// Tracks specific changes between states
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StateChanges {
     /// Type transition (e.g., Navigation -> Editing)
     pub state_type_changed: Option<StateTypeChange>,
@@ -64,10 +66,20 @@ impl StateDiff {
 
         // Otherwise, create a partial diff
         let mut changes = StateChanges::default();
-        
+
         match (old_state, new_state) {
-            (UIState::Navigation { cursor: old_cursor, viewport: old_viewport, selection: old_selection },
-             UIState::Navigation { cursor: new_cursor, viewport: new_viewport, selection: new_selection }) => {
+            (
+                UIState::Navigation {
+                    cursor: old_cursor,
+                    viewport: old_viewport,
+                    selection: old_selection,
+                },
+                UIState::Navigation {
+                    cursor: new_cursor,
+                    viewport: new_viewport,
+                    selection: new_selection,
+                },
+            ) => {
                 if old_cursor != new_cursor {
                     changes.cursor_changed = Some(*new_cursor);
                 }
@@ -77,9 +89,23 @@ impl StateDiff {
                 if old_selection != new_selection {
                     changes.selection_changed = Some(new_selection.clone());
                 }
-            },
-            (UIState::Visual { cursor: old_cursor, viewport: old_viewport, selection: old_selection, visual_mode: old_mode, anchor: old_anchor },
-             UIState::Visual { cursor: new_cursor, viewport: new_viewport, selection: new_selection, visual_mode: new_mode, anchor: new_anchor }) => {
+            }
+            (
+                UIState::Visual {
+                    cursor: old_cursor,
+                    viewport: old_viewport,
+                    selection: old_selection,
+                    visual_mode: old_mode,
+                    anchor: old_anchor,
+                },
+                UIState::Visual {
+                    cursor: new_cursor,
+                    viewport: new_viewport,
+                    selection: new_selection,
+                    visual_mode: new_mode,
+                    anchor: new_anchor,
+                },
+            ) => {
                 if old_cursor != new_cursor {
                     changes.cursor_changed = Some(*new_cursor);
                 }
@@ -95,11 +121,29 @@ impl StateDiff {
                 if old_anchor != new_anchor {
                     changes.anchor_changed = Some(*new_anchor);
                 }
-            },
-            (UIState::Editing { cursor: old_cursor, viewport: old_viewport, cell_mode: old_mode, editing_value: old_value, 
-                               cursor_position: old_pos, visual_start: old_vstart, visual_type: old_vtype, edit_variant: old_variant },
-             UIState::Editing { cursor: new_cursor, viewport: new_viewport, cell_mode: new_mode, editing_value: new_value,
-                               cursor_position: new_pos, visual_start: new_vstart, visual_type: new_vtype, edit_variant: new_variant }) => {
+            }
+            (
+                UIState::Editing {
+                    cursor: old_cursor,
+                    viewport: old_viewport,
+                    cell_mode: old_mode,
+                    editing_value: old_value,
+                    cursor_position: old_pos,
+                    visual_start: old_vstart,
+                    visual_type: old_vtype,
+                    edit_variant: old_variant,
+                },
+                UIState::Editing {
+                    cursor: new_cursor,
+                    viewport: new_viewport,
+                    cell_mode: new_mode,
+                    editing_value: new_value,
+                    cursor_position: new_pos,
+                    visual_start: new_vstart,
+                    visual_type: new_vtype,
+                    edit_variant: new_variant,
+                },
+            ) => {
                 if old_cursor != new_cursor {
                     changes.cursor_changed = Some(*new_cursor);
                 }
@@ -124,7 +168,7 @@ impl StateDiff {
                 if old_variant != new_variant {
                     changes.edit_variant_changed = Some(*new_variant);
                 }
-            },
+            }
             _ => {
                 // For other state types or mismatched comparisons, store full state
                 return StateDiff::Full(new_state.clone());
@@ -152,26 +196,30 @@ impl StateDiff {
 impl StateChanges {
     /// Check if there are any changes
     fn has_changes(&self) -> bool {
-        self.state_type_changed.is_some() ||
-        self.cursor_changed.is_some() ||
-        self.viewport_changed.is_some() ||
-        self.selection_changed.is_some() ||
-        self.editing_value_changed.is_some() ||
-        self.text_cursor_changed.is_some() ||
-        self.cell_mode_changed.is_some() ||
-        self.visual_mode_changed.is_some() ||
-        self.anchor_changed.is_some() ||
-        self.visual_start_changed.is_some() ||
-        self.visual_type_changed.is_some() ||
-        self.edit_variant_changed.is_some()
+        self.state_type_changed.is_some()
+            || self.cursor_changed.is_some()
+            || self.viewport_changed.is_some()
+            || self.selection_changed.is_some()
+            || self.editing_value_changed.is_some()
+            || self.text_cursor_changed.is_some()
+            || self.cell_mode_changed.is_some()
+            || self.visual_mode_changed.is_some()
+            || self.anchor_changed.is_some()
+            || self.visual_start_changed.is_some()
+            || self.visual_type_changed.is_some()
+            || self.edit_variant_changed.is_some()
     }
 
     /// Apply changes to a base state
     fn apply_to(&self, base_state: &UIState) -> UIState {
         let mut result = base_state.clone();
-        
+
         match &mut result {
-            UIState::Navigation { cursor, viewport, selection } => {
+            UIState::Navigation {
+                cursor,
+                viewport,
+                selection,
+            } => {
                 if let Some(new_cursor) = self.cursor_changed {
                     *cursor = new_cursor;
                 }
@@ -181,8 +229,14 @@ impl StateChanges {
                 if let Some(ref new_selection) = self.selection_changed {
                     *selection = new_selection.clone();
                 }
-            },
-            UIState::Visual { cursor, viewport, selection, visual_mode, anchor } => {
+            }
+            UIState::Visual {
+                cursor,
+                viewport,
+                selection,
+                visual_mode,
+                anchor,
+            } => {
                 if let Some(new_cursor) = self.cursor_changed {
                     *cursor = new_cursor;
                 }
@@ -198,8 +252,17 @@ impl StateChanges {
                 if let Some(new_anchor) = self.anchor_changed {
                     *anchor = new_anchor;
                 }
-            },
-            UIState::Editing { cursor, viewport, cell_mode, editing_value, cursor_position, visual_start, visual_type, edit_variant } => {
+            }
+            UIState::Editing {
+                cursor,
+                viewport,
+                cell_mode,
+                editing_value,
+                cursor_position,
+                visual_start,
+                visual_type,
+                edit_variant,
+            } => {
                 if let Some(new_cursor) = self.cursor_changed {
                     *cursor = new_cursor;
                 }
@@ -224,31 +287,12 @@ impl StateChanges {
                 if let Some(new_variant) = self.edit_variant_changed {
                     *edit_variant = new_variant;
                 }
-            },
+            }
             _ => {
                 // For other state types, no partial updates supported yet
             }
         }
-        
-        result
-    }
-}
 
-impl Default for StateChanges {
-    fn default() -> Self {
-        Self {
-            state_type_changed: None,
-            cursor_changed: None,
-            viewport_changed: None,
-            selection_changed: None,
-            editing_value_changed: None,
-            text_cursor_changed: None,
-            cell_mode_changed: None,
-            visual_mode_changed: None,
-            anchor_changed: None,
-            visual_start_changed: None,
-            visual_type_changed: None,
-            edit_variant_changed: None,
-        }
+        result
     }
 }

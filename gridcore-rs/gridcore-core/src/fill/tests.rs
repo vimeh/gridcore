@@ -90,17 +90,17 @@ mod fill_integration_tests {
         // Add source values: A, B, C
         repo.set(
             &CellAddress::new(0, 0),
-            Cell::new(CellValue::String("A".to_string())),
+            Cell::new(CellValue::from_string("A".to_string())),
         )
         .unwrap();
         repo.set(
             &CellAddress::new(0, 1),
-            Cell::new(CellValue::String("B".to_string())),
+            Cell::new(CellValue::from_string("B".to_string())),
         )
         .unwrap();
         repo.set(
             &CellAddress::new(0, 2),
-            Cell::new(CellValue::String("C".to_string())),
+            Cell::new(CellValue::from_string("C".to_string())),
         )
         .unwrap();
 

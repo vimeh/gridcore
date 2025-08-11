@@ -29,7 +29,7 @@ impl<'a> Evaluator<'a> {
                 // Check for circular dependency
                 if self.context.is_evaluating(address) {
                     // Return as CellValue::Error for proper propagation
-                    return Ok(CellValue::Error(ErrorType::CircularDependency {
+                    return Ok(CellValue::from_error(ErrorType::CircularDependency {
                         cells: vec![*address],
                     }));
                 }
@@ -41,7 +41,7 @@ impl<'a> Evaluator<'a> {
                         // Convert errors to Excel format
                         match e {
                             SpreadsheetError::CircularDependency => {
-                                Ok(CellValue::Error(ErrorType::CircularDependency {
+                                Ok(CellValue::from_error(ErrorType::CircularDependency {
                                     cells: Vec::new(),
                                 }))
                             }
@@ -89,21 +89,21 @@ impl<'a> Evaluator<'a> {
                     for cell_addr in range.cells() {
                         if self.context.is_evaluating(&cell_addr) {
                             // Return circular reference error as CellValue::Error
-                            return Ok(CellValue::Error(ErrorType::CircularDependency {
+                            return Ok(CellValue::from_error(ErrorType::CircularDependency {
                                 cells: vec![cell_addr],
                             }));
                         }
                         match self.context.get_cell_value(&cell_addr) {
                             Ok(value) => values.push(value),
                             Err(SpreadsheetError::CircularDependency) => {
-                                return Ok(CellValue::Error(ErrorType::CircularDependency {
+                                return Ok(CellValue::from_error(ErrorType::CircularDependency {
                                     cells: vec![cell_addr],
                                 }));
                             }
                             Err(e) => return Err(e),
                         }
                     }
-                    evaluated_args.push(CellValue::Array(values));
+                    evaluated_args.push(CellValue::from_array(values));
                 }
                 _ => {
                     // Regular expression evaluation
@@ -123,7 +123,7 @@ impl<'a> Evaluator<'a> {
         for cell_addr in range.cells() {
             if self.context.is_evaluating(&cell_addr) {
                 // Add circular reference error to the array
-                values.push(CellValue::Error(ErrorType::CircularDependency {
+                values.push(CellValue::from_error(ErrorType::CircularDependency {
                     cells: vec![cell_addr],
                 }));
                 continue;
@@ -131,7 +131,7 @@ impl<'a> Evaluator<'a> {
             match self.context.get_cell_value(&cell_addr) {
                 Ok(value) => values.push(value),
                 Err(SpreadsheetError::CircularDependency) => {
-                    values.push(CellValue::Error(ErrorType::CircularDependency {
+                    values.push(CellValue::from_error(ErrorType::CircularDependency {
                         cells: vec![cell_addr],
                     }));
                 }
@@ -161,7 +161,7 @@ mod tests {
 
         let expr = FormulaParser::parse("\"hello\"").unwrap();
         let result = evaluator.evaluate(&expr).unwrap();
-        assert_eq!(result, CellValue::String("hello".to_string()));
+        assert_eq!(result, CellValue::from_string("hello".to_string()));
 
         let expr = FormulaParser::parse("TRUE").unwrap();
         let result = evaluator.evaluate(&expr).unwrap();
@@ -212,7 +212,7 @@ mod tests {
         let expr = FormulaParser::parse("10/0").unwrap();
         let result = evaluator.evaluate(&expr).unwrap();
 
-        assert_eq!(result, CellValue::Error(ErrorType::DivideByZero));
+        assert_eq!(result, CellValue::from_error(ErrorType::DivideByZero));
     }
 
     #[test]
@@ -259,7 +259,7 @@ mod tests {
         let mut context = TestContext::new();
         context.values.insert(
             CellAddress::new(0, 0),
-            CellValue::String("text".to_string()),
+            CellValue::from_string("text".to_string()),
         );
 
         let mut evaluator = Evaluator::new(&mut context);
@@ -270,7 +270,7 @@ mod tests {
 
         assert!(matches!(result, CellValue::Error(_)));
         if let CellValue::Error(error_type) = result {
-            assert!(matches!(error_type, ErrorType::ValueError { .. }));
+            assert!(matches!(error_type.as_ref(), ErrorType::ValueError { .. }));
         }
     }
 

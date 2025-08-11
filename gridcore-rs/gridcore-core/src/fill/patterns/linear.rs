@@ -148,7 +148,7 @@ mod tests {
         let detector = LinearPatternDetector::new();
         let values = vec![
             CellValue::Number(1.0),
-            CellValue::String("text".to_string()),
+            CellValue::from_string("text".to_string()),
             CellValue::Number(3.0),
         ];
 
@@ -159,8 +159,8 @@ mod tests {
     fn test_cannot_handle_non_numeric() {
         let detector = LinearPatternDetector::new();
         let values = vec![
-            CellValue::String("a".to_string()),
-            CellValue::String("b".to_string()),
+            CellValue::from_string("a".to_string()),
+            CellValue::from_string("b".to_string()),
         ];
 
         assert!(!detector.can_handle(&values));

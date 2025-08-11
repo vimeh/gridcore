@@ -121,7 +121,7 @@ mod edge_case_tests {
 
         machine
             .transition(Action::UpdateViewport {
-                viewport: huge_viewport.clone(),
+                viewport: huge_viewport,
             })
             .unwrap();
 
@@ -137,7 +137,7 @@ mod edge_case_tests {
 
         machine
             .transition(Action::UpdateViewport {
-                viewport: zero_viewport.clone(),
+                viewport: zero_viewport,
             })
             .unwrap();
 

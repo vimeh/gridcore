@@ -26,7 +26,7 @@ mod tests {
             } else if value == "true" || value == "false" {
                 CellValue::Boolean(value == "true")
             } else {
-                CellValue::String(value.to_string())
+                CellValue::from_string(value.to_string())
             }
         }
     }

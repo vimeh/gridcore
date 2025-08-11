@@ -269,7 +269,9 @@ pub fn CanvasGrid(
                     cursor_position: Some(cursor_pos),
                 };
 
-                if let Err(e) = controller_stored.with_value(|c| c.borrow_mut().dispatch_action(action)) {
+                if let Err(e) =
+                    controller_stored.with_value(|c| c.borrow_mut().dispatch_action(action))
+                {
                     debug_log!("Error starting edit on double-click: {:?}", e);
                 } else {
                     // Update UI state

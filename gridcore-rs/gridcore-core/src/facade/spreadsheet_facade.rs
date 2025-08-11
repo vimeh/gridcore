@@ -127,8 +127,10 @@ impl SpreadsheetFacade {
             // It's a formula - create a cell with formula
             if let Some(repository) = self.container.repository() {
                 let formula_string = formula_text.to_string();
-                let mut cell =
-                    Cell::with_formula(CellValue::String(value.to_string()), formula_string.clone());
+                let mut cell = Cell::with_formula(
+                    CellValue::from_string(value.to_string()),
+                    formula_string.clone(),
+                );
 
                 // Try to evaluate the formula
                 if let Some(repo_for_eval) = self.container.repository() {
@@ -157,7 +159,7 @@ impl SpreadsheetFacade {
             } else if let Ok(bool_val) = value.parse::<bool>() {
                 CellValue::Boolean(bool_val)
             } else {
-                CellValue::String(value.to_string())
+                CellValue::from_string(value.to_string())
             };
             self.set_cell(address, cell_value)?;
         }
@@ -175,7 +177,7 @@ impl SpreadsheetFacade {
         self.get_cell(address).map(|cell| {
             match cell.get_computed_value() {
                 CellValue::Number(n) => n.to_string(),
-                CellValue::String(s) => s,
+                CellValue::String(s) => s.as_ref().clone(),
                 CellValue::Boolean(b) => b.to_string(),
                 CellValue::Error(e) => format!("#{}", e),
                 CellValue::Empty => String::new(),
@@ -185,7 +187,7 @@ impl SpreadsheetFacade {
                         .iter()
                         .map(|v| match v {
                             CellValue::Number(n) => n.to_string(),
-                            CellValue::String(s) => s.clone(),
+                            CellValue::String(s) => s.as_ref().clone(),
                             CellValue::Boolean(b) => b.to_string(),
                             CellValue::Error(e) => format!("#{}", e),
                             CellValue::Empty => String::new(),

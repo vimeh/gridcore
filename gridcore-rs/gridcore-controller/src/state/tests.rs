@@ -372,7 +372,7 @@ mod tests {
 
         machine
             .transition(Action::UpdateViewport {
-                viewport: new_viewport.clone(),
+                viewport: new_viewport,
             })
             .unwrap();
 
@@ -399,7 +399,10 @@ mod tests {
         assert!(matches!(history[0].action, Action::EnterCommandMode));
         // Now we store diffs instead of full states, so check the diff
         // The first diff should be a Full transition from Navigation to Command
-        assert!(matches!(history[0].diff, crate::state::diff::StateDiff::Full(_)));
+        assert!(matches!(
+            history[0].diff,
+            crate::state::diff::StateDiff::Full(_)
+        ));
 
         // Check that timestamps are set (non-wasm)
         #[cfg(not(target_arch = "wasm32"))]

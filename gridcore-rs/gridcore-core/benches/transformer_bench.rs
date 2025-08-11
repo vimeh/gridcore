@@ -1,7 +1,7 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use std::hint::black_box;
 use gridcore_core::formula::{Expr, FormulaParser, FormulaTransformer};
 use gridcore_core::types::CellAddress;
+use std::hint::black_box;
 
 fn create_simple_formula() -> Expr {
     FormulaParser::parse("A1 + B2").unwrap()

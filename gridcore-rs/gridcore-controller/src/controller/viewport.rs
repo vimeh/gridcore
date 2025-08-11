@@ -192,7 +192,7 @@ impl DefaultViewportManager {
 
 impl ViewportManager for DefaultViewportManager {
     fn get_viewport(&self) -> ViewportInfo {
-        self.viewport.clone()
+        self.viewport
     }
 
     fn set_viewport(&mut self, viewport: ViewportInfo) {

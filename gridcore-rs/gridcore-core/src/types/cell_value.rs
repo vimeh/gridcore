@@ -1,19 +1,55 @@
 use super::ErrorType;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::sync::Arc;
 
+/// CellValue with optimized memory layout
+/// Primitive variants (Number, Boolean, Empty) are Copy
+/// Heap-allocated variants use Arc for cheap cloning
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub enum CellValue {
     Number(f64),
-    String(String),
+    String(Arc<String>),
     Boolean(bool),
     #[default]
     Empty,
-    Error(ErrorType),
-    Array(Vec<CellValue>),
+    Error(Arc<ErrorType>),
+    Array(Arc<Vec<CellValue>>),
 }
 
 impl CellValue {
+    /// Create a String variant from a String
+    pub fn from_string(s: String) -> Self {
+        CellValue::String(Arc::new(s))
+    }
+
+    /// Create a String variant from a &str
+    pub fn string_from_str(s: &str) -> Self {
+        CellValue::String(Arc::new(s.to_string()))
+    }
+
+    /// Create an Error variant from ErrorType
+    pub fn from_error(e: ErrorType) -> Self {
+        CellValue::Error(Arc::new(e))
+    }
+
+    /// Create an Array variant from Vec<CellValue>
+    pub fn from_array(arr: Vec<CellValue>) -> Self {
+        CellValue::Array(Arc::new(arr))
+    }
+
+    /// Check if this value is cheap to clone (primitive types)
+    pub fn is_cheap_clone(&self) -> bool {
+        matches!(
+            self,
+            CellValue::Number(_) | CellValue::Boolean(_) | CellValue::Empty
+        )
+    }
+
+    /// Get or clone the value - for primitives returns self, for heap types clones
+    pub fn get_or_clone(&self) -> Self {
+        self.clone()
+    }
     /// Check if the value is numeric
     pub fn is_number(&self) -> bool {
         matches!(self, CellValue::Number(_))
@@ -50,7 +86,7 @@ impl CellValue {
     /// Try to get the string value
     pub fn as_string(&self) -> Option<&str> {
         match self {
-            CellValue::String(s) => Some(s),
+            CellValue::String(s) => Some(s.as_ref()),
             _ => None,
         }
     }
@@ -79,7 +115,7 @@ impl CellValue {
     pub fn to_display_string(&self) -> String {
         match self {
             CellValue::Number(n) => n.to_string(),
-            CellValue::String(s) => s.clone(),
+            CellValue::String(s) => s.as_ref().clone(),
             CellValue::Boolean(b) => b.to_string().to_uppercase(),
             CellValue::Empty => String::new(),
             CellValue::Error(e) => e.excel_code().to_string(),
@@ -108,23 +144,23 @@ mod tests {
         assert!(CellValue::Number(-123.45).is_number());
         assert!(CellValue::Number(f64::INFINITY).is_number());
 
-        assert!(!CellValue::String("42".to_string()).is_number());
+        assert!(!CellValue::string_from_str("42").is_number());
         assert!(!CellValue::Boolean(true).is_number());
         assert!(!CellValue::Empty.is_number());
-        assert!(!CellValue::Error(ErrorType::DivideByZero).is_number());
+        assert!(!CellValue::from_error(ErrorType::DivideByZero).is_number());
     }
 
     #[test]
     fn test_is_string() {
-        assert!(CellValue::String("hello".to_string()).is_string());
-        assert!(CellValue::String("".to_string()).is_string());
-        assert!(CellValue::String("123".to_string()).is_string());
+        assert!(CellValue::string_from_str("hello").is_string());
+        assert!(CellValue::string_from_str("").is_string());
+        assert!(CellValue::string_from_str("123").is_string());
 
         assert!(!CellValue::Number(42.0).is_string());
         assert!(!CellValue::Boolean(true).is_string());
         assert!(!CellValue::Empty.is_string());
         assert!(
-            !CellValue::Error(ErrorType::ParseError {
+            !CellValue::from_error(ErrorType::ParseError {
                 message: "error".to_string()
             })
             .is_string()
@@ -136,7 +172,7 @@ mod tests {
         assert!(CellValue::Boolean(true).is_boolean());
         assert!(CellValue::Boolean(false).is_boolean());
 
-        assert!(!CellValue::String("true".to_string()).is_boolean());
+        assert!(!CellValue::string_from_str("true").is_boolean());
         assert!(!CellValue::Number(1.0).is_boolean());
         assert!(!CellValue::Number(0.0).is_boolean());
         assert!(!CellValue::Empty.is_boolean());
@@ -146,23 +182,23 @@ mod tests {
     fn test_is_empty() {
         assert!(CellValue::Empty.is_empty());
 
-        assert!(!CellValue::String("".to_string()).is_empty());
+        assert!(!CellValue::string_from_str("").is_empty());
         assert!(!CellValue::Number(0.0).is_empty());
         assert!(!CellValue::Boolean(false).is_empty());
-        assert!(!CellValue::Array(vec![]).is_empty());
+        assert!(!CellValue::from_array(vec![]).is_empty());
     }
 
     #[test]
     fn test_is_error() {
-        assert!(CellValue::Error(ErrorType::DivideByZero).is_error());
+        assert!(CellValue::from_error(ErrorType::DivideByZero).is_error());
         assert!(
-            CellValue::Error(ErrorType::ParseError {
+            CellValue::from_error(ErrorType::ParseError {
                 message: "".to_string()
             })
             .is_error()
         );
 
-        assert!(!CellValue::String("error".to_string()).is_error());
+        assert!(!CellValue::string_from_str("error").is_error());
         assert!(!CellValue::Number(0.0).is_error());
         assert!(!CellValue::Empty.is_error());
     }
@@ -173,7 +209,7 @@ mod tests {
         assert_eq!(CellValue::Number(0.0).as_number(), Some(0.0));
         assert_eq!(CellValue::Number(-123.45).as_number(), Some(-123.45));
 
-        assert_eq!(CellValue::String("42".to_string()).as_number(), None);
+        assert_eq!(CellValue::string_from_str("42").as_number(), None);
         assert_eq!(CellValue::Boolean(true).as_number(), None);
         assert_eq!(CellValue::Empty.as_number(), None);
     }
@@ -181,10 +217,10 @@ mod tests {
     #[test]
     fn test_as_string() {
         assert_eq!(
-            CellValue::String("hello".to_string()).as_string(),
+            CellValue::string_from_str("hello").as_string(),
             Some("hello")
         );
-        assert_eq!(CellValue::String("".to_string()).as_string(), Some(""));
+        assert_eq!(CellValue::string_from_str("").as_string(), Some(""));
 
         assert_eq!(CellValue::Number(42.0).as_string(), None);
         assert_eq!(CellValue::Boolean(true).as_string(), None);
@@ -197,21 +233,21 @@ mod tests {
         assert_eq!(CellValue::Boolean(false).as_boolean(), Some(false));
 
         assert_eq!(CellValue::Number(1.0).as_boolean(), None);
-        assert_eq!(CellValue::String("true".to_string()).as_boolean(), None);
+        assert_eq!(CellValue::string_from_str("true").as_boolean(), None);
         assert_eq!(CellValue::Empty.as_boolean(), None);
     }
 
     #[test]
     fn test_type_name() {
         assert_eq!(CellValue::Number(42.0).type_name(), "number");
-        assert_eq!(CellValue::String("hello".to_string()).type_name(), "string");
+        assert_eq!(CellValue::string_from_str("hello").type_name(), "string");
         assert_eq!(CellValue::Boolean(true).type_name(), "boolean");
         assert_eq!(CellValue::Empty.type_name(), "empty");
         assert_eq!(
-            CellValue::Error(ErrorType::DivideByZero).type_name(),
+            CellValue::from_error(ErrorType::DivideByZero).type_name(),
             "error"
         );
-        assert_eq!(CellValue::Array(vec![]).type_name(), "array");
+        assert_eq!(CellValue::from_array(vec![]).type_name(), "array");
     }
 
     #[test]
@@ -219,25 +255,25 @@ mod tests {
         assert_eq!(CellValue::Number(42.0).to_display_string(), "42");
         assert_eq!(CellValue::Number(123.45).to_display_string(), "123.45");
         assert_eq!(
-            CellValue::String("hello".to_string()).to_display_string(),
+            CellValue::string_from_str("hello").to_display_string(),
             "hello"
         );
         assert_eq!(CellValue::Boolean(true).to_display_string(), "TRUE");
         assert_eq!(CellValue::Boolean(false).to_display_string(), "FALSE");
         assert_eq!(CellValue::Empty.to_display_string(), "");
         assert_eq!(
-            CellValue::Error(ErrorType::DivideByZero).to_display_string(),
+            CellValue::from_error(ErrorType::DivideByZero).to_display_string(),
             "#DIV/0!"
         );
         assert_eq!(
-            CellValue::Error(ErrorType::InvalidRef {
+            CellValue::from_error(ErrorType::InvalidRef {
                 reference: "A0".to_string()
             })
             .to_display_string(),
             "#REF!"
         );
 
-        let array = CellValue::Array(vec![CellValue::Number(1.0), CellValue::Number(2.0)]);
+        let array = CellValue::from_array(vec![CellValue::Number(1.0), CellValue::Number(2.0)]);
         assert!(array.to_display_string().contains("Number(1"));
         assert!(array.to_display_string().contains("Number(2"));
     }
@@ -252,44 +288,44 @@ mod tests {
     #[test]
     fn test_error_variants() {
         // Test different error types
-        let div_error = CellValue::Error(ErrorType::DivideByZero);
+        let div_error = CellValue::from_error(ErrorType::DivideByZero);
         assert!(div_error.is_error());
         assert_eq!(div_error.to_display_string(), "#DIV/0!");
         assert_eq!(div_error.type_name(), "error");
 
-        let ref_error = CellValue::Error(ErrorType::InvalidRef {
+        let ref_error = CellValue::from_error(ErrorType::InvalidRef {
             reference: "Sheet1!A0".to_string(),
         });
         assert!(ref_error.is_error());
         assert_eq!(ref_error.to_display_string(), "#REF!");
 
-        let name_error = CellValue::Error(ErrorType::NameError {
+        let name_error = CellValue::from_error(ErrorType::NameError {
             name: "VLOOKUP".to_string(),
         });
         assert!(name_error.is_error());
         assert_eq!(name_error.to_display_string(), "#NAME?");
 
-        let value_error = CellValue::Error(ErrorType::ValueError {
+        let value_error = CellValue::from_error(ErrorType::ValueError {
             expected: "number".to_string(),
             actual: "text".to_string(),
         });
         assert!(value_error.is_error());
         assert_eq!(value_error.to_display_string(), "#VALUE!");
 
-        let circ_error = CellValue::Error(ErrorType::CircularDependency {
+        let circ_error = CellValue::from_error(ErrorType::CircularDependency {
             cells: vec![CellAddress::new(0, 0), CellAddress::new(1, 1)],
         });
         assert!(circ_error.is_error());
         assert_eq!(circ_error.to_display_string(), "#CIRC!");
 
-        let num_error = CellValue::Error(ErrorType::NumError);
+        let num_error = CellValue::from_error(ErrorType::NumError);
         assert!(num_error.is_error());
         assert_eq!(num_error.to_display_string(), "#NUM!");
     }
 
     #[test]
     fn test_error_not_convertible() {
-        let error = CellValue::Error(ErrorType::DivideByZero);
+        let error = CellValue::from_error(ErrorType::DivideByZero);
 
         // Errors should not convert to other types
         assert_eq!(error.as_number(), None);
@@ -304,20 +340,20 @@ mod tests {
 
     #[test]
     fn test_error_equality() {
-        let error1 = CellValue::Error(ErrorType::DivideByZero);
-        let error2 = CellValue::Error(ErrorType::DivideByZero);
-        let error3 = CellValue::Error(ErrorType::NumError);
+        let error1 = CellValue::from_error(ErrorType::DivideByZero);
+        let error2 = CellValue::from_error(ErrorType::DivideByZero);
+        let error3 = CellValue::from_error(ErrorType::NumError);
 
         assert_eq!(error1, error2);
         assert_ne!(error1, error3);
 
-        let ref_error1 = CellValue::Error(ErrorType::InvalidRef {
+        let ref_error1 = CellValue::from_error(ErrorType::InvalidRef {
             reference: "A1".to_string(),
         });
-        let ref_error2 = CellValue::Error(ErrorType::InvalidRef {
+        let ref_error2 = CellValue::from_error(ErrorType::InvalidRef {
             reference: "A1".to_string(),
         });
-        let ref_error3 = CellValue::Error(ErrorType::InvalidRef {
+        let ref_error3 = CellValue::from_error(ErrorType::InvalidRef {
             reference: "B1".to_string(),
         });
 
@@ -331,12 +367,12 @@ mod tests {
         assert_ne!(CellValue::Number(42.0), CellValue::Number(43.0));
 
         assert_eq!(
-            CellValue::String("hello".to_string()),
-            CellValue::String("hello".to_string())
+            CellValue::string_from_str("hello"),
+            CellValue::string_from_str("hello")
         );
         assert_ne!(
-            CellValue::String("hello".to_string()),
-            CellValue::String("world".to_string())
+            CellValue::string_from_str("hello"),
+            CellValue::string_from_str("world")
         );
 
         assert_eq!(CellValue::Boolean(true), CellValue::Boolean(true));
@@ -345,24 +381,24 @@ mod tests {
         assert_eq!(CellValue::Empty, CellValue::Empty);
 
         assert_eq!(
-            CellValue::Error(ErrorType::DivideByZero),
-            CellValue::Error(ErrorType::DivideByZero)
+            CellValue::from_error(ErrorType::DivideByZero),
+            CellValue::from_error(ErrorType::DivideByZero)
         );
         assert_ne!(
-            CellValue::Error(ErrorType::DivideByZero),
-            CellValue::Error(ErrorType::NumError)
+            CellValue::from_error(ErrorType::DivideByZero),
+            CellValue::from_error(ErrorType::NumError)
         );
     }
 
     #[test]
     fn test_clone() {
-        let original = CellValue::String("hello".to_string());
+        let original = CellValue::string_from_str("hello");
         let cloned = original.clone();
         assert_eq!(original, cloned);
 
-        let original = CellValue::Array(vec![
+        let original = CellValue::from_array(vec![
             CellValue::Number(1.0),
-            CellValue::String("test".to_string()),
+            CellValue::string_from_str("test"),
         ]);
         let cloned = original.clone();
         assert_eq!(original, cloned);
@@ -371,20 +407,17 @@ mod tests {
     #[test]
     fn test_display_trait() {
         assert_eq!(format!("{}", CellValue::Number(42.0)), "42");
-        assert_eq!(
-            format!("{}", CellValue::String("hello".to_string())),
-            "hello"
-        );
+        assert_eq!(format!("{}", CellValue::string_from_str("hello")), "hello");
         assert_eq!(format!("{}", CellValue::Boolean(true)), "TRUE");
         assert_eq!(format!("{}", CellValue::Empty), "");
         assert_eq!(
-            format!("{}", CellValue::Error(ErrorType::DivideByZero)),
+            format!("{}", CellValue::from_error(ErrorType::DivideByZero)),
             "#DIV/0!"
         );
         assert_eq!(
             format!(
                 "{}",
-                CellValue::Error(ErrorType::NameError {
+                CellValue::from_error(ErrorType::NameError {
                     name: "FOO".to_string()
                 })
             ),

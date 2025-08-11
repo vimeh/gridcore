@@ -323,7 +323,7 @@ mod tests {
             value: &str,
         ) -> Result<Option<Cell>, SpreadsheetError> {
             let old = self.cells.get(&address.to_string()).cloned();
-            let cell = Cell::new(CellValue::String(value.to_string()));
+            let cell = Cell::new(CellValue::from_string(value.to_string()));
             self.cells.insert(address.to_string(), cell);
             Ok(old)
         }
