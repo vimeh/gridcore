@@ -721,22 +721,61 @@ pub fn CellEditor(
                     on:keydown=move |ev: KeyboardEvent| {
                         let key = ev.key();
 
-                        // For now, just handle the basic keys
                         match key.as_str() {
                             "Enter" => {
                                 ev.prevent_default();
-                                let cell = active_cell.get();
-                                let value = editor_value.get();
-
-                                // Submit the value
-                                controller_stored.with_value(|ctrl| {
+                                
+                                // Check if we're in INSERT mode
+                                let is_insert_mode = controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
-                                    let facade = ctrl_borrow.get_facade();
-                                    let _ = facade.set_cell_value(&cell, &value);
+                                    matches!(
+                                        ctrl_borrow.get_state(),
+                                        gridcore_controller::state::UIState::Editing {
+                                            cell_mode: gridcore_controller::state::CellMode::Insert,
+                                            ..
+                                        }
+                                    )
                                 });
 
-                                set_editing_mode.set(false);
-                                set_formula_value.set(value);
+                                if is_insert_mode {
+                                    // In INSERT mode, Enter adds a newline
+                                    if let Some(input) = input_ref.get() {
+                                        let current_value = input.value();
+                                        let cursor_pos = input.selection_start().unwrap_or(Some(0)).unwrap_or(0) as usize;
+                                        
+                                        // Insert newline at cursor position
+                                        let mut new_value = String::new();
+                                        new_value.push_str(&current_value[..cursor_pos]);
+                                        new_value.push('\n');
+                                        new_value.push_str(&current_value[cursor_pos..]);
+                                        
+                                        // Update the value
+                                        set_editor_value.set(new_value.clone());
+                                        input.set_value(&new_value);
+                                        
+                                        // Set cursor position after the newline
+                                        let new_cursor_pos = cursor_pos + 1;
+                                        let _ = input.set_selection_start(Some(new_cursor_pos as u32));
+                                        let _ = input.set_selection_end(Some(new_cursor_pos as u32));
+                                        
+                                        // Update formula bar
+                                        set_formula_value.set(new_value);
+                                    }
+                                } else {
+                                    // Not in INSERT mode - Enter saves and exits
+                                    let cell = active_cell.get();
+                                    let value = editor_value.get();
+
+                                    // Submit the value
+                                    controller_stored.with_value(|ctrl| {
+                                        let ctrl_borrow = ctrl.borrow();
+                                        let facade = ctrl_borrow.get_facade();
+                                        let _ = facade.set_cell_value(&cell, &value);
+                                    });
+
+                                    set_editing_mode.set(false);
+                                    set_formula_value.set(value);
+                                }
                             }
                             "Escape" => {
                                 ev.prevent_default();
@@ -744,13 +783,16 @@ pub fn CellEditor(
                                 // Check the current editing mode
                                 controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
-                                    let is_insert_mode = matches!(
-                                        ctrl_borrow.get_state(),
-                                        gridcore_controller::state::UIState::Editing {
-                                            cell_mode: gridcore_controller::state::CellMode::Insert,
-                                            ..
+                                    let (is_insert_mode, is_normal_mode) = match ctrl_borrow.get_state() {
+                                        gridcore_controller::state::UIState::Editing { cell_mode, .. } => {
+                                            match cell_mode {
+                                                gridcore_controller::state::CellMode::Insert => (true, false),
+                                                gridcore_controller::state::CellMode::Normal => (false, true),
+                                                _ => (false, false),
+                                            }
                                         }
-                                    );
+                                        _ => (false, false),
+                                    };
                                     
                                     if is_insert_mode {
                                         // First Escape: go from Insert to Normal mode (stay in editor)
@@ -761,7 +803,7 @@ pub fn CellEditor(
                                         }
                                         // Stay in editing mode but switch to Normal mode
                                         set_current_mode.set(SpreadsheetMode::Editing);
-                                    } else {
+                                    } else if is_normal_mode {
                                         // In Normal mode - save and exit
                                         let cell = active_cell.get();
                                         let value = editor_value.get();
@@ -778,8 +820,110 @@ pub fn CellEditor(
                                         set_editing_mode.set(false);
                                         set_formula_value.set(value);
                                         set_current_mode.set(SpreadsheetMode::Navigation);
+                                    } else {
+                                        // Fallback - just exit
+                                        drop(ctrl_borrow);
+                                        set_editing_mode.set(false);
+                                        set_current_mode.set(SpreadsheetMode::Navigation);
                                     }
                                 });
+                            }
+                            // Handle vim mode keys in NORMAL mode
+                            "i" | "a" | "v" | "V" | "I" | "A" => {
+                                // Check if we're in Normal mode within editing
+                                let is_normal_mode = controller_stored.with_value(|ctrl| {
+                                    let ctrl_borrow = ctrl.borrow();
+                                    matches!(
+                                        ctrl_borrow.get_state(),
+                                        gridcore_controller::state::UIState::Editing {
+                                            cell_mode: gridcore_controller::state::CellMode::Normal,
+                                            ..
+                                        }
+                                    )
+                                });
+
+                                if is_normal_mode {
+                                    ev.prevent_default();
+                                    match key.as_str() {
+                                        "i" => {
+                                            // Enter insert mode at current position
+                                            controller_stored.with_value(|ctrl| {
+                                                let mut ctrl_mut = ctrl.borrow_mut();
+                                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                                    mode: Some(InsertMode::I),
+                                                }) {
+                                                    leptos::logging::log!("Error entering insert mode: {:?}", e);
+                                                }
+                                            });
+                                            set_current_mode.set(SpreadsheetMode::Insert);
+                                        }
+                                        "a" => {
+                                            // Enter insert mode after current position
+                                            controller_stored.with_value(|ctrl| {
+                                                let mut ctrl_mut = ctrl.borrow_mut();
+                                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                                    mode: Some(InsertMode::A),
+                                                }) {
+                                                    leptos::logging::log!("Error entering insert mode: {:?}", e);
+                                                }
+                                            });
+                                            set_current_mode.set(SpreadsheetMode::Insert);
+                                        }
+                                        "v" => {
+                                            // Enter visual character mode
+                                            use gridcore_controller::state::VisualMode;
+                                            controller_stored.with_value(|ctrl| {
+                                                let mut ctrl_mut = ctrl.borrow_mut();
+                                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterVisualMode {
+                                                    visual_type: VisualMode::Character,
+                                                    anchor: Some(0),
+                                                }) {
+                                                    leptos::logging::log!("Error entering visual mode: {:?}", e);
+                                                }
+                                            });
+                                            set_current_mode.set(SpreadsheetMode::Visual);
+                                        }
+                                        "V" => {
+                                            // Enter visual line mode
+                                            use gridcore_controller::state::VisualMode;
+                                            controller_stored.with_value(|ctrl| {
+                                                let mut ctrl_mut = ctrl.borrow_mut();
+                                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterVisualMode {
+                                                    visual_type: VisualMode::Line,
+                                                    anchor: Some(0),
+                                                }) {
+                                                    leptos::logging::log!("Error entering visual line mode: {:?}", e);
+                                                }
+                                            });
+                                            set_current_mode.set(SpreadsheetMode::Visual);
+                                        }
+                                        "I" => {
+                                            // Enter insert mode at beginning of line
+                                            controller_stored.with_value(|ctrl| {
+                                                let mut ctrl_mut = ctrl.borrow_mut();
+                                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                                    mode: Some(InsertMode::CapitalI),
+                                                }) {
+                                                    leptos::logging::log!("Error entering insert mode (I): {:?}", e);
+                                                }
+                                            });
+                                            set_current_mode.set(SpreadsheetMode::Insert);
+                                        }
+                                        "A" => {
+                                            // Enter insert mode at end of line
+                                            controller_stored.with_value(|ctrl| {
+                                                let mut ctrl_mut = ctrl.borrow_mut();
+                                                if let Err(e) = ctrl_mut.dispatch_action(Action::EnterInsertMode {
+                                                    mode: Some(InsertMode::CapitalA),
+                                                }) {
+                                                    leptos::logging::log!("Error entering insert mode (A): {:?}", e);
+                                                }
+                                            });
+                                            set_current_mode.set(SpreadsheetMode::Insert);
+                                        }
+                                        _ => {}
+                                    }
+                                }
                             }
                             _ => {}
                         }
