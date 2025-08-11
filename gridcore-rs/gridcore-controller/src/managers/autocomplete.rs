@@ -210,17 +210,33 @@ impl AutocompleteManager {
         match suggestion {
             AutocompleteSuggestion::Function { name, .. } => {
                 // Find where to insert the function
-                let parts: Vec<&str> = input
-                    .rsplitn(2, |c: char| !c.is_alphanumeric() && c != '_')
-                    .collect();
-
-                if parts.len() == 2 {
-                    // Replace the partial function name with the complete one
-                    let new_value = format!("{}{}(", parts[1], name);
-                    let new_cursor = new_value.len();
-                    (new_value, new_cursor)
+                // For input like "=SU", we want to split on non-alphanumeric chars
+                // but '=' is at the start, so we need special handling
+                
+                if input.starts_with('=') {
+                    // Get everything after the '='
+                    let after_equals = &input[1..];
+                    
+                    // Find the last word being typed (the function prefix)
+                    let parts: Vec<&str> = after_equals
+                        .rsplitn(2, |c: char| !c.is_alphanumeric() && c != '_')
+                        .collect();
+                    
+                    if parts.len() == 2 {
+                        // There's a delimiter after '=', like "=A1+SU"
+                        let new_value = format!("={}{}(", parts[1], name);
+                        let new_cursor = new_value.len();
+                        (new_value, new_cursor)
+                    } else {
+                        // No delimiter after '=', like "=SU"
+                        // Replace everything after '=' with the function name
+                        let new_value = format!("={}(", name);
+                        let new_cursor = new_value.len(); // This will be 5 for "=SUM("
+                        (new_value, new_cursor)
+                    }
                 } else {
-                    // Just append the function
+                    // No '=' at start, shouldn't happen for function suggestions
+                    // but handle it anyway
                     let new_value = format!("{}(", name);
                     let new_cursor = new_value.len();
                     (new_value, new_cursor)
@@ -318,6 +334,6 @@ mod tests {
 
         let (result, cursor) = manager.apply_suggestion("=SU", &suggestion, 3);
         assert_eq!(result, "=SUM(");
-        assert_eq!(cursor, 5);
+        assert_eq!(cursor, 5); // Cursor is at position 5, right after the '('
     }
 }
