@@ -1,17 +1,9 @@
 use gridcore_controller::controller::SpreadsheetController;
+use gridcore_controller::managers::SelectionStats;
 use gridcore_controller::state::{CellMode, SpreadsheetMode, UIState, VisualMode};
 use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
-
-#[derive(Clone, Debug, Default)]
-pub struct SelectionStats {
-    pub count: usize,
-    pub sum: Option<f64>,
-    pub average: Option<f64>,
-    pub min: Option<f64>,
-    pub max: Option<f64>,
-}
 
 #[component]
 pub fn StatusBar(

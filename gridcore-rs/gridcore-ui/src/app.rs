@@ -1,6 +1,7 @@
 use crate::components::canvas_grid::CanvasGrid;
 use crate::components::error_display::{ErrorDisplay, ErrorMessage, ErrorSeverity};
-use crate::components::status_bar::{SelectionStats, StatusBar};
+use crate::components::status_bar::StatusBar;
+use gridcore_controller::managers::SelectionStats;
 use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_core::types::CellAddress;
@@ -130,10 +131,21 @@ pub fn App() -> impl IntoView {
     let (sheets, _set_sheets) = signal(initial_sheets);
 
     // Selection statistics (will be calculated from selection)
-    let (selection_stats, _set_selection_stats) = signal(SelectionStats::default());
+    let (selection_stats, set_selection_stats) = signal(SelectionStats::default());
 
     // Keyboard-only mode state
     let (keyboard_only_mode, set_keyboard_only_mode) = signal(false);
+
+    // Update selection stats when the cursor or selection changes
+    let controller_for_stats = controller.clone();
+    Effect::new(move |_| {
+        // Track active cell changes to trigger recalculation
+        let _ = active_cell.get();
+        
+        // Get the current selection stats from the controller
+        let stats = controller_for_stats.borrow().get_current_selection_stats();
+        set_selection_stats.set(stats);
+    });
 
     // Update formula bar when active cell changes (but not during editing)
     let controller_for_effect = controller.clone();
