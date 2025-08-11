@@ -2,6 +2,7 @@ use super::parser::ReferenceParser;
 use crate::dependency::DependencyGraph;
 use crate::formula::Expr;
 use crate::types::CellAddress;
+use crate::{Result, SpreadsheetError};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
@@ -172,8 +173,9 @@ impl ReferenceTracker {
     }
 
     /// Integrate with existing dependency graph
-    pub fn sync_with_dependency_graph(&self, graph: &Arc<Mutex<DependencyGraph>>) {
-        let mut graph = graph.lock().unwrap();
+    pub fn sync_with_dependency_graph(&self, graph: &Arc<Mutex<DependencyGraph>>) -> Result<()> {
+        let mut graph = graph.lock()
+            .map_err(|_| SpreadsheetError::LockError("Failed to acquire dependency graph lock".to_string()))?;
 
         // Clear and rebuild based on current tracking
         for (from, to_set) in &self.forward_dependencies {
@@ -181,6 +183,7 @@ impl ReferenceTracker {
                 graph.add_dependency(*from, *to);
             }
         }
+        Ok(())
     }
 }
 
