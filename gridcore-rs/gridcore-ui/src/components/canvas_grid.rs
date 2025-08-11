@@ -474,6 +474,8 @@ pub fn CanvasGrid(
         // Always update the mode to ensure UI stays in sync
         if new_mode != old_mode {
             leptos::logging::log!("Mode changed from {:?} to {:?}", old_mode, new_mode);
+            // Trigger a re-render when mode changes
+            set_state_version.update(|v| *v += 1);
         }
         set_current_mode.set(new_mode);
 

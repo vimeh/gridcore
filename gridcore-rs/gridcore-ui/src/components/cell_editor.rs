@@ -73,31 +73,33 @@ pub fn CellEditor(
                 let _ = input.focus();
 
                 // Check editing mode and handle cursor positioning
-                let (is_direct_typing, is_insert_mode_i) = match editing_state {
+                let is_insert_mode_i = match editing_state {
                     gridcore_controller::state::UIState::Editing {
-                        editing_value,
-                        cursor_position,
                         edit_variant,
+                        cursor_position,
                         ..
                     } => {
-                        let is_direct = editing_value.len() == 1 && *cursor_position == 1;
-                        let is_i_mode = matches!(edit_variant, Some(InsertMode::I)) && *cursor_position == 0;
-                        (is_direct, is_i_mode)
+                        matches!(edit_variant, Some(InsertMode::I)) && *cursor_position == 0
                     }
-                    _ => (false, false),
+                    _ => false,
                 };
 
-                if is_direct_typing {
-                    // For direct typing, set cursor immediately after the character
-                    let _ = input.set_selection_start(Some(1));
-                    let _ = input.set_selection_end(Some(1));
-                } else if is_insert_mode_i || cursor_pos_to_set == 0 {
-                    // For 'i' mode or when cursor should be at start, set immediately
-                    let _ = input.set_selection_start(Some(0));
-                    let _ = input.set_selection_end(Some(0));
-                    leptos::logging::log!("Set cursor position to 0 immediately for 'i' mode");
+                // For 'i' mode, we need to ensure cursor is at position 0
+                // The cursor_pos_to_set already has the correct position from controller
+                if is_insert_mode_i || cursor_pos_to_set == 0 {
+                    // Use a micro-task to ensure the value is rendered in DOM first
+                    let input_clone = input_ref;
+                    let cursor_pos = cursor_pos_to_set;
+                    request_animation_frame(move || {
+                        if let Some(input) = input_clone.get() {
+                            // Set cursor position to the beginning
+                            let _ = input.set_selection_start(Some(cursor_pos as u32));
+                            let _ = input.set_selection_end(Some(cursor_pos as u32));
+                            leptos::logging::log!("Set cursor position to {} for 'i' mode", cursor_pos);
+                        }
+                    });
                 } else {
-                    // For other modes, use a small timeout to ensure the value is rendered first
+                    // For other modes, set cursor position after a small delay
                     let input_clone = input_ref;
                     let cursor_pos = cursor_pos_to_set;
                     set_timeout(
