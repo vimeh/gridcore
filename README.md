@@ -4,11 +4,11 @@ A high-performance spreadsheet application built entirely in Rust, compiled to W
 
 ## Architecture
 
-GridCore is a Rust-based spreadsheet with a modular architecture:
+GridCore follows a clean three-layer architecture with clear separation of concerns:
 
-- **gridcore-core**: Core spreadsheet engine with formula parsing, evaluation, and data management
-- **gridcore-controller**: State management, UI behaviors, and vim mode implementation  
-- **gridcore-ui**: Web UI built with Leptos framework, compiled to WebAssembly
+- **gridcore-core**: Pure spreadsheet engine with formula parsing, evaluation, and data management. No UI dependencies.
+- **gridcore-controller**: State management, viewport coordination, resize management, and vim mode implementation. Bridges core and UI.
+- **gridcore-ui**: Pure rendering layer built with Leptos framework. Delegates all business logic to controller.
 
 ## Project Structure
 
@@ -100,6 +100,16 @@ bun test:e2e:debug
 - **Resizable Columns/Rows**: Mouse-based column and row resizing
 - **Selection Stats**: Real-time statistics for selected cells
 
+## Architecture Benefits
+
+The clean three-layer architecture provides:
+
+- **Separation of Concerns**: Business logic in controller, rendering in UI
+- **Reusability**: Controller can support multiple UI implementations
+- **Testability**: Business logic tested without UI dependencies
+- **Maintainability**: Each layer has clear, focused responsibilities
+- **Performance**: Optimized data flow with minimal cross-boundary calls
+
 ## Technology Stack
 
 - **Rust**: Core language for all components
@@ -128,11 +138,15 @@ The Rust implementation provides significant performance benefits:
 - Column/row resizing
 - Multiple sheet support
 - E2E test suite
+- **Architecture refactoring**: Clean separation between UI rendering and business logic
+- **ViewportManager**: Centralized viewport state management in controller
+- **ResizeManager**: Dedicated resize operations management in controller
 
 🚧 **In Progress**
 - Performance optimizations
 - Additional formula functions
 - Extended vim mode features
+- Fixing reference toggle tests
 
 ## Contributing
 

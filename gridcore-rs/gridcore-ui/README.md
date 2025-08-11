@@ -21,22 +21,32 @@ A Rust-based spreadsheet UI built with Leptos framework, migrating from the Type
 
 ## Architecture
 
-The Leptos UI provides direct integration with Rust controllers, eliminating WASM wrapper overhead:
+The Leptos UI is a pure rendering layer that delegates all business logic to the controller:
 
 ```
 gridcore-ui/
 ├── src/
 │   ├── main.rs           # Entry point
-│   ├── app.rs            # Main App component (placeholder)
-│   ├── components/       # UI components (to be implemented)
-│   ├── rendering/        # Canvas rendering (to be implemented)
-│   ├── interaction/      # Event handlers (to be implemented)
-│   └── utils/            # DOM utilities (to be implemented)
+│   ├── app.rs            # Main App component
+│   ├── components/       # UI components (thin wrappers)
+│   │   ├── viewport.rs   # Delegates to controller's ViewportManager
+│   │   ├── canvas_grid.rs # Renders based on controller state
+│   │   └── cell_editor.rs # Captures input, delegates to controller
+│   ├── rendering/        # Pure rendering logic
+│   ├── interaction/      # Event capture and forwarding
+│   │   └── resize_handler.rs # Delegates to controller's ResizeManager
+│   └── utils/            # DOM utilities
 ├── style/
 │   └── main.css          # Styles
 ├── index.html            # HTML template
 └── Trunk.toml            # Build configuration
 ```
+
+### Key Design Principles
+- **No Business Logic**: UI only renders and captures events
+- **Controller Delegation**: All state changes go through controller
+- **Thin Wrappers**: Components wrap controller functionality
+- **Pure Rendering**: Canvas rendering based on controller state
 
 ## Development
 
@@ -132,10 +142,11 @@ The migration preserves the architecture while leveraging Rust's strengths:
 | TypeScript Component | Rust/Leptos Component | Status |
 |---------------------|----------------------|---------|
 | CanvasGrid.ts | canvas_grid.rs | ✅ Fully implemented |
-| Viewport.ts | viewport.rs | ✅ Fully implemented |
+| Viewport.ts | viewport.rs | ✅ Refactored as thin wrapper |
 | CellEditor.ts | cell_editor.rs | ✅ Fully implemented |
-| SelectionManager.ts | Uses Rust SelectionManager | ✅ Direct integration |
-| WebStateAdapter.ts | Direct UIStateMachine | ✅ No adapter needed |
+| ResizeHandler.ts | resize_handler.rs | ✅ Delegates to controller |
+| SelectionManager.ts | Uses controller's SelectionManager | ✅ Direct integration |
+| WebStateAdapter.ts | Direct controller integration | ✅ No adapter needed |
 
 ## Testing
 

@@ -1,5 +1,40 @@
 # Agent Guidelines for gridCore
 
+## Rust Development Guidelines
+
+### Architecture Principles
+GridCore follows a strict three-layer architecture:
+
+1. **gridcore-core**: Pure business logic, no UI dependencies
+   - Formula engine, cell calculations, undo/redo
+   - Must remain UI-agnostic
+   
+2. **gridcore-controller**: State management and coordination
+   - ViewportManager for viewport state
+   - ResizeManager for resize operations
+   - SelectionManager for selection state
+   - Bridges core and UI layers
+   
+3. **gridcore-ui**: Pure rendering layer
+   - Delegates ALL business logic to controller
+   - Only captures events and renders state
+   - Thin wrappers around controller functionality
+
+### Development Commands
+- `cargo fmt` - Format all Rust code
+- `cargo clippy --all-targets --all-features` - Run linter
+- `cargo test --all` - Run all tests
+- `cargo build --release` - Build optimized binaries
+- `trunk serve` - Start UI development server (in gridcore-ui/)
+
+### Key Rules
+- NEVER put business logic in the UI layer
+- UI components should delegate to controller
+- Controller manages all state transitions
+- Core remains pure and UI-independent
+
+## JavaScript/TypeScript Guidelines
+
 Default to using Bun instead of Node.js.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
