@@ -1,5 +1,7 @@
 pub mod events;
 pub mod spreadsheet;
+#[cfg(test)]
+mod spreadsheet_test;
 pub mod viewport;
 
 #[cfg(test)]

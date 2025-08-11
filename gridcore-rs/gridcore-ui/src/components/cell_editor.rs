@@ -28,6 +28,7 @@ pub fn CellEditor(
     let (editor_value, set_editor_value) = signal(String::new());
     let (suggestions, set_suggestions) = signal::<Vec<String>>(Vec::new());
     let (selected_suggestion, set_selected_suggestion) = signal::<Option<usize>>(None);
+    let (_expected_cursor_pos, set_expected_cursor_pos) = signal::<Option<usize>>(None);
 
     // Store controller refs for closures using LocalStorage
     let ctrl_value = controller.clone();
@@ -59,61 +60,68 @@ pub fn CellEditor(
                     leptos::logging::log!("Setting editor value from state: '{}', cursor at {}", editing_value, cursor_position);
                     set_editor_value.set(editing_value.clone());
 
+                    // Store the expected cursor position for handling input events
+                    set_expected_cursor_pos.set(Some(*cursor_position));
+                    
                     // Use the cursor position directly from state
                     *cursor_position
                 }
                 _ => {
                     // Not in editing state
                     set_editor_value.set(String::new());
+                    set_expected_cursor_pos.set(None);
                     0
                 }
             };
 
             // Focus the input and set cursor position from state
             if let Some(input) = input_ref.get() {
+                // Focus immediately
                 let _ = input.focus();
+                
+                // Force the value to be set in the DOM after focus
+                let value_to_set = editor_value.get();
+                input.set_value(&value_to_set);
+                
+                // Set cursor position after focus and value
+                let _ = input.set_selection_start(Some(cursor_pos_to_set as u32));
+                let _ = input.set_selection_end(Some(cursor_pos_to_set as u32));
+                leptos::logging::log!("Set cursor position to {} immediately", cursor_pos_to_set);
+                
+                // Store expected cursor position for a short time to handle timing issues
+                // Clear it after a delay
+                set_timeout(
+                    move || {
+                        set_expected_cursor_pos.set(None);
+                        leptos::logging::log!("Cleared expected cursor position");
+                    },
+                    std::time::Duration::from_millis(50),
+                );
+            }
+        } else {
+            set_expected_cursor_pos.set(None);
+        }
+    });
 
-                // Check editing mode and handle cursor positioning
-                let is_insert_mode_i = match editing_state {
-                    gridcore_controller::state::UIState::Editing {
-                        edit_variant,
-                        cursor_position,
-                        ..
-                    } => {
-                        matches!(edit_variant, Some(InsertMode::I)) && *cursor_position == 0
+    // Sync textarea value with editor_value signal
+    // Only update if editing mode is active
+    Effect::new(move |_| {
+        if editing_mode.get() {
+            let value = editor_value.get();
+            if let Some(input) = input_ref.get() {
+                // Only update if the value is different to avoid cursor jumping
+                if input.value() != value {
+                    // Save cursor position before update
+                    let cursor_start = input.selection_start().unwrap_or(Some(0)).unwrap_or(0);
+                    let cursor_end = input.selection_end().unwrap_or(Some(0)).unwrap_or(0);
+                    
+                    input.set_value(&value);
+                    
+                    // Restore cursor position after update if it was within bounds
+                    if cursor_start <= value.len() as u32 {
+                        let _ = input.set_selection_start(Some(cursor_start));
+                        let _ = input.set_selection_end(Some(cursor_end));
                     }
-                    _ => false,
-                };
-
-                // For 'i' mode, we need to ensure cursor is at position 0
-                // The cursor_pos_to_set already has the correct position from controller
-                if is_insert_mode_i || cursor_pos_to_set == 0 {
-                    // Use a micro-task to ensure the value is rendered in DOM first
-                    let input_clone = input_ref;
-                    let cursor_pos = cursor_pos_to_set;
-                    request_animation_frame(move || {
-                        if let Some(input) = input_clone.get() {
-                            // Set cursor position to the beginning
-                            let _ = input.set_selection_start(Some(cursor_pos as u32));
-                            let _ = input.set_selection_end(Some(cursor_pos as u32));
-                            leptos::logging::log!("Set cursor position to {} for 'i' mode", cursor_pos);
-                        }
-                    });
-                } else {
-                    // For other modes, set cursor position after a small delay
-                    let input_clone = input_ref;
-                    let cursor_pos = cursor_pos_to_set;
-                    set_timeout(
-                        move || {
-                            if let Some(input) = input_clone.get() {
-                                // Set cursor position from state
-                                let _ = input.set_selection_start(Some(cursor_pos as u32));
-                                let _ = input.set_selection_end(Some(cursor_pos as u32));
-                                leptos::logging::log!("Set cursor position to {}", cursor_pos);
-                            }
-                        },
-                        std::time::Duration::from_millis(0),
-                    );
                 }
             }
         }
@@ -165,9 +173,11 @@ pub fn CellEditor(
             >
                 <textarea
                     node_ref=input_ref
-                    prop:value=move || editor_value.get()
                     on:input=move |ev| {
                         let new_value = event_target_value(&ev);
+                        leptos::logging::log!("Input event: new value = '{}'", new_value);
+                        
+                        // Update the editor value signal
                         set_editor_value.set(new_value.clone());
                         // Also update formula bar
                         set_formula_value.set(new_value);

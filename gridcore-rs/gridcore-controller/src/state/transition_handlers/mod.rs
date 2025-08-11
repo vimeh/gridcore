@@ -2,6 +2,8 @@ pub mod bulk;
 pub mod command;
 pub mod editing;
 pub mod navigation;
+#[cfg(test)]
+mod navigation_test;
 pub mod resize;
 pub mod structural;
 pub mod universal;
