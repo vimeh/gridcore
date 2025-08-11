@@ -84,6 +84,15 @@ pub enum Action {
         value: String,
         cursor_position: usize,
     },
+    UpdateEditingCursor {
+        cursor_position: usize,
+    },
+    InsertCharacterAtCursor {
+        character: char,
+    },
+    DeleteCharacterAtCursor {
+        forward: bool, // true for delete, false for backspace
+    },
     SubmitCellEdit {
         value: String,
     },

@@ -13,7 +13,8 @@ impl ReferenceToggleExtension {
     /// Find the reference at the current cursor position in a formula
     fn find_reference_at_cursor(&self, formula: &str, cursor_pos: usize) -> Option<ReferenceMatch> {
         // Regular expression for cell references
-        let pattern = r"(\$?)([A-Z]+)(\$?)(\d+)";
+        // Use [0-9] instead of \d to avoid needing unicode-perl feature
+        let pattern = r"(\$?)([A-Z]+)(\$?)([0-9]+)";
         let regex = regex::Regex::new(pattern).ok()?;
 
         // Find all matches in the formula

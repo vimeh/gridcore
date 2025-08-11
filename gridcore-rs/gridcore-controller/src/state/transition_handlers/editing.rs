@@ -137,7 +137,7 @@ impl TransitionHandler for EditingHandler {
             }
             Action::UpdateEditingValue {
                 value,
-                cursor_position,
+                cursor_position: new_cursor_position,
             } => {
                 if let UIState::Editing {
                     cursor,
@@ -154,7 +154,108 @@ impl TransitionHandler for EditingHandler {
                         viewport: *viewport,
                         cell_mode: *cell_mode,
                         editing_value: value.clone(),
-                        cursor_position: *cursor_position,
+                        cursor_position: *new_cursor_position,
+                        visual_start: *visual_start,
+                        visual_type: *visual_type,
+                        edit_variant: *edit_variant,
+                    })
+                } else {
+                    Ok(state.clone())
+                }
+            }
+            Action::UpdateEditingCursor {
+                cursor_position: new_cursor_position,
+            } => {
+                if let UIState::Editing {
+                    cursor,
+                    viewport,
+                    cell_mode,
+                    editing_value,
+                    visual_start,
+                    visual_type,
+                    edit_variant,
+                    ..
+                } = state
+                {
+                    Ok(UIState::Editing {
+                        cursor: *cursor,
+                        viewport: *viewport,
+                        cell_mode: *cell_mode,
+                        editing_value: editing_value.clone(),
+                        cursor_position: *new_cursor_position,
+                        visual_start: *visual_start,
+                        visual_type: *visual_type,
+                        edit_variant: *edit_variant,
+                    })
+                } else {
+                    Ok(state.clone())
+                }
+            }
+            Action::InsertCharacterAtCursor { character } => {
+                if let UIState::Editing {
+                    cursor,
+                    viewport,
+                    cell_mode,
+                    editing_value,
+                    cursor_position,
+                    visual_start,
+                    visual_type,
+                    edit_variant,
+                } = state
+                {
+                    let mut new_value = editing_value.clone();
+                    new_value.insert(*cursor_position, *character);
+                    Ok(UIState::Editing {
+                        cursor: *cursor,
+                        viewport: *viewport,
+                        cell_mode: *cell_mode,
+                        editing_value: new_value,
+                        cursor_position: cursor_position + 1,
+                        visual_start: *visual_start,
+                        visual_type: *visual_type,
+                        edit_variant: *edit_variant,
+                    })
+                } else {
+                    Ok(state.clone())
+                }
+            }
+            Action::DeleteCharacterAtCursor { forward } => {
+                if let UIState::Editing {
+                    cursor,
+                    viewport,
+                    cell_mode,
+                    editing_value,
+                    cursor_position,
+                    visual_start,
+                    visual_type,
+                    edit_variant,
+                } = state
+                {
+                    let mut new_value = editing_value.clone();
+                    let new_cursor_pos = if *forward {
+                        // Delete (forward)
+                        if *cursor_position < editing_value.len() {
+                            new_value.remove(*cursor_position);
+                            *cursor_position
+                        } else {
+                            *cursor_position
+                        }
+                    } else {
+                        // Backspace (backward)
+                        if *cursor_position > 0 {
+                            new_value.remove(cursor_position - 1);
+                            cursor_position - 1
+                        } else {
+                            0
+                        }
+                    };
+                    
+                    Ok(UIState::Editing {
+                        cursor: *cursor,
+                        viewport: *viewport,
+                        cell_mode: *cell_mode,
+                        editing_value: new_value,
+                        cursor_position: new_cursor_pos,
                         visual_start: *visual_start,
                         visual_type: *visual_type,
                         edit_variant: *edit_variant,
