@@ -299,14 +299,8 @@ pub fn App() -> impl IntoView {
                         class="cell-indicator"
                         value=move || {
                             let cell = active_cell.get();
-                            // Fix column calculation for multi-character columns
-                            let col = if cell.col < 26 {
-                                ((cell.col as u8 + b'A') as char).to_string()
-                            } else {
-                                let first = ((cell.col / 26 - 1) as u8 + b'A') as char;
-                                let second = ((cell.col % 26) as u8 + b'A') as char;
-                                format!("{}{}", first, second)
-                            };
+                            // Use core's column label implementation for consistency
+                            let col = gridcore_core::types::CellAddress::column_number_to_label(cell.col);
                             let row = (cell.row + 1).to_string();
                             let result = format!("{}{}", col, row);
                             leptos::logging::log!("Cell indicator update: col={}, row={}, display={}", cell.col, cell.row, result);
