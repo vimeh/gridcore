@@ -96,9 +96,7 @@ fn handle_escape(state: &UIState) -> Result<UIState> {
             }
         }
         UIState::Insert {
-            cursor,
-            viewport,
-            ..
+            cursor, viewport, ..
         } => {
             // This is for sheet insert operations, not text editing
             // Just exit to navigation

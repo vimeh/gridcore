@@ -109,8 +109,10 @@ pub fn CellEditor(
                 } = editing_state
                 {
                     // Check if this is direct typing (single character with cursor position 1)
-                    let is_direct_typing = editing_value.len() == 1 && *cursor_position == 1 && matches!(variant, InsertMode::I);
-                    
+                    let is_direct_typing = editing_value.len() == 1
+                        && *cursor_position == 1
+                        && matches!(variant, InsertMode::I);
+
                     if is_direct_typing {
                         // Direct typing - position cursor after the typed character
                         // Use set_timeout to ensure the value is set first
@@ -141,43 +143,43 @@ pub fn CellEditor(
                                     std::time::Duration::from_millis(0),
                                 );
                             }
-                        InsertMode::CapitalI => {
-                            // Insert mode 'I' - cursor at beginning of line
-                            // Use set_timeout to ensure the value is set first
-                            let input_clone = input_ref;
-                            set_timeout(
-                                move || {
-                                    if let Some(input) = input_clone.get() {
-                                        let _ = input.set_selection_start(Some(0));
-                                        let _ = input.set_selection_end(Some(0));
-                                    }
-                                },
-                                std::time::Duration::from_millis(0),
-                            );
-                        }
-                        InsertMode::A => {
-                            // Append mode 'a' - cursor after current position
-                            // The state already has the correct cursor position for 'a' mode
-                            // Controller sets it to the end of the text
-                            let pos = *cursor_position as u32;
-                            let _ = input.set_selection_start(Some(pos));
-                            let _ = input.set_selection_end(Some(pos));
-                        }
-                        InsertMode::CapitalA => {
-                            // Append mode 'A' - cursor at end of line
-                            // Use set_timeout to ensure the value is set first
-                            let input_clone = input_ref;
-                            set_timeout(
-                                move || {
-                                    if let Some(input) = input_clone.get() {
-                                        let len = input.value().len();
-                                        let _ = input.set_selection_start(Some(len as u32));
-                                        let _ = input.set_selection_end(Some(len as u32));
-                                    }
-                                },
-                                std::time::Duration::from_millis(0),
-                            );
-                        }
+                            InsertMode::CapitalI => {
+                                // Insert mode 'I' - cursor at beginning of line
+                                // Use set_timeout to ensure the value is set first
+                                let input_clone = input_ref;
+                                set_timeout(
+                                    move || {
+                                        if let Some(input) = input_clone.get() {
+                                            let _ = input.set_selection_start(Some(0));
+                                            let _ = input.set_selection_end(Some(0));
+                                        }
+                                    },
+                                    std::time::Duration::from_millis(0),
+                                );
+                            }
+                            InsertMode::A => {
+                                // Append mode 'a' - cursor after current position
+                                // The state already has the correct cursor position for 'a' mode
+                                // Controller sets it to the end of the text
+                                let pos = *cursor_position as u32;
+                                let _ = input.set_selection_start(Some(pos));
+                                let _ = input.set_selection_end(Some(pos));
+                            }
+                            InsertMode::CapitalA => {
+                                // Append mode 'A' - cursor at end of line
+                                // Use set_timeout to ensure the value is set first
+                                let input_clone = input_ref;
+                                set_timeout(
+                                    move || {
+                                        if let Some(input) = input_clone.get() {
+                                            let len = input.value().len();
+                                            let _ = input.set_selection_start(Some(len as u32));
+                                            let _ = input.set_selection_end(Some(len as u32));
+                                        }
+                                    },
+                                    std::time::Duration::from_millis(0),
+                                );
+                            }
                             _ => {
                                 // Other modes - use specified position
                             }
@@ -724,7 +726,7 @@ pub fn CellEditor(
                         match key.as_str() {
                             "Enter" => {
                                 ev.prevent_default();
-                                
+
                                 // Check if we're in INSERT mode (UIState::Editing with CellMode::Insert)
                                 let is_insert_mode = controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
@@ -742,22 +744,22 @@ pub fn CellEditor(
                                     if let Some(input) = input_ref.get() {
                                         let current_value = input.value();
                                         let cursor_pos = input.selection_start().unwrap_or(Some(0)).unwrap_or(0) as usize;
-                                        
+
                                         // Insert newline at cursor position
                                         let mut new_value = String::new();
                                         new_value.push_str(&current_value[..cursor_pos]);
                                         new_value.push('\n');
                                         new_value.push_str(&current_value[cursor_pos..]);
-                                        
+
                                         // Update the value
                                         set_editor_value.set(new_value.clone());
                                         input.set_value(&new_value);
-                                        
+
                                         // Set cursor position after the newline
                                         let new_cursor_pos = cursor_pos + 1;
                                         let _ = input.set_selection_start(Some(new_cursor_pos as u32));
                                         let _ = input.set_selection_end(Some(new_cursor_pos as u32));
-                                        
+
                                         // Update formula bar
                                         set_formula_value.set(new_value);
                                     }
@@ -779,12 +781,12 @@ pub fn CellEditor(
                                                     // Emit error event for formula evaluation errors
                                                     let enhanced_message =
                                                         format!("Formula error: {}", error_type.full_display());
-                                                    
+
                                                     leptos::logging::log!(
                                                         "Formula error detected: {}",
                                                         enhanced_message
                                                     );
-                                                    
+
                                                     ctrl_mut.emit_error(
                                                         enhanced_message,
                                                         gridcore_controller::controller::events::ErrorSeverity::Error,
@@ -812,7 +814,7 @@ pub fn CellEditor(
                                                 } else {
                                                     format!("Failed to set cell value: {}", e)
                                                 };
-                                                
+
                                                 leptos::logging::log!("Error setting cell value: {}", message);
                                                 ctrl_mut.emit_error(
                                                     message,
@@ -828,7 +830,7 @@ pub fn CellEditor(
                             }
                             "Escape" => {
                                 ev.prevent_default();
-                                
+
                                 // Check the current editing mode
                                 controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
@@ -842,7 +844,7 @@ pub fn CellEditor(
                                         }
                                         _ => (false, false, false),
                                     };
-                                    
+
                                     if is_insert_mode {
                                         // First Escape: go from Insert to Normal mode (stay in editor)
                                         drop(ctrl_borrow);
@@ -865,7 +867,7 @@ pub fn CellEditor(
                                         // In Normal mode - save and exit
                                         let cell = active_cell.get();
                                         let value = editor_value.get();
-                                        
+
                                         // Save the value and handle errors
                                         drop(ctrl_borrow);
                                         let mut ctrl_mut = ctrl.borrow_mut();
@@ -879,12 +881,12 @@ pub fn CellEditor(
                                                     // Emit error event for formula evaluation errors
                                                     let enhanced_message =
                                                         format!("Formula error: {}", error_type.full_display());
-                                                    
+
                                                     leptos::logging::log!(
                                                         "Formula error detected: {}",
                                                         enhanced_message
                                                     );
-                                                    
+
                                                     ctrl_mut.emit_error(
                                                         enhanced_message,
                                                         gridcore_controller::controller::events::ErrorSeverity::Error,
@@ -912,7 +914,7 @@ pub fn CellEditor(
                                                 } else {
                                                     format!("Failed to set cell value: {}", e)
                                                 };
-                                                
+
                                                 leptos::logging::log!("Error setting cell value: {}", message);
                                                 ctrl_mut.emit_error(
                                                     message,
@@ -920,14 +922,14 @@ pub fn CellEditor(
                                                 );
                                             }
                                         }
-                                        
+
                                         let _ = ctrl_mut.dispatch_action(Action::Escape);
-                                        
+
                                         // Exit editing mode
                                         set_editing_mode.set(false);
                                         set_formula_value.set(value);
                                         set_current_mode.set(SpreadsheetMode::Navigation);
-                                        
+
                                         // Return focus to grid container
                                         if let Some(window) = web_sys::window() {
                                             if let Some(document) = window.document() {
@@ -943,7 +945,7 @@ pub fn CellEditor(
                                         drop(ctrl_borrow);
                                         set_editing_mode.set(false);
                                         set_current_mode.set(SpreadsheetMode::Navigation);
-                                        
+
                                         // Return focus to grid container
                                         if let Some(window) = web_sys::window() {
                                             if let Some(document) = window.document() {
