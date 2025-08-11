@@ -14,6 +14,7 @@ pub mod repository;
 pub mod services;
 pub mod traits;
 pub mod types;
+pub mod utils;
 pub mod workbook;
 
 #[cfg(test)]
