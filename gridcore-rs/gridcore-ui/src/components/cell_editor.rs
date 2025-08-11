@@ -766,11 +766,60 @@ pub fn CellEditor(
                                     let cell = active_cell.get();
                                     let value = editor_value.get();
 
-                                    // Submit the value
+                                    // Submit the value and handle errors
                                     controller_stored.with_value(|ctrl| {
-                                        let ctrl_borrow = ctrl.borrow();
-                                        let facade = ctrl_borrow.get_facade();
-                                        let _ = facade.set_cell_value(&cell, &value);
+                                        let mut ctrl_mut = ctrl.borrow_mut();
+                                        let facade = ctrl_mut.get_facade();
+                                        match facade.set_cell_value(&cell, &value) {
+                                            Ok(_) => {
+                                                // Check if the cell now contains an error value
+                                                if let Some(gridcore_core::types::CellValue::Error(error_type)) =
+                                                    facade.get_cell_raw_value(&cell)
+                                                {
+                                                    // Emit error event for formula evaluation errors
+                                                    let enhanced_message =
+                                                        format!("Formula error: {}", error_type.full_display());
+                                                    
+                                                    leptos::logging::log!(
+                                                        "Formula error detected: {}",
+                                                        enhanced_message
+                                                    );
+                                                    
+                                                    ctrl_mut.emit_error(
+                                                        enhanced_message,
+                                                        gridcore_controller::controller::events::ErrorSeverity::Error,
+                                                    );
+                                                }
+                                            }
+                                            Err(e) => {
+                                                // Convert parse errors to Excel codes with descriptions
+                                                let error_str = e.to_string();
+                                                let message = if error_str.contains("#REF!")
+                                                    || error_str.contains("expected")
+                                                    || error_str.contains("found end of input")
+                                                {
+                                                    "Formula error: #REF! - Invalid reference".to_string()
+                                                } else if error_str.contains("Unknown function") {
+                                                    "Formula error: #NAME? - Unknown function or name".to_string()
+                                                } else if error_str.contains("Type mismatch")
+                                                    || error_str.contains("cannot add")
+                                                {
+                                                    "Formula error: #VALUE! - Type mismatch or invalid value".to_string()
+                                                } else if error_str.contains("Circular") {
+                                                    "Formula error: #CIRC! - Circular reference detected".to_string()
+                                                } else if error_str.contains("Division by zero") {
+                                                    "Formula error: #DIV/0! - Division by zero".to_string()
+                                                } else {
+                                                    format!("Failed to set cell value: {}", e)
+                                                };
+                                                
+                                                leptos::logging::log!("Error setting cell value: {}", message);
+                                                ctrl_mut.emit_error(
+                                                    message,
+                                                    gridcore_controller::controller::events::ErrorSeverity::Error,
+                                                );
+                                            }
+                                        }
                                     });
 
                                     set_editing_mode.set(false);
@@ -817,12 +866,61 @@ pub fn CellEditor(
                                         let cell = active_cell.get();
                                         let value = editor_value.get();
                                         
-                                        // Save the value
-                                        let facade = ctrl_borrow.get_facade();
-                                        let _ = facade.set_cell_value(&cell, &value);
-                                        
+                                        // Save the value and handle errors
                                         drop(ctrl_borrow);
                                         let mut ctrl_mut = ctrl.borrow_mut();
+                                        let facade = ctrl_mut.get_facade();
+                                        match facade.set_cell_value(&cell, &value) {
+                                            Ok(_) => {
+                                                // Check if the cell now contains an error value
+                                                if let Some(gridcore_core::types::CellValue::Error(error_type)) =
+                                                    facade.get_cell_raw_value(&cell)
+                                                {
+                                                    // Emit error event for formula evaluation errors
+                                                    let enhanced_message =
+                                                        format!("Formula error: {}", error_type.full_display());
+                                                    
+                                                    leptos::logging::log!(
+                                                        "Formula error detected: {}",
+                                                        enhanced_message
+                                                    );
+                                                    
+                                                    ctrl_mut.emit_error(
+                                                        enhanced_message,
+                                                        gridcore_controller::controller::events::ErrorSeverity::Error,
+                                                    );
+                                                }
+                                            }
+                                            Err(e) => {
+                                                // Convert parse errors to Excel codes with descriptions
+                                                let error_str = e.to_string();
+                                                let message = if error_str.contains("#REF!")
+                                                    || error_str.contains("expected")
+                                                    || error_str.contains("found end of input")
+                                                {
+                                                    "Formula error: #REF! - Invalid reference".to_string()
+                                                } else if error_str.contains("Unknown function") {
+                                                    "Formula error: #NAME? - Unknown function or name".to_string()
+                                                } else if error_str.contains("Type mismatch")
+                                                    || error_str.contains("cannot add")
+                                                {
+                                                    "Formula error: #VALUE! - Type mismatch or invalid value".to_string()
+                                                } else if error_str.contains("Circular") {
+                                                    "Formula error: #CIRC! - Circular reference detected".to_string()
+                                                } else if error_str.contains("Division by zero") {
+                                                    "Formula error: #DIV/0! - Division by zero".to_string()
+                                                } else {
+                                                    format!("Failed to set cell value: {}", e)
+                                                };
+                                                
+                                                leptos::logging::log!("Error setting cell value: {}", message);
+                                                ctrl_mut.emit_error(
+                                                    message,
+                                                    gridcore_controller::controller::events::ErrorSeverity::Error,
+                                                );
+                                            }
+                                        }
+                                        
                                         let _ = ctrl_mut.dispatch_action(Action::Escape);
                                         
                                         // Exit editing mode
