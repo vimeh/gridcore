@@ -1,6 +1,7 @@
+use gridcore_controller::controller::SpreadsheetController;
 use leptos::prelude::*;
-use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsCast;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ErrorSeverity {
@@ -9,7 +10,7 @@ pub enum ErrorSeverity {
     Info,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ErrorMessage {
     pub message: String,
     pub severity: ErrorSeverity,
@@ -23,62 +24,70 @@ pub struct ErrorContext {
 }
 
 #[component]
-pub fn ErrorDisplay(
-    errors: ReadSignal<Vec<ErrorMessage>>,
-    set_errors: WriteSignal<Vec<ErrorMessage>>,
-) -> impl IntoView {
-    // Don't need to create signals here, they're passed in
-
-    // Provide context for other components to add errors (if needed)
-    let error_counter = RwSignal::new(0usize);
+pub fn ErrorDisplay(state_version: ReadSignal<u32>) -> impl IntoView {
+    // Get controller from context
+    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
+        use_context().expect("SpreadsheetController not found in context");
+    
+    // Derive errors from controller's ErrorManager
+    let errors = Memo::new(move |_| {
+        // Track state version to trigger updates
+        let _ = state_version.get();
+        
+        controller_stored.with_value(|ctrl| {
+            let ctrl_borrow = ctrl.borrow();
+            let active_errors = ctrl_borrow.get_active_errors();
+            
+            // Convert from controller's ErrorEntry to our ErrorMessage
+            active_errors
+                .into_iter()
+                .map(|entry| {
+                    let severity = match entry.severity {
+                        gridcore_controller::controller::events::ErrorSeverity::Error => {
+                            ErrorSeverity::Error
+                        }
+                        gridcore_controller::controller::events::ErrorSeverity::Warning => {
+                            ErrorSeverity::Warning
+                        }
+                        gridcore_controller::controller::events::ErrorSeverity::Info => {
+                            ErrorSeverity::Info
+                        }
+                    };
+                    
+                    ErrorMessage {
+                        message: entry.message,
+                        severity,
+                        id: entry.id,
+                    }
+                })
+                .collect::<Vec<_>>()
+        })
+    });
+    
+    // Provide context for other components (if needed)
     provide_context(ErrorContext {
         add_error: Callback::new(move |(message, severity): (String, ErrorSeverity)| {
-            let id = error_counter.get();
-            error_counter.set(id + 1);
-
-            let error = ErrorMessage {
-                message: message.clone(),
-                severity: severity.clone(),
-                id,
-            };
-
-            leptos::logging::log!("Adding error to display: {:?} - {}", severity, message);
-            set_errors.update(|errs| errs.push(error.clone()));
-
-            // Auto-dismiss after 5 seconds for info, 10 seconds for warnings
-            let window = web_sys::window().expect("no global window exists");
-            match severity {
-                ErrorSeverity::Info => {
-                    let closure = Closure::once(move || {
-                        set_errors.update(|errs| errs.retain(|e| e.id != id));
-                    });
-                    window
-                        .set_timeout_with_callback_and_timeout_and_arguments_0(
-                            closure.as_ref().unchecked_ref(),
-                            5000,
-                        )
-                        .expect("should register setTimeout");
-                    closure.forget();
-                }
-                ErrorSeverity::Warning => {
-                    let closure = Closure::once(move || {
-                        set_errors.update(|errs| errs.retain(|e| e.id != id));
-                    });
-                    window
-                        .set_timeout_with_callback_and_timeout_and_arguments_0(
-                            closure.as_ref().unchecked_ref(),
-                            10000,
-                        )
-                        .expect("should register setTimeout");
-                    closure.forget();
-                }
-                ErrorSeverity::Error => {
-                    // Errors stay until manually dismissed
-                }
-            }
+            controller_stored.with_value(|ctrl| {
+                let mut ctrl_borrow = ctrl.borrow_mut();
+                let sev = match severity {
+                    ErrorSeverity::Error => {
+                        gridcore_controller::controller::events::ErrorSeverity::Error
+                    }
+                    ErrorSeverity::Warning => {
+                        gridcore_controller::controller::events::ErrorSeverity::Warning
+                    }
+                    ErrorSeverity::Info => {
+                        gridcore_controller::controller::events::ErrorSeverity::Info
+                    }
+                };
+                ctrl_borrow.emit_error(message, sev);
+            });
         }),
         clear_errors: Callback::new(move |_| {
-            set_errors.set(Vec::new());
+            controller_stored.with_value(|ctrl| {
+                let mut ctrl_borrow = ctrl.borrow_mut();
+                ctrl_borrow.clear_all_errors();
+            });
         }),
     });
 
@@ -101,7 +110,10 @@ pub fn ErrorDisplay(
                             <button
                                 class="error-dismiss"
                                 on:click=move |_| {
-                                    set_errors.update(|errs| errs.retain(|e| e.id != error_id));
+                                    controller_stored.with_value(|ctrl| {
+                                        let mut ctrl_borrow = ctrl.borrow_mut();
+                                        ctrl_borrow.remove_error(error_id);
+                                    });
                                 }
                             >
                                 "×"

@@ -1,5 +1,5 @@
 use crate::components::canvas_grid::CanvasGrid;
-use crate::components::error_display::{ErrorDisplay, ErrorMessage, ErrorSeverity};
+use crate::components::error_display::ErrorDisplay;
 use crate::components::status_bar::StatusBar;
 use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
@@ -29,10 +29,6 @@ pub fn App() -> impl IntoView {
 
     // State version to trigger updates when controller events occur
     let (state_version, set_state_version) = signal(0u32);
-
-    // Create error handling signals
-    let (errors, set_errors) = signal::<Vec<ErrorMessage>>(Vec::new());
-    let error_counter = RwSignal::new(0usize);
 
     // Create formula bar signal that will be synced from controller
     let (formula_bar_value, set_formula_bar_value) = signal(String::new());
@@ -85,39 +81,14 @@ pub fn App() -> impl IntoView {
                     set_formula_bar_for_event.set(value.clone());
                 }
 
+                // Error handling is now done through the controller's ErrorManager
                 if let SpreadsheetEvent::ErrorOccurred { message, severity } = event {
                     leptos::logging::log!(
                         "ErrorOccurred event received: {} ({:?})",
                         message,
                         severity
                     );
-                    let id = error_counter.get();
-                    error_counter.set(id + 1);
-
-                    let sev = match severity {
-                        gridcore_controller::controller::events::ErrorSeverity::Error => {
-                            ErrorSeverity::Error
-                        }
-                        gridcore_controller::controller::events::ErrorSeverity::Warning => {
-                            ErrorSeverity::Warning
-                        }
-                        gridcore_controller::controller::events::ErrorSeverity::Info => {
-                            ErrorSeverity::Info
-                        }
-                    };
-
-                    let error_msg = ErrorMessage {
-                        message: message.clone(),
-                        severity: sev,
-                        id,
-                    };
-
-                    leptos::logging::log!(
-                        "Adding error to display: id={}, message={}",
-                        id,
-                        message
-                    );
-                    set_errors.update(|errs| errs.push(error_msg));
+                    // The controller's ErrorManager has already added this error
                 }
             },
         );
@@ -330,7 +301,7 @@ pub fn App() -> impl IntoView {
             </div>
 
             // Add error display overlay
-            <ErrorDisplay errors=errors set_errors=set_errors />
+            <ErrorDisplay state_version=state_version />
         </div>
     }
 }

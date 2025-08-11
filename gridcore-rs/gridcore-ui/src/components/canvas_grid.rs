@@ -44,10 +44,44 @@ pub fn CanvasGrid(
         controller_rc.clone(),
     )));
     let (viewport, set_viewport) = signal_local(viewport_rc.clone());
-    let (editing_mode, set_editing_mode) = signal(false);
-    let (cell_position, set_cell_position) = signal((0.0, 0.0, 100.0, 25.0));
-    let (cursor_style, set_cursor_style) = signal("cell");
     let (canvas_dimensions, set_canvas_dimensions) = signal((0.0, 0.0));
+    
+    // Derive editing_mode from controller state
+    let editing_mode = Memo::new(move |_| {
+        controller_stored.with_value(|ctrl| {
+            let ctrl_borrow = ctrl.borrow();
+            let mode = ctrl_borrow.get_state().spreadsheet_mode();
+            matches!(
+                mode,
+                SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
+            )
+        })
+    });
+    
+    // Derive cell_position from viewport when needed
+    let cell_position = Memo::new(move |_| {
+        if editing_mode.get() {
+            let cell = active_cell.get();
+            let vp = viewport.get();
+            let vp_borrow = vp.borrow();
+            let pos = vp_borrow.get_cell_position(&cell);
+            let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
+            (
+                pos.x + config.row_header_width,
+                pos.y + config.column_header_height,
+                pos.width,
+                pos.height,
+            )
+        } else {
+            (0.0, 0.0, 100.0, 25.0)
+        }
+    });
+    
+    // Store resize handler state for cursor style
+    let (resize_hover_state, set_resize_hover_state) = signal("cell");
+    
+    // Derive cursor_style from resize handler state
+    let cursor_style = Memo::new(move |_| resize_hover_state.get());
 
     // Get device pixel ratio once
     let device_pixel_ratio = web_sys::window()
@@ -248,20 +282,7 @@ pub fn CanvasGrid(
                     ctrl_borrow.get_cell_display_for_ui(&cell)
                 });
 
-                // Calculate cell position for the editor
-                let (pos, config) = {
-                    let vp_borrow = vp.borrow();
-                    let pos = vp_borrow.get_cell_position(&cell);
-                    let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
-                    (pos, config)
-                }; // vp_borrow is dropped here
-
-                set_cell_position.set((
-                    pos.x + config.row_header_width,
-                    pos.y + config.column_header_height,
-                    pos.width,
-                    pos.height,
-                ));
+                // Cell position is now derived from memo, no need to calculate
 
                 // Start editing with 'a' mode (cursor at end)
                 let cursor_pos = existing_value.len();
@@ -307,9 +328,9 @@ pub fn CanvasGrid(
                     if is_row_header { y } else { 0.0 },
                     is_col_header,
                 );
-                set_cursor_style.set(cursor);
+                set_resize_hover_state.set(cursor);
             } else {
-                set_cursor_style.set("cell");
+                set_resize_hover_state.set("cell");
             }
         }
     };
@@ -523,35 +544,13 @@ pub fn CanvasGrid(
             new_mode,
             SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
         ) {
-            let vp = viewport.get();
-            let (pos, config) = {
-                let vp_borrow = vp.borrow();
-                let pos = vp_borrow.get_cell_position(&new_cursor);
-                let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
-                (pos, config)
-            };
-            set_cell_position.set((
-                pos.x + config.row_header_width,
-                pos.y + config.column_header_height,
-                pos.width,
-                pos.height,
-            ));
+            // Cell position is now derived from memo, no need to calculate
 
-            // Show editor if transitioning to editing mode
-            if !editing_mode.get() {
-                leptos::logging::log!("Setting editing_mode to true to show cell editor");
-                set_editing_mode.set(true);
-            } else {
-                leptos::logging::log!("editing_mode already true");
-            }
-        } else if editing_mode.get()
-            && !matches!(
-                new_mode,
-                SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
-            )
-        {
-            // Hide editor if leaving editing mode (but keep visible for visual mode within editing)
-            set_editing_mode.set(false);
+            // Editor visibility is now controlled by editing_mode memo
+            leptos::logging::log!("Editing mode active, editor should be visible");
+        } else {
+            // Not in editing mode, editor should be hidden
+            leptos::logging::log!("Not in editing mode, editor should be hidden");
         }
 
         // Formula bar is now updated via controller events
@@ -648,7 +647,6 @@ pub fn CanvasGrid(
             <CellEditor
                 active_cell=active_cell
                 editing_mode=editing_mode
-                _set_editing_mode=set_editing_mode
                 cell_position=cell_position
                 set_current_mode=set_current_mode
                 _set_state_version=set_state_version

@@ -1,11 +1,13 @@
 pub mod autocomplete;
 pub mod error_formatter;
+pub mod error_manager;
 pub mod resize;
 pub mod selection;
 pub mod selection_stats;
 
 pub use autocomplete::{AutocompleteManager, AutocompleteSuggestion};
 pub use error_formatter::ErrorFormatter;
+pub use error_manager::{ErrorManager, ErrorEntry};
 pub use resize::{ResizeManager, ResizeState, ResizeType};
 pub use selection::{CellContent, ClipboardContent, Direction, SelectionManager};
 pub use selection_stats::{SelectionStats, SelectionStatsManager};

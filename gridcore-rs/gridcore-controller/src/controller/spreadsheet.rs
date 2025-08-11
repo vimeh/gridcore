@@ -2,7 +2,9 @@ use crate::controller::{
     DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
     SpreadsheetEvent, ViewportManager,
 };
-use crate::managers::{AutocompleteManager, ErrorFormatter, ResizeManager, SelectionStatsManager};
+use crate::managers::{
+    AutocompleteManager, ErrorFormatter, ErrorManager, ResizeManager, SelectionStatsManager,
+};
 use crate::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
@@ -14,6 +16,7 @@ pub struct SpreadsheetController {
     resize_manager: ResizeManager,
     autocomplete_manager: AutocompleteManager,
     selection_stats_manager: SelectionStatsManager,
+    error_manager: ErrorManager,
     config: GridConfiguration,
     formula_bar_value: String,
 }
@@ -55,6 +58,7 @@ impl SpreadsheetController {
             resize_manager,
             autocomplete_manager: AutocompleteManager::new(),
             selection_stats_manager: SelectionStatsManager::new(),
+            error_manager: ErrorManager::new(),
             config,
             formula_bar_value: String::new(),
         };
@@ -87,6 +91,7 @@ impl SpreadsheetController {
             resize_manager,
             autocomplete_manager: AutocompleteManager::new(),
             selection_stats_manager: SelectionStatsManager::new(),
+            error_manager: ErrorManager::new(),
             config,
             formula_bar_value: String::new(),
         };
@@ -152,11 +157,10 @@ impl SpreadsheetController {
                     {
                         let enhanced_message =
                             format!("Formula error: {}", error_type.full_display());
-                        self.event_dispatcher
-                            .dispatch(&SpreadsheetEvent::ErrorOccurred {
-                                message: enhanced_message,
-                                severity: crate::controller::events::ErrorSeverity::Error,
-                            });
+                        self.emit_error(
+                            enhanced_message,
+                            crate::controller::events::ErrorSeverity::Error,
+                        );
                     }
 
                     self.event_dispatcher
@@ -177,11 +181,10 @@ impl SpreadsheetController {
                 }
                 Err(e) => {
                     let message = ErrorFormatter::format_error(&e);
-                    self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::ErrorOccurred {
-                            message,
-                            severity: crate::controller::events::ErrorSeverity::Error,
-                        });
+                    self.emit_error(
+                        message,
+                        crate::controller::events::ErrorSeverity::Error,
+                    );
                 }
             }
             return Ok(());
@@ -202,11 +205,10 @@ impl SpreadsheetController {
                             let enhanced_message =
                                 format!("Formula error: {}", error_type.full_display());
                             log::error!("Error in cell {}: {}", address, enhanced_message);
-                            self.event_dispatcher
-                                .dispatch(&SpreadsheetEvent::ErrorOccurred {
-                                    message: enhanced_message,
-                                    severity: crate::controller::events::ErrorSeverity::Error,
-                                });
+                            self.emit_error(
+                                enhanced_message,
+                                crate::controller::events::ErrorSeverity::Error,
+                            );
                         }
 
                         self.event_dispatcher
@@ -218,11 +220,10 @@ impl SpreadsheetController {
                     Err(e) => {
                         let message = ErrorFormatter::format_error(&e);
                         log::error!("Parse/Set error in cell {}: {}", address, message);
-                        self.event_dispatcher
-                            .dispatch(&SpreadsheetEvent::ErrorOccurred {
-                                message,
-                                severity: crate::controller::events::ErrorSeverity::Error,
-                            });
+                        self.emit_error(
+                            message,
+                            crate::controller::events::ErrorSeverity::Error,
+                        );
                     }
                 }
 
@@ -284,12 +285,16 @@ impl SpreadsheetController {
         }
     }
 
-    /// Emit an error event
+    /// Emit an error event and add to error manager
     pub fn emit_error(
         &mut self,
         message: String,
         severity: crate::controller::events::ErrorSeverity,
     ) {
+        // Add to error manager
+        self.error_manager.add_error(message.clone(), severity.clone());
+        
+        // Dispatch event for UI updates
         self.event_dispatcher
             .dispatch(&SpreadsheetEvent::ErrorOccurred { message, severity });
     }
@@ -366,6 +371,31 @@ impl SpreadsheetController {
 
     pub fn get_autocomplete_manager_mut(&mut self) -> &mut AutocompleteManager {
         &mut self.autocomplete_manager
+    }
+
+    /// Get the error manager
+    pub fn get_error_manager(&self) -> &ErrorManager {
+        &self.error_manager
+    }
+
+    /// Get mutable reference to error manager
+    pub fn get_error_manager_mut(&mut self) -> &mut ErrorManager {
+        &mut self.error_manager
+    }
+
+    /// Get active errors from the error manager
+    pub fn get_active_errors(&self) -> Vec<crate::managers::ErrorEntry> {
+        self.error_manager.get_active_errors()
+    }
+
+    /// Clear all errors
+    pub fn clear_all_errors(&mut self) {
+        self.error_manager.clear_all();
+    }
+
+    /// Remove a specific error by ID
+    pub fn remove_error(&mut self, id: usize) -> bool {
+        self.error_manager.remove_error(id)
     }
 
     /// Get the current formula bar value
@@ -824,11 +854,10 @@ impl SpreadsheetController {
                         log::error!("Error in cell {}: {}", address, enhanced_message);
 
                         // Emit error event for formula evaluation errors
-                        self.event_dispatcher
-                            .dispatch(&SpreadsheetEvent::ErrorOccurred {
-                                message: enhanced_message,
-                                severity: crate::controller::events::ErrorSeverity::Error,
-                            });
+                        self.emit_error(
+                            enhanced_message,
+                            crate::controller::events::ErrorSeverity::Error,
+                        );
                     }
 
                     self.event_dispatcher
@@ -840,11 +869,10 @@ impl SpreadsheetController {
                     log::error!("Parse/Set error in cell {}: {}", address, message);
 
                     // Emit error event for setting errors
-                    self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::ErrorOccurred {
-                            message,
-                            severity: crate::controller::events::ErrorSeverity::Error,
-                        });
+                    self.emit_error(
+                        message,
+                        crate::controller::events::ErrorSeverity::Error,
+                    );
                     // Still exit editing mode even if the value couldn't be set
                 }
             }

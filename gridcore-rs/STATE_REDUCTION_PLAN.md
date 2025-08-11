@@ -57,18 +57,18 @@ This document tracks the migration of state management from the UI layer to the 
 - [x] Remove sheets signal (still synced from controller)
 - [x] Add comprehensive unit tests for sheet management
 
-### Phase 7: Canvas Grid Simplification
+### Phase 7: Canvas Grid Simplification ✅
 
-- [ ] Derive editing_mode from UIState
-- [ ] Get cell_position from ViewportManager
-- [ ] Derive cursor_style from controller state
-- [ ] Remove local signals
+- [x] Derive editing_mode from UIState
+- [x] Get cell_position from ViewportManager
+- [x] Derive cursor_style from controller state
+- [x] Remove local signals
 
-### Phase 8: Error Consolidation
+### Phase 8: Error Consolidation ✅
 
-- [ ] Add error queue to controller
-- [ ] Centralize error dispatching
-- [ ] Remove error signals from UI
+- [x] Add error queue to controller (ErrorManager)
+- [x] Centralize error dispatching
+- [x] Remove error signals from UI
 
 ### Phase 9: Viewport Direct Access
 
@@ -78,21 +78,22 @@ This document tracks the migration of state management from the UI layer to the 
 
 ## Progress Tracking
 
-| Component  | Signals Before | Signals After | Status      |
-| ---------- | -------------- | ------------- | ----------- |
-| App.rs     | 10             | 5             | Complete    |
-| CanvasGrid | 5              | 4             | Complete    |
-| CellEditor | 2              | 0             | Complete    |
-| TabBar     | 4              | 3             | Complete    |
-| StatusBar  | 0              | 0             | Complete    |
+| Component     | Signals Before | Signals After | Status      |
+| ------------- | -------------- | ------------- | ----------- |
+| App.rs        | 10             | 3             | Complete    |
+| CanvasGrid    | 5              | 1             | Complete    |
+| CellEditor    | 2              | 0             | Complete    |
+| TabBar        | 4              | 3             | Complete    |
+| StatusBar     | 0              | 0             | Complete    |
+| ErrorDisplay  | 2              | 0             | Complete    |
 
 ## Metrics
 
 - **Total Signals Before**: ~15
-- **Current Signals**: ~8
+- **Current Signals**: ~4 (state_version, active_cell, sheets, active_sheet)
 - **Target Signals After**: 2-3
-- **Code Reduction**: ~400 lines removed so far
-- **Performance**: Fewer reactive updates, centralized state management
+- **Code Reduction**: ~500 lines removed
+- **Performance**: Significantly fewer reactive updates, fully centralized state management
 
 ## Testing Checklist
 
@@ -123,5 +124,7 @@ This document tracks the migration of state management from the UI layer to the 
 
 1. ~~Move formula bar logic to controller~~ ✅
 2. ~~Implement sheet management in core~~ ✅  
-3. Simplify canvas grid signals (Phase 7)
-4. Consolidate error handling (Phase 8)
+3. ~~Simplify canvas grid signals (Phase 7)~~ ✅
+4. ~~Consolidate error handling (Phase 8)~~ ✅
+5. Implement viewport direct access (Phase 9)
+6. Consider further optimizations

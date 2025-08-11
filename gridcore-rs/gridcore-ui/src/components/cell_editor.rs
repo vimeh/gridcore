@@ -12,9 +12,8 @@ use web_sys::KeyboardEvent;
 #[component]
 pub fn CellEditor(
     active_cell: ReadSignal<CellAddress>,
-    editing_mode: ReadSignal<bool>,
-    _set_editing_mode: WriteSignal<bool>,
-    cell_position: ReadSignal<(f64, f64, f64, f64)>, // x, y, width, height
+    editing_mode: Memo<bool>,
+    cell_position: Memo<(f64, f64, f64, f64)>, // x, y, width, height
     set_current_mode: WriteSignal<SpreadsheetMode>,
     _set_state_version: WriteSignal<u32>,
 ) -> impl IntoView {
