@@ -40,13 +40,12 @@ pub fn CellEditor(
             let ctrl = ctrl_value.clone();
             let ctrl_borrow = ctrl.borrow();
 
-            // Check the current editing state to get initial value and edit mode
+            // Check the current editing state to get initial value and cursor position
             let editing_state = ctrl_borrow.get_state();
 
-            let (_should_set_cursor_pos, _cursor_pos_to_set) = match editing_state {
+            let cursor_pos_to_set = match editing_state {
                 gridcore_controller::state::UIState::Editing {
                     editing_value,
-
                     cursor_position,
                     ..
                 } => {
@@ -56,109 +55,38 @@ pub fn CellEditor(
                     // - For direct typing: the typed character
                     // - For 'i' key: existing cell content with cursor at 0
                     // - For 'a' key: existing cell content with cursor at end
-                    leptos::logging::log!("Setting editor value from state: '{}'", editing_value);
+                    leptos::logging::log!("Setting editor value from state: '{}', cursor at {}", editing_value, cursor_position);
                     set_editor_value.set(editing_value.clone());
 
-                    // Use the cursor position from state
-                    (true, *cursor_position)
+                    // Use the cursor position directly from state
+                    *cursor_position
                 }
                 _ => {
                     // Not in editing state
                     set_editor_value.set(String::new());
-                    (false, 0)
+                    0
                 }
             };
 
-            // Focus the input
+            // Focus the input and set cursor position from state
             if let Some(input) = input_ref.get() {
                 let _ = input.focus();
 
-                // Handle cursor positioning based on whether this is direct typing or edit mode
-                if let gridcore_controller::state::UIState::Editing {
-                    edit_variant: Some(variant),
-                    editing_value,
-                    cursor_position,
-                    ..
-                } = editing_state
-                {
-                    // Check if this is direct typing (single character with cursor position 1)
-                    let is_direct_typing = editing_value.len() == 1
-                        && *cursor_position == 1
-                        && matches!(variant, InsertMode::I);
-
-                    if is_direct_typing {
-                        // Direct typing - position cursor after the typed character
-                        // Use set_timeout to ensure the value is set first
-                        let input_clone = input_ref;
-                        set_timeout(
-                            move || {
-                                if let Some(input) = input_clone.get() {
-                                    let _ = input.set_selection_start(Some(1));
-                                    let _ = input.set_selection_end(Some(1));
-                                }
-                            },
-                            std::time::Duration::from_millis(0),
-                        );
-                    } else {
-                        // Regular edit mode handling
-                        match variant {
-                            InsertMode::I => {
-                                // Insert mode 'i' - cursor at beginning
-                                // Need a minimal timeout to ensure the value is rendered first
-                                let input_clone = input_ref;
-                                set_timeout(
-                                    move || {
-                                        if let Some(input) = input_clone.get() {
-                                            let _ = input.set_selection_start(Some(0));
-                                            let _ = input.set_selection_end(Some(0));
-                                        }
-                                    },
-                                    std::time::Duration::from_millis(10),
-                                );
-                            }
-                            InsertMode::CapitalI => {
-                                // Insert mode 'I' - cursor at beginning of line
-                                // Need a minimal timeout to ensure the value is rendered first
-                                let input_clone = input_ref;
-                                set_timeout(
-                                    move || {
-                                        if let Some(input) = input_clone.get() {
-                                            let _ = input.set_selection_start(Some(0));
-                                            let _ = input.set_selection_end(Some(0));
-                                        }
-                                    },
-                                    std::time::Duration::from_millis(10),
-                                );
-                            }
-                            InsertMode::A => {
-                                // Append mode 'a' - cursor after current position
-                                // The state already has the correct cursor position for 'a' mode
-                                // Controller sets it to the end of the text
-                                let pos = *cursor_position as u32;
-                                let _ = input.set_selection_start(Some(pos));
-                                let _ = input.set_selection_end(Some(pos));
-                            }
-                            InsertMode::CapitalA => {
-                                // Append mode 'A' - cursor at end of line
-                                // Need a minimal timeout to ensure the value is rendered first
-                                let input_clone = input_ref;
-                                set_timeout(
-                                    move || {
-                                        if let Some(input) = input_clone.get() {
-                                            let len = input.value().len();
-                                            let _ = input.set_selection_start(Some(len as u32));
-                                            let _ = input.set_selection_end(Some(len as u32));
-                                        }
-                                    },
-                                    std::time::Duration::from_millis(10),
-                                );
-                            }
-                            _ => {
-                                // Other modes - use specified position
-                            }
+                
+                // Use a small timeout to ensure the value is rendered first
+                let input_clone = input_ref;
+                let cursor_pos = cursor_pos_to_set;
+                set_timeout(
+                    move || {
+                        if let Some(input) = input_clone.get() {
+                            // Set cursor position from state
+                            let _ = input.set_selection_start(Some(cursor_pos as u32));
+                            let _ = input.set_selection_end(Some(cursor_pos as u32));
+                            leptos::logging::log!("Set cursor position to {}", cursor_pos);
                         }
-                    }
-                }
+                    },
+                    std::time::Duration::from_millis(10),
+                );
             }
         }
     });
