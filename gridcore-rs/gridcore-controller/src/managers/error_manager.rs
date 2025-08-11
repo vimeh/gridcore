@@ -1,6 +1,6 @@
 use crate::controller::events::ErrorSeverity;
+use chrono::{DateTime, Duration, Utc};
 use std::collections::VecDeque;
-use std::time::{Duration, Instant};
 
 /// An error message with metadata
 #[derive(Debug, Clone)]
@@ -8,7 +8,7 @@ pub struct ErrorEntry {
     pub id: usize,
     pub message: String,
     pub severity: ErrorSeverity,
-    pub timestamp: Instant,
+    pub timestamp: DateTime<Utc>,
     pub auto_dismiss_after: Option<Duration>,
 }
 
@@ -41,8 +41,8 @@ impl ErrorManager {
     /// Add a new error to the queue
     pub fn add_error(&mut self, message: String, severity: ErrorSeverity) -> usize {
         let auto_dismiss_after = match severity {
-            ErrorSeverity::Info => Some(Duration::from_secs(5)),
-            ErrorSeverity::Warning => Some(Duration::from_secs(10)),
+            ErrorSeverity::Info => Some(Duration::seconds(5)),
+            ErrorSeverity::Warning => Some(Duration::seconds(10)),
             ErrorSeverity::Error => None, // Errors don't auto-dismiss
         };
 
@@ -50,7 +50,7 @@ impl ErrorManager {
             id: self.next_id,
             message,
             severity,
-            timestamp: Instant::now(),
+            timestamp: Utc::now(),
             auto_dismiss_after,
         };
 
@@ -83,12 +83,12 @@ impl ErrorManager {
 
     /// Get errors that should still be displayed (not auto-dismissed)
     pub fn get_active_errors(&self) -> Vec<ErrorEntry> {
-        let now = Instant::now();
+        let now = Utc::now();
         self.errors
             .iter()
             .filter(|error| {
                 if let Some(dismiss_after) = error.auto_dismiss_after {
-                    now.duration_since(error.timestamp) < dismiss_after
+                    now.signed_duration_since(error.timestamp) < dismiss_after
                 } else {
                     true // No auto-dismiss, always active
                 }
@@ -104,10 +104,10 @@ impl ErrorManager {
 
     /// Clean up expired errors (should be called periodically)
     pub fn cleanup_expired(&mut self) {
-        let now = Instant::now();
+        let now = Utc::now();
         self.errors.retain(|error| {
             if let Some(dismiss_after) = error.auto_dismiss_after {
-                now.duration_since(error.timestamp) < dismiss_after
+                now.signed_duration_since(error.timestamp) < dismiss_after
             } else {
                 true
             }
@@ -209,8 +209,8 @@ mod tests {
 
         // Check auto-dismiss durations are set correctly
         let errors = manager.get_errors();
-        assert_eq!(errors[0].auto_dismiss_after, Some(Duration::from_secs(5))); // Info
-        assert_eq!(errors[1].auto_dismiss_after, Some(Duration::from_secs(10))); // Warning
+        assert_eq!(errors[0].auto_dismiss_after, Some(Duration::seconds(5))); // Info
+        assert_eq!(errors[1].auto_dismiss_after, Some(Duration::seconds(10))); // Warning
         assert_eq!(errors[2].auto_dismiss_after, None); // Error (no auto-dismiss)
     }
 
@@ -223,8 +223,8 @@ mod tests {
             id: 0,
             message: "Test".to_string(),
             severity: ErrorSeverity::Info,
-            timestamp: Instant::now() - Duration::from_secs(10), // Old timestamp
-            auto_dismiss_after: Some(Duration::from_secs(5)),
+            timestamp: Utc::now() - Duration::seconds(10), // Old timestamp
+            auto_dismiss_after: Some(Duration::seconds(5)),
         };
 
         // Manually add expired error
