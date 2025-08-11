@@ -68,7 +68,8 @@ pub fn App() -> impl IntoView {
                     | SpreadsheetEvent::SheetAdded { .. }
                     | SpreadsheetEvent::SheetRemoved { .. }
                     | SpreadsheetEvent::SheetRenamed { .. }
-                    | SpreadsheetEvent::SheetChanged { .. } => {
+                    | SpreadsheetEvent::SheetChanged { .. }
+                    | SpreadsheetEvent::ErrorDismissed { .. } => {
                         set_state_version.update(|v| *v += 1);
                     }
                     _ => {}
@@ -88,6 +89,11 @@ pub fn App() -> impl IntoView {
                         severity
                     );
                     // The controller's ErrorManager has already added this error
+                }
+                
+                // Log error dismissal
+                if let SpreadsheetEvent::ErrorDismissed { id } = event {
+                    leptos::logging::log!("Error dismissed: {}", id);
                 }
             },
         );

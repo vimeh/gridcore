@@ -105,14 +105,20 @@ pub fn ErrorDisplay(state_version: ReadSignal<u32>) -> impl IntoView {
                     };
 
                     view! {
-                        <div class=severity_class>
+                        <div class=severity_class role="alert">
                             <span class="error-text">{error.message.clone()}</span>
                             <button
                                 class="error-dismiss"
+                                aria-label="Dismiss error"
+                                tabindex="0"
                                 on:click=move |_| {
                                     controller_stored.with_value(|ctrl| {
                                         let mut ctrl_borrow = ctrl.borrow_mut();
                                         ctrl_borrow.remove_error(error_id);
+                                        // Trigger state update by emitting a dummy event
+                                        ctrl_borrow.dispatch_event(
+                                            gridcore_controller::controller::events::SpreadsheetEvent::ErrorDismissed { id: error_id }
+                                        );
                                     });
                                 }
                             >

@@ -124,6 +124,9 @@ pub enum SpreadsheetEvent {
         message: String,
         severity: ErrorSeverity,
     },
+    ErrorDismissed {
+        id: usize,
+    },
 }
 
 /// Error severity levels

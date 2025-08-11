@@ -394,6 +394,11 @@ impl SpreadsheetController {
     pub fn remove_error(&mut self, id: usize) -> bool {
         self.error_manager.remove_error(id)
     }
+    
+    /// Dispatch an event to all listeners
+    pub fn dispatch_event(&mut self, event: SpreadsheetEvent) {
+        self.event_dispatcher.dispatch(&event);
+    }
 
     /// Get the current formula bar value
     pub fn get_formula_bar_value(&self) -> &str {
