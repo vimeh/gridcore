@@ -414,8 +414,14 @@ pub fn CellEditor(
                                                 }) {
                                                     leptos::logging::log!("Error entering insert mode (I): {:?}", e);
                                                 }
+                                                // Update the mode signal to reflect the change
+                                                drop(ctrl_mut);
+                                                let new_state = ctrl.borrow().get_state().clone();
+                                                let new_mode = new_state.spreadsheet_mode();
+                                                set_current_mode.set(new_mode);
+                                                set_state_version.update(|v| *v += 1); // Trigger UI update
+                                                leptos::logging::log!("Updated mode to {:?} after EnterInsertMode (I)", new_mode);
                                             });
-                                            // Controller will handle mode transition to Insert
                                         }
                                         "A" => {
                                             // Enter insert mode at end of line
@@ -426,8 +432,14 @@ pub fn CellEditor(
                                                 }) {
                                                     leptos::logging::log!("Error entering insert mode (A): {:?}", e);
                                                 }
+                                                // Update the mode signal to reflect the change
+                                                drop(ctrl_mut);
+                                                let new_state = ctrl.borrow().get_state().clone();
+                                                let new_mode = new_state.spreadsheet_mode();
+                                                set_current_mode.set(new_mode);
+                                                set_state_version.update(|v| *v += 1); // Trigger UI update
+                                                leptos::logging::log!("Updated mode to {:?} after EnterInsertMode (A)", new_mode);
                                             });
-                                            // Controller will handle mode transition to Insert
                                         }
                                         _ => {}
                                     }
