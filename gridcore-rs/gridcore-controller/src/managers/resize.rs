@@ -197,6 +197,21 @@ impl ResizeManager {
         self.row_heights.get(&row).copied()
     }
 
+    /// Get the resize type
+    pub fn get_resize_type(&self) -> ResizeType {
+        self.state.resize_type
+    }
+
+    /// Get the resize index
+    pub fn get_resize_index(&self) -> usize {
+        self.state.resize_index
+    }
+
+    /// Get the current size being resized to
+    pub fn get_current_size(&self) -> f64 {
+        self.state.current_size
+    }
+
     /// Set column width directly
     pub fn set_column_width(&mut self, col: usize, width: f64) {
         let clamped = width.max(self.min_column_width).min(self.max_column_width);

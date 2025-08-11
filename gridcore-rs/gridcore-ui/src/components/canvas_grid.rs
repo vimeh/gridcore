@@ -51,8 +51,7 @@ pub fn CanvasGrid(
         .unwrap_or(1.0);
 
     // Create resize handler
-    let resize_handler = ResizeHandler::new(viewport_rc.clone());
-    let _resize_state = resize_handler.get_state();
+    let resize_handler = ResizeHandler::new(controller_rc.clone());
 
     // Auto-focus the wrapper when component mounts
     Effect::new(move |_| {
