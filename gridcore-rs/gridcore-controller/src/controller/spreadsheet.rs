@@ -213,7 +213,7 @@ impl SpreadsheetController {
                                 address,
                                 value: value.clone(),
                             });
-                        
+
                         // Update formula bar to show the new value
                         self.update_formula_bar_from_cursor();
                     }
@@ -394,7 +394,7 @@ impl SpreadsheetController {
     pub fn remove_error(&mut self, id: usize) -> bool {
         self.error_manager.remove_error(id)
     }
-    
+
     /// Dispatch an event to all listeners
     pub fn dispatch_event(&mut self, event: SpreadsheetEvent) {
         self.event_dispatcher.dispatch(&event);
@@ -560,7 +560,7 @@ impl SpreadsheetController {
                 log::debug!("Enter key pressed, starting edit in Insert mode with empty value");
 
                 let action = Action::StartEditing {
-                    edit_mode: Some(InsertMode::I),     // Use Insert mode for immediate typing
+                    edit_mode: Some(InsertMode::I), // Use Insert mode for immediate typing
                     initial_value: Some(String::new()), // Start with empty value to replace content
                     cursor_position: Some(0),
                 };
@@ -655,7 +655,7 @@ impl SpreadsheetController {
                         address: current_cursor,
                         value: String::new(),
                     });
-                
+
                 // Update formula bar to show empty value
                 self.update_formula_bar_from_cursor();
                 Ok(())
@@ -721,7 +721,10 @@ impl SpreadsheetController {
                                 cursor_position: Some(1), // Position cursor after the typed character
                             });
                             if let Err(ref e) = result {
-                                log::error!("Failed to start editing with typed character: {:?}", e);
+                                log::error!(
+                                    "Failed to start editing with typed character: {:?}",
+                                    e
+                                );
                             }
                             result
                         } else {

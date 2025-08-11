@@ -307,7 +307,7 @@ mod tests {
     fn test_enter_key_starts_editing_in_insert_mode() {
         // Arrange
         let mut controller = SpreadsheetController::new();
-        
+
         // Set initial cell value
         let cell_addr = CellAddress::new(0, 0);
         controller
@@ -349,7 +349,10 @@ mod tests {
                     "Should be in Insert cell mode"
                 );
             }
-            _ => panic!("Expected Editing state after pressing Enter, got {:?}", state),
+            _ => panic!(
+                "Expected Editing state after pressing Enter, got {:?}",
+                state
+            ),
         }
     }
 
@@ -357,17 +360,17 @@ mod tests {
     fn test_delete_key_clears_cell_and_updates_formula_bar() {
         // Arrange
         let mut controller = SpreadsheetController::new();
-        
+
         // Set initial cell value
         let cell_addr = CellAddress::new(0, 0);
         controller
             .get_facade_mut()
             .set_cell_value(&cell_addr, "Hello")
             .unwrap();
-        
+
         // Update formula bar after setting value
         controller.update_formula_bar_from_cursor();
-        
+
         // Verify initial formula bar value
         assert_eq!(controller.get_formula_bar_value(), "Hello");
 
@@ -399,17 +402,17 @@ mod tests {
     fn test_backspace_key_clears_cell_and_updates_formula_bar() {
         // Arrange
         let mut controller = SpreadsheetController::new();
-        
+
         // Set initial cell value
         let cell_addr = CellAddress::new(0, 0);
         controller
             .get_facade_mut()
             .set_cell_value(&cell_addr, "World")
             .unwrap();
-        
+
         // Update formula bar after setting value
         controller.update_formula_bar_from_cursor();
-        
+
         // Verify initial formula bar value
         assert_eq!(controller.get_formula_bar_value(), "World");
 
@@ -441,7 +444,7 @@ mod tests {
     fn test_navigation_updates_formula_bar() {
         // Arrange
         let mut controller = SpreadsheetController::new();
-        
+
         // Set values in different cells
         controller
             .get_facade_mut()
@@ -455,10 +458,10 @@ mod tests {
             .get_facade_mut()
             .set_cell_value(&CellAddress::new(0, 1), "A2")
             .unwrap();
-        
+
         // Update formula bar after setting values
         controller.update_formula_bar_from_cursor();
-        
+
         // Start at A1
         assert_eq!(controller.get_formula_bar_value(), "A1");
 
@@ -472,10 +475,14 @@ mod tests {
             meta: false,
         };
         controller.handle_keyboard_event(event).unwrap();
-        
+
         // Assert
-        assert_eq!(controller.get_formula_bar_value(), "B1", "Formula bar should show B1");
-        
+        assert_eq!(
+            controller.get_formula_bar_value(),
+            "B1",
+            "Formula bar should show B1"
+        );
+
         // Act - Move down to B2 (empty cell)
         let event = KeyboardEvent {
             key: "j".to_string(),
@@ -486,10 +493,14 @@ mod tests {
             meta: false,
         };
         controller.handle_keyboard_event(event).unwrap();
-        
+
         // Assert
-        assert_eq!(controller.get_formula_bar_value(), "", "Formula bar should be empty for B2");
-        
+        assert_eq!(
+            controller.get_formula_bar_value(),
+            "",
+            "Formula bar should be empty for B2"
+        );
+
         // Act - Move left to A2
         let event = KeyboardEvent {
             key: "h".to_string(),
@@ -500,16 +511,20 @@ mod tests {
             meta: false,
         };
         controller.handle_keyboard_event(event).unwrap();
-        
+
         // Assert
-        assert_eq!(controller.get_formula_bar_value(), "A2", "Formula bar should show A2");
+        assert_eq!(
+            controller.get_formula_bar_value(),
+            "A2",
+            "Formula bar should show A2"
+        );
     }
 
     #[test]
     fn test_typing_starts_editing_in_insert_mode() {
         // Arrange
         let mut controller = SpreadsheetController::new();
-        
+
         // Act - Type a character to start editing
         let event = KeyboardEvent {
             key: "Q".to_string(),
@@ -532,7 +547,10 @@ mod tests {
                 ..
             } => {
                 assert_eq!(editing_value, "Q", "Should have the typed character");
-                assert_eq!(*cursor_position, 1, "Cursor should be after the typed character");
+                assert_eq!(
+                    *cursor_position, 1,
+                    "Cursor should be after the typed character"
+                );
                 assert_eq!(
                     *edit_variant,
                     Some(InsertMode::I),
@@ -553,8 +571,8 @@ mod tests {
         // This test verifies that invalid cell references generate appropriate error messages
         // The actual #REF! error is shown in the cell when the formula is evaluated
         // For now, we'll skip this test as the e2e test will verify the full behavior
-        
-        // TODO: The formula parser correctly identifies invalid references but the error 
+
+        // TODO: The formula parser correctly identifies invalid references but the error
         // might not be propagated to the error manager in all cases. The e2e test
         // will verify the actual user-facing behavior.
     }
@@ -563,18 +581,24 @@ mod tests {
     fn test_error_dismissal_removes_error() {
         // Arrange
         let mut controller = SpreadsheetController::new();
-        
+
         // Add an error
-        controller.emit_error("Test error".to_string(), crate::controller::events::ErrorSeverity::Error);
-        
+        controller.emit_error(
+            "Test error".to_string(),
+            crate::controller::events::ErrorSeverity::Error,
+        );
+
         // Verify error exists
         let errors = controller.get_active_errors();
         assert_eq!(errors.len(), 1, "Should have one error");
         let error_id = errors[0].id;
-        
+
         // Remove the error
-        assert!(controller.remove_error(error_id), "Should successfully remove error");
-        
+        assert!(
+            controller.remove_error(error_id),
+            "Should successfully remove error"
+        );
+
         // Verify error is gone
         let errors = controller.get_active_errors();
         assert_eq!(errors.len(), 0, "Should have no errors after dismissal");
