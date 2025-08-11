@@ -477,18 +477,32 @@ pub fn CellEditor(
                                         <div
                                             on:click=move |_| {
                                                 let current_value = editor_value.get();
-                                                let parts: Vec<&str> = current_value
-                                                    .rsplitn(2, |c: char| !c.is_alphanumeric() && c != '_')
-                                                    .collect();
-                                                if parts.len() == 2 {
-                                                    let new_value = format!("{}{}(", parts[1], suggestion_for_click);
-                                                    set_editor_value.set(new_value);
-                                                }
+                                                let cursor_pos = if let Some(input) = input_ref.get() {
+                                                    input.selection_start().unwrap_or(Some(0)).unwrap_or(0) as usize
+                                                } else {
+                                                    current_value.len()
+                                                };
+                                                
+                                                // Use controller's AutocompleteManager to apply the suggestion
+                                                let (new_value, new_cursor) = controller_stored.with_value(|ctrl| {
+                                                    let ctrl_borrow = ctrl.borrow();
+                                                    let manager = ctrl_borrow.get_autocomplete_manager();
+                                                    let suggestion = gridcore_controller::managers::autocomplete::AutocompleteSuggestion::Function {
+                                                        name: suggestion_for_click.clone(),
+                                                        signature: String::new(), // Not needed for application
+                                                    };
+                                                    manager.apply_suggestion(&current_value, &suggestion, cursor_pos)
+                                                });
+                                                
+                                                set_editor_value.set(new_value);
                                                 set_suggestions.set(Vec::new());
                                                 set_selected_suggestion.set(None);
-                                                // Refocus the input
+                                                
+                                                // Refocus the input and set cursor position
                                                 if let Some(input) = input_ref.get() {
                                                     let _ = input.focus();
+                                                    let _ = input.set_selection_start(Some(new_cursor as u32));
+                                                    let _ = input.set_selection_end(Some(new_cursor as u32));
                                                 }
                                             }
                                             style=move || {
