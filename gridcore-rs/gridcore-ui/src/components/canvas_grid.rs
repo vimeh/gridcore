@@ -52,7 +52,7 @@ pub fn CanvasGrid(
     let editing_mode = Memo::new(move |_| {
         // Track state_version to ensure memo updates when state changes
         let _ = state_version.get();
-        
+
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
@@ -104,12 +104,26 @@ pub fn CanvasGrid(
     // Create resize handler
     let resize_handler = ResizeHandler::new(controller_rc.clone());
 
-    // Auto-focus the wrapper when component mounts
+    // Auto-focus the wrapper when component mounts and trigger initial render
     Effect::new(move |_| {
         if let Some(wrapper) = wrapper_ref.get() {
             let element: &HtmlDivElement = wrapper.as_ref();
             let result = element.focus();
             leptos::logging::log!("Grid container auto-focus on mount: {:?}", result);
+
+            // Trigger initial render after a small delay to ensure DOM is ready
+            // This ensures canvas dimensions are available
+            set_state_version.update(|v| *v += 1);
+
+            // Also use requestAnimationFrame to ensure layout is complete
+            let window = web_sys::window().expect("window should exist");
+            let closure = wasm_bindgen::closure::Closure::once(move || {
+                set_state_version.update(|v| *v += 1);
+            });
+            window
+                .request_animation_frame(closure.as_ref().unchecked_ref())
+                .ok();
+            closure.forget();
         }
     });
 
@@ -558,9 +572,8 @@ pub fn CanvasGrid(
 
         // Auto-scroll to keep the active cell visible if cursor moved
         // Don't auto-scroll if we're in editing mode (UIState::Editing)
-        let is_editing = controller_stored.with_value(|ctrl| {
-            matches!(ctrl.borrow().get_state(), UIState::Editing { .. })
-        });
+        let is_editing = controller_stored
+            .with_value(|ctrl| matches!(ctrl.borrow().get_state(), UIState::Editing { .. }));
         if new_cursor != old_cursor && !is_editing {
             let mut vp_borrow = viewport_rc.borrow_mut();
 
