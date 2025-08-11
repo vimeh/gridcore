@@ -302,4 +302,249 @@ mod tests {
             _ => panic!("Expected Editing state"),
         }
     }
+
+    #[test]
+    fn test_enter_key_starts_editing_in_insert_mode() {
+        // Arrange
+        let mut controller = SpreadsheetController::new();
+        
+        // Set initial cell value
+        let cell_addr = CellAddress::new(0, 0);
+        controller
+            .get_facade_mut()
+            .set_cell_value(&cell_addr, "Hello")
+            .unwrap();
+
+        // Act - Press Enter to start editing
+        let event = KeyboardEvent {
+            key: "Enter".to_string(),
+            code: String::new(),
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        controller.handle_keyboard_event(event).unwrap();
+
+        // Assert
+        let state = controller.get_state();
+        match state {
+            UIState::Editing {
+                editing_value,
+                cursor_position,
+                edit_variant,
+                cell_mode,
+                ..
+            } => {
+                assert_eq!(editing_value, "", "Enter should start with empty value");
+                assert_eq!(*cursor_position, 0, "Cursor should be at position 0");
+                assert_eq!(
+                    *edit_variant,
+                    Some(InsertMode::I),
+                    "Should be in InsertMode::I for immediate typing"
+                );
+                assert_eq!(
+                    *cell_mode,
+                    crate::state::CellMode::Insert,
+                    "Should be in Insert cell mode"
+                );
+            }
+            _ => panic!("Expected Editing state after pressing Enter, got {:?}", state),
+        }
+    }
+
+    #[test]
+    fn test_delete_key_clears_cell_and_updates_formula_bar() {
+        // Arrange
+        let mut controller = SpreadsheetController::new();
+        
+        // Set initial cell value
+        let cell_addr = CellAddress::new(0, 0);
+        controller
+            .get_facade_mut()
+            .set_cell_value(&cell_addr, "Hello")
+            .unwrap();
+        
+        // Update formula bar after setting value
+        controller.update_formula_bar_from_cursor();
+        
+        // Verify initial formula bar value
+        assert_eq!(controller.get_formula_bar_value(), "Hello");
+
+        // Act - Press Delete to clear cell
+        let event = KeyboardEvent {
+            key: "Delete".to_string(),
+            code: String::new(),
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        controller.handle_keyboard_event(event).unwrap();
+
+        // Assert
+        assert_eq!(
+            controller.get_cell_display_for_ui(&cell_addr),
+            "",
+            "Cell should be cleared"
+        );
+        assert_eq!(
+            controller.get_formula_bar_value(),
+            "",
+            "Formula bar should be updated to empty"
+        );
+    }
+
+    #[test]
+    fn test_backspace_key_clears_cell_and_updates_formula_bar() {
+        // Arrange
+        let mut controller = SpreadsheetController::new();
+        
+        // Set initial cell value
+        let cell_addr = CellAddress::new(0, 0);
+        controller
+            .get_facade_mut()
+            .set_cell_value(&cell_addr, "World")
+            .unwrap();
+        
+        // Update formula bar after setting value
+        controller.update_formula_bar_from_cursor();
+        
+        // Verify initial formula bar value
+        assert_eq!(controller.get_formula_bar_value(), "World");
+
+        // Act - Press Backspace to clear cell
+        let event = KeyboardEvent {
+            key: "Backspace".to_string(),
+            code: String::new(),
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        controller.handle_keyboard_event(event).unwrap();
+
+        // Assert
+        assert_eq!(
+            controller.get_cell_display_for_ui(&cell_addr),
+            "",
+            "Cell should be cleared"
+        );
+        assert_eq!(
+            controller.get_formula_bar_value(),
+            "",
+            "Formula bar should be updated to empty"
+        );
+    }
+
+    #[test]
+    fn test_navigation_updates_formula_bar() {
+        // Arrange
+        let mut controller = SpreadsheetController::new();
+        
+        // Set values in different cells
+        controller
+            .get_facade_mut()
+            .set_cell_value(&CellAddress::new(0, 0), "A1")
+            .unwrap();
+        controller
+            .get_facade_mut()
+            .set_cell_value(&CellAddress::new(1, 0), "B1")
+            .unwrap();
+        controller
+            .get_facade_mut()
+            .set_cell_value(&CellAddress::new(0, 1), "A2")
+            .unwrap();
+        
+        // Update formula bar after setting values
+        controller.update_formula_bar_from_cursor();
+        
+        // Start at A1
+        assert_eq!(controller.get_formula_bar_value(), "A1");
+
+        // Act - Move right to B1
+        let event = KeyboardEvent {
+            key: "l".to_string(),
+            code: String::new(),
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        controller.handle_keyboard_event(event).unwrap();
+        
+        // Assert
+        assert_eq!(controller.get_formula_bar_value(), "B1", "Formula bar should show B1");
+        
+        // Act - Move down to B2 (empty cell)
+        let event = KeyboardEvent {
+            key: "j".to_string(),
+            code: String::new(),
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        controller.handle_keyboard_event(event).unwrap();
+        
+        // Assert
+        assert_eq!(controller.get_formula_bar_value(), "", "Formula bar should be empty for B2");
+        
+        // Act - Move left to A2
+        let event = KeyboardEvent {
+            key: "h".to_string(),
+            code: String::new(),
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        controller.handle_keyboard_event(event).unwrap();
+        
+        // Assert
+        assert_eq!(controller.get_formula_bar_value(), "A2", "Formula bar should show A2");
+    }
+
+    #[test]
+    fn test_typing_starts_editing_in_insert_mode() {
+        // Arrange
+        let mut controller = SpreadsheetController::new();
+        
+        // Act - Type a character to start editing
+        let event = KeyboardEvent {
+            key: "Q".to_string(),
+            code: String::new(),
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        controller.handle_keyboard_event(event).unwrap();
+
+        // Assert
+        let state = controller.get_state();
+        match state {
+            UIState::Editing {
+                editing_value,
+                cursor_position,
+                edit_variant,
+                cell_mode,
+                ..
+            } => {
+                assert_eq!(editing_value, "Q", "Should have the typed character");
+                assert_eq!(*cursor_position, 1, "Cursor should be after the typed character");
+                assert_eq!(
+                    *edit_variant,
+                    Some(InsertMode::I),
+                    "Should be in InsertMode::I"
+                );
+                assert_eq!(
+                    *cell_mode,
+                    crate::state::CellMode::Insert,
+                    "Should be in Insert cell mode"
+                );
+            }
+            _ => panic!("Expected Editing state after typing, got {:?}", state),
+        }
+    }
 }

@@ -551,11 +551,11 @@ impl SpreadsheetController {
                 result
             }
             "Enter" => {
-                // Enter key starts editing with empty content (replace mode)
-                log::debug!("Enter key pressed, starting edit with empty value");
+                // Enter key starts editing in Insert mode with empty content
+                log::debug!("Enter key pressed, starting edit in Insert mode with empty value");
 
                 let action = Action::StartEditing {
-                    edit_mode: None,                    // Use Normal mode (not Insert mode)
+                    edit_mode: Some(InsertMode::I),     // Use Insert mode for immediate typing
                     initial_value: Some(String::new()), // Start with empty value to replace content
                     cursor_position: Some(0),
                 };

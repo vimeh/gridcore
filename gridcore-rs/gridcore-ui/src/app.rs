@@ -184,24 +184,29 @@ pub fn App() -> impl IntoView {
             init_data.set(true);
 
             controller_stored.with_value(|ctrl| {
-                let ctrl = ctrl.borrow();
-                let facade = ctrl.get_facade();
+                {
+                    let ctrl_borrow = ctrl.borrow();
+                    let facade = ctrl_borrow.get_facade();
 
-                // Initialize test data with proper error handling
-                let test_data = vec![
-                    (CellAddress::new(0, 0), "Hello"),  // A1
-                    (CellAddress::new(1, 0), "World"),  // B1
-                    (CellAddress::new(0, 1), "123"),    // A2
-                    (CellAddress::new(1, 1), "123"),    // B2
-                    (CellAddress::new(2, 1), "=A2+B2"), // C2
-                ];
+                    // Initialize test data with proper error handling
+                    let test_data = vec![
+                        (CellAddress::new(0, 0), "Hello"),  // A1
+                        (CellAddress::new(1, 0), "World"),  // B1
+                        (CellAddress::new(0, 1), "123"),    // A2
+                        (CellAddress::new(1, 1), "123"),    // B2
+                        (CellAddress::new(2, 1), "=A2+B2"), // C2
+                    ];
 
-                for (address, value) in test_data {
-                    if let Err(e) = facade.set_cell_value(&address, value) {
-                        // Error will be displayed through controller events
-                        leptos::logging::log!("Failed to initialize cell: {}", e);
+                    for (address, value) in test_data {
+                        if let Err(e) = facade.set_cell_value(&address, value) {
+                            // Error will be displayed through controller events
+                            leptos::logging::log!("Failed to initialize cell: {}", e);
+                        }
                     }
                 }
+                
+                // Update formula bar to show initial cell value
+                ctrl.borrow_mut().update_formula_bar_from_cursor();
             });
         }
     });
