@@ -783,15 +783,15 @@ pub fn CellEditor(
                                 // Check the current editing mode
                                 controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
-                                    let (is_insert_mode, is_normal_mode) = match ctrl_borrow.get_state() {
+                                    let (is_insert_mode, is_normal_mode, is_visual_mode) = match ctrl_borrow.get_state() {
                                         gridcore_controller::state::UIState::Editing { cell_mode, .. } => {
                                             match cell_mode {
-                                                gridcore_controller::state::CellMode::Insert => (true, false),
-                                                gridcore_controller::state::CellMode::Normal => (false, true),
-                                                _ => (false, false),
+                                                gridcore_controller::state::CellMode::Insert => (true, false, false),
+                                                gridcore_controller::state::CellMode::Normal => (false, true, false),
+                                                gridcore_controller::state::CellMode::Visual => (false, false, true),
                                             }
                                         }
-                                        _ => (false, false),
+                                        _ => (false, false, false),
                                     };
                                     
                                     if is_insert_mode {
@@ -800,6 +800,15 @@ pub fn CellEditor(
                                         let mut ctrl_mut = ctrl.borrow_mut();
                                         if let Err(e) = ctrl_mut.dispatch_action(Action::ExitInsertMode) {
                                             leptos::logging::log!("Error exiting insert mode: {:?}", e);
+                                        }
+                                        // Stay in editing mode but switch to Normal mode
+                                        set_current_mode.set(SpreadsheetMode::Editing);
+                                    } else if is_visual_mode {
+                                        // Escape from Visual mode goes to Normal mode (stay in editor)
+                                        drop(ctrl_borrow);
+                                        let mut ctrl_mut = ctrl.borrow_mut();
+                                        if let Err(e) = ctrl_mut.dispatch_action(Action::ExitVisualMode) {
+                                            leptos::logging::log!("Error exiting visual mode: {:?}", e);
                                         }
                                         // Stay in editing mode but switch to Normal mode
                                         set_current_mode.set(SpreadsheetMode::Editing);
