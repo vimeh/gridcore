@@ -319,6 +319,14 @@ impl UIState {
             | UIState::BulkOperation { viewport, .. } => viewport,
         }
     }
+
+    pub fn selection(&self) -> Option<&Selection> {
+        match self {
+            UIState::Navigation { selection, .. } => selection.as_ref(),
+            UIState::Visual { selection, .. } => Some(selection),
+            _ => None,
+        }
+    }
 }
 
 // Helper functions
