@@ -779,6 +779,7 @@ dependencies = [
  "regex",
  "rustc-hash",
  "serde",
+ "smallvec",
  "thiserror 2.0.12",
  "uuid",
 ]
