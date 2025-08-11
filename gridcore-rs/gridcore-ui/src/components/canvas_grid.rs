@@ -188,8 +188,7 @@ pub fn CanvasGrid(
                 // Update the active cell signal
                 set_active_cell.set(cell);
 
-                // Trigger a re-render
-                set_state_version.update(|v| *v += 1);
+                // State version now updated via controller events
 
                 // Ensure grid container maintains focus
                 if let Some(wrapper) = wrapper_ref.get() {
@@ -243,8 +242,7 @@ pub fn CanvasGrid(
                 // Update the active cell signal
                 set_active_cell.set(cell);
 
-                // Trigger a re-render
-                set_state_version.update(|v| *v += 1);
+                // State version now updated via controller events
 
                 // Get existing cell value
                 let existing_value = controller_stored.with_value(|ctrl| {
@@ -497,8 +495,7 @@ pub fn CanvasGrid(
                     new_cell_mode
                 );
             }
-            // Trigger a re-render when mode or cell_mode changes
-            set_state_version.update(|v| *v += 1);
+            // State version now updated via controller events
         }
         set_current_mode.set(new_mode);
 
@@ -510,8 +507,7 @@ pub fn CanvasGrid(
             );
             // Update the active cell signal when cursor changes
             set_active_cell.set(new_cursor);
-            // Trigger a re-render when cursor changes
-            set_state_version.update(|v| *v += 1);
+            // State version now updated via controller events
         } else {
             leptos::logging::log!("Cursor did not change, still at {:?}", new_cursor);
         }

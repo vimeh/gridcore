@@ -31,23 +31,50 @@ pub fn App() -> impl IntoView {
     let (errors, set_errors) = signal::<Vec<ErrorMessage>>(Vec::new());
     let error_counter = RwSignal::new(0usize);
 
-    // Set up controller event listener for errors
+    // Set up comprehensive controller event listener
     {
         let callback = Box::new(
             move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
+                use gridcore_controller::controller::events::SpreadsheetEvent;
+                
                 leptos::logging::log!("Controller event received: {:?}", event);
-                if let gridcore_controller::controller::events::SpreadsheetEvent::ErrorOccurred {
+                
+                // Increment state version for any state-changing event
+                match event {
+                    SpreadsheetEvent::CursorMoved { .. }
+                    | SpreadsheetEvent::ViewportChanged { .. }
+                    | SpreadsheetEvent::CellEditStarted { .. }
+                    | SpreadsheetEvent::CellEditCompleted { .. }
+                    | SpreadsheetEvent::CellEditCancelled { .. }
+                    | SpreadsheetEvent::SelectionChanged { .. }
+                    | SpreadsheetEvent::RangeSelected { .. }
+                    | SpreadsheetEvent::ModeChanged { .. }
+                    | SpreadsheetEvent::CommandExecuted { .. }
+                    | SpreadsheetEvent::CommandCancelled
+                    | SpreadsheetEvent::RowsInserted { .. }
+                    | SpreadsheetEvent::RowsDeleted { .. }
+                    | SpreadsheetEvent::ColumnsInserted { .. }
+                    | SpreadsheetEvent::ColumnsDeleted { .. }
+                    | SpreadsheetEvent::ColumnResized { .. }
+                    | SpreadsheetEvent::RowResized { .. }
+                    | SpreadsheetEvent::CellsCopied { .. }
+                    | SpreadsheetEvent::CellsCut { .. }
+                    | SpreadsheetEvent::CellsPasted { .. }
+                    | SpreadsheetEvent::UndoPerformed
+                    | SpreadsheetEvent::RedoPerformed => {
+                        set_state_version.update(|v| *v += 1);
+                    }
+                    _ => {}
+                }
+                
+                // Handle specific events
+                if let SpreadsheetEvent::ErrorOccurred {
                     message,
                     severity,
                 } = event
                 {
                     leptos::logging::log!(
                         "ErrorOccurred event received: {} ({:?})",
-                        message,
-                        severity
-                    );
-                    leptos::logging::log!(
-                        "Error event: message={}, severity={:?}",
                         message,
                         severity
                     );
@@ -104,7 +131,7 @@ pub fn App() -> impl IntoView {
     // Removed duplicate create_effect - we have the better one below
     let (current_mode, set_current_mode) = signal(initial_mode);
 
-    // State version to trigger updates when UIState changes internally
+    // State version to trigger updates when controller events occur
     let (state_version, set_state_version) = signal(0u32);
 
     // Sheet management

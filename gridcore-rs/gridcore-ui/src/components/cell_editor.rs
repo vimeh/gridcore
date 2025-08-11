@@ -259,7 +259,7 @@ pub fn CellEditor(
                                         let new_state = ctrl.borrow().get_state().clone();
                                         let new_mode = new_state.spreadsheet_mode();
                                         set_current_mode.set(new_mode);
-                                        set_state_version.update(|v| *v += 1); // Trigger UI update
+                                        // State version now updated via controller events
                                         leptos::logging::log!("Updated mode to {:?} after ExitInsertMode", new_mode);
                                     } else if is_visual_mode {
                                         // Escape from Visual mode goes to Normal mode (stay in editor)
@@ -273,7 +273,7 @@ pub fn CellEditor(
                                         let new_state = ctrl.borrow().get_state().clone();
                                         let new_mode = new_state.spreadsheet_mode();
                                         set_current_mode.set(new_mode);
-                                        set_state_version.update(|v| *v += 1); // Trigger UI update
+                                        // State version now updated via controller events
                                         leptos::logging::log!("Updated mode to {:?} after ExitVisualMode", new_mode);
                                     } else if is_normal_mode {
                                         // In Normal mode - save and exit
@@ -352,7 +352,7 @@ pub fn CellEditor(
                                                 let new_state = ctrl.borrow().get_state().clone();
                                                 let new_mode = new_state.spreadsheet_mode();
                                                 set_current_mode.set(new_mode);
-                                                set_state_version.update(|v| *v += 1); // Trigger UI update
+                                                // State version now updated via controller events
                                                 leptos::logging::log!("Updated mode to {:?} after EnterInsertMode", new_mode);
                                             });
                                         }
@@ -370,7 +370,7 @@ pub fn CellEditor(
                                                 let new_state = ctrl.borrow().get_state().clone();
                                                 let new_mode = new_state.spreadsheet_mode();
                                                 set_current_mode.set(new_mode);
-                                                set_state_version.update(|v| *v += 1); // Trigger UI update
+                                                // State version now updated via controller events
                                                 leptos::logging::log!("Updated mode to {:?} after EnterInsertMode", new_mode);
                                             });
                                         }
@@ -416,7 +416,7 @@ pub fn CellEditor(
                                                 let new_state = ctrl.borrow().get_state().clone();
                                                 let new_mode = new_state.spreadsheet_mode();
                                                 set_current_mode.set(new_mode);
-                                                set_state_version.update(|v| *v += 1); // Trigger UI update
+                                                // State version now updated via controller events
                                                 leptos::logging::log!("Updated mode to {:?} after EnterInsertMode (I)", new_mode);
                                             });
                                         }
@@ -434,7 +434,7 @@ pub fn CellEditor(
                                                 let new_state = ctrl.borrow().get_state().clone();
                                                 let new_mode = new_state.spreadsheet_mode();
                                                 set_current_mode.set(new_mode);
-                                                set_state_version.update(|v| *v += 1); // Trigger UI update
+                                                // State version now updated via controller events
                                                 leptos::logging::log!("Updated mode to {:?} after EnterInsertMode (A)", new_mode);
                                             });
                                         }
