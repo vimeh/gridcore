@@ -1,7 +1,7 @@
 use crate::Result;
 use crate::types::{CellAddress, CellValue};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Represents a single operation in a batch
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ pub enum BatchOperation {
 #[derive(Debug)]
 pub struct BatchManager {
     /// Active batches mapped by ID
-    batches: HashMap<String, Vec<BatchOperation>>,
+    batches: FxHashMap<String, Vec<BatchOperation>>,
     /// Counter for generating batch IDs
     batch_counter: usize,
 }
@@ -39,7 +39,7 @@ impl BatchManager {
     /// Create a new batch manager
     pub fn new() -> Self {
         BatchManager {
-            batches: HashMap::new(),
+            batches: FxHashMap::default(),
             batch_counter: 0,
         }
     }

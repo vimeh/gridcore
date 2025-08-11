@@ -1,6 +1,6 @@
 use crate::state::{Action, UIState};
 use gridcore_core::{types::CellAddress, Result};
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 /// Represents the current Vim mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -98,12 +98,12 @@ pub struct VimBehavior {
     pub(crate) command_buffer: String,
     pub(crate) current_command: VimCommand,
     pub(crate) repeat_command: Option<VimCommand>,
-    pub(crate) registers: HashMap<char, String>,
-    pub(crate) marks: HashMap<char, CellAddress>,
+    pub(crate) registers: FxHashMap<char, String>,
+    pub(crate) marks: FxHashMap<char, CellAddress>,
     pub(crate) last_find_char: Option<(char, bool)>, // char, forward?
     pub(crate) visual_anchor: Option<CellAddress>,
     pub(crate) count_buffer: String,
-    pub(crate) _settings: HashMap<String, String>,
+    pub(crate) _settings: FxHashMap<String, String>,
 }
 
 impl VimBehavior {
@@ -113,12 +113,12 @@ impl VimBehavior {
             command_buffer: String::new(),
             current_command: VimCommand::new(),
             repeat_command: None,
-            registers: HashMap::new(),
-            marks: HashMap::new(),
+            registers: FxHashMap::default(),
+            marks: FxHashMap::default(),
             last_find_char: None,
             visual_anchor: None,
             count_buffer: String::new(),
-            _settings: HashMap::new(),
+            _settings: FxHashMap::default(),
         }
     }
 

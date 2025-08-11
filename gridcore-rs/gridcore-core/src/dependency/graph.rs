@@ -3,7 +3,7 @@ use crate::{Result, SpreadsheetError};
 use petgraph::algo::toposort;
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 /// Manages dependencies between cells in a spreadsheet
 #[derive(Debug, Clone)]
@@ -13,7 +13,7 @@ pub struct DependencyGraph {
     graph: DiGraph<CellAddress, ()>,
 
     /// Mapping from cell address to graph node index
-    node_map: HashMap<CellAddress, NodeIndex>,
+    node_map: FxHashMap<CellAddress, NodeIndex>,
 }
 
 impl DependencyGraph {
@@ -21,7 +21,7 @@ impl DependencyGraph {
     pub fn new() -> Self {
         DependencyGraph {
             graph: DiGraph::new(),
-            node_map: HashMap::new(),
+            node_map: FxHashMap::default(),
         }
     }
 

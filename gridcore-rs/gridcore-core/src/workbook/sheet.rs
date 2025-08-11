@@ -3,7 +3,7 @@ use crate::dependency::DependencyGraph;
 use crate::domain::Cell;
 use crate::ports::RepositoryPort;
 use crate::types::CellAddress;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::sync::{Arc, Mutex};
 
 /// Properties for a spreadsheet sheet
@@ -14,9 +14,9 @@ pub struct SheetProperties {
     /// Whether the sheet is protected from editing
     pub protected: bool,
     /// Custom column widths (column index -> width in pixels)
-    pub column_widths: HashMap<u32, f64>,
+    pub column_widths: FxHashMap<u32, f64>,
     /// Custom row heights (row index -> height in pixels)
-    pub row_heights: HashMap<u32, f64>,
+    pub row_heights: FxHashMap<u32, f64>,
     /// Default column width
     pub default_column_width: f64,
     /// Default row height
@@ -30,8 +30,8 @@ impl Default for SheetProperties {
         Self {
             visible: true,
             protected: false,
-            column_widths: HashMap::new(),
-            row_heights: HashMap::new(),
+            column_widths: FxHashMap::default(),
+            row_heights: FxHashMap::default(),
             default_column_width: 100.0,
             default_row_height: 20.0,
             tab_color: None,
@@ -50,7 +50,7 @@ pub struct Sheet {
     /// Sheet properties
     properties: SheetProperties,
     /// Named ranges in this sheet
-    named_ranges: HashMap<String, Vec<CellAddress>>,
+    named_ranges: FxHashMap<String, Vec<CellAddress>>,
 }
 
 impl Sheet {
@@ -62,7 +62,7 @@ impl Sheet {
             cells: Arc::new(RepositoryAdapter::new_empty()),
             dependencies: Arc::new(Mutex::new(DependencyGraph::new())),
             properties: SheetProperties::default(),
-            named_ranges: HashMap::new(),
+            named_ranges: FxHashMap::default(),
         }
     }
 
@@ -74,7 +74,7 @@ impl Sheet {
             cells: Arc::new(RepositoryAdapter::new_empty()),
             dependencies: Arc::new(Mutex::new(DependencyGraph::new())),
             properties,
-            named_ranges: HashMap::new(),
+            named_ranges: FxHashMap::default(),
         }
     }
 
@@ -85,7 +85,7 @@ impl Sheet {
             cells: repository,
             dependencies: Arc::new(Mutex::new(DependencyGraph::new())),
             properties: SheetProperties::default(),
-            named_ranges: HashMap::new(),
+            named_ranges: FxHashMap::default(),
         }
     }
 
