@@ -1,7 +1,9 @@
+use crate::utils::string_intern::intern_cell_address;
 use crate::{Result, SpreadsheetError};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CellAddress {
@@ -153,6 +155,17 @@ impl CellAddress {
     /// Check if this address is within the given bounds
     pub fn is_within_bounds(&self, max_row: u32, max_col: u32) -> bool {
         self.row <= max_row && self.col <= max_col
+    }
+    
+    /// Get an interned string representation of this address
+    /// This is more efficient than to_string() for frequently used addresses
+    pub fn to_interned_string(&self) -> Arc<str> {
+        let address_str = format!(
+            "{}{}",
+            Self::column_number_to_label(self.col),
+            self.row + 1
+        );
+        intern_cell_address(&address_str)
     }
 }
 

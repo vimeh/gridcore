@@ -4,6 +4,7 @@ use super::{
 };
 use crate::ports::RepositoryPort;
 use crate::types::{CellAddress, CellValue};
+use crate::utils::object_pool::global::CELL_VALUE_VEC_POOL;
 use crate::{Result, SpreadsheetError};
 use std::sync::Arc;
 
@@ -109,8 +110,10 @@ impl FillEngine {
     }
 
     fn get_source_values(&self, range: &CellRange) -> Result<Vec<CellValue>> {
+        // Use pooled vector for better performance
         let cell_count = range.iter_cells().count();
-        let mut values = Vec::with_capacity(cell_count);
+        let mut values = CELL_VALUE_VEC_POOL.get();
+        values.reserve(cell_count);
 
         for addr in range.iter_cells() {
             if let Some(cell) = self.cell_repository.get(&addr) {
@@ -120,7 +123,8 @@ impl FillEngine {
             }
         }
 
-        Ok(values)
+        // Take ownership from the pool to return
+        Ok(values.take())
     }
 
     fn detect_pattern(&self, values: &[CellValue]) -> Result<PatternType> {

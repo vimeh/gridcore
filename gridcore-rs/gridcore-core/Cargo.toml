@@ -50,3 +50,7 @@ harness = false
 [[bench]]
 name = "memory_bench_simple"
 harness = false
+
+[[bench]]
+name = "optimization_bench"
+harness = false

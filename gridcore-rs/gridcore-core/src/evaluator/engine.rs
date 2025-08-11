@@ -3,6 +3,7 @@ use super::functions::FunctionLibrary;
 use super::operators;
 use crate::formula::ast::{CellRange, Expr};
 use crate::types::{CellValue, ErrorType};
+use crate::utils::object_pool::global::CELL_VALUE_VEC_POOL;
 use crate::{Result, SpreadsheetError};
 use smallvec::SmallVec;
 
@@ -86,9 +87,10 @@ impl<'a> Evaluator<'a> {
         for arg in args {
             match arg {
                 Expr::Range { range, .. } => {
-                    // For ranges, collect all cell values
+                    // For ranges, collect all cell values using pooled vector
                     let cells: Vec<_> = range.cells().collect();
-                    let mut values = Vec::with_capacity(cells.len());
+                    let mut values = CELL_VALUE_VEC_POOL.get();
+                    values.reserve(cells.len());
                     for cell_addr in cells {
                         if self.context.is_evaluating(&cell_addr) {
                             // Return circular reference error as CellValue::Error
@@ -106,7 +108,8 @@ impl<'a> Evaluator<'a> {
                             Err(e) => return Err(e),
                         }
                     }
-                    evaluated_args.push(CellValue::from_array(values));
+                    // Take ownership from pool for the array
+                    evaluated_args.push(CellValue::from_array(values.take()));
                 }
                 _ => {
                     // Regular expression evaluation
@@ -122,7 +125,8 @@ impl<'a> Evaluator<'a> {
     /// Evaluate a range of cells and return as array
     pub fn evaluate_range(&mut self, range: &CellRange) -> Result<Vec<CellValue>> {
         let cells: Vec<_> = range.cells().collect();
-        let mut values = Vec::with_capacity(cells.len());
+        let mut values = CELL_VALUE_VEC_POOL.get();
+        values.reserve(cells.len());
 
         for cell_addr in cells {
             if self.context.is_evaluating(&cell_addr) {
@@ -143,7 +147,8 @@ impl<'a> Evaluator<'a> {
             }
         }
 
-        Ok(values)
+        // Take ownership from pool
+        Ok(values.take())
     }
 }
 
