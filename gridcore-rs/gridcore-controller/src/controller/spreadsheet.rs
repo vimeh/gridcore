@@ -213,6 +213,9 @@ impl SpreadsheetController {
                                 address,
                                 value: value.clone(),
                             });
+                        
+                        // Update formula bar to show the new value
+                        self.update_formula_bar_from_cursor();
                     }
                     Err(e) => {
                         let message = ErrorFormatter::format_error(&e);
@@ -552,7 +555,7 @@ impl SpreadsheetController {
                 log::debug!("Enter key pressed, starting edit with empty value");
 
                 let action = Action::StartEditing {
-                    edit_mode: Some(InsertMode::I),     // Use insert mode
+                    edit_mode: None,                    // Use Normal mode (not Insert mode)
                     initial_value: Some(String::new()), // Start with empty value to replace content
                     cursor_position: Some(0),
                 };
@@ -647,6 +650,9 @@ impl SpreadsheetController {
                         address: current_cursor,
                         value: String::new(),
                     });
+                
+                // Update formula bar to show empty value
+                self.update_formula_bar_from_cursor();
                 Ok(())
             }
 
