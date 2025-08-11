@@ -1,6 +1,6 @@
 // use crate::components::error_display::use_error_context; // TODO: Re-enable when full keyboard support is restored
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{InsertMode, SpreadsheetMode};
+use gridcore_controller::state::{actions::Action, InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Textarea;
 use leptos::prelude::*;
@@ -43,7 +43,7 @@ pub fn CellEditor(
     set_editing_mode: WriteSignal<bool>,
     cell_position: ReadSignal<(f64, f64, f64, f64)>, // x, y, width, height
     set_formula_value: WriteSignal<String>,
-    _set_current_mode: WriteSignal<SpreadsheetMode>,
+    set_current_mode: WriteSignal<SpreadsheetMode>,
 ) -> impl IntoView {
     // Get controller from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
@@ -70,7 +70,7 @@ pub fn CellEditor(
             // Check the current editing state to get initial value and edit mode
             let editing_state = ctrl_borrow.get_state();
 
-            let (should_set_cursor_pos, cursor_pos_to_set) = match editing_state {
+            let (_should_set_cursor_pos, _cursor_pos_to_set) = match editing_state {
                 gridcore_controller::state::UIState::Editing {
                     editing_value,
 
@@ -96,34 +96,51 @@ pub fn CellEditor(
                 }
             };
 
-            // Focus the input and set cursor position
+            // Focus the input
             if let Some(input) = input_ref.get() {
                 let _ = input.focus();
 
-                // Set cursor position if needed (for direct typing)
-                if should_set_cursor_pos {
-                    let _ = input.set_selection_start(Some(cursor_pos_to_set as u32));
-                    let _ = input.set_selection_end(Some(cursor_pos_to_set as u32));
-                }
-
-                // Set cursor position based on edit mode
+                // Handle cursor positioning based on whether this is direct typing or edit mode
                 if let gridcore_controller::state::UIState::Editing {
                     edit_variant: Some(variant),
+                    editing_value,
                     cursor_position,
                     ..
                 } = editing_state
                 {
-                    match variant {
-                        InsertMode::I => {
-                            // Insert mode 'i' - cursor at beginning
-                            // Only set to 0 if we're not direct typing (direct typing has cursor_position > 0)
-                            // Direct typing already has the correct cursor position from state
-                            if *cursor_position == 0 {
-                                // This is 'i' key press on existing content, not direct typing
-                                let _ = input.set_selection_start(Some(0));
-                                let _ = input.set_selection_end(Some(0));
+                    // Check if this is direct typing (single character with cursor position 1)
+                    let is_direct_typing = editing_value.len() == 1 && *cursor_position == 1 && matches!(variant, InsertMode::I);
+                    
+                    if is_direct_typing {
+                        // Direct typing - position cursor after the typed character
+                        // Use set_timeout to ensure the value is set first
+                        let input_clone = input_ref;
+                        set_timeout(
+                            move || {
+                                if let Some(input) = input_clone.get() {
+                                    let _ = input.set_selection_start(Some(1));
+                                    let _ = input.set_selection_end(Some(1));
+                                }
+                            },
+                            std::time::Duration::from_millis(0),
+                        );
+                    } else {
+                        // Regular edit mode handling
+                        match variant {
+                            InsertMode::I => {
+                                // Insert mode 'i' - cursor at beginning
+                                // Use set_timeout to ensure the value is set first
+                                let input_clone = input_ref;
+                                set_timeout(
+                                    move || {
+                                        if let Some(input) = input_clone.get() {
+                                            let _ = input.set_selection_start(Some(0));
+                                            let _ = input.set_selection_end(Some(0));
+                                        }
+                                    },
+                                    std::time::Duration::from_millis(0),
+                                );
                             }
-                        }
                         InsertMode::CapitalI => {
                             // Insert mode 'I' - cursor at beginning of line
                             // Use set_timeout to ensure the value is set first
@@ -139,11 +156,12 @@ pub fn CellEditor(
                             );
                         }
                         InsertMode::A => {
-                            // Append mode 'a' - cursor after current position (at end)
-                            // Set immediately without timeout since we need cursor position right away
-                            let len = input.value().len();
-                            let _ = input.set_selection_start(Some(len as u32));
-                            let _ = input.set_selection_end(Some(len as u32));
+                            // Append mode 'a' - cursor after current position
+                            // The state already has the correct cursor position for 'a' mode
+                            // Controller sets it to the end of the text
+                            let pos = *cursor_position as u32;
+                            let _ = input.set_selection_start(Some(pos));
+                            let _ = input.set_selection_end(Some(pos));
                         }
                         InsertMode::CapitalA => {
                             // Append mode 'A' - cursor at end of line
@@ -160,8 +178,9 @@ pub fn CellEditor(
                                 std::time::Duration::from_millis(0),
                             );
                         }
-                        _ => {
-                            // Other modes - use specified position
+                            _ => {
+                                // Other modes - use specified position
+                            }
                         }
                     }
                 }
@@ -721,7 +740,46 @@ pub fn CellEditor(
                             }
                             "Escape" => {
                                 ev.prevent_default();
-                                set_editing_mode.set(false);
+                                
+                                // Check the current editing mode
+                                controller_stored.with_value(|ctrl| {
+                                    let ctrl_borrow = ctrl.borrow();
+                                    let is_insert_mode = matches!(
+                                        ctrl_borrow.get_state(),
+                                        gridcore_controller::state::UIState::Editing {
+                                            cell_mode: gridcore_controller::state::CellMode::Insert,
+                                            ..
+                                        }
+                                    );
+                                    
+                                    if is_insert_mode {
+                                        // First Escape: go from Insert to Normal mode (stay in editor)
+                                        drop(ctrl_borrow);
+                                        let mut ctrl_mut = ctrl.borrow_mut();
+                                        if let Err(e) = ctrl_mut.dispatch_action(Action::ExitInsertMode) {
+                                            leptos::logging::log!("Error exiting insert mode: {:?}", e);
+                                        }
+                                        // Stay in editing mode but switch to Normal mode
+                                        set_current_mode.set(SpreadsheetMode::Editing);
+                                    } else {
+                                        // In Normal mode - save and exit
+                                        let cell = active_cell.get();
+                                        let value = editor_value.get();
+                                        
+                                        // Save the value
+                                        let facade = ctrl_borrow.get_facade();
+                                        let _ = facade.set_cell_value(&cell, &value);
+                                        
+                                        drop(ctrl_borrow);
+                                        let mut ctrl_mut = ctrl.borrow_mut();
+                                        let _ = ctrl_mut.dispatch_action(Action::Escape);
+                                        
+                                        // Exit editing mode
+                                        set_editing_mode.set(false);
+                                        set_formula_value.set(value);
+                                        set_current_mode.set(SpreadsheetMode::Navigation);
+                                    }
+                                });
                             }
                             _ => {}
                         }
