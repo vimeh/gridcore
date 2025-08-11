@@ -4,10 +4,10 @@ use crate::types::CellValue;
 
 #[test]
 fn test_parse_number() {
-    let expr = FormulaParser::parse("42").unwrap();
+    let expr = FormulaParser::parse("42").expect("Failed to parse formula '42' in test");
     assert!(matches!(expr, Expr::Literal { value: CellValue::Number(n) } if n == 42.0));
 
-    let expr = FormulaParser::parse("3.14").unwrap();
+    let expr = FormulaParser::parse("3.14").expect("Failed to parse formula '3.14' in test");
     // Compare with the parsed value 3.14
     assert!(
         matches!(expr, Expr::Literal { value: CellValue::Number(n) } if (n - 3.140).abs() < 0.001)
@@ -16,7 +16,7 @@ fn test_parse_number() {
 
 #[test]
 fn test_parse_boolean() {
-    let expr = FormulaParser::parse("TRUE").unwrap();
+    let expr = FormulaParser::parse("TRUE").expect("Failed to parse formula 'TRUE' in test");
     assert!(matches!(
         expr,
         Expr::Literal {
@@ -24,7 +24,7 @@ fn test_parse_boolean() {
         }
     ));
 
-    let expr = FormulaParser::parse("FALSE").unwrap();
+    let expr = FormulaParser::parse("FALSE").expect("Failed to parse formula 'FALSE' in test");
     assert!(matches!(
         expr,
         Expr::Literal {
@@ -48,7 +48,7 @@ fn test_parse_string() {
 
 #[test]
 fn test_parse_cell_reference() {
-    let expr = FormulaParser::parse("A1").unwrap();
+    let expr = FormulaParser::parse("A1").expect("Failed to parse formula 'A1' in test");
     match expr {
         Expr::Reference {
             address,
@@ -64,7 +64,7 @@ fn test_parse_cell_reference() {
     }
 
     // Absolute references
-    let expr = FormulaParser::parse("$A$1").unwrap();
+    let expr = FormulaParser::parse("$A$1").expect("Failed to parse formula '$A$1' in test");
     match expr {
         Expr::Reference {
             address,
@@ -82,7 +82,7 @@ fn test_parse_cell_reference() {
 
 #[test]
 fn test_parse_range() {
-    let expr = FormulaParser::parse("A1:B2").unwrap();
+    let expr = FormulaParser::parse("A1:B2").expect("Failed to parse formula 'A1:B2' in test");
     match expr {
         Expr::Range { range, .. } => {
             assert_eq!(range.start.col, 0);
@@ -96,7 +96,7 @@ fn test_parse_range() {
 
 #[test]
 fn test_parse_function() {
-    let expr = FormulaParser::parse("SUM(A1, B2, 10)").unwrap();
+    let expr = FormulaParser::parse("SUM(A1, B2, 10)").expect("Failed to parse formula 'SUM(A1, B2, 10)' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "SUM");
@@ -109,7 +109,7 @@ fn test_parse_function() {
 #[test]
 fn test_parse_function_with_range() {
     // This was the bug we fixed before - make sure it still works
-    let expr = FormulaParser::parse("SUM(A1:A10)").unwrap();
+    let expr = FormulaParser::parse("SUM(A1:A10)").expect("Failed to parse formula 'SUM(A1:A10)' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "SUM");
@@ -122,7 +122,7 @@ fn test_parse_function_with_range() {
 
 #[test]
 fn test_parse_unary() {
-    let expr = FormulaParser::parse("-42").unwrap();
+    let expr = FormulaParser::parse("-42").expect("Failed to parse formula '-42' in test");
     match expr {
         Expr::UnaryOp {
             op: UnaryOperator::Negate,
@@ -131,7 +131,7 @@ fn test_parse_unary() {
         _ => panic!("Expected negation"),
     }
 
-    let expr = FormulaParser::parse("50%").unwrap();
+    let expr = FormulaParser::parse("50%").expect("Failed to parse formula '50%' in test");
     match expr {
         Expr::UnaryOp {
             op: UnaryOperator::Percent,
@@ -143,7 +143,7 @@ fn test_parse_unary() {
 
 #[test]
 fn test_parse_binary() {
-    let expr = FormulaParser::parse("A1 + B1").unwrap();
+    let expr = FormulaParser::parse("A1 + B1").expect("Failed to parse formula 'A1 + B1' in test");
     match expr {
         Expr::BinaryOp {
             op: BinaryOperator::Add,
@@ -156,7 +156,7 @@ fn test_parse_binary() {
 #[test]
 fn test_operator_precedence() {
     // Test that multiplication happens before addition
-    let expr = FormulaParser::parse("2 + 3 * 4").unwrap();
+    let expr = FormulaParser::parse("2 + 3 * 4").expect("Failed to parse formula '2 + 3 * 4' in test");
     match expr {
         Expr::BinaryOp {
             op: BinaryOperator::Add,
@@ -180,7 +180,7 @@ fn test_operator_precedence() {
     }
 
     // Test that power is right-associative
-    let expr = FormulaParser::parse("2 ^ 3 ^ 2").unwrap();
+    let expr = FormulaParser::parse("2 ^ 3 ^ 2").expect("Failed to parse formula '2 ^ 3 ^ 2' in test");
     match expr {
         Expr::BinaryOp {
             op: BinaryOperator::Power,
@@ -207,7 +207,7 @@ fn test_operator_precedence() {
 #[test]
 fn test_complex_expression() {
     // Test a complex expression with multiple operators
-    let expr = FormulaParser::parse("(A1 + B1) * 2 - C1 / 4").unwrap();
+    let expr = FormulaParser::parse("(A1 + B1) * 2 - C1 / 4").expect("Failed to parse formula '(A1 + B1) * 2 - C1 / 4' in test");
     // Just verify it parses without error
     assert!(matches!(
         expr,
@@ -301,7 +301,7 @@ fn test_unclosed_parentheses() {
 #[test]
 fn test_invalid_ranges() {
     // End before start (column-wise)
-    let expr = FormulaParser::parse("B1:A1").unwrap();
+    let expr = FormulaParser::parse("B1:A1").expect("Failed to parse formula 'B1:A1' in test");
     // Parser allows this - range validation happens at evaluation
     assert!(matches!(expr, Expr::Range { .. }));
 }
@@ -311,7 +311,7 @@ fn test_invalid_ranges() {
 #[test]
 fn test_nested_functions() {
     // Simple nested function
-    let expr = FormulaParser::parse("SUM(A1:A10, AVERAGE(B1:B10))").unwrap();
+    let expr = FormulaParser::parse("SUM(A1:A10, AVERAGE(B1:B10))").expect("Failed to parse formula 'SUM(A1:A10, AVERAGE(B1:B10))' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "SUM");
@@ -323,7 +323,7 @@ fn test_nested_functions() {
     }
 
     // Deeply nested (3+ levels)
-    let expr = FormulaParser::parse("IF(ISBLANK(A1), SUM(B1:B10), MAX(C1:C10))").unwrap();
+    let expr = FormulaParser::parse("IF(ISBLANK(A1), SUM(B1:B10), MAX(C1:C10))").expect("Failed to parse formula 'IF(ISBLANK(A1), SUM(B1:B10), MAX(C1:C10))' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "IF");
@@ -341,7 +341,7 @@ fn test_nested_functions() {
 
 #[test]
 fn test_multiple_ranges_in_function() {
-    let expr = FormulaParser::parse("SUM(A1:A10, C1:C10, E1:E10)").unwrap();
+    let expr = FormulaParser::parse("SUM(A1:A10, C1:C10, E1:E10)").expect("Failed to parse formula 'SUM(A1:A10, C1:C10, E1:E10)' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "SUM");
@@ -359,7 +359,7 @@ fn test_multiple_ranges_in_function() {
 #[test]
 fn test_mixed_absolute_relative() {
     // Absolute column only
-    let expr = FormulaParser::parse("$A1").unwrap();
+    let expr = FormulaParser::parse("$A1").expect("Failed to parse formula '$A1' in test");
     match expr {
         Expr::Reference {
             absolute_col,
@@ -373,7 +373,7 @@ fn test_mixed_absolute_relative() {
     }
 
     // Absolute row only
-    let expr = FormulaParser::parse("A$1").unwrap();
+    let expr = FormulaParser::parse("A$1").expect("Failed to parse formula 'A$1' in test");
     match expr {
         Expr::Reference {
             absolute_col,
@@ -387,7 +387,7 @@ fn test_mixed_absolute_relative() {
     }
 
     // Mixed in ranges
-    let expr = FormulaParser::parse("$A$1:B2").unwrap();
+    let expr = FormulaParser::parse("$A$1:B2").expect("Failed to parse formula '$A$1:B2' in test");
     match expr {
         Expr::Range {
             absolute_start_col,
@@ -431,7 +431,7 @@ fn test_all_arithmetic_operators() {
 fn test_complex_operator_precedence() {
     // A1 + B1 * C1 - D1 / E1
     // Should parse as: (A1 + (B1 * C1)) - (D1 / E1)
-    let expr = FormulaParser::parse("A1 + B1 * C1 - D1 / E1").unwrap();
+    let expr = FormulaParser::parse("A1 + B1 * C1 - D1 / E1").expect("Failed to parse formula 'A1 + B1 * C1 - D1 / E1' in test");
     match expr {
         Expr::BinaryOp {
             op: BinaryOperator::Subtract,
@@ -459,7 +459,7 @@ fn test_complex_operator_precedence() {
     }
 
     // Test power has higher precedence than multiplication
-    let expr = FormulaParser::parse("A1 * B1 ^ 2").unwrap();
+    let expr = FormulaParser::parse("A1 * B1 ^ 2").expect("Failed to parse formula 'A1 * B1 ^ 2' in test");
     match expr {
         Expr::BinaryOp {
             op: BinaryOperator::Multiply,
@@ -484,7 +484,7 @@ fn test_complex_operator_precedence() {
 #[test]
 fn test_negative_numbers_vs_negation() {
     // Direct negative number
-    let expr = FormulaParser::parse("-42").unwrap();
+    let expr = FormulaParser::parse("-42").expect("Failed to parse formula '-42' in test");
     match expr {
         Expr::UnaryOp {
             op: UnaryOperator::Negate,
@@ -501,7 +501,7 @@ fn test_negative_numbers_vs_negation() {
     }
 
     // Negation of reference
-    let expr = FormulaParser::parse("-(A1)").unwrap();
+    let expr = FormulaParser::parse("-(A1)").expect("Failed to parse formula '-(A1)' in test");
     match expr {
         Expr::UnaryOp {
             op: UnaryOperator::Negate,
@@ -513,7 +513,7 @@ fn test_negative_numbers_vs_negation() {
     }
 
     // Double negation
-    let expr = FormulaParser::parse("--42").unwrap();
+    let expr = FormulaParser::parse("--42").expect("Failed to parse formula '--42' in test");
     match expr {
         Expr::UnaryOp {
             op: UnaryOperator::Negate,
@@ -535,8 +535,8 @@ fn test_negative_numbers_vs_negation() {
 #[test]
 fn test_leading_equals() {
     // Should parse the same with or without leading =
-    let expr1 = FormulaParser::parse("=A1+B1").unwrap();
-    let expr2 = FormulaParser::parse("A1+B1").unwrap();
+    let expr1 = FormulaParser::parse("=A1+B1").expect("Failed to parse formula '=A1+B1' in test");
+    let expr2 = FormulaParser::parse("A1+B1").expect("Failed to parse formula 'A1+B1' in test");
 
     // Both should be addition
     assert!(matches!(
@@ -558,7 +558,7 @@ fn test_leading_equals() {
 #[test]
 fn test_whitespace_handling() {
     // Leading/trailing spaces
-    let expr = FormulaParser::parse("  A1 + B1  ").unwrap();
+    let expr = FormulaParser::parse("  A1 + B1  ").expect("Failed to parse formula '  A1 + B1  ' in test");
     assert!(matches!(
         expr,
         Expr::BinaryOp {
@@ -568,7 +568,7 @@ fn test_whitespace_handling() {
     ));
 
     // Extra spaces around operators
-    let expr = FormulaParser::parse("A1   +   B1").unwrap();
+    let expr = FormulaParser::parse("A1   +   B1").expect("Failed to parse formula 'A1   +   B1' in test");
     assert!(matches!(
         expr,
         Expr::BinaryOp {
@@ -578,7 +578,7 @@ fn test_whitespace_handling() {
     ));
 
     // Spaces in function calls
-    let expr = FormulaParser::parse("SUM( A1 , B1 )").unwrap();
+    let expr = FormulaParser::parse("SUM( A1 , B1 )").expect("Failed to parse formula 'SUM( A1 , B1 )' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "SUM");
@@ -591,7 +591,7 @@ fn test_whitespace_handling() {
 #[test]
 fn test_function_edge_cases() {
     // Empty arguments
-    let expr = FormulaParser::parse("SUM()").unwrap();
+    let expr = FormulaParser::parse("SUM()").expect("Failed to parse formula 'SUM()' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "SUM");
@@ -601,7 +601,7 @@ fn test_function_edge_cases() {
     }
 
     // Single argument
-    let expr = FormulaParser::parse("ABS(A1)").unwrap();
+    let expr = FormulaParser::parse("ABS(A1)").expect("Failed to parse formula 'ABS(A1)' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "ABS");
@@ -611,7 +611,7 @@ fn test_function_edge_cases() {
     }
 
     // Trailing comma is handled gracefully
-    let expr = FormulaParser::parse("SUM(A1,)").unwrap();
+    let expr = FormulaParser::parse("SUM(A1,)").expect("Failed to parse formula 'SUM(A1,)' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "SUM");
@@ -626,7 +626,7 @@ fn test_function_edge_cases() {
 #[test]
 fn test_parentheses_grouping() {
     // (A1 + B1) * C1 should multiply the sum by C1
-    let expr = FormulaParser::parse("(A1 + B1) * C1").unwrap();
+    let expr = FormulaParser::parse("(A1 + B1) * C1").expect("Failed to parse formula '(A1 + B1) * C1' in test");
     match expr {
         Expr::BinaryOp {
             op: BinaryOperator::Multiply,
@@ -646,7 +646,7 @@ fn test_parentheses_grouping() {
     }
 
     // Nested parentheses
-    let expr = FormulaParser::parse("((A1 + (B1 * C1)) / D1)").unwrap();
+    let expr = FormulaParser::parse("((A1 + (B1 * C1)) / D1)").expect("Failed to parse formula '((A1 + (B1 * C1)) / D1)' in test");
     match expr {
         Expr::BinaryOp {
             op: BinaryOperator::Divide,
@@ -671,7 +671,7 @@ fn test_parentheses_grouping() {
 #[test]
 fn test_mixed_types() {
     // Number with reference
-    let expr = FormulaParser::parse("A1 + 10").unwrap();
+    let expr = FormulaParser::parse("A1 + 10").expect("Failed to parse formula 'A1 + 10' in test");
     match expr {
         Expr::BinaryOp {
             op: BinaryOperator::Add,
@@ -709,7 +709,7 @@ fn test_mixed_types() {
     }
 
     // Boolean comparison
-    let expr = FormulaParser::parse("TRUE = (A1 > 10)").unwrap();
+    let expr = FormulaParser::parse("TRUE = (A1 > 10)").expect("Failed to parse formula 'TRUE = (A1 > 10)' in test");
     match expr {
         Expr::BinaryOp {
             op: BinaryOperator::Equal,
@@ -739,7 +739,7 @@ fn test_mixed_types() {
 #[test]
 fn test_large_column_references() {
     // Two-letter columns
-    let expr = FormulaParser::parse("AA1").unwrap();
+    let expr = FormulaParser::parse("AA1").expect("Failed to parse formula 'AA1' in test");
     match expr {
         Expr::Reference { address, .. } => {
             assert_eq!(address.col, 26); // AA = 26
@@ -747,7 +747,7 @@ fn test_large_column_references() {
         _ => panic!("Expected AA1 reference"),
     }
 
-    let expr = FormulaParser::parse("AZ1").unwrap();
+    let expr = FormulaParser::parse("AZ1").expect("Failed to parse formula 'AZ1' in test");
     match expr {
         Expr::Reference { address, .. } => {
             assert_eq!(address.col, 51); // AZ = 51
@@ -756,7 +756,7 @@ fn test_large_column_references() {
     }
 
     // Three-letter columns
-    let expr = FormulaParser::parse("AAA1").unwrap();
+    let expr = FormulaParser::parse("AAA1").expect("Failed to parse formula 'AAA1' in test");
     match expr {
         Expr::Reference { address, .. } => {
             assert_eq!(address.col, 702); // AAA = 702
@@ -767,7 +767,7 @@ fn test_large_column_references() {
 
 #[test]
 fn test_large_row_numbers() {
-    let expr = FormulaParser::parse("A100").unwrap();
+    let expr = FormulaParser::parse("A100").expect("Failed to parse formula 'A100' in test");
     match expr {
         Expr::Reference { address, .. } => {
             assert_eq!(address.row, 99); // 0-indexed
@@ -775,7 +775,7 @@ fn test_large_row_numbers() {
         _ => panic!("Expected A100 reference"),
     }
 
-    let expr = FormulaParser::parse("A1000").unwrap();
+    let expr = FormulaParser::parse("A1000").expect("Failed to parse formula 'A1000' in test");
     match expr {
         Expr::Reference { address, .. } => {
             assert_eq!(address.row, 999); // 0-indexed
@@ -783,7 +783,7 @@ fn test_large_row_numbers() {
         _ => panic!("Expected A1000 reference"),
     }
 
-    let expr = FormulaParser::parse("A1048576").unwrap();
+    let expr = FormulaParser::parse("A1048576").expect("Failed to parse formula 'A1048576' in test");
     match expr {
         Expr::Reference { address, .. } => {
             assert_eq!(address.row, 1048575); // Excel's max row, 0-indexed
@@ -795,7 +795,7 @@ fn test_large_row_numbers() {
 #[test]
 fn test_case_insensitivity() {
     // Lowercase cell references should work
-    let expr = FormulaParser::parse("a1").unwrap();
+    let expr = FormulaParser::parse("a1").expect("Failed to parse formula 'a1' in test");
     match expr {
         Expr::Reference { address, .. } => {
             assert_eq!(address.col, 0);
@@ -805,7 +805,7 @@ fn test_case_insensitivity() {
     }
 
     // Lowercase function names should work
-    let expr = FormulaParser::parse("sum(a1:b10)").unwrap();
+    let expr = FormulaParser::parse("sum(a1:b10)").expect("Failed to parse formula 'sum(a1:b10)' in test");
     match expr {
         Expr::FunctionCall { name, .. } => {
             assert_eq!(name, "SUM"); // Should be uppercase internally
@@ -879,7 +879,7 @@ fn test_if_formula() {
 
 #[test]
 fn test_sumproduct_formula() {
-    let expr = FormulaParser::parse("SUMPRODUCT(A1:A10, B1:B10)").unwrap();
+    let expr = FormulaParser::parse("SUMPRODUCT(A1:A10, B1:B10)").expect("Failed to parse formula 'SUMPRODUCT(A1:A10, B1:B10)' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "SUMPRODUCT");
@@ -893,7 +893,7 @@ fn test_sumproduct_formula() {
 
 #[test]
 fn test_vlookup_formula() {
-    let expr = FormulaParser::parse("VLOOKUP(A1, B1:D10, 2, FALSE)").unwrap();
+    let expr = FormulaParser::parse("VLOOKUP(A1, B1:D10, 2, FALSE)").expect("Failed to parse formula 'VLOOKUP(A1, B1:D10, 2, FALSE)' in test");
     match expr {
         Expr::FunctionCall { name, args } => {
             assert_eq!(name, "VLOOKUP");
@@ -939,7 +939,7 @@ fn test_and_or_formulas() {
 
 #[test]
 fn test_multi_column_range() {
-    let expr = FormulaParser::parse("A1:C10").unwrap();
+    let expr = FormulaParser::parse("A1:C10").expect("Failed to parse formula 'A1:C10' in test");
     match expr {
         Expr::Range { range, .. } => {
             assert_eq!(range.start.col, 0); // A
@@ -951,7 +951,7 @@ fn test_multi_column_range() {
     }
 
     // Large absolute range
-    let expr = FormulaParser::parse("$A$1:$Z$100").unwrap();
+    let expr = FormulaParser::parse("$A$1:$Z$100").expect("Failed to parse formula '$A$1:$Z$100' in test");
     match expr {
         Expr::Range {
             range,
