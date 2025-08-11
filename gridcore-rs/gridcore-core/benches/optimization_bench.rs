@@ -1,9 +1,7 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use gridcore_core::{
-    domain::cell::Cell,
     formula::parser::FormulaParser,
     types::{cell_address::CellAddress, cell_value::CellValue},
-    utils::string_intern::intern_cell_address,
     utils::object_pool::VecPool,
 };
 use smallvec::SmallVec;
