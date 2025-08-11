@@ -72,21 +72,46 @@ pub fn CellEditor(
             if let Some(input) = input_ref.get() {
                 let _ = input.focus();
 
-                
-                // Use a small timeout to ensure the value is rendered first
-                let input_clone = input_ref;
-                let cursor_pos = cursor_pos_to_set;
-                set_timeout(
-                    move || {
-                        if let Some(input) = input_clone.get() {
-                            // Set cursor position from state
-                            let _ = input.set_selection_start(Some(cursor_pos as u32));
-                            let _ = input.set_selection_end(Some(cursor_pos as u32));
-                            leptos::logging::log!("Set cursor position to {}", cursor_pos);
-                        }
-                    },
-                    std::time::Duration::from_millis(10),
-                );
+                // Check editing mode and handle cursor positioning
+                let (is_direct_typing, is_insert_mode_i) = match editing_state {
+                    gridcore_controller::state::UIState::Editing {
+                        editing_value,
+                        cursor_position,
+                        edit_variant,
+                        ..
+                    } => {
+                        let is_direct = editing_value.len() == 1 && *cursor_position == 1;
+                        let is_i_mode = matches!(edit_variant, Some(InsertMode::I)) && *cursor_position == 0;
+                        (is_direct, is_i_mode)
+                    }
+                    _ => (false, false),
+                };
+
+                if is_direct_typing {
+                    // For direct typing, set cursor immediately after the character
+                    let _ = input.set_selection_start(Some(1));
+                    let _ = input.set_selection_end(Some(1));
+                } else if is_insert_mode_i || cursor_pos_to_set == 0 {
+                    // For 'i' mode or when cursor should be at start, set immediately
+                    let _ = input.set_selection_start(Some(0));
+                    let _ = input.set_selection_end(Some(0));
+                    leptos::logging::log!("Set cursor position to 0 immediately for 'i' mode");
+                } else {
+                    // For other modes, use a small timeout to ensure the value is rendered first
+                    let input_clone = input_ref;
+                    let cursor_pos = cursor_pos_to_set;
+                    set_timeout(
+                        move || {
+                            if let Some(input) = input_clone.get() {
+                                // Set cursor position from state
+                                let _ = input.set_selection_start(Some(cursor_pos as u32));
+                                let _ = input.set_selection_end(Some(cursor_pos as u32));
+                                leptos::logging::log!("Set cursor position to {}", cursor_pos);
+                            }
+                        },
+                        std::time::Duration::from_millis(0),
+                    );
+                }
             }
         }
     });

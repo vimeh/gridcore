@@ -21,15 +21,14 @@ pub fn StatusBar(
     // Create a reactive signal that updates when current_mode changes
     // This ensures the UI updates when mode changes
     let mode_display = move || {
-        // Read current_mode to ensure reactivity
-        let signal_mode = current_mode.get();
-        leptos::logging::log!("Status bar update: signal mode = {:?}", signal_mode);
-
+        // Read current_mode to ensure reactivity - this creates the reactive dependency
+        let _signal_mode = current_mode.get();
+        
+        // Always get fresh state from controller
         let state = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             ctrl_borrow.get_state().clone()
         });
-        leptos::logging::log!("Status bar update: controller state = {:?}", state);
 
         let (text, color, detail) = match state {
             UIState::Navigation { .. } => ("NAVIGATION", "#4caf50", "hjkl to move"),
@@ -116,8 +115,6 @@ pub fn StatusBar(
             // Right section: Mode indicator - structure compatible with e2e tests
             {move || {
                 let (mode_text, mode_color, mode_detail) = mode_display();
-                leptos::logging::log!("Mode indicator update: text={}, detail={}", mode_text, mode_detail);
-                leptos::logging::log!("Status bar: Rendering single mode indicator (duplicate removed for e2e test compatibility)");
 
                 // Single mode indicator containing both mode text and detail
                 // Tests can filter by text content within this container
