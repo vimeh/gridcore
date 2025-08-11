@@ -1,5 +1,6 @@
 // use crate::components::error_display::use_error_context; // TODO: Re-enable when full keyboard support is restored
 use gridcore_controller::controller::SpreadsheetController;
+use gridcore_controller::managers::ErrorFormatter;
 use gridcore_controller::state::{actions::Action, InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Textarea;
@@ -8,33 +9,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use web_sys::KeyboardEvent;
-
-/// Convert parse errors to Excel-style error codes with descriptions
-#[allow(dead_code)] // TODO: Re-enable when full keyboard support is restored
-fn format_parse_error(error: &str, is_formula: bool) -> String {
-    // Check for specific error patterns and convert to Excel codes
-    if error.contains("#REF!") {
-        "#REF! - Invalid reference".to_string()
-    } else if error.contains("Unknown function") || error.contains("UNKNOWNFUNC") {
-        "#NAME? - Unknown function or name".to_string()
-    } else if error.contains("Type mismatch")
-        || error.contains("cannot add")
-        || error.contains("cannot subtract")
-    {
-        "#VALUE! - Type mismatch or invalid value".to_string()
-    } else if error.contains("Circular") || error.contains("circular") {
-        "#CIRC! - Circular reference detected".to_string()
-    } else if error.contains("Division by zero") || error.contains("divide by zero") {
-        "#DIV/0! - Division by zero".to_string()
-    } else if error.contains("expected") || error.contains("found end of input") {
-        // Parse errors often mean invalid references
-        "#REF! - Invalid reference".to_string()
-    } else if is_formula {
-        format!("Formula error: {}", error)
-    } else {
-        format!("Error: {}", error)
-    }
-}
 
 #[component]
 pub fn CellEditor(
@@ -337,27 +311,8 @@ pub fn CellEditor(
                                                 }
                                             }
                                             Err(e) => {
-                                                // Convert parse errors to Excel codes with descriptions
-                                                let error_str = e.to_string();
-                                                let message = if error_str.contains("#REF!")
-                                                    || error_str.contains("expected")
-                                                    || error_str.contains("found end of input")
-                                                {
-                                                    "Formula error: #REF! - Invalid reference".to_string()
-                                                } else if error_str.contains("Unknown function") {
-                                                    "Formula error: #NAME? - Unknown function or name".to_string()
-                                                } else if error_str.contains("Type mismatch")
-                                                    || error_str.contains("cannot add")
-                                                {
-                                                    "Formula error: #VALUE! - Type mismatch or invalid value".to_string()
-                                                } else if error_str.contains("Circular") {
-                                                    "Formula error: #CIRC! - Circular reference detected".to_string()
-                                                } else if error_str.contains("Division by zero") {
-                                                    "Formula error: #DIV/0! - Division by zero".to_string()
-                                                } else {
-                                                    format!("Failed to set cell value: {}", e)
-                                                };
-
+                                                // Use centralized error formatter
+                                                let message = ErrorFormatter::format_error(&e);
                                                 leptos::logging::log!("Error setting cell value: {}", message);
                                                 ctrl_mut.emit_error(
                                                     message,
@@ -437,27 +392,8 @@ pub fn CellEditor(
                                                 }
                                             }
                                             Err(e) => {
-                                                // Convert parse errors to Excel codes with descriptions
-                                                let error_str = e.to_string();
-                                                let message = if error_str.contains("#REF!")
-                                                    || error_str.contains("expected")
-                                                    || error_str.contains("found end of input")
-                                                {
-                                                    "Formula error: #REF! - Invalid reference".to_string()
-                                                } else if error_str.contains("Unknown function") {
-                                                    "Formula error: #NAME? - Unknown function or name".to_string()
-                                                } else if error_str.contains("Type mismatch")
-                                                    || error_str.contains("cannot add")
-                                                {
-                                                    "Formula error: #VALUE! - Type mismatch or invalid value".to_string()
-                                                } else if error_str.contains("Circular") {
-                                                    "Formula error: #CIRC! - Circular reference detected".to_string()
-                                                } else if error_str.contains("Division by zero") {
-                                                    "Formula error: #DIV/0! - Division by zero".to_string()
-                                                } else {
-                                                    format!("Failed to set cell value: {}", e)
-                                                };
-
+                                                // Use centralized error formatter
+                                                let message = ErrorFormatter::format_error(&e);
                                                 leptos::logging::log!("Error setting cell value: {}", message);
                                                 ctrl_mut.emit_error(
                                                     message,
