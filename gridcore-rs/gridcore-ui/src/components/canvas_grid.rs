@@ -66,10 +66,14 @@ pub fn CanvasGrid(
             viewport_stored.with_value(|vp| {
                 let vp_borrow = vp.borrow();
                 let pos = vp_borrow.get_cell_position(&cell);
-                let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
+                let (row_header_width, column_header_height) = controller_stored.with_value(|c| {
+                    let borrow = c.borrow();
+                    let config = borrow.get_config();
+                    (config.row_header_width, config.column_header_height)
+                });
                 (
-                    pos.x + config.row_header_width,
-                    pos.y + config.column_header_height,
+                    pos.x + row_header_width,
+                    pos.y + column_header_height,
                     pos.width,
                     pos.height,
                 )
@@ -195,11 +199,15 @@ pub fn CanvasGrid(
             let new_cell = {
                 let vp_borrow = viewport_for_click.borrow();
                 let _theme = vp_borrow.get_theme();
-                let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
-                if x > config.row_header_width && y > config.column_header_height {
+                let (row_header_width, column_header_height) = controller_stored.with_value(|c| {
+                    let borrow = c.borrow();
+                    let config = borrow.get_config();
+                    (config.row_header_width, config.column_header_height)
+                });
+                if x > row_header_width && y > column_header_height {
                     // Subtract header offsets to get cell coordinates
-                    let cell_x = x - config.row_header_width;
-                    let cell_y = y - config.column_header_height;
+                    let cell_x = x - row_header_width;
+                    let cell_y = y - column_header_height;
 
                     vp_borrow.get_cell_at_position(cell_x, cell_y)
                 } else {
@@ -250,11 +258,15 @@ pub fn CanvasGrid(
             let new_cell = {
                 let vp_borrow = viewport_for_dblclick.borrow();
                 let _theme = vp_borrow.get_theme();
-                let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
-                if x > config.row_header_width && y > config.column_header_height {
+                let (row_header_width, column_header_height) = controller_stored.with_value(|c| {
+                    let borrow = c.borrow();
+                    let config = borrow.get_config();
+                    (config.row_header_width, config.column_header_height)
+                });
+                if x > row_header_width && y > column_header_height {
                     // Subtract header offsets to get cell coordinates
-                    let cell_x = x - config.row_header_width;
-                    let cell_y = y - config.column_header_height;
+                    let cell_x = x - row_header_width;
+                    let cell_y = y - column_header_height;
 
                     vp_borrow.get_cell_at_position(cell_x, cell_y)
                 } else {

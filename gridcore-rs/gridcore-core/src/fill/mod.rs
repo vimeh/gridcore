@@ -45,7 +45,7 @@ pub struct FillResult {
     pub formulas_adjusted: Vec<(CellAddress, String)>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CellRange {
     pub start: CellAddress,
     pub end: CellAddress,

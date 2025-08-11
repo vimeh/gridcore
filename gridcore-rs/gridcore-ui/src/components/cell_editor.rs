@@ -20,51 +20,46 @@ pub fn CellEditor(
     // Get controller from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
-    let controller = controller_stored.with_value(|c| c.clone());
 
     let input_ref = NodeRef::<Textarea>::new();
     let (suggestions, set_suggestions) = signal::<Vec<String>>(Vec::new());
     let (selected_suggestion, set_selected_suggestion) = signal::<Option<usize>>(None);
 
-    // Store controller refs for closures using LocalStorage
-    let ctrl_value = controller.clone();
-    let _ctrl_submit_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
-    let _ctrl_cancel_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
-
     // Initialize editor when entering edit mode
     Effect::new(move |_| {
         if editing_mode.get() {
             let _cell = active_cell.get();
-            let ctrl = ctrl_value.clone();
-            let ctrl_borrow = ctrl.borrow();
+            controller_stored.with_value(|ctrl| {
+                let ctrl_borrow = ctrl.borrow();
 
-            // Get the current editing state
-            let editing_state = ctrl_borrow.get_state();
+                // Get the current editing state
+                let editing_state = ctrl_borrow.get_state();
 
-            if let gridcore_controller::state::UIState::Editing {
-                editing_value,
-                cursor_position,
-                ..
-            } = editing_state
-            {
-                // Focus the input and set value and cursor from controller state
-                if let Some(input) = input_ref.get() {
-                    // Focus immediately
-                    let _ = input.focus();
+                if let gridcore_controller::state::UIState::Editing {
+                    editing_value,
+                    cursor_position,
+                    ..
+                } = editing_state
+                {
+                    // Focus the input and set value and cursor from controller state
+                    if let Some(input) = input_ref.get() {
+                        // Focus immediately
+                        let _ = input.focus();
 
-                    // Set the value from controller state
-                    input.set_value(editing_value);
+                        // Set the value from controller state
+                        input.set_value(editing_value);
 
-                    // Set cursor position from controller state
-                    let _ = input.set_selection_start(Some(*cursor_position as u32));
-                    let _ = input.set_selection_end(Some(*cursor_position as u32));
-                    leptos::logging::log!(
-                        "Initialized editor with value '{}' and cursor at {}",
-                        editing_value,
-                        cursor_position
-                    );
+                        // Set cursor position from controller state
+                        let _ = input.set_selection_start(Some(*cursor_position as u32));
+                        let _ = input.set_selection_end(Some(*cursor_position as u32));
+                        leptos::logging::log!(
+                            "Initialized editor with value '{}' and cursor at {}",
+                            editing_value,
+                            cursor_position
+                        );
+                    }
                 }
-            }
+            })
         }
     });
 
@@ -252,8 +247,7 @@ pub fn CellEditor(
                                         }
                                         // Update the mode signal to reflect the change
                                         drop(ctrl_mut);
-                                        let new_state = ctrl.borrow().get_state().clone();
-                                        let new_mode = new_state.spreadsheet_mode();
+                                        let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
                                         set_current_mode.set(new_mode);
                                         // State version now updated via controller events
                                         leptos::logging::log!("Updated mode to {:?} after ExitInsertMode", new_mode);
@@ -266,8 +260,7 @@ pub fn CellEditor(
                                         }
                                         // Update the mode signal to reflect the change
                                         drop(ctrl_mut);
-                                        let new_state = ctrl.borrow().get_state().clone();
-                                        let new_mode = new_state.spreadsheet_mode();
+                                        let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
                                         set_current_mode.set(new_mode);
                                         // State version now updated via controller events
                                         leptos::logging::log!("Updated mode to {:?} after ExitVisualMode", new_mode);
@@ -345,8 +338,7 @@ pub fn CellEditor(
                                                 }
                                                 // Update the mode signal to reflect the change
                                                 drop(ctrl_mut);
-                                                let new_state = ctrl.borrow().get_state().clone();
-                                                let new_mode = new_state.spreadsheet_mode();
+                                                let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
                                                 set_current_mode.set(new_mode);
                                                 // State version now updated via controller events
                                                 leptos::logging::log!("Updated mode to {:?} after EnterInsertMode", new_mode);
@@ -363,8 +355,7 @@ pub fn CellEditor(
                                                 }
                                                 // Update the mode signal to reflect the change
                                                 drop(ctrl_mut);
-                                                let new_state = ctrl.borrow().get_state().clone();
-                                                let new_mode = new_state.spreadsheet_mode();
+                                                let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
                                                 set_current_mode.set(new_mode);
                                                 // State version now updated via controller events
                                                 leptos::logging::log!("Updated mode to {:?} after EnterInsertMode", new_mode);
@@ -409,8 +400,7 @@ pub fn CellEditor(
                                                 }
                                                 // Update the mode signal to reflect the change
                                                 drop(ctrl_mut);
-                                                let new_state = ctrl.borrow().get_state().clone();
-                                                let new_mode = new_state.spreadsheet_mode();
+                                                let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
                                                 set_current_mode.set(new_mode);
                                                 // State version now updated via controller events
                                                 leptos::logging::log!("Updated mode to {:?} after EnterInsertMode (I)", new_mode);
@@ -427,8 +417,7 @@ pub fn CellEditor(
                                                 }
                                                 // Update the mode signal to reflect the change
                                                 drop(ctrl_mut);
-                                                let new_state = ctrl.borrow().get_state().clone();
-                                                let new_mode = new_state.spreadsheet_mode();
+                                                let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
                                                 set_current_mode.set(new_mode);
                                                 // State version now updated via controller events
                                                 leptos::logging::log!("Updated mode to {:?} after EnterInsertMode (A)", new_mode);

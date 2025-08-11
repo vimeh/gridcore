@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ErrorSeverity {
     Error,
     Warning,

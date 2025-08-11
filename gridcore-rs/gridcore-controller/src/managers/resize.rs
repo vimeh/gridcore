@@ -10,7 +10,7 @@ pub enum ResizeType {
 }
 
 /// State of an ongoing resize operation
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct ResizeState {
     pub is_resizing: bool,
     pub resize_type: ResizeType,
