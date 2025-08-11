@@ -111,8 +111,9 @@ impl CellRepository {
 
     /// Shift rows by the specified amount
     pub fn shift_rows(&mut self, start_row: u32, shift_amount: i32) -> Result<Vec<CellAddress>> {
-        let mut affected = Vec::new();
-        let mut updates = Vec::new();
+        let cell_count = self.cells.len();
+        let mut affected = Vec::with_capacity(cell_count);
+        let mut updates = Vec::with_capacity(cell_count);
 
         // Collect cells that need to be shifted
         for (addr_str, cell) in self.cells.iter() {
@@ -140,8 +141,9 @@ impl CellRepository {
 
     /// Shift columns by the specified amount
     pub fn shift_columns(&mut self, start_col: u32, shift_amount: i32) -> Result<Vec<CellAddress>> {
-        let mut affected = Vec::new();
-        let mut updates = Vec::new();
+        let cell_count = self.cells.len();
+        let mut affected = Vec::with_capacity(cell_count);
+        let mut updates = Vec::with_capacity(cell_count);
 
         // Collect cells that need to be shifted
         for (addr_str, cell) in self.cells.iter() {

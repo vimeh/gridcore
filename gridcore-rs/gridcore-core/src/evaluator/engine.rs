@@ -79,14 +79,15 @@ impl<'a> Evaluator<'a> {
     /// Evaluate a function call
     fn evaluate_function(&mut self, name: &str, args: &[Expr]) -> Result<CellValue> {
         // Special handling for functions that take ranges
-        let mut evaluated_args = Vec::new();
+        let mut evaluated_args = Vec::with_capacity(args.len());
 
         for arg in args {
             match arg {
                 Expr::Range { range, .. } => {
                     // For ranges, collect all cell values
-                    let mut values = Vec::new();
-                    for cell_addr in range.cells() {
+                    let cells: Vec<_> = range.cells().collect();
+                    let mut values = Vec::with_capacity(cells.len());
+                    for cell_addr in cells {
                         if self.context.is_evaluating(&cell_addr) {
                             // Return circular reference error as CellValue::Error
                             return Ok(CellValue::from_error(ErrorType::CircularDependency {
@@ -118,9 +119,10 @@ impl<'a> Evaluator<'a> {
 
     /// Evaluate a range of cells and return as array
     pub fn evaluate_range(&mut self, range: &CellRange) -> Result<Vec<CellValue>> {
-        let mut values = Vec::new();
+        let cells: Vec<_> = range.cells().collect();
+        let mut values = Vec::with_capacity(cells.len());
 
-        for cell_addr in range.cells() {
+        for cell_addr in cells {
             if self.context.is_evaluating(&cell_addr) {
                 // Add circular reference error to the array
                 values.push(CellValue::from_error(ErrorType::CircularDependency {

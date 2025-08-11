@@ -109,7 +109,8 @@ impl FillEngine {
     }
 
     fn get_source_values(&self, range: &CellRange) -> Result<Vec<CellValue>> {
-        let mut values = Vec::new();
+        let cell_count = range.iter_cells().count();
+        let mut values = Vec::with_capacity(cell_count);
 
         for addr in range.iter_cells() {
             if let Some(cell) = self.cell_repository.get(&addr) {
@@ -144,7 +145,8 @@ impl FillEngine {
         target_range: &CellRange,
         direction: FillDirection,
     ) -> Result<Vec<(CellAddress, CellValue)>> {
-        let mut result = Vec::new();
+        let target_count = target_range.iter_cells().count();
+        let mut result = Vec::with_capacity(target_count);
 
         match pattern {
             PatternType::Linear { slope } => {
@@ -263,7 +265,9 @@ impl FillEngine {
             SpreadsheetError::InvalidOperation("No formula adjuster configured".to_string())
         })?;
 
-        let mut adjusted = Vec::new();
+        let source_count = source_range.iter_cells().count();
+        let target_count = target_range.iter_cells().count();
+        let mut adjusted = Vec::with_capacity(source_count * target_count);
 
         // For each source cell with a formula
         for source_addr in source_range.iter_cells() {
