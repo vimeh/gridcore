@@ -91,6 +91,10 @@ impl SpreadsheetController {
         self.state_machine.get_state()
     }
 
+    pub fn get_cursor(&self) -> CellAddress {
+        *self.state_machine.get_state().cursor()
+    }
+
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
         let old_mode = self.state_machine.get_state().spreadsheet_mode();
         log::debug!(

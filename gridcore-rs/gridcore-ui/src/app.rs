@@ -23,9 +23,8 @@ pub fn App() -> impl IntoView {
     // We'll initialize test data after ErrorDisplay is available
     let init_data = RwSignal::new(false);
 
-    provide_context(StoredValue::<_, LocalStorage>::new_local(
-        controller.clone(),
-    ));
+    let controller_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
+    provide_context(controller_stored);
 
     // Create error handling signals
     let (errors, set_errors) = signal::<Vec<ErrorMessage>>(Vec::new());
@@ -85,6 +84,7 @@ pub fn App() -> impl IntoView {
     }
 
     // Create reactive signals for UI state
+    // Create a signal for the active cell that we'll update when controller changes
     let (active_cell, set_active_cell) = signal(CellAddress::new(0, 0));
     let (active_sheet, set_active_sheet) = signal(0);
 

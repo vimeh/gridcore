@@ -28,6 +28,9 @@ pub fn CanvasGrid(
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
     let controller_rc = controller_stored.get_value();
+    
+    // Create a signal to track state changes and trigger re-renders
+    let (state_version, set_state_version) = signal(0u32);
 
     // Node refs
     let canvas_ref = NodeRef::<Canvas>::new();
@@ -69,8 +72,9 @@ pub fn CanvasGrid(
 
     // Set up canvas rendering after mount and when active cell changes
     Effect::new(move |_| {
-        // Track active_cell to trigger re-render when it changes
+        // Track active_cell and state_version to trigger re-render when they change
         let current_cell = active_cell.get();
+        let _ = state_version.get(); // Track state version to trigger re-renders
 
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
@@ -184,7 +188,19 @@ pub fn CanvasGrid(
             // Now update active cell if we found one
             if let Some(cell) = new_cell {
                 leptos::logging::log!("Setting active cell to {:?} from click", cell);
+                
+                // Update the controller's cursor and the signal
+                controller_stored.with_value(|c| {
+                    let _ = c.borrow_mut().dispatch_action(Action::UpdateCursor { 
+                        cursor: cell 
+                    });
+                });
+                
+                // Update the active cell signal
                 set_active_cell.set(cell);
+                
+                // Trigger a re-render
+                set_state_version.update(|v| *v += 1);
 
                 // Ensure grid container maintains focus
                 if let Some(wrapper) = wrapper_ref.get() {
@@ -228,7 +244,18 @@ pub fn CanvasGrid(
 
             // Now update active cell and start editing
             if let Some(cell) = new_cell {
+                // Update cursor in controller
+                controller_stored.with_value(|c| {
+                    let _ = c.borrow_mut().dispatch_action(Action::UpdateCursor { 
+                        cursor: cell 
+                    });
+                });
+                
+                // Update the active cell signal
                 set_active_cell.set(cell);
+                
+                // Trigger a re-render
+                set_state_version.update(|v| *v += 1);
 
                 // Get existing cell value
                 let existing_value = controller_stored.with_value(|ctrl| {
@@ -474,11 +501,14 @@ pub fn CanvasGrid(
 
         if new_cursor != old_cursor {
             leptos::logging::log!(
-                "Cursor changed from {:?} to {:?}, updating active_cell signal",
+                "Cursor changed from {:?} to {:?}, updating active cell signal",
                 old_cursor,
                 new_cursor
             );
+            // Update the active cell signal when cursor changes
             set_active_cell.set(new_cursor);
+            // Trigger a re-render when cursor changes
+            set_state_version.update(|v| *v += 1);
         } else {
             leptos::logging::log!("Cursor did not change, still at {:?}", new_cursor);
         }
