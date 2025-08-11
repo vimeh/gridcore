@@ -6,24 +6,24 @@ use crate::Result;
 use std::fmt::Debug;
 
 /// Helper for expecting successful results in tests with descriptive messages
-pub fn expect_ok<T, E: Debug>(result: Result<T, E>, context: &str) -> T {
+pub fn expect_ok<T>(result: Result<T>, context: &str) -> T {
     result.unwrap_or_else(|e| {
         panic!("Test expectation failed: {} - Error: {:?}", context, e)
     })
 }
 
 /// Helper for parsing operations in tests
-pub fn expect_parse<T, E: Debug>(result: Result<T, E>, input: &str) -> T {
+pub fn expect_parse<T>(result: Result<T>, input: &str) -> T {
     result.unwrap_or_else(|e| {
         panic!("Failed to parse '{}' - Error: {:?}", input, e)
     })
 }
 
 /// Helper for mutex lock operations in tests
-pub fn expect_lock<T>(
-    lock_result: Result<std::sync::MutexGuard<T>, std::sync::PoisonError<std::sync::MutexGuard<T>>>,
+pub fn expect_lock<'a, T>(
+    lock_result: std::result::Result<std::sync::MutexGuard<'a, T>, std::sync::PoisonError<std::sync::MutexGuard<'a, T>>>,
     context: &str,
-) -> std::sync::MutexGuard<T> {
+) -> std::sync::MutexGuard<'a, T> {
     lock_result.unwrap_or_else(|_| {
         panic!("Test mutex poisoned: {} - Previous test likely panicked", context)
     })
