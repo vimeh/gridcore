@@ -143,20 +143,16 @@ impl Viewport {
     }
 
     pub fn get_total_grid_width(&self) -> f64 {
-        let mut width = 0.0;
-        let total_cols = self.get_total_cols();
-        for col in 0..total_cols {
-            width += self.get_column_width(col);
-        }
-        width
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_total_grid_width()
     }
 
     pub fn get_total_grid_height(&self) -> f64 {
-        let mut height = 0.0;
-        let total_rows = self.get_total_rows();
-        for row in 0..total_rows {
-            height += self.get_row_height(row);
-        }
-        height
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_total_grid_height()
     }
 }

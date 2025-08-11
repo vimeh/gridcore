@@ -119,6 +119,10 @@ pub trait ViewportManager: Send + Sync {
     fn get_viewport_width(&self) -> f64;
     fn get_viewport_height(&self) -> f64;
     fn set_viewport_size(&mut self, width: f64, height: f64);
+    
+    /// Get total grid dimensions
+    fn get_total_grid_width(&self) -> f64;
+    fn get_total_grid_height(&self) -> f64;
 }
 
 /// Default implementation of ViewportManager
@@ -171,22 +175,6 @@ impl DefaultViewportManager {
         self.config.column_header_height = header_height;
         self.config.row_header_width = header_width;
         self
-    }
-
-    fn get_total_grid_width(&self) -> f64 {
-        let mut width = 0.0;
-        for col in 0..self.config.total_cols {
-            width += self.get_column_width(col);
-        }
-        width
-    }
-
-    fn get_total_grid_height(&self) -> f64 {
-        let mut height = 0.0;
-        for row in 0..self.config.total_rows {
-            height += self.get_row_height(row);
-        }
-        height
     }
 }
 
@@ -485,6 +473,22 @@ impl ViewportManager for DefaultViewportManager {
     fn set_viewport_size(&mut self, width: f64, height: f64) {
         self.viewport_width = width;
         self.viewport_height = height;
+    }
+    
+    fn get_total_grid_width(&self) -> f64 {
+        let mut width = 0.0;
+        for col in 0..self.config.total_cols {
+            width += self.get_column_width(col);
+        }
+        width
+    }
+    
+    fn get_total_grid_height(&self) -> f64 {
+        let mut height = 0.0;
+        for row in 0..self.config.total_rows {
+            height += self.get_row_height(row);
+        }
+        height
     }
 }
 
