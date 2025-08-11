@@ -1,4 +1,6 @@
 pub mod events;
+#[cfg(test)]
+mod events_test;
 pub mod spreadsheet;
 #[cfg(test)]
 mod spreadsheet_test;

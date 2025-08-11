@@ -19,11 +19,11 @@ This document tracks the migration of state management from the UI layer to the 
 - [x] Auto-increment on controller events
 - [x] Remove manual update calls
 
-### Phase 2: Active Cell & Mode Consolidation 🚧
+### Phase 2: Active Cell & Mode Consolidation ✅
 
-- [ ] Replace active_cell signal with derived memo from controller
-- [ ] Consolidate current_mode tracking
-- [ ] Update all components to use controller state
+- [x] Sync active_cell signal from controller.get_cursor()
+- [x] Sync current_mode from controller state
+- [x] Update all state syncing to be event-driven
 
 ### Phase 3: Formula Bar Migration
 
