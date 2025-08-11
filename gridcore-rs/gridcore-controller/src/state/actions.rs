@@ -99,6 +99,10 @@ pub enum Action {
     UpdateCommandValue {
         value: String,
     },
+    UpdateFormulaBar {
+        value: String,
+    },
+    SubmitFormulaBar,
     UpdateResizeSize {
         size: u32,
     },

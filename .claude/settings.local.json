@@ -37,7 +37,8 @@
       "Bash(trunk:*)",
       "Bash(awk:*)",
       "Bash(cargo fmt:*)",
-      "Bash(cargo clippy:*)"
+      "Bash(cargo clippy:*)",
+      "Bash(tokei:*)"
     ],
     "deny": []
   }

@@ -98,6 +98,11 @@ pub enum SpreadsheetEvent {
         path: String,
     },
 
+    // Formula bar events
+    FormulaBarUpdated {
+        value: String,
+    },
+
     // Error events
     ErrorOccurred {
         message: String,

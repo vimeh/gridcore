@@ -15,6 +15,7 @@ pub struct SpreadsheetController {
     autocomplete_manager: AutocompleteManager,
     selection_stats_manager: SelectionStatsManager,
     config: GridConfiguration,
+    formula_bar_value: String,
 }
 
 impl SpreadsheetController {
@@ -55,10 +56,15 @@ impl SpreadsheetController {
             autocomplete_manager: AutocompleteManager::new(),
             selection_stats_manager: SelectionStatsManager::new(),
             config,
+            formula_bar_value: String::new(),
         };
 
         // Subscribe to state changes
         controller.setup_state_listener();
+
+        // Initialize formula bar with current cell value
+        controller.update_formula_bar_from_cursor();
+
         controller
     }
 
@@ -82,9 +88,14 @@ impl SpreadsheetController {
             autocomplete_manager: AutocompleteManager::new(),
             selection_stats_manager: SelectionStatsManager::new(),
             config,
+            formula_bar_value: String::new(),
         };
 
         controller.setup_state_listener();
+
+        // Initialize formula bar with current cell value
+        controller.update_formula_bar_from_cursor();
+
         controller
     }
 
@@ -103,6 +114,62 @@ impl SpreadsheetController {
 
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
         // Handle special actions that need controller logic
+
+        // Handle formula bar actions
+        if let Action::UpdateFormulaBar { value } = &action {
+            self.set_formula_bar_value(value.clone());
+            return Ok(());
+        }
+
+        if matches!(action, Action::SubmitFormulaBar) {
+            // Submit the formula bar value to the current cell
+            let value = self.formula_bar_value.clone();
+            let cursor = self.get_cursor();
+
+            // Set cell value through facade
+            match self.facade.set_cell_value(&cursor, &value) {
+                Ok(_) => {
+                    // Check if the cell now contains an error value
+                    if let Some(gridcore_core::types::CellValue::Error(error_type)) =
+                        self.facade.get_cell_raw_value(&cursor)
+                    {
+                        let enhanced_message =
+                            format!("Formula error: {}", error_type.full_display());
+                        self.event_dispatcher
+                            .dispatch(&SpreadsheetEvent::ErrorOccurred {
+                                message: enhanced_message,
+                                severity: crate::controller::events::ErrorSeverity::Error,
+                            });
+                    }
+
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::CellEditCompleted {
+                            address: cursor,
+                            value: value.clone(),
+                        });
+
+                    // Clear formula bar after successful submission
+                    if value.is_empty()
+                        || !matches!(
+                            self.facade.get_cell_raw_value(&cursor),
+                            Some(gridcore_core::types::CellValue::Error(_))
+                        )
+                    {
+                        self.set_formula_bar_value(String::new());
+                    }
+                }
+                Err(e) => {
+                    let message = ErrorFormatter::format_error(&e);
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::ErrorOccurred {
+                            message,
+                            severity: crate::controller::events::ErrorSeverity::Error,
+                        });
+                }
+            }
+            return Ok(());
+        }
+
         if let Action::SubmitCellEdit { value } = &action {
             // Update the editing value and complete editing
             if let UIState::Editing { cursor, .. } = self.state_machine.get_state() {
@@ -282,6 +349,25 @@ impl SpreadsheetController {
 
     pub fn get_autocomplete_manager_mut(&mut self) -> &mut AutocompleteManager {
         &mut self.autocomplete_manager
+    }
+
+    /// Get the current formula bar value
+    pub fn get_formula_bar_value(&self) -> &str {
+        &self.formula_bar_value
+    }
+
+    /// Set the formula bar value and dispatch event
+    pub fn set_formula_bar_value(&mut self, value: String) {
+        self.formula_bar_value = value.clone();
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::FormulaBarUpdated { value });
+    }
+
+    /// Update formula bar based on current cursor position
+    pub fn update_formula_bar_from_cursor(&mut self) {
+        let cursor = self.get_cursor();
+        let value = self.get_cell_display_for_ui(&cursor);
+        self.set_formula_bar_value(value);
     }
 
     pub fn subscribe_to_events<F>(&mut self, listener: F) -> usize
@@ -630,9 +716,12 @@ impl SpreadsheetController {
                 to: new_cursor,
             });
 
-        let result = self.dispatch_action(Action::UpdateCursor { cursor: new_cursor });
-        log::debug!("UpdateCursor action dispatched, result: {:?}", result);
-        result
+        self.dispatch_action(Action::UpdateCursor { cursor: new_cursor })?;
+
+        // Update formula bar to show new cell's content
+        self.update_formula_bar_from_cursor();
+
+        Ok(())
     }
 
     fn complete_editing(&mut self) -> Result<()> {

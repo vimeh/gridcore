@@ -15,7 +15,6 @@ pub fn CellEditor(
     editing_mode: ReadSignal<bool>,
     _set_editing_mode: WriteSignal<bool>,
     cell_position: ReadSignal<(f64, f64, f64, f64)>, // x, y, width, height
-    set_formula_value: WriteSignal<String>,
     set_current_mode: WriteSignal<SpreadsheetMode>,
     _set_state_version: WriteSignal<u32>,
 ) -> impl IntoView {
@@ -157,8 +156,7 @@ pub fn CellEditor(
                             }
                         });
 
-                        // Update formula bar
-                        set_formula_value.set(new_value);
+                        // Formula bar is now updated via controller events
                     }
                     on:keydown=move |ev: KeyboardEvent| {
                         let key = ev.key();
@@ -209,8 +207,7 @@ pub fn CellEditor(
                                         let _ = input.set_selection_start(Some(new_cursor_pos as u32));
                                         let _ = input.set_selection_end(Some(new_cursor_pos as u32));
 
-                                        // Update formula bar
-                                        set_formula_value.set(new_value);
+                                        // Formula bar is now updated via controller events
                                     }
                                 } else {
                                     // Not in INSERT mode - Enter saves and exits
@@ -227,7 +224,7 @@ pub fn CellEditor(
                                     });
 
                                     // Don't set editing_mode here - canvas_grid manages it based on controller state
-                                    set_formula_value.set(value);
+                                    // Formula bar is now updated via controller events
                                 }
                             }
                             "Escape" => {
@@ -289,7 +286,7 @@ pub fn CellEditor(
                                         }
 
                                         // Don't set editing_mode here - canvas_grid manages it based on controller state
-                                        set_formula_value.set(value);
+                                        // Formula bar is now updated via controller events
                                         // Controller will handle mode transition to Navigation
 
                                         // Return focus to grid container

@@ -34,8 +34,12 @@ pub fn App() -> impl IntoView {
     let (errors, set_errors) = signal::<Vec<ErrorMessage>>(Vec::new());
     let error_counter = RwSignal::new(0usize);
 
+    // Create formula bar signal that will be synced from controller
+    let (formula_bar_value, set_formula_bar_value) = signal(String::new());
+
     // Set up comprehensive controller event listener
     {
+        let set_formula_bar_for_event = set_formula_bar_value;
         let callback = Box::new(
             move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
                 use gridcore_controller::controller::events::SpreadsheetEvent;
@@ -64,13 +68,19 @@ pub fn App() -> impl IntoView {
                     | SpreadsheetEvent::CellsCut { .. }
                     | SpreadsheetEvent::CellsPasted { .. }
                     | SpreadsheetEvent::UndoPerformed
-                    | SpreadsheetEvent::RedoPerformed => {
+                    | SpreadsheetEvent::RedoPerformed
+                    | SpreadsheetEvent::FormulaBarUpdated { .. } => {
                         set_state_version.update(|v| *v += 1);
                     }
                     _ => {}
                 }
 
                 // Handle specific events
+                if let SpreadsheetEvent::FormulaBarUpdated { value } = event {
+                    leptos::logging::log!("Formula bar updated: {}", value);
+                    set_formula_bar_for_event.set(value.clone());
+                }
+
                 if let SpreadsheetEvent::ErrorOccurred { message, severity } = event {
                     leptos::logging::log!(
                         "ErrorOccurred event received: {} ({:?})",
@@ -126,13 +136,6 @@ pub fn App() -> impl IntoView {
         }
     });
 
-    // Initialize formula value with A1's content
-    let initial_formula_value = {
-        let ctrl_borrow = controller.borrow();
-        ctrl_borrow.get_cell_display_for_ui(&CellAddress::new(0, 0))
-    };
-    let (formula_value, set_formula_value) = signal(initial_formula_value);
-
     // Create mode signal that will be synced with controller
     let initial_mode = controller.borrow().get_state().spreadsheet_mode();
     let (current_mode, set_current_mode) = signal(initial_mode);
@@ -180,82 +183,19 @@ pub fn App() -> impl IntoView {
         set_selection_stats.set(stats);
     });
 
-    // Update formula bar when active cell changes (but not during editing)
-    let controller_for_formula = controller.clone();
-    Effect::new(move |_| {
-        // Use the derived active_cell memo
-        let cell = active_cell.get();
-        let ctrl = controller_for_formula.clone();
-
-        // Check if we're in editing mode
-        let is_editing = matches!(
-            ctrl.borrow().get_state(),
-            gridcore_controller::state::UIState::Editing { .. }
-        );
-
-        // Only update formula bar if not editing
-        if !is_editing {
-            let ctrl_borrowed = ctrl.borrow();
-            let value = ctrl_borrowed.get_cell_display_for_ui(&cell);
-            set_formula_value.set(value);
-        }
-    });
-
     // Handle formula bar Enter key
     let controller_for_submit = controller.clone();
     let on_formula_submit = move |ev: web_sys::KeyboardEvent| {
         if ev.key() == "Enter" {
             ev.prevent_default();
-            let value = formula_value.get();
-            let cell = active_cell.get();
 
-            // Set cell value through controller
-            let ctrl = controller_for_submit.clone();
-            if !value.is_empty() {
-                let ctrl_borrow = ctrl.borrow();
-                let facade = ctrl_borrow.get_facade();
-                match facade.set_cell_value(&cell, &value) {
-                    Ok(_) => {
-                        // Check if the cell now contains an error value
-                        if let Some(gridcore_core::types::CellValue::Error(error_type)) =
-                            facade.get_cell_raw_value(&cell)
-                        {
-                            // Display the error with both code and description
-                            set_errors.update(|errs| {
-                                errs.push(ErrorMessage {
-                                    message: error_type.full_display(),
-                                    severity: ErrorSeverity::Error,
-                                    id: errs.len(),
-                                });
-                            });
-                            leptos::logging::log!(
-                                "Formula error detected: {}",
-                                error_type.full_display()
-                            );
-                            // Don't clear the formula bar when there's an error - keep it for editing
-                        } else {
-                            // Only clear formula bar on successful evaluation
-                            set_formula_value.set(String::new());
-                        }
-                    }
-                    Err(e) => {
-                        // Display error to user for setting errors
-                        let error_msg = if value.starts_with('=') {
-                            format!("Formula error: {}", e)
-                        } else {
-                            format!("Error: {}", e)
-                        };
-                        set_errors.update(|errs| {
-                            errs.push(ErrorMessage {
-                                message: error_msg,
-                                severity: ErrorSeverity::Error,
-                                id: errs.len(),
-                            });
-                        });
-                        leptos::logging::log!("Error setting cell value: {}", e);
-                    }
-                }
-            }
+            // Submit formula bar through controller action
+            controller_for_submit
+                .borrow_mut()
+                .dispatch_action(gridcore_controller::state::Action::SubmitFormulaBar)
+                .unwrap_or_else(|e| {
+                    leptos::logging::log!("Error submitting formula bar: {}", e);
+                });
         }
     };
 
@@ -336,14 +276,19 @@ pub fn App() -> impl IntoView {
                         class="formula-input"
                         placeholder="Enter formula or value"
                         value=move || {
-                            let value = formula_value.get();
+                            let value = formula_bar_value.get();
                             leptos::logging::log!("Formula bar value update: {}", value);
                             value
                         }
                         on:input=move |ev| {
                             let new_value = event_target_value(&ev);
                             leptos::logging::log!("Formula bar input change: {}", new_value);
-                            set_formula_value.set(new_value);
+                            // Update controller's formula bar value
+                            controller.borrow_mut().dispatch_action(
+                                gridcore_controller::state::Action::UpdateFormulaBar { value: new_value }
+                            ).unwrap_or_else(|e| {
+                                leptos::logging::log!("Error updating formula bar: {}", e);
+                            });
                         }
                         on:keydown=on_formula_submit
                     />
@@ -354,7 +299,6 @@ pub fn App() -> impl IntoView {
                 <CanvasGrid
                     active_cell=active_cell
                     set_active_cell=set_active_cell
-                    set_formula_value=set_formula_value
                     set_current_mode=set_current_mode
                     state_version=state_version
                     set_state_version=set_state_version

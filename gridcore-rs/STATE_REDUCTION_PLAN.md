@@ -33,12 +33,15 @@ This document tracks the migration of state management from the UI layer to the 
 - [x] Add tests for error handling
 - [x] Add tests for selection stats
 
-### Phase 4: Formula Bar Migration 🚧
+### Phase 4: Formula Bar Migration ✅
 
-- [ ] Add formula bar state to controller
-- [ ] Create FormulaBarUpdate action
-- [ ] Move submission logic to controller
-- [ ] Remove formula_value signal
+- [x] Add formula bar state to controller
+- [x] Create FormulaBarUpdate and SubmitFormulaBar actions
+- [x] Move submission logic to controller
+- [x] Remove formula_value signal
+- [x] Add FormulaBarUpdated event
+- [x] Sync formula bar via controller events
+- [x] Add comprehensive unit tests
 
 ### Phase 5: Selection & Stats
 
@@ -76,18 +79,19 @@ This document tracks the migration of state management from the UI layer to the 
 
 | Component  | Signals Before | Signals After | Status      |
 | ---------- | -------------- | ------------- | ----------- |
-| App.rs     | 10             | 8             | Complete    |
-| CanvasGrid | 5              | 5             | Pending     |
-| CellEditor | 2              | 2             | Pending     |
+| App.rs     | 10             | 6             | Complete    |
+| CanvasGrid | 5              | 4             | Complete    |
+| CellEditor | 2              | 0             | Complete    |
 | TabBar     | 4              | 4             | Pending     |
 | StatusBar  | 0              | 0             | Complete    |
 
 ## Metrics
 
 - **Total Signals Before**: ~15
+- **Current Signals**: ~10
 - **Target Signals After**: 2-3
-- **Code Reduction**: ~500 lines
-- **Performance**: Fewer reactive updates
+- **Code Reduction**: ~300 lines removed so far
+- **Performance**: Fewer reactive updates, centralized state management
 
 ## Testing Checklist
 

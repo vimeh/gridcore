@@ -21,7 +21,6 @@ use crate::rendering::default_theme;
 pub fn CanvasGrid(
     active_cell: ReadSignal<CellAddress>,
     set_active_cell: WriteSignal<CellAddress>,
-    set_formula_value: WriteSignal<String>,
     set_current_mode: WriteSignal<SpreadsheetMode>,
     state_version: ReadSignal<u32>,
     set_state_version: WriteSignal<u32>,
@@ -143,9 +142,8 @@ pub fn CanvasGrid(
             }
         }); // ctrl_borrow is dropped here
 
-        debug_log!("Setting formula value to: {:?}", cell_value);
-        // Now update the formula value signal
-        set_formula_value.set(cell_value.unwrap_or_default());
+        debug_log!("Cell value retrieved: {:?}", cell_value);
+        // Formula bar is now updated via controller events
     });
 
     // Handle canvas click
@@ -556,31 +554,7 @@ pub fn CanvasGrid(
             set_editing_mode.set(false);
         }
 
-        // Update formula bar based on current state
-        controller_stored.with_value(|ctrl| {
-            let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.get_state();
-            match state {
-                UIState::Editing { editing_value, .. } => {
-                    set_formula_value.set(editing_value.clone());
-                }
-                UIState::Navigation { cursor, .. } => {
-                    // Update formula bar with current cell value
-                    let facade = ctrl_borrow.get_facade();
-                    let cell_value = if let Some(cell) = facade.get_cell(cursor) {
-                        if cell.has_formula() {
-                            cell.raw_value.to_string()
-                        } else {
-                            cell.get_display_value().to_string()
-                        }
-                    } else {
-                        String::new()
-                    };
-                    set_formula_value.set(cell_value);
-                }
-                _ => {}
-            }
-        });
+        // Formula bar is now updated via controller events
 
         // Auto-scroll to keep the active cell visible if cursor moved
         if new_cursor != old_cursor
@@ -676,7 +650,6 @@ pub fn CanvasGrid(
                 editing_mode=editing_mode
                 _set_editing_mode=set_editing_mode
                 cell_position=cell_position
-                set_formula_value=set_formula_value
                 set_current_mode=set_current_mode
                 _set_state_version=set_state_version
             />
