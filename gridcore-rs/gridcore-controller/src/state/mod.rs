@@ -3,6 +3,7 @@ pub mod context;
 pub mod diff;
 pub mod machine;
 pub mod spreadsheet;
+pub mod transition_handlers;
 pub mod transitions;
 
 #[cfg(test)]
