@@ -399,8 +399,9 @@ test.describe("Error Handling", () => {
       await editorInput.selectText();
       await page.keyboard.type("200");
 
-      // Save with Enter
-      await page.keyboard.press("Enter");
+      // Save with Escape twice (first to exit Insert mode, then to save and exit)
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("Escape");
       await page.waitForTimeout(100);
 
       // Verify the value was saved
@@ -418,8 +419,9 @@ test.describe("Error Handling", () => {
       await editorInput.selectText();
       await page.keyboard.type("=A1*3");
 
-      // Save with Enter
-      await page.keyboard.press("Enter");
+      // Save with Escape twice (first to exit Insert mode, then to save and exit)
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("Escape");
       await page.waitForTimeout(100);
 
       // Verify the formula was saved
@@ -438,8 +440,9 @@ test.describe("Error Handling", () => {
       await editorInput.selectText();
       await page.keyboard.type("=1/2");
 
-      // Save with Enter
-      await page.keyboard.press("Enter");
+      // Save with Escape twice (first to exit Insert mode, then to save and exit)
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("Escape");
       await page.waitForTimeout(100);
 
       // Verify the fixed formula was saved

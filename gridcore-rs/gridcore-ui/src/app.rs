@@ -89,6 +89,8 @@ pub fn App() -> impl IntoView {
                         severity
                     );
                     // The controller's ErrorManager has already added this error
+                    // Update state version to trigger error display re-render
+                    set_state_version.update(|v| *v += 1);
                 }
 
                 // Log error dismissal

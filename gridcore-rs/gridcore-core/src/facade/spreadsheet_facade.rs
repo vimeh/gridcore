@@ -152,14 +152,20 @@ impl SpreadsheetFacade {
                     use crate::formula::FormulaParser;
 
                     // Parse the formula
-                    if let Ok(expr) = FormulaParser::parse(&formula_string) {
-                        let mut context = PortContext::new(repo_for_eval);
-                        let mut evaluator = Evaluator::new(&mut context);
+                    match FormulaParser::parse(&formula_string) {
+                        Ok(expr) => {
+                            let mut context = PortContext::new(repo_for_eval);
+                            let mut evaluator = Evaluator::new(&mut context);
 
-                        // Evaluate and set the computed value
-                        match evaluator.evaluate(&expr) {
-                            Ok(result) => cell.set_computed_value(result),
-                            Err(e) => cell.set_error(e.to_string()),
+                            // Evaluate and set the computed value
+                            match evaluator.evaluate(&expr) {
+                                Ok(result) => cell.set_computed_value(result),
+                                Err(e) => cell.set_error(e.to_string()),
+                            }
+                        }
+                        Err(e) => {
+                            // Parse error - set error on the cell
+                            cell.set_error(e.to_string());
                         }
                     }
                 }
