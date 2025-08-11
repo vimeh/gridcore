@@ -90,7 +90,7 @@ pub fn App() -> impl IntoView {
                     );
                     // The controller's ErrorManager has already added this error
                 }
-                
+
                 // Log error dismissal
                 if let SpreadsheetEvent::ErrorDismissed { id } = event {
                     leptos::logging::log!("Error dismissed: {}", id);
@@ -158,9 +158,6 @@ pub fn App() -> impl IntoView {
         });
     });
 
-    // Keyboard-only mode state
-    let (keyboard_only_mode, set_keyboard_only_mode) = signal(false);
-
     // Derive selection stats from controller state
     let selection_stats = Memo::new(move |_| {
         // Trigger on state_version change
@@ -210,7 +207,7 @@ pub fn App() -> impl IntoView {
                         }
                     }
                 }
-                
+
                 // Update formula bar to show initial cell value
                 ctrl.borrow_mut().update_formula_bar_from_cursor();
             });
@@ -221,8 +218,6 @@ pub fn App() -> impl IntoView {
         <div class="spreadsheet-app">
             <div class="top-toolbar">
                 <div class="toolbar-row">
-                    <button class="toolbar-button">"Import"</button>
-                    <button class="toolbar-button">"Export"</button>
                     <label style="margin-left: 20px;">
                         <input
                             type="checkbox"
@@ -232,18 +227,6 @@ pub fn App() -> impl IntoView {
                             }
                         />
                         " Debug Mode"
-                    </label>
-                    <label style="margin-left: 10px;">
-                        <input
-                            type="checkbox"
-                            prop:checked=move || keyboard_only_mode.get()
-                            on:change=move |ev| {
-                                let checked = event_target_checked(&ev);
-                                set_keyboard_only_mode.set(checked);
-                                leptos::logging::log!("Keyboard-only mode toggled: {}", checked);
-                            }
-                        />
-                        " Keyboard Only"
                     </label>
                 </div>
                 <div class="formula-bar">

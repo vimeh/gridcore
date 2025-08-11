@@ -89,19 +89,6 @@ test.describe("Common Features", () => {
     await expect(page.locator(".cell-indicator")).toHaveValue("B1");
   });
 
-  test("should handle import/export buttons", async ({ page }) => {
-    // Check that buttons exist
-    const importBtn = page.locator('button:has-text("Import")');
-    const exportBtn = page.locator('button:has-text("Export")');
-
-    await expect(importBtn).toBeVisible();
-    await expect(exportBtn).toBeVisible();
-
-    // Buttons should be clickable
-    await expect(importBtn).toBeEnabled();
-    await expect(exportBtn).toBeEnabled();
-  });
-
   test("should maintain focus on grid", async ({ page }) => {
     // Grid container should be focusable
     const _gridContainer = page.locator(".grid-container");
