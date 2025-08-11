@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use gridcore_core::{
     domain::cell::Cell,
     formula::parser::FormulaParser,
@@ -7,7 +7,6 @@ use gridcore_core::{
 };
 use std::collections::HashMap;
 use std::hint::black_box;
-use std::time::Instant;
 
 fn bench_cell_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("cell_operations");
