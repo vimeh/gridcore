@@ -163,8 +163,12 @@ impl SpreadsheetFacade {
                                 Err(e) => cell.set_error(e.to_string()),
                             }
                         }
+                        Err(crate::SpreadsheetError::RefError) => {
+                            // RefError - set #REF! error on the cell
+                            cell.set_error("#REF!".to_string());
+                        }
                         Err(e) => {
-                            // Parse error - set error on the cell
+                            // Other parse errors - set error on the cell
                             cell.set_error(e.to_string());
                         }
                     }

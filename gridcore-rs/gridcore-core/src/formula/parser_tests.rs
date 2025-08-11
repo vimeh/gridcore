@@ -566,6 +566,35 @@ fn test_leading_equals() {
 }
 
 #[test]
+fn test_invalid_column_reference() {
+    // XYZ999 exceeds Excel's column limit (XYZ = column 16899, max is 16383)
+    let result = FormulaParser::parse("=XYZ999");
+    assert!(result.is_err());
+    match result {
+        Err(crate::SpreadsheetError::RefError) => {
+            // Expected - XYZ exceeds column limit
+        }
+        Err(e) => panic!("Expected RefError for XYZ999, got: {:?}", e),
+        Ok(_) => panic!("XYZ999 should not parse successfully"),
+    }
+    
+    // XFD is the maximum valid column in Excel
+    let result = FormulaParser::parse("=XFD1");
+    assert!(result.is_ok(), "XFD1 should be valid");
+    
+    // XFE exceeds the limit
+    let result = FormulaParser::parse("=XFE1");
+    assert!(result.is_err());
+    match result {
+        Err(crate::SpreadsheetError::RefError) => {
+            // Expected - XFE exceeds column limit
+        }
+        Err(e) => panic!("Expected RefError for XFE1, got: {:?}", e),
+        Ok(_) => panic!("XFE1 should not parse successfully"),
+    }
+}
+
+#[test]
 fn test_whitespace_handling() {
     // Leading/trailing spaces
     let expr =

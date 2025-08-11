@@ -252,4 +252,38 @@ mod tests {
         assert!(addr.offset(-10, 0).is_err());
         assert!(addr.offset(0, -10).is_err());
     }
+
+    #[test]
+    fn test_xyz999_exceeds_column_limit() {
+        // XYZ calculation:
+        // X = 23 (24th letter, 0-indexed)
+        // Y = 24 (25th letter)
+        // Z = 25 (26th letter)
+        // XYZ = 23*26^2 + 24*26 + 25 = 23*676 + 624 + 25 = 15548 + 624 + 25 = 16197
+        // But wait, let me recalculate...
+        // Excel columns: A=0, B=1, ..., Z=25, AA=26, AB=27, ..., AZ=51, BA=52, ...
+        // XYZ would be: X*26^2 + Y*26 + Z + offset
+        // Since X is the 24th letter (X=23 in 0-based), Y=24, Z=25
+        // In Excel column numbering: 24*26^2 + 25*26 + 26 - 1 = 16224 + 650 + 25 = 16899
+        
+        let result = CellAddress::parse_a1_notation("XYZ999");
+        assert!(result.is_err());
+        match result {
+            Err(crate::SpreadsheetError::RefError) => {
+                // Expected - XYZ (column 16899) exceeds MAX_COLUMNS (16384)
+            }
+            Err(e) => panic!("Expected RefError, got {:?}", e),
+            Ok(_) => panic!("Expected error for XYZ999, but parsing succeeded"),
+        }
+    }
+
+    #[test]
+    fn test_valid_max_column() {
+        // XFD is Excel's maximum column (16383 in 0-based indexing)
+        let result = CellAddress::parse_a1_notation("XFD1");
+        assert!(result.is_ok());
+        let addr = result.unwrap();
+        assert_eq!(addr.col, 16383);
+        assert_eq!(addr.row, 0);
+    }
 }

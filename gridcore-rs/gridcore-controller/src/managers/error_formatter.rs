@@ -6,6 +6,14 @@ pub struct ErrorFormatter;
 impl ErrorFormatter {
     /// Convert parse errors to Excel-style error codes with descriptions
     pub fn format_error(error: &SpreadsheetError) -> String {
+        // Check for specific error types directly
+        match error {
+            SpreadsheetError::RefError => {
+                return "Formula error: #REF! - Invalid reference".to_string();
+            }
+            _ => {}
+        }
+        
         let error_str = error.to_string();
 
         // Check for specific error patterns and convert to Excel codes

@@ -1,7 +1,9 @@
 use super::ast::{BinaryOperator, Expr, UnaryOperator};
 use crate::{Result, SpreadsheetError};
+use crate::types::CellAddress;
 use chumsky::pratt::*;
 use chumsky::prelude::*;
+use regex::Regex;
 
 /// Main formula parser that coordinates tokenization and expression building
 pub struct FormulaParser;
@@ -16,12 +18,36 @@ impl FormulaParser {
         match Self::parser().parse(formula).into_result() {
             Ok(expr) => Ok(expr),
             Err(errors) => {
+                // Check for specific invalid reference patterns
+                // XYZ is a valid column pattern but exceeds Excel's limit
+                if formula.len() <= 10 {  // Reasonable length for a cell reference
+                    // Try to parse as a cell reference directly to check for #REF! errors
+                    let upper_formula = formula.to_uppercase();
+                    let re = Regex::new(r"^([A-Z]+)([0-9]+)$").unwrap();
+                    if let Some(caps) = re.captures(&upper_formula)
+                        && let Some(col_str) = caps.get(1).map(|m| m.as_str()) {
+                        // Check if this column would exceed Excel's limit
+                        if let Ok(col_num) = CellAddress::column_label_to_number(col_str) {
+                            // Excel's maximum column is 16383 (0-based), so 16384 columns total
+                            if col_num >= 16384 {
+                                return Err(SpreadsheetError::RefError);
+                            }
+                        }
+                    }
+                }
+                
                 // Combine error messages
                 let msg = errors
                     .iter()
                     .map(|e| format!("{:?}", e))
                     .collect::<Vec<_>>()
                     .join("; ");
+                
+                // Check if any error is a #REF! error
+                if msg.contains("#REF!") {
+                    return Err(SpreadsheetError::RefError);
+                }
+                
                 Err(SpreadsheetError::Parse(msg))
             }
         }
@@ -37,9 +63,11 @@ impl FormulaParser {
             // Build atom parser - the basic units that can appear in expressions
             let atom = choice((
                 // Order matters: try more specific patterns first
-                ExpressionBuilder::function_call(expr.clone()),
+                // Cell references and ranges must come before function calls
+                // because XYZ999 looks like a function name but is actually a cell reference
                 Tokenizer::cell_range(),
                 Tokenizer::cell_reference(),
+                ExpressionBuilder::function_call(expr.clone()),
                 Tokenizer::number(),
                 Tokenizer::boolean(),
                 Tokenizer::string(),
