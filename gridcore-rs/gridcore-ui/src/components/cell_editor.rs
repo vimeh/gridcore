@@ -163,53 +163,33 @@ pub fn CellEditor(
         }
     });
 
-    // Handle formula autocomplete
+    // Handle formula autocomplete using controller's AutocompleteManager
     Effect::new(move |_| {
         let value = editor_value.get();
-        if value.starts_with('=') {
-            // Extract the last word being typed for function suggestions
-            let parts: Vec<&str> = value
-                .rsplitn(2, |c: char| !c.is_alphanumeric() && c != '_')
-                .collect();
-            if let Some(prefix) = parts.first() {
-                if !prefix.is_empty() {
-                    let prefix_upper = prefix.to_uppercase();
-                    let mut function_suggestions = vec![];
 
-                    // Common spreadsheet functions
-                    let functions = vec![
-                        "SUM",
-                        "AVERAGE",
-                        "COUNT",
-                        "MAX",
-                        "MIN",
-                        "IF",
-                        "VLOOKUP",
-                        "HLOOKUP",
-                        "INDEX",
-                        "MATCH",
-                        "CONCATENATE",
-                        "TODAY",
-                        "NOW",
-                    ];
+        // Get suggestions from the controller's AutocompleteManager
+        let suggestions = controller_stored.with_value(|ctrl| {
+            let ctrl_borrow = ctrl.borrow();
+            let cursor_pos = if let Some(input) = input_ref.get() {
+                input.selection_start().unwrap_or(Some(0)).unwrap_or(0) as usize
+            } else {
+                value.len()
+            };
 
-                    for func in functions {
-                        if func.starts_with(&prefix_upper) {
-                            function_suggestions.push(func.to_string());
-                        }
-                    }
+            let autocomplete_manager = ctrl_borrow.get_autocomplete_manager();
+            let suggestions = autocomplete_manager.get_suggestions(&value, cursor_pos);
 
-                    set_suggestions.set(function_suggestions.clone());
-                    if !function_suggestions.is_empty() {
-                        set_selected_suggestion.set(Some(0));
-                    }
-                } else {
-                    set_suggestions.set(Vec::new());
-                    set_selected_suggestion.set(None);
-                }
-            }
+            // Convert to simple string suggestions for the UI
+            suggestions
+                .into_iter()
+                .map(|s| s.value().to_string())
+                .collect::<Vec<String>>()
+        });
+
+        set_suggestions.set(suggestions.clone());
+        if !suggestions.is_empty() {
+            set_selected_suggestion.set(Some(0));
         } else {
-            set_suggestions.set(Vec::new());
             set_selected_suggestion.set(None);
         }
     });

@@ -2,7 +2,7 @@ use crate::controller::{
     DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
     SpreadsheetEvent, ViewportManager,
 };
-use crate::managers::{ErrorFormatter, ResizeManager};
+use crate::managers::{AutocompleteManager, ErrorFormatter, ResizeManager};
 use crate::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
@@ -12,6 +12,7 @@ pub struct SpreadsheetController {
     event_dispatcher: EventDispatcher,
     viewport_manager: Box<dyn ViewportManager>,
     resize_manager: ResizeManager,
+    autocomplete_manager: AutocompleteManager,
     config: GridConfiguration,
 }
 
@@ -50,6 +51,7 @@ impl SpreadsheetController {
             event_dispatcher: EventDispatcher::new(),
             viewport_manager,
             resize_manager,
+            autocomplete_manager: AutocompleteManager::new(),
             config,
         };
 
@@ -75,6 +77,7 @@ impl SpreadsheetController {
                 DefaultViewportManager::new(1000, 100).with_config(config.clone()),
             ),
             resize_manager,
+            autocomplete_manager: AutocompleteManager::new(),
             config,
         };
 
@@ -209,6 +212,14 @@ impl SpreadsheetController {
 
     pub fn get_resize_manager_mut(&mut self) -> &mut ResizeManager {
         &mut self.resize_manager
+    }
+
+    pub fn get_autocomplete_manager(&self) -> &AutocompleteManager {
+        &self.autocomplete_manager
+    }
+
+    pub fn get_autocomplete_manager_mut(&mut self) -> &mut AutocompleteManager {
+        &mut self.autocomplete_manager
     }
 
     pub fn subscribe_to_events<F>(&mut self, listener: F) -> usize
