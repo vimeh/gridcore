@@ -28,7 +28,7 @@ impl TransitionHandler for EditingHandler {
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
             Action::EnterVisualMode {
@@ -55,7 +55,7 @@ impl TransitionHandler for EditingHandler {
                         edit_variant: *edit_variant,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
             Action::EnterInsertMode { mode } => {
@@ -81,7 +81,7 @@ impl TransitionHandler for EditingHandler {
                         edit_variant: *mode,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
             Action::ExitInsertMode => {
@@ -107,7 +107,7 @@ impl TransitionHandler for EditingHandler {
                         edit_variant: None,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
             Action::ExitVisualMode => {
@@ -132,7 +132,7 @@ impl TransitionHandler for EditingHandler {
                         edit_variant: *edit_variant,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateEditingValue {
@@ -160,7 +160,7 @@ impl TransitionHandler for EditingHandler {
                         edit_variant: *edit_variant,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateEditingCursor {
@@ -188,7 +188,7 @@ impl TransitionHandler for EditingHandler {
                         edit_variant: *edit_variant,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
             Action::InsertCharacterAtCursor { character } => {
@@ -216,7 +216,7 @@ impl TransitionHandler for EditingHandler {
                         edit_variant: *edit_variant,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
             Action::DeleteCharacterAtCursor { forward } => {
@@ -264,7 +264,7 @@ impl TransitionHandler for EditingHandler {
                     Ok(state.clone())
                 }
             }
-            _ => Ok(state.clone()),
+            _ => unreachable!("EditingHandler::handle called with unhandled action"),
         }
     }
 }

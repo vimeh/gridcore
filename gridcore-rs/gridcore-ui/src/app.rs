@@ -99,14 +99,15 @@ pub fn App() -> impl IntoView {
     let (active_cell, set_active_cell) = signal(initial_cursor);
 
     // Sync active cell from controller state changes
-    let controller_for_active_cell = controller.clone();
     Effect::new(move |_| {
         // Trigger on state_version change
         let _ = state_version.get();
-        let cursor = controller_for_active_cell.borrow().get_cursor();
-        if active_cell.get() != cursor {
-            set_active_cell.set(cursor);
-        }
+        controller_stored.with_value(|ctrl| {
+            let cursor = ctrl.borrow().get_cursor();
+            if active_cell.get() != cursor {
+                set_active_cell.set(cursor);
+            }
+        });
     });
 
     // Create mode signal that will be synced with controller
@@ -114,14 +115,15 @@ pub fn App() -> impl IntoView {
     let (current_mode, set_current_mode) = signal(initial_mode);
 
     // Sync mode from controller state changes
-    let controller_for_mode = controller.clone();
     Effect::new(move |_| {
         // Trigger on state_version change
         let _ = state_version.get();
-        let mode = controller_for_mode.borrow().get_state().spreadsheet_mode();
-        if current_mode.get() != mode {
-            set_current_mode.set(mode);
-        }
+        controller_stored.with_value(|ctrl| {
+            let mode = ctrl.borrow().get_state().spreadsheet_mode();
+            if current_mode.get() != mode {
+                set_current_mode.set(mode);
+            }
+        });
     });
 
     // Sheet management - sync from controller
@@ -136,17 +138,18 @@ pub fn App() -> impl IntoView {
     let (active_sheet, set_active_sheet) = signal(0usize); // For now, we'll use index 0
 
     // Sync sheets from controller state changes
-    let controller_for_sheets = controller.clone();
     Effect::new(move |_| {
         // Trigger on state_version change
         let _ = state_version.get();
-        let new_sheets = controller_for_sheets
-            .borrow()
-            .get_sheets()
-            .into_iter()
-            .map(|(name, id)| Sheet { id, name })
-            .collect::<Vec<_>>();
-        set_sheets.set(new_sheets);
+        controller_stored.with_value(|ctrl| {
+            let new_sheets = ctrl
+                .borrow()
+                .get_sheets()
+                .into_iter()
+                .map(|(name, id)| Sheet { id, name })
+                .collect::<Vec<_>>();
+            set_sheets.set(new_sheets);
+        });
     });
 
     // Keyboard-only mode state
@@ -160,45 +163,46 @@ pub fn App() -> impl IntoView {
     });
 
     // Handle formula bar Enter key
-    let controller_for_submit = controller.clone();
     let on_formula_submit = move |ev: web_sys::KeyboardEvent| {
         if ev.key() == "Enter" {
             ev.prevent_default();
 
             // Submit formula bar through controller action
-            controller_for_submit
-                .borrow_mut()
-                .dispatch_action(gridcore_controller::state::Action::SubmitFormulaBar)
-                .unwrap_or_else(|e| {
-                    leptos::logging::log!("Error submitting formula bar: {}", e);
-                });
+            controller_stored.with_value(|ctrl| {
+                ctrl.borrow_mut()
+                    .dispatch_action(gridcore_controller::state::Action::SubmitFormulaBar)
+                    .unwrap_or_else(|e| {
+                        leptos::logging::log!("Error submitting formula bar: {}", e);
+                    });
+            });
         }
     };
 
     // Initialize test data with error handling after ErrorDisplay is mounted
-    let controller_for_init = controller.clone();
     Effect::new(move |_| {
         if !init_data.get() {
             init_data.set(true);
 
-            let ctrl = controller_for_init.borrow();
-            let facade = ctrl.get_facade();
+            controller_stored.with_value(|ctrl| {
+                let ctrl = ctrl.borrow();
+                let facade = ctrl.get_facade();
 
-            // Initialize test data with proper error handling
-            let test_data = vec![
-                (CellAddress::new(0, 0), "Hello"),  // A1
-                (CellAddress::new(1, 0), "World"),  // B1
-                (CellAddress::new(0, 1), "123"),    // A2
-                (CellAddress::new(1, 1), "123"),    // B2
-                (CellAddress::new(2, 1), "=A2+B2"), // C2
-            ];
+                // Initialize test data with proper error handling
+                let test_data = vec![
+                    (CellAddress::new(0, 0), "Hello"),  // A1
+                    (CellAddress::new(1, 0), "World"),  // B1
+                    (CellAddress::new(0, 1), "123"),    // A2
+                    (CellAddress::new(1, 1), "123"),    // B2
+                    (CellAddress::new(2, 1), "=A2+B2"), // C2
+                ];
 
-            for (address, value) in test_data {
-                if let Err(e) = facade.set_cell_value(&address, value) {
-                    // Error will be displayed through controller events
-                    leptos::logging::log!("Failed to initialize cell: {}", e);
+                for (address, value) in test_data {
+                    if let Err(e) = facade.set_cell_value(&address, value) {
+                        // Error will be displayed through controller events
+                        leptos::logging::log!("Failed to initialize cell: {}", e);
+                    }
                 }
-            }
+            });
         }
     });
 

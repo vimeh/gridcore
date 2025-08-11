@@ -39,7 +39,7 @@ impl TransitionHandler for BulkHandler {
                         error_message: None,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("BulkHandler::handle called with incompatible state/action")
                 }
             }
             Action::CompleteBulkOperation | Action::CancelBulkOperation => {
@@ -49,7 +49,7 @@ impl TransitionHandler for BulkHandler {
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("BulkHandler::handle called with incompatible state/action")
                 }
             }
             Action::GeneratePreview => {
@@ -73,7 +73,7 @@ impl TransitionHandler for BulkHandler {
                         error_message: error_message.clone(),
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("BulkHandler::handle called with incompatible state/action")
                 }
             }
             Action::ExecuteBulkOperation => {
@@ -85,10 +85,10 @@ impl TransitionHandler for BulkHandler {
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("BulkHandler::handle called with incompatible state/action")
                 }
             }
-            _ => Ok(state.clone()),
+            _ => unreachable!("BulkHandler::handle called with unhandled action"),
         }
     }
 }

@@ -22,7 +22,7 @@ impl TransitionHandler for CommandHandler {
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("CommandHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateCommandValue { value } => {
@@ -36,10 +36,10 @@ impl TransitionHandler for CommandHandler {
                         command_value: value.clone(),
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("CommandHandler::handle called with incompatible state/action")
                 }
             }
-            _ => Ok(state.clone()),
+            _ => unreachable!("CommandHandler::handle called with unhandled action"),
         }
     }
 }

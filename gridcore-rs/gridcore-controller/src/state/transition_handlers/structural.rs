@@ -42,7 +42,7 @@ impl TransitionHandler for StructuralHandler {
                         target_index: *reference,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateInsertCount { count } => {
@@ -68,7 +68,7 @@ impl TransitionHandler for StructuralHandler {
                         target_index: *target_index,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }
             }
             Action::ConfirmInsert | Action::CancelInsert => {
@@ -78,7 +78,7 @@ impl TransitionHandler for StructuralHandler {
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }
             }
             Action::StartDelete {
@@ -98,7 +98,7 @@ impl TransitionHandler for StructuralHandler {
                         confirmation_pending: false,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }
             }
             Action::ConfirmDelete | Action::CancelDelete => {
@@ -108,10 +108,10 @@ impl TransitionHandler for StructuralHandler {
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }
             }
-            _ => Ok(state.clone()),
+            _ => unreachable!("StructuralHandler::handle called with unhandled action"),
         }
     }
 }

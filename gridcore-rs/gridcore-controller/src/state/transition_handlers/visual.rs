@@ -25,7 +25,7 @@ impl TransitionHandler for VisualHandler {
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("VisualHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateSelection { selection } => {
@@ -45,7 +45,7 @@ impl TransitionHandler for VisualHandler {
                         anchor: *anchor,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("VisualHandler::handle called with incompatible state/action")
                 }
             }
             Action::ChangeVisualMode { new_mode } => {
@@ -65,10 +65,10 @@ impl TransitionHandler for VisualHandler {
                         anchor: *anchor,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("VisualHandler::handle called with incompatible state/action")
                 }
             }
-            _ => Ok(state.clone()),
+            _ => unreachable!("VisualHandler::handle called with unhandled action"),
         }
     }
 }

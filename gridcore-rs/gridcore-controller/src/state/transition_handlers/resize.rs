@@ -46,7 +46,7 @@ impl TransitionHandler for ResizeHandler {
                         current_position: *initial_position,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("ResizeHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateResize { delta } => {
@@ -76,7 +76,7 @@ impl TransitionHandler for ResizeHandler {
                         current_position: new_position,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("ResizeHandler::handle called with incompatible state/action")
                 }
             }
             Action::MoveResizeTarget { direction } => {
@@ -112,7 +112,7 @@ impl TransitionHandler for ResizeHandler {
                         current_position: *current_position,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("ResizeHandler::handle called with incompatible state/action")
                 }
             }
             Action::AutoFitResize => {
@@ -140,7 +140,7 @@ impl TransitionHandler for ResizeHandler {
                         current_position: *current_position,
                     })
                 } else {
-                    Ok(state.clone())
+                    unreachable!("ResizeHandler::handle called with incompatible state/action")
                 }
             }
             Action::ConfirmResize | Action::CancelResize => {
@@ -150,10 +150,10 @@ impl TransitionHandler for ResizeHandler {
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("ResizeHandler::handle called with incompatible state/action")
                 }
             }
-            _ => Ok(state.clone()),
+            _ => unreachable!("ResizeHandler::handle called with unhandled action"),
         }
     }
 }

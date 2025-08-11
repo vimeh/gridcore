@@ -57,7 +57,7 @@ impl TransitionHandler for NavigationHandler {
 
                     Ok(new_state)
                 } else {
-                    Ok(state.clone())
+                    unreachable!("NavigationHandler::handle called with incompatible state/action")
                 }
             }
             Action::EnterCommandMode => {
@@ -67,7 +67,7 @@ impl TransitionHandler for NavigationHandler {
                 {
                     Ok(create_command_state(*cursor, *viewport))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("NavigationHandler::handle called with incompatible state/action")
                 }
             }
             Action::EnterSpreadsheetVisualMode {
@@ -86,10 +86,10 @@ impl TransitionHandler for NavigationHandler {
                         selection.clone(),
                     ))
                 } else {
-                    Ok(state.clone())
+                    unreachable!("NavigationHandler::handle called with incompatible state/action")
                 }
             }
-            _ => Ok(state.clone()),
+            _ => unreachable!("NavigationHandler::handle called with unhandled action"),
         }
     }
 }
