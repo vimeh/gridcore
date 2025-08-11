@@ -6,7 +6,7 @@ use leptos::html::Textarea;
 use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
-// use wasm_bindgen::JsCast; // TODO: Re-enable when full keyboard support is restored
+use wasm_bindgen::JsCast;
 use web_sys::KeyboardEvent;
 
 /// Convert parse errors to Excel-style error codes with descriptions
@@ -725,7 +725,7 @@ pub fn CellEditor(
                             "Enter" => {
                                 ev.prevent_default();
                                 
-                                // Check if we're in INSERT mode
+                                // Check if we're in INSERT mode (UIState::Editing with CellMode::Insert)
                                 let is_insert_mode = controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
                                     matches!(
@@ -829,11 +829,33 @@ pub fn CellEditor(
                                         set_editing_mode.set(false);
                                         set_formula_value.set(value);
                                         set_current_mode.set(SpreadsheetMode::Navigation);
+                                        
+                                        // Return focus to grid container
+                                        if let Some(window) = web_sys::window() {
+                                            if let Some(document) = window.document() {
+                                                if let Ok(Some(element)) = document.query_selector(".grid-container") {
+                                                    if let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>() {
+                                                        let _ = html_element.focus();
+                                                    }
+                                                }
+                                            }
+                                        }
                                     } else {
                                         // Fallback - just exit
                                         drop(ctrl_borrow);
                                         set_editing_mode.set(false);
                                         set_current_mode.set(SpreadsheetMode::Navigation);
+                                        
+                                        // Return focus to grid container
+                                        if let Some(window) = web_sys::window() {
+                                            if let Some(document) = window.document() {
+                                                if let Ok(Some(element)) = document.query_selector(".grid-container") {
+                                                    if let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>() {
+                                                        let _ = html_element.focus();
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 });
                             }
