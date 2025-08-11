@@ -27,6 +27,7 @@ pub fn CanvasGrid(
     // Get controller from context (keep as StoredValue to avoid cloning)
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
+    let controller_rc = controller_stored.get_value();
 
     // Node refs
     let canvas_ref = NodeRef::<Canvas>::new();

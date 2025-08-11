@@ -74,13 +74,13 @@ impl ResizeHandler {
     pub fn start_resize(&self, event: &MouseEvent, resize_type: ResizeType, index: usize) {
         let mut controller = self.controller.borrow_mut();
         let viewport_manager = controller.get_viewport_manager();
-        
+
         let start_position = match resize_type {
             ResizeType::Column => event.client_x() as f64,
             ResizeType::Row => event.client_y() as f64,
             ResizeType::None => 0.0,
         };
-        
+
         let start_size = match resize_type {
             ResizeType::Column => viewport_manager.get_column_width(index),
             ResizeType::Row => viewport_manager.get_row_height(index),
@@ -97,34 +97,34 @@ impl ResizeHandler {
 
     pub fn handle_resize(&self, event: &MouseEvent) {
         let mut controller = self.controller.borrow_mut();
-        let resize_manager = controller.get_resize_manager_mut();
-        
-        if !resize_manager.is_resizing() {
+
+        if !controller.get_resize_manager().is_resizing() {
             return;
         }
 
-        let current_position = match resize_manager.get_resize_type() {
+        let resize_type = controller.get_resize_manager().get_resize_type();
+        let current_position = match resize_type {
             ResizeType::Column => event.client_x() as f64,
             ResizeType::Row => event.client_y() as f64,
             ResizeType::None => return,
         };
 
-        resize_manager.update_resize(current_position);
-        
-        // Apply the resize to the viewport
-        let viewport_manager = controller.get_viewport_manager_mut();
-        match resize_manager.get_resize_type() {
-            ResizeType::Column => {
-                let index = resize_manager.get_resize_index();
-                let new_size = resize_manager.get_current_size();
-                viewport_manager.set_column_width(index, new_size);
+        // Update resize and get the new size
+        if let Some((resize_type, index, new_size)) = controller
+            .get_resize_manager_mut()
+            .update_resize(current_position)
+        {
+            // Apply the resize to the viewport
+            let viewport_manager = controller.get_viewport_manager_mut();
+            match resize_type {
+                ResizeType::Column => {
+                    viewport_manager.set_column_width(index, new_size);
+                }
+                ResizeType::Row => {
+                    viewport_manager.set_row_height(index, new_size);
+                }
+                ResizeType::None => {}
             }
-            ResizeType::Row => {
-                let index = resize_manager.get_resize_index();
-                let new_size = resize_manager.get_current_size();
-                viewport_manager.set_row_height(index, new_size);
-            }
-            ResizeType::None => {}
         }
     }
 

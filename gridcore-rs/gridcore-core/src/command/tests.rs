@@ -208,7 +208,8 @@ mod tests {
         let addr = CellAddress::new(0, 0);
 
         let cmd = SpreadsheetCommand::set_cell(addr, None, "42".to_string());
-        cmd.execute(&mut executor).expect("Command execution should succeed in test");
+        cmd.execute(&mut executor)
+            .expect("Command execution should succeed in test");
 
         let cell = executor.get_cell(&addr).expect("Cell should exist in test");
         assert_eq!(cell.raw_value.to_string(), "42");
@@ -220,21 +221,33 @@ mod tests {
         let addr = CellAddress::new(0, 0);
 
         // Set initial value
-        executor.set_cell_direct(&addr, "10").expect("Setting cell should succeed in test");
+        executor
+            .set_cell_direct(&addr, "10")
+            .expect("Setting cell should succeed in test");
         let old_cell = executor.get_cell(&addr);
 
         // Execute command to change value
         let cmd = SpreadsheetCommand::set_cell(addr, old_cell, "42".to_string());
-        cmd.execute(&mut executor).expect("Command execution should succeed in test");
+        cmd.execute(&mut executor)
+            .expect("Command execution should succeed in test");
         assert_eq!(
-            executor.get_cell(&addr).expect("Cell should exist in test").raw_value.to_string(),
+            executor
+                .get_cell(&addr)
+                .expect("Cell should exist in test")
+                .raw_value
+                .to_string(),
             "42"
         );
 
         // Undo the command
-        cmd.undo(&mut executor).expect("Undo should succeed in test");
+        cmd.undo(&mut executor)
+            .expect("Undo should succeed in test");
         assert_eq!(
-            executor.get_cell(&addr).expect("Cell should exist in test").raw_value.to_string(),
+            executor
+                .get_cell(&addr)
+                .expect("Cell should exist in test")
+                .raw_value
+                .to_string(),
             "10"
         );
     }
@@ -245,18 +258,26 @@ mod tests {
         let addr = CellAddress::new(0, 0);
 
         // Set initial value
-        executor.set_cell_direct(&addr, "42").expect("Setting cell should succeed in test");
+        executor
+            .set_cell_direct(&addr, "42")
+            .expect("Setting cell should succeed in test");
         let old_cell = executor.get_cell(&addr);
 
         // Delete the cell
         let cmd = SpreadsheetCommand::delete_cell(addr, old_cell.clone());
-        cmd.execute(&mut executor).expect("Command execution should succeed in test");
+        cmd.execute(&mut executor)
+            .expect("Command execution should succeed in test");
         assert!(executor.get_cell(&addr).is_none());
 
         // Undo the deletion
-        cmd.undo(&mut executor).expect("Undo should succeed in test");
+        cmd.undo(&mut executor)
+            .expect("Undo should succeed in test");
         assert_eq!(
-            executor.get_cell(&addr).expect("Cell should exist in test").raw_value.to_string(),
+            executor
+                .get_cell(&addr)
+                .expect("Cell should exist in test")
+                .raw_value
+                .to_string(),
             "42"
         );
     }
@@ -276,18 +297,30 @@ mod tests {
         let batch = SpreadsheetCommand::batch(commands, "Set multiple cells".to_string());
 
         // Execute batch
-        batch.execute(&mut executor).expect("Command execution should succeed in test");
+        batch
+            .execute(&mut executor)
+            .expect("Command execution should succeed in test");
         assert_eq!(
-            executor.get_cell(&addr1).expect("Cell should exist in test").raw_value.to_string(),
+            executor
+                .get_cell(&addr1)
+                .expect("Cell should exist in test")
+                .raw_value
+                .to_string(),
             "10"
         );
         assert_eq!(
-            executor.get_cell(&addr2).expect("Cell should exist in test").raw_value.to_string(),
+            executor
+                .get_cell(&addr2)
+                .expect("Cell should exist in test")
+                .raw_value
+                .to_string(),
             "20"
         );
 
         // Undo batch (should undo in reverse order)
-        batch.undo(&mut executor).expect("Undo should succeed in test");
+        batch
+            .undo(&mut executor)
+            .expect("Undo should succeed in test");
         assert!(executor.get_cell(&addr1).is_none());
         assert!(executor.get_cell(&addr2).is_none());
     }
@@ -301,22 +334,32 @@ mod tests {
         let cmd = SpreadsheetCommand::set_cell(addr, None, "42".to_string());
 
         // Execute and track command
-        manager.execute_command(cmd, &mut executor).expect("Command execution should succeed in test");
+        manager
+            .execute_command(cmd, &mut executor)
+            .expect("Command execution should succeed in test");
         assert!(manager.can_undo());
         assert!(!manager.can_redo());
 
         // Undo
-        manager.undo(&mut executor).expect("Undo should succeed in test");
+        manager
+            .undo(&mut executor)
+            .expect("Undo should succeed in test");
         assert!(!manager.can_undo());
         assert!(manager.can_redo());
         assert!(executor.get_cell(&addr).is_none());
 
         // Redo
-        manager.redo(&mut executor).expect("Redo should succeed in test");
+        manager
+            .redo(&mut executor)
+            .expect("Redo should succeed in test");
         assert!(manager.can_undo());
         assert!(!manager.can_redo());
         assert_eq!(
-            executor.get_cell(&addr).expect("Cell should exist in test").raw_value.to_string(),
+            executor
+                .get_cell(&addr)
+                .expect("Cell should exist in test")
+                .raw_value
+                .to_string(),
             "42"
         );
     }
@@ -333,20 +376,30 @@ mod tests {
         for i in 0..3 {
             let addr = CellAddress::new(i, 0);
             let cmd = SpreadsheetCommand::set_cell(addr, None, format!("{}", i));
-            manager.execute_command(cmd, &mut executor).expect("Command execution should succeed in test");
+            manager
+                .execute_command(cmd, &mut executor)
+                .expect("Command execution should succeed in test");
         }
 
         // Should only be able to undo twice
         assert!(manager.can_undo());
-        manager.undo(&mut executor).expect("Undo should succeed in test");
+        manager
+            .undo(&mut executor)
+            .expect("Undo should succeed in test");
         assert!(manager.can_undo());
-        manager.undo(&mut executor).expect("Undo should succeed in test");
+        manager
+            .undo(&mut executor)
+            .expect("Undo should succeed in test");
         assert!(!manager.can_undo());
 
         // First command should still be executed (not in undo stack)
         let addr0 = CellAddress::new(0, 0);
         assert_eq!(
-            executor.get_cell(&addr0).expect("Cell should exist in test").raw_value.to_string(),
+            executor
+                .get_cell(&addr0)
+                .expect("Cell should exist in test")
+                .raw_value
+                .to_string(),
             "0"
         );
     }
@@ -363,15 +416,21 @@ mod tests {
         for i in 0..3 {
             let addr = CellAddress::new(i, 0);
             let cmd = SpreadsheetCommand::set_cell(addr, None, format!("{}", i));
-            manager.execute_command(cmd, &mut executor).expect("Command execution should succeed in test");
+            manager
+                .execute_command(cmd, &mut executor)
+                .expect("Command execution should succeed in test");
         }
 
         // Commit batch
-        manager.commit_batch(&mut executor).expect("Batch commit should succeed in test");
+        manager
+            .commit_batch(&mut executor)
+            .expect("Batch commit should succeed in test");
 
         // Should undo all 3 commands as a single operation
         assert!(manager.can_undo());
-        manager.undo(&mut executor).expect("Undo should succeed in test");
+        manager
+            .undo(&mut executor)
+            .expect("Undo should succeed in test");
 
         for i in 0..3 {
             let addr = CellAddress::new(i, 0);
@@ -380,12 +439,18 @@ mod tests {
 
         // Should redo all 3 commands as a single operation
         assert!(manager.can_redo());
-        manager.redo(&mut executor).expect("Redo should succeed in test");
+        manager
+            .redo(&mut executor)
+            .expect("Redo should succeed in test");
 
         for i in 0..3 {
             let addr = CellAddress::new(i, 0);
             assert_eq!(
-                executor.get_cell(&addr).expect("Cell should exist in test").raw_value.to_string(),
+                executor
+                    .get_cell(&addr)
+                    .expect("Cell should exist in test")
+                    .raw_value
+                    .to_string(),
                 format!("{}", i)
             );
         }
@@ -399,10 +464,14 @@ mod tests {
         // Execute a command
         let addr = CellAddress::new(0, 0);
         let cmd = SpreadsheetCommand::set_cell(addr, None, "42".to_string());
-        manager.execute_command(cmd, &mut executor).expect("Command execution should succeed in test");
+        manager
+            .execute_command(cmd, &mut executor)
+            .expect("Command execution should succeed in test");
 
         // Undo it
-        manager.undo(&mut executor).expect("Undo should succeed in test");
+        manager
+            .undo(&mut executor)
+            .expect("Undo should succeed in test");
 
         assert!(manager.can_redo());
         assert!(!manager.can_undo());
@@ -422,11 +491,15 @@ mod tests {
         // Execute some commands
         let addr1 = CellAddress::new(0, 0);
         let cmd1 = SpreadsheetCommand::set_cell(addr1, None, "10".to_string());
-        manager.execute_command(cmd1, &mut executor).expect("Command execution should succeed in test");
+        manager
+            .execute_command(cmd1, &mut executor)
+            .expect("Command execution should succeed in test");
 
         let addr2 = CellAddress::new(1, 0);
         let cmd2 = SpreadsheetCommand::set_cell(addr2, None, "20".to_string());
-        manager.execute_command(cmd2, &mut executor).expect("Command execution should succeed in test");
+        manager
+            .execute_command(cmd2, &mut executor)
+            .expect("Command execution should succeed in test");
 
         // Check undo history
         let undo_history = manager.get_undo_history();
@@ -434,7 +507,9 @@ mod tests {
         assert!(undo_history[0].contains("Set cell"));
 
         // Undo one command
-        manager.undo(&mut executor).expect("Undo should succeed in test");
+        manager
+            .undo(&mut executor)
+            .expect("Undo should succeed in test");
 
         // Check histories again
         let undo_history = manager.get_undo_history();

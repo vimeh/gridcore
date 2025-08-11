@@ -14,10 +14,7 @@ pub struct Viewport {
 }
 
 impl Viewport {
-    pub fn new(
-        theme: GridTheme,
-        controller: Rc<RefCell<SpreadsheetController>>,
-    ) -> Self {
+    pub fn new(theme: GridTheme, controller: Rc<RefCell<SpreadsheetController>>) -> Self {
         Self { theme, controller }
     }
 

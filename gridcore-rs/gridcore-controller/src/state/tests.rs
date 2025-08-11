@@ -119,7 +119,9 @@ mod tests {
         }
 
         // Exit insert mode
-        machine.transition(Action::ExitInsertMode).expect("State transition should succeed in test");
+        machine
+            .transition(Action::ExitInsertMode)
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Editing {
@@ -169,7 +171,9 @@ mod tests {
         }
 
         // Exit visual mode
-        machine.transition(Action::ExitVisualMode).expect("State transition should succeed in test");
+        machine
+            .transition(Action::ExitVisualMode)
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Editing {
@@ -216,7 +220,9 @@ mod tests {
         }
 
         // Exit command mode
-        machine.transition(Action::ExitCommandMode).expect("State transition should succeed in test");
+        machine
+            .transition(Action::ExitCommandMode)
+            .expect("State transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
 
@@ -284,7 +290,9 @@ mod tests {
         let mut machine = create_test_state_machine();
 
         // Test escape in navigation (should do nothing)
-        machine.transition(Action::Escape).expect("State transition should succeed in test");
+        machine
+            .transition(Action::Escape)
+            .expect("State transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
 
         // Test escape in editing insert mode (should go to normal)
@@ -296,7 +304,9 @@ mod tests {
             })
             .expect("State transition should succeed in test");
 
-        machine.transition(Action::Escape).expect("State transition should succeed in test");
+        machine
+            .transition(Action::Escape)
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Editing { cell_mode, .. } => {
@@ -306,12 +316,18 @@ mod tests {
         }
 
         // Another escape should exit editing
-        machine.transition(Action::Escape).expect("State transition should succeed in test");
+        machine
+            .transition(Action::Escape)
+            .expect("State transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
 
         // Test escape in command mode
-        machine.transition(Action::EnterCommandMode).expect("State transition should succeed in test");
-        machine.transition(Action::Escape).expect("State transition should succeed in test");
+        machine
+            .transition(Action::EnterCommandMode)
+            .expect("State transition should succeed in test");
+        machine
+            .transition(Action::Escape)
+            .expect("State transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
 
         // Test escape in spreadsheet visual mode
@@ -326,7 +342,9 @@ mod tests {
                 },
             })
             .expect("State transition should succeed in test");
-        machine.transition(Action::Escape).expect("State transition should succeed in test");
+        machine
+            .transition(Action::Escape)
+            .expect("State transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
 
@@ -384,13 +402,17 @@ mod tests {
         let mut machine = create_test_state_machine();
 
         // Perform several transitions
-        machine.transition(Action::EnterCommandMode).expect("State transition should succeed in test");
+        machine
+            .transition(Action::EnterCommandMode)
+            .expect("State transition should succeed in test");
         machine
             .transition(Action::UpdateCommandValue {
                 value: "test".to_string(),
             })
             .expect("State transition should succeed in test");
-        machine.transition(Action::ExitCommandMode).expect("State transition should succeed in test");
+        machine
+            .transition(Action::ExitCommandMode)
+            .expect("State transition should succeed in test");
 
         let history = machine.get_history();
         assert_eq!(history.len(), 3);
@@ -424,8 +446,12 @@ mod tests {
             notifs.push(format!("{:?}", state.spreadsheet_mode()));
         });
 
-        machine.transition(Action::EnterCommandMode).expect("State transition should succeed in test");
-        machine.transition(Action::ExitCommandMode).expect("State transition should succeed in test");
+        machine
+            .transition(Action::EnterCommandMode)
+            .expect("State transition should succeed in test");
+        machine
+            .transition(Action::ExitCommandMode)
+            .expect("State transition should succeed in test");
 
         let notifs = notifications
             .lock()
@@ -457,7 +483,9 @@ mod tests {
         }
 
         // Test exit_editing_mode helper
-        machine.exit_editing_mode().expect("Exit editing mode should succeed in test");
+        machine
+            .exit_editing_mode()
+            .expect("Exit editing mode should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
 
         // Test spreadsheet visual mode helpers
@@ -474,7 +502,9 @@ mod tests {
 
         assert!(matches!(machine.get_state(), UIState::Visual { .. }));
 
-        machine.exit_spreadsheet_visual_mode().expect("Exit visual mode should succeed in test");
+        machine
+            .exit_spreadsheet_visual_mode()
+            .expect("Exit visual mode should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
 }
