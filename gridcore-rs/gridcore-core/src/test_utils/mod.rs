@@ -1,9 +1,6 @@
 //! Test utility functions for reducing unwrap usage and providing better error messages
 
-#![cfg(test)]
-
 use crate::Result;
-use std::fmt::Debug;
 
 /// Helper for expecting successful results in tests with descriptive messages
 pub fn expect_ok<T>(result: Result<T>, context: &str) -> T {
