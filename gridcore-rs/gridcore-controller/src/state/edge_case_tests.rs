@@ -12,7 +12,7 @@ mod edge_case_tests {
         // Perform many transitions to exceed max history
         for i in 0..150 {
             let cursor = CellAddress::new(i % 10, i / 10);
-            machine.transition(Action::UpdateCursor { cursor }).unwrap();
+            machine.transition(Action::UpdateCursor { cursor }).expect("State transition should succeed in test");
         }
 
         // History should be capped at max size (100)
@@ -45,7 +45,7 @@ mod edge_case_tests {
         }
 
         for handle in handles {
-            handle.join().unwrap();
+            handle.join().expect("Thread should join successfully in test");
         }
 
         // Machine should still be in valid state
@@ -62,7 +62,7 @@ mod edge_case_tests {
         assert!(result.is_err());
 
         // Machine should still be usable
-        machine.transition(Action::EnterCommandMode).unwrap();
+        machine.transition(Action::EnterCommandMode).expect("State transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Command { .. }));
     }
 
@@ -78,7 +78,7 @@ mod edge_case_tests {
                 initial_value: Some(long_string.clone()),
                 cursor_position: Some(50_000),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Editing {
@@ -99,7 +99,7 @@ mod edge_case_tests {
                 value: longer_string.clone(),
                 cursor_position: 250_000,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Editing { editing_value, .. } => {
@@ -125,7 +125,7 @@ mod edge_case_tests {
             .transition(Action::UpdateViewport {
                 viewport: huge_viewport,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         assert_eq!(machine.get_state().viewport(), &huge_viewport);
 
@@ -141,7 +141,7 @@ mod edge_case_tests {
             .transition(Action::UpdateViewport {
                 viewport: zero_viewport,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         assert_eq!(machine.get_state().viewport(), &zero_viewport);
     }
@@ -154,12 +154,12 @@ mod edge_case_tests {
         let max_cursor = CellAddress::new(u32::MAX, u32::MAX);
         machine
             .transition(Action::UpdateCursor { cursor: max_cursor })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         assert_eq!(machine.get_state().cursor(), &max_cursor);
 
         // Ensure we can still perform other operations
-        machine.transition(Action::EnterCommandMode).unwrap();
+        machine.transition(Action::EnterCommandMode).expect("State transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Command { .. }));
     }
 
@@ -169,17 +169,17 @@ mod edge_case_tests {
 
         // Rapidly switch between modes
         for _ in 0..100 {
-            machine.transition(Action::EnterCommandMode).unwrap();
-            machine.transition(Action::Escape).unwrap();
+            machine.transition(Action::EnterCommandMode).expect("State transition should succeed in test");
+            machine.transition(Action::Escape).expect("State transition should succeed in test");
             machine
                 .transition(Action::StartEditing {
                     edit_mode: Some(InsertMode::I),
                     initial_value: None,
                     cursor_position: None,
                 })
-                .unwrap();
-            machine.transition(Action::Escape).unwrap(); // To normal mode
-            machine.transition(Action::Escape).unwrap(); // To navigation
+                .expect("State transition should succeed in test");
+            machine.transition(Action::Escape).expect("State transition should succeed in test"); // To normal mode
+            machine.transition(Action::Escape).expect("State transition should succeed in test"); // To navigation
         }
 
         // Should end in navigation mode
@@ -207,7 +207,7 @@ mod edge_case_tests {
                 visual_mode: SpreadsheetVisualMode::Block,
                 selection: huge_selection.clone(),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Visual { selection, .. } => {
@@ -222,17 +222,17 @@ mod edge_case_tests {
         let mut machine = UIStateMachine::new(None);
 
         // Enter command mode
-        machine.transition(Action::EnterCommandMode).unwrap();
+        machine.transition(Action::EnterCommandMode).expect("State transition should succeed in test");
 
         // Try to execute empty command (should be allowed)
         machine
             .transition(Action::UpdateCommandValue {
                 value: "".to_string(),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Exit command mode
-        machine.transition(Action::ExitCommandMode).unwrap();
+        machine.transition(Action::ExitCommandMode).expect("State transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
 
@@ -251,7 +251,7 @@ mod edge_case_tests {
         });
 
         // Perform transition
-        machine.transition(Action::EnterCommandMode).unwrap();
+        machine.transition(Action::EnterCommandMode).expect("State transition should succeed in test");
 
         // Check listener was called
         assert!(*removed.lock().expect("Test mutex should not be poisoned"));
@@ -263,7 +263,7 @@ mod edge_case_tests {
         *removed.lock().expect("Test mutex should not be poisoned") = false;
 
         // Another transition shouldn't trigger removed listener
-        machine.transition(Action::ExitCommandMode).unwrap();
+        machine.transition(Action::ExitCommandMode).expect("State transition should succeed in test");
         assert!(!*removed.lock().expect("Test mutex should not be poisoned"));
     }
 
@@ -280,7 +280,7 @@ mod edge_case_tests {
                 initial_value: Some(special_chars.to_string()),
                 cursor_position: Some(5),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Editing { editing_value, .. } => {
@@ -290,14 +290,14 @@ mod edge_case_tests {
         }
 
         // Test command with special characters
-        machine.transition(Action::Escape).unwrap();
-        machine.transition(Action::Escape).unwrap();
-        machine.transition(Action::EnterCommandMode).unwrap();
+        machine.transition(Action::Escape).expect("State transition should succeed in test");
+        machine.transition(Action::Escape).expect("State transition should succeed in test");
+        machine.transition(Action::EnterCommandMode).expect("State transition should succeed in test");
         machine
             .transition(Action::UpdateCommandValue {
                 value: special_chars.to_string(),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Command { command_value, .. } => {
@@ -316,7 +316,7 @@ mod edge_case_tests {
             .transition(Action::UpdateCursor {
                 cursor: CellAddress::new(10, 20),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         machine
             .transition(Action::StartEditing {
@@ -324,15 +324,15 @@ mod edge_case_tests {
                 initial_value: Some("test".to_string()),
                 cursor_position: Some(2),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Clear history
         machine.clear_history();
         assert_eq!(machine.get_history().len(), 0);
 
         // Exit to navigation
-        machine.transition(Action::Escape).unwrap();
-        machine.transition(Action::Escape).unwrap();
+        machine.transition(Action::Escape).expect("State transition should succeed in test");
+        machine.transition(Action::Escape).expect("State transition should succeed in test");
 
         // Create new machine with initial state
         let initial_state = UIState::create_navigation_state(

@@ -13,7 +13,7 @@ mod complex_transition_tests {
             .transition(Action::UpdateCursor {
                 cursor: CellAddress::new(5, 5),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Start editing with 'i'
         machine
@@ -22,7 +22,7 @@ mod complex_transition_tests {
                 initial_value: Some("Hello".to_string()),
                 cursor_position: Some(0),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Type some text
         machine
@@ -30,7 +30,7 @@ mod complex_transition_tests {
                 value: "Hello World".to_string(),
                 cursor_position: 11,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Enter visual mode within cell
         machine
@@ -38,7 +38,7 @@ mod complex_transition_tests {
                 visual_type: VisualMode::Character,
                 anchor: Some(6),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Editing {
@@ -79,7 +79,7 @@ mod complex_transition_tests {
             .transition(Action::UpdateCommandValue {
                 value: ":set number".to_string(),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
         machine
             .transition(Action::ExitCommandMode)
             .expect("Transition should succeed in test");
@@ -97,7 +97,7 @@ mod complex_transition_tests {
                 visual_mode: SpreadsheetVisualMode::Line,
                 selection: selection.clone(),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         machine
             .transition(Action::UpdateSelection {
@@ -109,11 +109,11 @@ mod complex_transition_tests {
                     anchor: Some(CellAddress::new(0, 0)),
                 },
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         machine
             .transition(Action::ExitSpreadsheetVisualMode)
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
@@ -130,7 +130,7 @@ mod complex_transition_tests {
                 .transition(Action::UpdateCursor {
                     cursor: CellAddress::new(current.col, current.row + 1),
                 })
-                .unwrap();
+                .expect("State transition should succeed in test");
         }
 
         let end = machine.get_state().cursor();
@@ -144,7 +144,7 @@ mod complex_transition_tests {
                 .transition(Action::UpdateCursor {
                     cursor: CellAddress::new(current.col + 1, current.row),
                 })
-                .unwrap();
+                .expect("State transition should succeed in test");
         }
 
         for _ in 0..2 {
@@ -153,7 +153,7 @@ mod complex_transition_tests {
                 .transition(Action::UpdateCursor {
                     cursor: CellAddress::new(current.col, current.row.saturating_sub(1)),
                 })
-                .unwrap();
+                .expect("State transition should succeed in test");
         }
 
         let final_pos = machine.get_state().cursor();
@@ -176,7 +176,7 @@ mod complex_transition_tests {
         for pos in &positions {
             machine
                 .transition(Action::UpdateCursor { cursor: *pos })
-                .unwrap();
+                .expect("State transition should succeed in test");
         }
 
         // Enter editing mode
@@ -186,7 +186,7 @@ mod complex_transition_tests {
                 initial_value: Some("test".to_string()),
                 cursor_position: Some(0),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Make changes
         machine
@@ -194,7 +194,7 @@ mod complex_transition_tests {
                 value: "test123".to_string(),
                 cursor_position: 7,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Exit editing
         machine
@@ -226,7 +226,7 @@ mod complex_transition_tests {
                 parsed_command: parsed_command.clone(),
                 affected_cells: Some(2600),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::BulkOperation {
@@ -273,7 +273,7 @@ mod complex_transition_tests {
                 },
                 affected_cells: None,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Generate preview
         machine
@@ -298,7 +298,7 @@ mod complex_transition_tests {
                 target: ResizeTarget::Column { index: 5 },
                 initial_position: 100.0,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Resize {
@@ -315,7 +315,7 @@ mod complex_transition_tests {
         // Update resize position
         machine
             .transition(Action::UpdateResize { delta: 50.0 })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Resize {
@@ -344,7 +344,7 @@ mod complex_transition_tests {
                 position: InsertPosition::Before,
                 reference: 10,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Insert {
@@ -365,7 +365,7 @@ mod complex_transition_tests {
         // Update count
         machine
             .transition(Action::UpdateInsertCount { count: 5 })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Confirm insert
         machine
@@ -379,7 +379,7 @@ mod complex_transition_tests {
                 targets: vec![0, 1, 2],
                 delete_type: DeleteType::Column,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Delete {
@@ -417,7 +417,7 @@ mod complex_transition_tests {
                 visual_mode: SpreadsheetVisualMode::Char,
                 selection: initial_selection,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Expand to range
         machine
@@ -430,14 +430,14 @@ mod complex_transition_tests {
                     anchor: Some(CellAddress::new(5, 5)),
                 },
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Change to line mode
         machine
             .transition(Action::ChangeVisualMode {
                 new_mode: SpreadsheetVisualMode::Line,
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         // Expand further
         machine
@@ -449,7 +449,7 @@ mod complex_transition_tests {
                     anchor: Some(CellAddress::new(5, 5)),
                 },
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Visual {
@@ -485,7 +485,7 @@ mod complex_transition_tests {
                 .transition(Action::UpdateCommandValue {
                     value: command[..=i].to_string(),
                 })
-                .unwrap();
+                .expect("State transition should succeed in test");
         }
 
         match machine.get_state() {
@@ -509,7 +509,7 @@ mod complex_transition_tests {
             .transition(Action::UpdateCommandValue {
                 value: range_command.to_string(),
             })
-            .unwrap();
+            .expect("State transition should succeed in test");
 
         match machine.get_state() {
             UIState::Command { command_value, .. } => {
