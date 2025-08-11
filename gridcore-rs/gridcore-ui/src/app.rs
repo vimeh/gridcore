@@ -27,6 +27,9 @@ pub fn App() -> impl IntoView {
     let controller_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
     provide_context(controller_stored);
 
+    // State version to trigger updates when controller events occur
+    let (state_version, set_state_version) = signal(0u32);
+
     // Create error handling signals
     let (errors, set_errors) = signal::<Vec<ErrorMessage>>(Vec::new());
     let error_counter = RwSignal::new(0usize);
@@ -36,9 +39,9 @@ pub fn App() -> impl IntoView {
         let callback = Box::new(
             move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
                 use gridcore_controller::controller::events::SpreadsheetEvent;
-                
+
                 leptos::logging::log!("Controller event received: {:?}", event);
-                
+
                 // Increment state version for any state-changing event
                 match event {
                     SpreadsheetEvent::CursorMoved { .. }
@@ -66,13 +69,9 @@ pub fn App() -> impl IntoView {
                     }
                     _ => {}
                 }
-                
+
                 // Handle specific events
-                if let SpreadsheetEvent::ErrorOccurred {
-                    message,
-                    severity,
-                } = event
-                {
+                if let SpreadsheetEvent::ErrorOccurred { message, severity } = event {
                     leptos::logging::log!(
                         "ErrorOccurred event received: {} ({:?})",
                         message,
@@ -111,10 +110,21 @@ pub fn App() -> impl IntoView {
         controller.borrow_mut().subscribe_to_events(callback);
     }
 
-    // Create reactive signals for UI state
-    // Create a signal for the active cell that we'll update when controller changes
-    let (active_cell, set_active_cell) = signal(CellAddress::new(0, 0));
+    // Create signals that will be synced with controller state
+    let initial_cursor = controller.borrow().get_cursor();
+    let (active_cell, set_active_cell) = signal(initial_cursor);
     let (active_sheet, set_active_sheet) = signal(0);
+
+    // Sync active cell from controller state changes
+    let controller_for_active_cell = controller.clone();
+    Effect::new(move |_| {
+        // Trigger on state_version change
+        let _ = state_version.get();
+        let cursor = controller_for_active_cell.borrow().get_cursor();
+        if active_cell.get() != cursor {
+            set_active_cell.set(cursor);
+        }
+    });
 
     // Initialize formula value with A1's content
     let initial_formula_value = {
@@ -123,16 +133,20 @@ pub fn App() -> impl IntoView {
     };
     let (formula_value, set_formula_value) = signal(initial_formula_value);
 
-    // Get initial mode from controller
+    // Create mode signal that will be synced with controller
     let initial_mode = controller.borrow().get_state().spreadsheet_mode();
-
-    // Update formula bar when active cell changes
-    let _ctrl_for_effect = controller.clone();
-    // Removed duplicate create_effect - we have the better one below
     let (current_mode, set_current_mode) = signal(initial_mode);
 
-    // State version to trigger updates when controller events occur
-    let (state_version, set_state_version) = signal(0u32);
+    // Sync mode from controller state changes
+    let controller_for_mode = controller.clone();
+    Effect::new(move |_| {
+        // Trigger on state_version change
+        let _ = state_version.get();
+        let mode = controller_for_mode.borrow().get_state().spreadsheet_mode();
+        if current_mode.get() != mode {
+            set_current_mode.set(mode);
+        }
+    });
 
     // Sheet management
     let initial_sheets = vec![
@@ -151,28 +165,27 @@ pub fn App() -> impl IntoView {
     ];
     let (sheets, _set_sheets) = signal(initial_sheets);
 
-    // Selection statistics (will be calculated from selection)
-    let (selection_stats, set_selection_stats) = signal(SelectionStats::default());
-
     // Keyboard-only mode state
     let (keyboard_only_mode, set_keyboard_only_mode) = signal(false);
 
-    // Update selection stats when the cursor or selection changes
+    // Keep selection stats as signal for now since SelectionStats doesn't implement PartialEq
+    let (selection_stats, set_selection_stats) = signal(SelectionStats::default());
+
+    // Update selection stats when state changes
     let controller_for_stats = controller.clone();
     Effect::new(move |_| {
-        // Track active cell changes to trigger recalculation
-        let _ = active_cell.get();
-
-        // Get the current selection stats from the controller
+        // Trigger on state_version change
+        let _ = state_version.get();
         let stats = controller_for_stats.borrow().get_current_selection_stats();
         set_selection_stats.set(stats);
     });
 
     // Update formula bar when active cell changes (but not during editing)
-    let controller_for_effect = controller.clone();
+    let controller_for_formula = controller.clone();
     Effect::new(move |_| {
+        // Use the derived active_cell memo
         let cell = active_cell.get();
-        let ctrl = controller_for_effect.clone();
+        let ctrl = controller_for_formula.clone();
 
         // Check if we're in editing mode
         let is_editing = matches!(

@@ -255,17 +255,17 @@ mod tests {
     #[test]
     fn test_update_editing_value_during_typing() {
         use crate::state::actions::Action;
-        
+
         // Arrange
         let mut controller = SpreadsheetController::new();
-        
+
         // Set initial cell value
         let cell_addr = CellAddress::new(0, 0);
         controller
             .get_facade_mut()
             .set_cell_value(&cell_addr, "Hello")
             .unwrap();
-        
+
         // Start editing with 'i' key
         let event = KeyboardEvent {
             key: "i".to_string(),
@@ -276,7 +276,7 @@ mod tests {
             meta: false,
         };
         controller.handle_keyboard_event(event).unwrap();
-        
+
         // Act - Simulate typing by updating the editing value
         controller
             .dispatch_action(Action::UpdateEditingValue {
@@ -284,7 +284,7 @@ mod tests {
                 cursor_position: 3,
             })
             .unwrap();
-        
+
         // Assert
         let state = controller.get_state();
         match state {
@@ -293,7 +293,10 @@ mod tests {
                 cursor_position,
                 ..
             } => {
-                assert_eq!(editing_value, "NewHello", "Value should be updated during typing");
+                assert_eq!(
+                    editing_value, "NewHello",
+                    "Value should be updated during typing"
+                );
                 assert_eq!(*cursor_position, 3, "Cursor position should be at 3");
             }
             _ => panic!("Expected Editing state"),

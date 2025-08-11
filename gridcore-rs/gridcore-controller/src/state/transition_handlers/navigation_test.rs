@@ -219,7 +219,7 @@ mod tests {
     fn test_update_editing_value_action() {
         // Arrange
         use crate::state::transition_handlers::editing::EditingHandler;
-        
+
         let initial_state = UIState::Editing {
             cursor: CellAddress::new(0, 0),
             viewport: ViewportInfo {
@@ -235,20 +235,20 @@ mod tests {
             visual_type: None,
             edit_variant: Some(InsertMode::I),
         };
-        
+
         let handler = EditingHandler;
         let action = Action::UpdateEditingValue {
             value: "Hello World".to_string(),
             cursor_position: 11,
         };
-        
+
         // Act
         let result = handler.handle(&initial_state, &action);
-        
+
         // Assert
         assert!(result.is_ok());
         let new_state = result.unwrap();
-        
+
         match new_state {
             UIState::Editing {
                 editing_value,

@@ -678,7 +678,7 @@ pub fn CanvasGrid(
                 cell_position=cell_position
                 set_formula_value=set_formula_value
                 set_current_mode=set_current_mode
-                set_state_version=set_state_version
+                _set_state_version=set_state_version
             />
         </div>
     }

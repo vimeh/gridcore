@@ -17,7 +17,7 @@ pub fn CellEditor(
     cell_position: ReadSignal<(f64, f64, f64, f64)>, // x, y, width, height
     set_formula_value: WriteSignal<String>,
     set_current_mode: WriteSignal<SpreadsheetMode>,
-    set_state_version: WriteSignal<u32>,
+    _set_state_version: WriteSignal<u32>,
 ) -> impl IntoView {
     // Get controller from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
@@ -132,20 +132,20 @@ pub fn CellEditor(
                     node_ref=input_ref
                     on:input=move |ev| {
                         let new_value = event_target_value(&ev);
-                        
+
                         // Get current cursor position
                         let cursor_pos = if let Some(input) = input_ref.get() {
                             input.selection_start().unwrap_or(Some(0)).unwrap_or(0) as usize
                         } else {
                             new_value.len()
                         };
-                        
+
                         leptos::logging::log!(
                             "Input event: new value = '{}', cursor at {}",
                             new_value,
                             cursor_pos
                         );
-                        
+
                         // Update the controller's editing value immediately
                         controller_stored.with_value(|ctrl| {
                             let mut ctrl_mut = ctrl.borrow_mut();
@@ -156,7 +156,7 @@ pub fn CellEditor(
                                 leptos::logging::log!("Error updating editing value: {:?}", e);
                             }
                         });
-                        
+
                         // Update formula bar
                         set_formula_value.set(new_value);
                     }
@@ -493,7 +493,7 @@ pub fn CellEditor(
                                                         leptos::logging::log!("Error updating editing value: {:?}", e);
                                                     }
                                                 });
-                                                
+
                                                 set_suggestions.set(Vec::new());
                                                 set_selected_suggestion.set(None);
 
