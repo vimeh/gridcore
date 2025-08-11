@@ -300,9 +300,8 @@ pub fn CanvasGrid(
                 {
                     debug_log!("Error starting edit on double-click: {:?}", e);
                 } else {
-                    // Update UI state
-                    set_editing_mode.set(true);
-                    set_current_mode.set(SpreadsheetMode::Insert);
+                    // Canvas_grid's effect will handle setting editing_mode based on controller state
+                    // Controller will handle mode transition
                 }
             }
         }
@@ -675,10 +674,10 @@ pub fn CanvasGrid(
             <CellEditor
                 active_cell=active_cell
                 editing_mode=editing_mode
-                set_editing_mode=set_editing_mode
+                _set_editing_mode=set_editing_mode
                 cell_position=cell_position
                 set_formula_value=set_formula_value
-                set_current_mode=set_current_mode
+                _set_current_mode=set_current_mode
             />
         </div>
     }
@@ -860,15 +859,6 @@ fn render_grid(
 }
 
 fn get_column_label(col: usize) -> String {
-    let mut label = String::new();
-    let mut n = col;
-    loop {
-        label.insert(0, ((n % 26) as u8 + b'A') as char);
-        n /= 26;
-        if n == 0 {
-            break;
-        }
-        n -= 1;
-    }
-    label
+    // Use the core's implementation for consistency
+    gridcore_core::types::CellAddress::column_number_to_label(col as u32)
 }
