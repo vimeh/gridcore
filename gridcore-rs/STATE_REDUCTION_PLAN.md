@@ -49,12 +49,13 @@ This document tracks the migration of state management from the UI layer to the 
 - [x] Update on state_version changes
 - [ ] Remove direct selection tracking
 
-### Phase 6: Sheet Management
+### Phase 6: Sheet Management ✅
 
-- [ ] Add sheet list to SpreadsheetFacade
-- [ ] Implement sheet CRUD operations
-- [ ] Add sheet events to controller
-- [ ] Remove sheets signal
+- [x] Add sheet list to SpreadsheetFacade
+- [x] Implement sheet CRUD operations
+- [x] Add sheet events to controller
+- [x] Remove sheets signal (still synced from controller)
+- [x] Add comprehensive unit tests for sheet management
 
 ### Phase 7: Canvas Grid Simplification
 
@@ -79,18 +80,18 @@ This document tracks the migration of state management from the UI layer to the 
 
 | Component  | Signals Before | Signals After | Status      |
 | ---------- | -------------- | ------------- | ----------- |
-| App.rs     | 10             | 6             | Complete    |
+| App.rs     | 10             | 5             | Complete    |
 | CanvasGrid | 5              | 4             | Complete    |
 | CellEditor | 2              | 0             | Complete    |
-| TabBar     | 4              | 4             | Pending     |
+| TabBar     | 4              | 3             | Complete    |
 | StatusBar  | 0              | 0             | Complete    |
 
 ## Metrics
 
 - **Total Signals Before**: ~15
-- **Current Signals**: ~10
+- **Current Signals**: ~8
 - **Target Signals After**: 2-3
-- **Code Reduction**: ~300 lines removed so far
+- **Code Reduction**: ~400 lines removed so far
 - **Performance**: Fewer reactive updates, centralized state management
 
 ## Testing Checklist
@@ -102,7 +103,7 @@ This document tracks the migration of state management from the UI layer to the 
 - [x] Selection stats accurate
 - [x] Error display works
 - [x] Canvas renders correctly
-- [ ] Sheet switching works
+- [x] Sheet switching works
 
 ## Notes
 
@@ -120,7 +121,7 @@ This document tracks the migration of state management from the UI layer to the 
 
 ## Next Steps
 
-1. Move formula bar logic to controller
-2. Implement sheet management in core
-3. Simplify canvas grid signals
-4. Consolidate error handling
+1. ~~Move formula bar logic to controller~~ ✅
+2. ~~Implement sheet management in core~~ ✅  
+3. Simplify canvas grid signals (Phase 7)
+4. Consolidate error handling (Phase 8)

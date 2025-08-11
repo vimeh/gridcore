@@ -103,6 +103,19 @@ pub enum Action {
         value: String,
     },
     SubmitFormulaBar,
+    AddSheet {
+        name: String,
+    },
+    RemoveSheet {
+        name: String,
+    },
+    RenameSheet {
+        old_name: String,
+        new_name: String,
+    },
+    SetActiveSheet {
+        name: String,
+    },
     UpdateResizeSize {
         size: u32,
     },

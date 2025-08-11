@@ -1,5 +1,9 @@
+use gridcore_controller::controller::SpreadsheetController;
+use gridcore_controller::state::Action;
 use leptos::either::Either;
 use leptos::prelude::*;
+use std::cell::RefCell;
+use std::rc::Rc;
 use web_sys::MouseEvent;
 
 #[derive(Clone, Debug)]
@@ -20,11 +24,22 @@ pub fn TabBar(
     let (editing_sheet, set_editing_sheet) = signal(None::<usize>);
     let (edit_name, set_edit_name) = signal(String::new());
 
+    // Get controller from context
+    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
+        use_context().expect("SpreadsheetController not found in context");
+    let controller = controller_stored.get_value();
+
     // Add new sheet
+    let controller_for_add = controller.clone();
     let add_sheet = move |_| {
-        // This would normally dispatch an action to the controller
-        // For now, just log
-        leptos::logging::log!("Add new sheet");
+        let sheet_count = sheets.get().len();
+        let new_name = format!("Sheet{}", sheet_count + 1);
+        controller_for_add
+            .borrow_mut()
+            .dispatch_action(Action::AddSheet { name: new_name })
+            .unwrap_or_else(|e| {
+                leptos::logging::log!("Error adding sheet: {}", e);
+            });
     };
 
     // Handle right-click on tab
@@ -48,22 +63,14 @@ pub fn TabBar(
         set_show_context_menu.set(false);
     };
 
-    // Finish renaming
-    let finish_rename = move |sheet_id: usize| {
-        let new_name = edit_name.get();
-        if !new_name.is_empty() {
-            // This would normally dispatch an action to rename the sheet
-            leptos::logging::log!("Rename sheet {} to {}", sheet_id, new_name);
-        }
-        set_editing_sheet.set(None);
-    };
+    // Store sheets and edit name in signals that can be captured
+    let sheets_for_rename = sheets;
+    let edit_name_for_rename = edit_name;
+    let set_editing_for_rename = set_editing_sheet;
 
-    // Delete sheet
-    let delete_sheet = move |sheet_id: usize| {
-        // This would normally dispatch an action to delete the sheet
-        leptos::logging::log!("Delete sheet {}", sheet_id);
-        set_show_context_menu.set(false);
-    };
+    // Store sheets and context menu setter for delete
+    let sheets_for_delete = sheets;
+    let set_show_context_for_delete = set_show_context_menu;
 
     // Duplicate sheet
     let duplicate_sheet = move |sheet_id: usize| {
@@ -93,7 +100,20 @@ pub fn TabBar(
                     view! {
                         <div
                             class="tab"
-                            on:click=move |_| set_active_sheet.set(sheet_id)
+                            on:click=move |_| {
+                                let controller = controller_stored.get_value();
+                                let sheet_name_for_click = sheets.get()
+                                    .iter()
+                                    .find(|s| s.id == sheet_id)
+                                    .map(|s| s.name.clone())
+                                    .unwrap_or_default();
+                                controller.borrow_mut()
+                                    .dispatch_action(Action::SetActiveSheet { name: sheet_name_for_click })
+                                    .unwrap_or_else(|e| {
+                                        leptos::logging::log!("Error switching sheet: {}", e);
+                                    });
+                                set_active_sheet.set(sheet_id);
+                            }
                             on:contextmenu=move |ev| on_context_menu(ev, sheet_id)
                             style=move || {
                                 if is_active() {
@@ -109,10 +129,48 @@ pub fn TabBar(
                                         type="text"
                                         value=edit_name
                                         on:input=move |ev| set_edit_name.set(event_target_value(&ev))
-                                        on:blur=move |_| finish_rename(sheet_id)
+                                        on:blur=move |_| {
+                                            let controller = controller_stored.get_value();
+                                            let new_name = edit_name_for_rename.get();
+                                            if !new_name.is_empty() {
+                                                let old_name = sheets_for_rename.get()
+                                                    .iter()
+                                                    .find(|s| s.id == sheet_id)
+                                                    .map(|s| s.name.clone())
+                                                    .unwrap_or_default();
+
+                                                controller.borrow_mut()
+                                                    .dispatch_action(Action::RenameSheet {
+                                                        old_name,
+                                                        new_name
+                                                    })
+                                                    .unwrap_or_else(|e| {
+                                                        leptos::logging::log!("Error renaming sheet: {}", e);
+                                                    });
+                                            }
+                                            set_editing_for_rename.set(None);
+                                        }
                                         on:keydown=move |ev| {
                                             if ev.key() == "Enter" {
-                                                finish_rename(sheet_id);
+                                                let controller = controller_stored.get_value();
+                                                let new_name = edit_name_for_rename.get();
+                                                if !new_name.is_empty() {
+                                                    let old_name = sheets_for_rename.get()
+                                                        .iter()
+                                                        .find(|s| s.id == sheet_id)
+                                                        .map(|s| s.name.clone())
+                                                        .unwrap_or_default();
+
+                                                    controller.borrow_mut()
+                                                        .dispatch_action(Action::RenameSheet {
+                                                            old_name,
+                                                            new_name
+                                                        })
+                                                        .unwrap_or_else(|e| {
+                                                            leptos::logging::log!("Error renaming sheet: {}", e);
+                                                        });
+                                                }
+                                                set_editing_for_rename.set(None);
                                             } else if ev.key() == "Escape" {
                                                 set_editing_sheet.set(None);
                                             }
@@ -169,7 +227,21 @@ pub fn TabBar(
                             </div>
                             <div style="border-top: 1px solid #e0e0e0; margin: 4px 0;"></div>
                             <div
-                                on:click=move |_| delete_sheet(menu_sheet)
+                                on:click=move |_| {
+                                    let controller = controller_stored.get_value();
+                                    let sheet_name = sheets_for_delete.get()
+                                        .iter()
+                                        .find(|s| s.id == menu_sheet)
+                                        .map(|s| s.name.clone())
+                                        .unwrap_or_default();
+
+                                    controller.borrow_mut()
+                                        .dispatch_action(Action::RemoveSheet { name: sheet_name })
+                                        .unwrap_or_else(|e| {
+                                            leptos::logging::log!("Error deleting sheet: {}", e);
+                                        });
+                                    set_show_context_for_delete.set(false);
+                                }
                                 style="padding: 8px 12px; cursor: pointer; color: #d32f2f;"
                                 onmouseover="this.style.background='#ffebee'"
                                 onmouseout="this.style.background='white'"

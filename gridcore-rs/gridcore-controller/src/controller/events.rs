@@ -103,6 +103,22 @@ pub enum SpreadsheetEvent {
         value: String,
     },
 
+    // Sheet events
+    SheetAdded {
+        name: String,
+    },
+    SheetRemoved {
+        name: String,
+    },
+    SheetRenamed {
+        old_name: String,
+        new_name: String,
+    },
+    SheetChanged {
+        from: String,
+        to: String,
+    },
+
     // Error events
     ErrorOccurred {
         message: String,

@@ -8,11 +8,14 @@ use crate::domain::Cell;
 use crate::ports::{EventPort, RepositoryPort};
 use crate::services::{ServiceContainer, ServiceContainerBuilder};
 use crate::types::{CellAddress, CellValue};
-use std::sync::Arc;
+use crate::workbook::{Sheet, SheetManager, Workbook};
+use std::sync::{Arc, Mutex};
 
 /// Facade for spreadsheet operations using clean architecture
 pub struct SpreadsheetFacade {
     container: Arc<ServiceContainer>,
+    sheet_manager: Arc<Mutex<SheetManager>>,
+    active_sheet: Arc<Mutex<String>>,
 }
 
 impl SpreadsheetFacade {
@@ -28,15 +31,26 @@ impl SpreadsheetFacade {
             .with_events(events as Arc<dyn EventPort>)
             .build();
 
+        // Initialize with a default workbook containing one sheet
+        let workbook = Workbook::with_sheet("Sheet1");
+        let sheet_manager = SheetManager::with_workbook(workbook);
+
         Self {
             container: Arc::new(container),
+            sheet_manager: Arc::new(Mutex::new(sheet_manager)),
+            active_sheet: Arc::new(Mutex::new("Sheet1".to_string())),
         }
     }
 
     /// Create a new facade with the given container
     pub fn with_container(container: ServiceContainer) -> Self {
+        let workbook = Workbook::with_sheet("Sheet1");
+        let sheet_manager = SheetManager::with_workbook(workbook);
+
         Self {
             container: Arc::new(container),
+            sheet_manager: Arc::new(Mutex::new(sheet_manager)),
+            active_sheet: Arc::new(Mutex::new("Sheet1".to_string())),
         }
     }
 
@@ -249,6 +263,93 @@ impl SpreadsheetFacade {
 impl Default for SpreadsheetFacade {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl SpreadsheetFacade {
+    // Sheet management methods
+
+    /// Get list of all sheets
+    pub fn get_sheets(&self) -> Vec<(String, usize)> {
+        let manager = self.sheet_manager.lock().unwrap();
+        manager
+            .workbook()
+            .sheet_names()
+            .iter()
+            .enumerate()
+            .map(|(idx, name)| (name.clone(), idx))
+            .collect()
+    }
+
+    /// Get the active sheet name
+    pub fn get_active_sheet(&self) -> String {
+        self.active_sheet.lock().unwrap().clone()
+    }
+
+    /// Set the active sheet
+    pub fn set_active_sheet(&self, sheet_name: &str) -> Result<()> {
+        let manager = self.sheet_manager.lock().unwrap();
+        if manager.workbook().get_sheet(sheet_name).is_some() {
+            *self.active_sheet.lock().unwrap() = sheet_name.to_string();
+            Ok(())
+        } else {
+            Err(crate::SpreadsheetError::InvalidOperation(format!(
+                "Sheet '{}' does not exist",
+                sheet_name
+            )))
+        }
+    }
+
+    /// Add a new sheet
+    pub fn add_sheet(&self, name: &str) -> Result<()> {
+        let mut manager = self.sheet_manager.lock().unwrap();
+        let sheet = Sheet::new(name);
+        manager.workbook_mut().add_sheet(sheet)
+    }
+
+    /// Remove a sheet
+    pub fn remove_sheet(&self, name: &str) -> Result<()> {
+        let mut manager = self.sheet_manager.lock().unwrap();
+
+        // Don't allow removing the last sheet
+        if manager.workbook().sheet_count() <= 1 {
+            return Err(crate::SpreadsheetError::InvalidOperation(
+                "Cannot remove the last sheet".to_string(),
+            ));
+        }
+
+        // If removing the active sheet, switch to another one
+        if self.get_active_sheet() == name {
+            let sheets = manager.workbook().sheet_names();
+            for sheet_name in sheets {
+                if sheet_name != name {
+                    self.set_active_sheet(sheet_name)?;
+                    break;
+                }
+            }
+        }
+
+        manager.workbook_mut().remove_sheet(name)?;
+        Ok(())
+    }
+
+    /// Rename a sheet
+    pub fn rename_sheet(&self, old_name: &str, new_name: &str) -> Result<()> {
+        let mut manager = self.sheet_manager.lock().unwrap();
+        manager.workbook_mut().rename_sheet(old_name, new_name)?;
+
+        // Update active sheet if it was renamed
+        if self.get_active_sheet() == old_name {
+            *self.active_sheet.lock().unwrap() = new_name.to_string();
+        }
+
+        Ok(())
+    }
+
+    /// Get the number of sheets
+    pub fn sheet_count(&self) -> usize {
+        let manager = self.sheet_manager.lock().unwrap();
+        manager.workbook().sheet_count()
     }
 }
 

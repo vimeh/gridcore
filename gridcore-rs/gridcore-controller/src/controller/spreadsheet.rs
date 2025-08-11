@@ -121,6 +121,23 @@ impl SpreadsheetController {
             return Ok(());
         }
 
+        // Handle sheet actions
+        if let Action::AddSheet { name } = &action {
+            return self.add_sheet(name);
+        }
+
+        if let Action::RemoveSheet { name } = &action {
+            return self.remove_sheet(name);
+        }
+
+        if let Action::RenameSheet { old_name, new_name } = &action {
+            return self.rename_sheet(old_name, new_name);
+        }
+
+        if let Action::SetActiveSheet { name } = &action {
+            return self.set_active_sheet(name);
+        }
+
         if matches!(action, Action::SubmitFormulaBar) {
             // Submit the formula bar value to the current cell
             let value = self.formula_bar_value.clone();
@@ -368,6 +385,65 @@ impl SpreadsheetController {
         let cursor = self.get_cursor();
         let value = self.get_cell_display_for_ui(&cursor);
         self.set_formula_bar_value(value);
+    }
+
+    // Sheet management methods
+
+    /// Get list of all sheets
+    pub fn get_sheets(&self) -> Vec<(String, usize)> {
+        self.facade.get_sheets()
+    }
+
+    /// Get the active sheet name
+    pub fn get_active_sheet(&self) -> String {
+        self.facade.get_active_sheet()
+    }
+
+    /// Set the active sheet
+    pub fn set_active_sheet(&mut self, sheet_name: &str) -> Result<()> {
+        self.facade.set_active_sheet(sheet_name)?;
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::SheetChanged {
+                from: self.get_active_sheet(),
+                to: sheet_name.to_string(),
+            });
+        Ok(())
+    }
+
+    /// Add a new sheet
+    pub fn add_sheet(&mut self, name: &str) -> Result<()> {
+        self.facade.add_sheet(name)?;
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::SheetAdded {
+                name: name.to_string(),
+            });
+        Ok(())
+    }
+
+    /// Remove a sheet
+    pub fn remove_sheet(&mut self, name: &str) -> Result<()> {
+        self.facade.remove_sheet(name)?;
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::SheetRemoved {
+                name: name.to_string(),
+            });
+        Ok(())
+    }
+
+    /// Rename a sheet
+    pub fn rename_sheet(&mut self, old_name: &str, new_name: &str) -> Result<()> {
+        self.facade.rename_sheet(old_name, new_name)?;
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::SheetRenamed {
+                old_name: old_name.to_string(),
+                new_name: new_name.to_string(),
+            });
+        Ok(())
+    }
+
+    /// Get the number of sheets
+    pub fn sheet_count(&self) -> usize {
+        self.facade.sheet_count()
     }
 
     pub fn subscribe_to_events<F>(&mut self, listener: F) -> usize
@@ -810,5 +886,184 @@ impl SpreadsheetController {
 impl Default for SpreadsheetController {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod sheet_tests {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn test_get_sheets() {
+        let controller = SpreadsheetController::new();
+        let sheets = controller.get_sheets();
+
+        // Should have at least one default sheet
+        assert!(!sheets.is_empty());
+        assert_eq!(sheets[0].0, "Sheet1");
+    }
+
+    #[test]
+    fn test_add_sheet() {
+        let mut controller = SpreadsheetController::new();
+
+        // Add a new sheet
+        let result = controller.add_sheet("TestSheet");
+        assert!(result.is_ok());
+
+        // Verify sheet was added
+        let sheets = controller.get_sheets();
+        assert!(sheets.iter().any(|(name, _)| name == "TestSheet"));
+    }
+
+    #[test]
+    fn test_remove_sheet() {
+        let mut controller = SpreadsheetController::new();
+
+        // Add sheets
+        controller.add_sheet("Sheet2").unwrap();
+        controller.add_sheet("Sheet3").unwrap();
+
+        // Remove a sheet
+        let result = controller.remove_sheet("Sheet2");
+        assert!(result.is_ok());
+
+        // Verify sheet was removed
+        let sheets = controller.get_sheets();
+        assert!(!sheets.iter().any(|(name, _)| name == "Sheet2"));
+        assert!(sheets.iter().any(|(name, _)| name == "Sheet3"));
+    }
+
+    #[test]
+    fn test_rename_sheet() {
+        let mut controller = SpreadsheetController::new();
+
+        // Add a sheet
+        controller.add_sheet("OldName").unwrap();
+
+        // Rename it
+        let result = controller.rename_sheet("OldName", "NewName");
+        assert!(result.is_ok());
+
+        // Verify rename
+        let sheets = controller.get_sheets();
+        assert!(!sheets.iter().any(|(name, _)| name == "OldName"));
+        assert!(sheets.iter().any(|(name, _)| name == "NewName"));
+    }
+
+    #[test]
+    fn test_set_active_sheet() {
+        let mut controller = SpreadsheetController::new();
+
+        // Add multiple sheets
+        controller.add_sheet("Sheet2").unwrap();
+        controller.add_sheet("Sheet3").unwrap();
+
+        // Set active sheet
+        let result = controller.set_active_sheet("Sheet2");
+        assert!(result.is_ok());
+
+        // Verify active sheet
+        let active = controller.get_active_sheet();
+        assert_eq!(active, "Sheet2");
+    }
+
+    #[test]
+    fn test_sheet_count() {
+        let mut controller = SpreadsheetController::new();
+
+        let initial_count = controller.sheet_count();
+        assert!(initial_count > 0);
+
+        // Add sheets
+        controller.add_sheet("Sheet2").unwrap();
+        controller.add_sheet("Sheet3").unwrap();
+
+        // Verify count increased
+        assert_eq!(controller.sheet_count(), initial_count + 2);
+    }
+
+    #[test]
+    fn test_sheet_events() {
+        let mut controller = SpreadsheetController::new();
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let events_clone = events.clone();
+
+        // Subscribe to events
+        controller.subscribe_to_events(move |event| {
+            let mut e = events_clone.lock().unwrap();
+            e.push(format!("{:?}", event));
+        });
+
+        // Add a sheet
+        controller.add_sheet("TestSheet").unwrap();
+
+        // Check that SheetAdded event was dispatched
+        let e = events.lock().unwrap();
+        assert!(e.iter().any(|s| s.contains("SheetAdded")));
+        assert!(e.iter().any(|s| s.contains("TestSheet")));
+    }
+
+    #[test]
+    fn test_sheet_actions() {
+        let mut controller = SpreadsheetController::new();
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let events_clone = events.clone();
+
+        // Subscribe to events
+        controller.subscribe_to_events(move |event| {
+            let mut e = events_clone.lock().unwrap();
+            e.push(format!("{:?}", event));
+        });
+
+        // Test AddSheet action
+        controller
+            .dispatch_action(Action::AddSheet {
+                name: "NewSheet".to_string(),
+            })
+            .unwrap();
+
+        let sheets = controller.get_sheets();
+        assert!(sheets.iter().any(|(name, _)| name == "NewSheet"));
+
+        // Test RenameSheet action
+        controller
+            .dispatch_action(Action::RenameSheet {
+                old_name: "NewSheet".to_string(),
+                new_name: "RenamedSheet".to_string(),
+            })
+            .unwrap();
+
+        let sheets = controller.get_sheets();
+        assert!(sheets.iter().any(|(name, _)| name == "RenamedSheet"));
+
+        // Test SetActiveSheet action
+        controller
+            .dispatch_action(Action::SetActiveSheet {
+                name: "RenamedSheet".to_string(),
+            })
+            .unwrap();
+
+        assert_eq!(controller.get_active_sheet(), "RenamedSheet");
+
+        // Verify events were dispatched
+        let e = events.lock().unwrap();
+        assert!(e.iter().any(|s| s.contains("SheetAdded")));
+        assert!(e.iter().any(|s| s.contains("SheetRenamed")));
+        assert!(e.iter().any(|s| s.contains("SheetChanged")));
+    }
+
+    #[test]
+    fn test_remove_last_sheet_fails() {
+        let mut controller = SpreadsheetController::new();
+
+        // Get initial sheets
+        let sheets = controller.get_sheets();
+        if sheets.len() == 1 {
+            // Try to remove the last sheet - should fail
+            let result = controller.remove_sheet(&sheets[0].0);
+            assert!(result.is_err());
+        }
     }
 }

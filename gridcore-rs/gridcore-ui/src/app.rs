@@ -69,7 +69,11 @@ pub fn App() -> impl IntoView {
                     | SpreadsheetEvent::CellsPasted { .. }
                     | SpreadsheetEvent::UndoPerformed
                     | SpreadsheetEvent::RedoPerformed
-                    | SpreadsheetEvent::FormulaBarUpdated { .. } => {
+                    | SpreadsheetEvent::FormulaBarUpdated { .. }
+                    | SpreadsheetEvent::SheetAdded { .. }
+                    | SpreadsheetEvent::SheetRemoved { .. }
+                    | SpreadsheetEvent::SheetRenamed { .. }
+                    | SpreadsheetEvent::SheetChanged { .. } => {
                         set_state_version.update(|v| *v += 1);
                     }
                     _ => {}
@@ -123,7 +127,6 @@ pub fn App() -> impl IntoView {
     // Create signals that will be synced with controller state
     let initial_cursor = controller.borrow().get_cursor();
     let (active_cell, set_active_cell) = signal(initial_cursor);
-    let (active_sheet, set_active_sheet) = signal(0);
 
     // Sync active cell from controller state changes
     let controller_for_active_cell = controller.clone();
@@ -151,22 +154,30 @@ pub fn App() -> impl IntoView {
         }
     });
 
-    // Sheet management
-    let initial_sheets = vec![
-        Sheet {
-            id: 0,
-            name: "Sheet1".to_string(),
-        },
-        Sheet {
-            id: 1,
-            name: "Sheet2".to_string(),
-        },
-        Sheet {
-            id: 2,
-            name: "Sheet3".to_string(),
-        },
-    ];
-    let (sheets, _set_sheets) = signal(initial_sheets);
+    // Sheet management - sync from controller
+    let initial_sheets = controller
+        .borrow()
+        .get_sheets()
+        .into_iter()
+        .map(|(name, id)| Sheet { id, name })
+        .collect::<Vec<_>>();
+    let (sheets, set_sheets) = signal(initial_sheets);
+    let _initial_active_sheet = controller.borrow().get_active_sheet();
+    let (active_sheet, set_active_sheet) = signal(0usize); // For now, we'll use index 0
+
+    // Sync sheets from controller state changes
+    let controller_for_sheets = controller.clone();
+    Effect::new(move |_| {
+        // Trigger on state_version change
+        let _ = state_version.get();
+        let new_sheets = controller_for_sheets
+            .borrow()
+            .get_sheets()
+            .into_iter()
+            .map(|(name, id)| Sheet { id, name })
+            .collect::<Vec<_>>();
+        set_sheets.set(new_sheets);
+    });
 
     // Keyboard-only mode state
     let (keyboard_only_mode, set_keyboard_only_mode) = signal(false);
