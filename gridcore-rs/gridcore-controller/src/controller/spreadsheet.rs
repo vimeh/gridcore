@@ -186,6 +186,22 @@ impl SpreadsheetController {
     pub fn get_facade_mut(&mut self) -> &mut SpreadsheetFacade {
         &mut self.facade
     }
+    
+    /// Get the display value for a cell in the UI
+    /// Returns the formula if the cell has one, otherwise the display value
+    pub fn get_cell_display_for_ui(&self, address: &CellAddress) -> String {
+        if let Some(cell) = self.facade.get_cell(address) {
+            if cell.has_formula() {
+                // Show the formula for editing
+                cell.raw_value.to_string()
+            } else {
+                // Show the display value
+                cell.get_display_value().to_string()
+            }
+        } else {
+            String::new()
+        }
+    }
 
     /// Emit an error event
     pub fn emit_error(
@@ -313,16 +329,7 @@ impl SpreadsheetController {
             // Edit mode triggers
             "i" => {
                 // Get existing cell value for insert mode
-                let existing_value = match self.facade.get_cell(&current_cursor) {
-                    Some(cell) => {
-                        if cell.has_formula() {
-                            cell.raw_value.to_string()
-                        } else {
-                            cell.get_display_value().to_string()
-                        }
-                    }
-                    None => String::new(),
-                };
+                let existing_value = self.get_cell_display_for_ui(&current_cursor);
                 log::debug!(
                     "'i' key pressed, starting insert mode with existing value: '{}', cursor at 0",
                     existing_value
@@ -339,16 +346,7 @@ impl SpreadsheetController {
             }
             "a" => {
                 // Get existing cell value for append mode
-                let existing_value = match self.facade.get_cell(&current_cursor) {
-                    Some(cell) => {
-                        if cell.has_formula() {
-                            cell.raw_value.to_string()
-                        } else {
-                            cell.get_display_value().to_string()
-                        }
-                    }
-                    None => String::new(),
-                };
+                let existing_value = self.get_cell_display_for_ui(&current_cursor);
                 let cursor_pos = existing_value.len();
                 log::debug!(
                     "'a' key pressed, starting append mode with existing value: '{}', cursor at {}",

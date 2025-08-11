@@ -131,23 +131,10 @@ pub fn CanvasGrid(
         // Get cell value and drop the borrow immediately
         let cell_value = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let facade = ctrl_borrow.get_facade();
-
-            if let Some(cell_obj) = facade.get_cell(&cell) {
-                debug_log!(
-                    "Cell found at {:?}: raw_value={}, has_formula={}",
-                    cell,
-                    cell_obj.raw_value,
-                    cell_obj.has_formula()
-                );
-                // Check if cell has a formula
-                if cell_obj.has_formula() {
-                    // If it has a formula, show the raw value (which contains the formula)
-                    Some(cell_obj.raw_value.to_string())
-                } else {
-                    // Otherwise show the display value
-                    Some(cell_obj.get_display_value().to_string())
-                }
+            let value = ctrl_borrow.get_cell_display_for_ui(&cell);
+            if !value.is_empty() {
+                debug_log!("Cell found at {:?}: value={}", cell, value);
+                Some(value)
             } else {
                 debug_log!("No cell found at {:?}", cell);
                 None
@@ -260,16 +247,7 @@ pub fn CanvasGrid(
                 // Get existing cell value
                 let existing_value = controller_stored.with_value(|ctrl| {
                     let ctrl_borrow = ctrl.borrow();
-                    let facade = ctrl_borrow.get_facade();
-                    if let Some(cell_obj) = facade.get_cell(&cell) {
-                        if cell_obj.has_formula() {
-                            cell_obj.raw_value.to_string()
-                        } else {
-                            cell_obj.get_display_value().to_string()
-                        }
-                    } else {
-                        String::new()
-                    }
+                    ctrl_borrow.get_cell_display_for_ui(&cell)
                 });
 
                 // Calculate cell position for the editor

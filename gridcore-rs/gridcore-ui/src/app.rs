@@ -92,16 +92,7 @@ pub fn App() -> impl IntoView {
     // Initialize formula value with A1's content
     let initial_formula_value = {
         let ctrl_borrow = controller.borrow();
-        let facade = ctrl_borrow.get_facade();
-        if let Some(cell_obj) = facade.get_cell(&CellAddress::new(0, 0)) {
-            if cell_obj.has_formula() {
-                cell_obj.raw_value.to_string()
-            } else {
-                cell_obj.get_display_value().to_string()
-            }
-        } else {
-            String::new()
-        }
+        ctrl_borrow.get_cell_display_for_ui(&CellAddress::new(0, 0))
     };
     let (formula_value, set_formula_value) = signal(initial_formula_value);
 
@@ -162,20 +153,8 @@ pub fn App() -> impl IntoView {
         // Only update formula bar if not editing
         if !is_editing {
             let ctrl_borrowed = ctrl.borrow();
-            let facade = ctrl_borrowed.get_facade();
-
-            // Get the value of the active cell
-            if let Some(cell_obj) = facade.get_cell(&cell) {
-                // Show the formula if it exists, otherwise show the display value
-                let value = if cell_obj.has_formula() {
-                    cell_obj.raw_value.to_string()
-                } else {
-                    cell_obj.get_display_value().to_string()
-                };
-                set_formula_value.set(value);
-            } else {
-                set_formula_value.set(String::new());
-            }
+            let value = ctrl_borrowed.get_cell_display_for_ui(&cell);
+            set_formula_value.set(value);
         }
     });
 
