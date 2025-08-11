@@ -16,7 +16,8 @@ pub fn CellEditor(
     _set_editing_mode: WriteSignal<bool>,
     cell_position: ReadSignal<(f64, f64, f64, f64)>, // x, y, width, height
     set_formula_value: WriteSignal<String>,
-    _set_current_mode: WriteSignal<SpreadsheetMode>,
+    set_current_mode: WriteSignal<SpreadsheetMode>,
+    set_state_version: WriteSignal<u32>,
 ) -> impl IntoView {
     // Get controller from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
@@ -256,7 +257,13 @@ pub fn CellEditor(
                                         if let Err(e) = ctrl_mut.dispatch_action(Action::ExitInsertMode) {
                                             leptos::logging::log!("Error exiting insert mode: {:?}", e);
                                         }
-                                        // Controller will handle mode transition
+                                        // Update the mode signal to reflect the change
+                                        drop(ctrl_mut);
+                                        let new_state = ctrl.borrow().get_state().clone();
+                                        let new_mode = new_state.spreadsheet_mode();
+                                        set_current_mode.set(new_mode);
+                                        set_state_version.update(|v| *v += 1); // Trigger UI update
+                                        leptos::logging::log!("Updated mode to {:?} after ExitInsertMode", new_mode);
                                     } else if is_visual_mode {
                                         // Escape from Visual mode goes to Normal mode (stay in editor)
                                         drop(ctrl_borrow);
@@ -264,7 +271,13 @@ pub fn CellEditor(
                                         if let Err(e) = ctrl_mut.dispatch_action(Action::ExitVisualMode) {
                                             leptos::logging::log!("Error exiting visual mode: {:?}", e);
                                         }
-                                        // Controller will handle mode transition
+                                        // Update the mode signal to reflect the change
+                                        drop(ctrl_mut);
+                                        let new_state = ctrl.borrow().get_state().clone();
+                                        let new_mode = new_state.spreadsheet_mode();
+                                        set_current_mode.set(new_mode);
+                                        set_state_version.update(|v| *v += 1); // Trigger UI update
+                                        leptos::logging::log!("Updated mode to {:?} after ExitVisualMode", new_mode);
                                     } else if is_normal_mode {
                                         // In Normal mode - save and exit
                                         let value = editor_value.get();
@@ -337,8 +350,14 @@ pub fn CellEditor(
                                                 }) {
                                                     leptos::logging::log!("Error entering insert mode: {:?}", e);
                                                 }
+                                                // Update the mode signal to reflect the change
+                                                drop(ctrl_mut);
+                                                let new_state = ctrl.borrow().get_state().clone();
+                                                let new_mode = new_state.spreadsheet_mode();
+                                                set_current_mode.set(new_mode);
+                                                set_state_version.update(|v| *v += 1); // Trigger UI update
+                                                leptos::logging::log!("Updated mode to {:?} after EnterInsertMode", new_mode);
                                             });
-                                            // Controller will handle mode transition to Insert
                                         }
                                         "a" => {
                                             // Enter insert mode after current position
@@ -349,8 +368,14 @@ pub fn CellEditor(
                                                 }) {
                                                     leptos::logging::log!("Error entering insert mode: {:?}", e);
                                                 }
+                                                // Update the mode signal to reflect the change
+                                                drop(ctrl_mut);
+                                                let new_state = ctrl.borrow().get_state().clone();
+                                                let new_mode = new_state.spreadsheet_mode();
+                                                set_current_mode.set(new_mode);
+                                                set_state_version.update(|v| *v += 1); // Trigger UI update
+                                                leptos::logging::log!("Updated mode to {:?} after EnterInsertMode", new_mode);
                                             });
-                                            // Controller will handle mode transition to Insert
                                         }
                                         "v" => {
                                             // Enter visual character mode

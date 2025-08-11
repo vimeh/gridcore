@@ -23,6 +23,8 @@ pub fn CanvasGrid(
     set_active_cell: WriteSignal<CellAddress>,
     set_formula_value: WriteSignal<String>,
     set_current_mode: WriteSignal<SpreadsheetMode>,
+    state_version: ReadSignal<u32>,
+    set_state_version: WriteSignal<u32>,
 ) -> impl IntoView {
     // Get controller from context (keep as StoredValue to avoid cloning)
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
@@ -30,7 +32,7 @@ pub fn CanvasGrid(
     let controller_rc = controller_stored.get_value();
 
     // Create a signal to track state changes and trigger re-renders
-    let (state_version, set_state_version) = signal(0u32);
+    // State version is now passed from app.rs for global state tracking
 
     // Node refs
     let canvas_ref = NodeRef::<Canvas>::new();
@@ -427,11 +429,15 @@ pub fn CanvasGrid(
         let controller_event = gridcore_controller::controller::KeyboardEvent::new(key.clone())
             .with_modifiers(shift_pressed, ctrl_pressed, alt_pressed, meta_pressed);
 
-        // Get the current state before handling the event
-        let (old_mode, old_cursor) = controller_stored.with_value(|ctrl| {
+        // Get the current state before handling the event, including cell_mode
+        let (old_mode, old_cursor, old_cell_mode) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
-            (state.spreadsheet_mode(), *state.cursor())
+            let cell_mode = match state {
+                UIState::Editing { cell_mode, .. } => Some(*cell_mode),
+                _ => None,
+            };
+            (state.spreadsheet_mode(), *state.cursor(), cell_mode)
         });
 
         // Forward the event to the controller and drop the borrow immediately
@@ -449,18 +455,23 @@ pub fn CanvasGrid(
             return; // Exit early on error
         }
 
-        // Get the updated state after handling - new borrow
-        let (new_mode, new_cursor) = controller_stored.with_value(|ctrl| {
+        // Get the updated state after handling - new borrow, including cell_mode
+        let (new_mode, new_cursor, new_cell_mode) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
             let mode = state.spreadsheet_mode();
             let cursor = *state.cursor();
+            let cell_mode = match state {
+                UIState::Editing { cell_mode, .. } => Some(*cell_mode),
+                _ => None,
+            };
             leptos::logging::log!(
-                "Controller state after event: mode={:?}, cursor={:?}",
+                "Controller state after event: mode={:?}, cursor={:?}, cell_mode={:?}",
                 mode,
-                cursor
+                cursor,
+                cell_mode
             );
-            (mode, cursor)
+            (mode, cursor, cell_mode)
         });
 
         leptos::logging::log!(
@@ -471,10 +482,18 @@ pub fn CanvasGrid(
         );
 
         // Update UI state based on controller state
-        // Always update the mode to ensure UI stays in sync
-        if new_mode != old_mode {
-            leptos::logging::log!("Mode changed from {:?} to {:?}", old_mode, new_mode);
-            // Trigger a re-render when mode changes
+        // Check for both mode changes and cell_mode changes within Editing state
+        let mode_changed = new_mode != old_mode;
+        let cell_mode_changed = new_cell_mode != old_cell_mode;
+        
+        if mode_changed || cell_mode_changed {
+            if mode_changed {
+                leptos::logging::log!("Mode changed from {:?} to {:?}", old_mode, new_mode);
+            }
+            if cell_mode_changed {
+                leptos::logging::log!("Cell mode changed from {:?} to {:?}", old_cell_mode, new_cell_mode);
+            }
+            // Trigger a re-render when mode or cell_mode changes
             set_state_version.update(|v| *v += 1);
         }
         set_current_mode.set(new_mode);
@@ -658,7 +677,8 @@ pub fn CanvasGrid(
                 _set_editing_mode=set_editing_mode
                 cell_position=cell_position
                 set_formula_value=set_formula_value
-                _set_current_mode=set_current_mode
+                set_current_mode=set_current_mode
+                set_state_version=set_state_version
             />
         </div>
     }

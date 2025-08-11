@@ -103,6 +103,9 @@ pub fn App() -> impl IntoView {
     let _ctrl_for_effect = controller.clone();
     // Removed duplicate create_effect - we have the better one below
     let (current_mode, set_current_mode) = signal(initial_mode);
+    
+    // State version to trigger updates when UIState changes internally
+    let (state_version, set_state_version) = signal(0u32);
 
     // Sheet management
     let initial_sheets = vec![
@@ -313,6 +316,8 @@ pub fn App() -> impl IntoView {
                     set_active_cell=set_active_cell
                     set_formula_value=set_formula_value
                     set_current_mode=set_current_mode
+                    state_version=state_version
+                    set_state_version=set_state_version
                 />
             </div>
 
@@ -325,6 +330,7 @@ pub fn App() -> impl IntoView {
                 <StatusBar
                     current_mode=current_mode
                     selection_stats=selection_stats
+                    state_version=state_version
                 />
             </div>
 

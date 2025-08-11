@@ -9,6 +9,7 @@ use std::rc::Rc;
 pub fn StatusBar(
     current_mode: ReadSignal<SpreadsheetMode>,
     selection_stats: ReadSignal<SelectionStats>,
+    state_version: ReadSignal<u32>,
 ) -> impl IntoView {
     // Get controller from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
@@ -18,11 +19,12 @@ pub fn StatusBar(
     // Store controller in LocalStorage for non-Send access
     let controller_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
 
-    // Create a reactive signal that updates when current_mode changes
+    // Create a reactive signal that updates when current_mode or state_version changes
     // This ensures the UI updates when mode changes
     let mode_display = move || {
-        // Read current_mode to ensure reactivity - this creates the reactive dependency
-        let _signal_mode = current_mode.get();
+        // Read both signals to ensure reactivity - this creates the reactive dependencies
+        let signal_mode = current_mode.get();
+        let _ = state_version.get(); // Track state version changes
         
         // Always get fresh state from controller
         let state = controller_stored.with_value(|ctrl| {
@@ -30,8 +32,9 @@ pub fn StatusBar(
             ctrl_borrow.get_state().clone()
         });
 
-        let (text, color, detail) = match state {
-            UIState::Navigation { .. } => ("NAVIGATION", "#4caf50", "hjkl to move"),
+        // First check if we're in Editing state with specific cell modes
+        // This ensures proper display of NORMAL mode within editing
+        let (text, color, detail) = match &state {
             UIState::Editing {
                 cell_mode,
                 visual_type,
@@ -52,12 +55,17 @@ pub fn StatusBar(
                     }
                 }
             }
-            UIState::Visual { .. } => ("VISUAL", "#9c27b0", "hjkl to select"),
-            UIState::Command { .. } => ("COMMAND", "#f44336", "Enter to execute"),
-            UIState::Resize { .. } => ("RESIZE", "#795548", ""),
-            UIState::Insert { .. } => ("INSERT", "#2196f3", "ESC to normal"),
-            UIState::Delete { .. } => ("DELETE", "#e91e63", ""),
-            UIState::BulkOperation { .. } => ("BULK", "#607d8b", ""),
+            // Fall back to SpreadsheetMode-based display for other states
+            _ => match signal_mode {
+                SpreadsheetMode::Navigation => ("NAVIGATION", "#4caf50", "hjkl to move"),
+                SpreadsheetMode::Visual => ("VISUAL", "#9c27b0", "hjkl to select"),
+                SpreadsheetMode::Editing => ("NORMAL", "#ff9800", "i/a to insert"), // Should not reach here typically
+                SpreadsheetMode::Command => ("COMMAND", "#f44336", "Enter to execute"),
+                SpreadsheetMode::Resize => ("RESIZE", "#795548", ""),
+                SpreadsheetMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
+                SpreadsheetMode::Delete => ("DELETE", "#e91e63", ""),
+                SpreadsheetMode::BulkOperation => ("BULK", "#607d8b", ""),
+            }
         };
         (text, color, detail)
     };
