@@ -1,9 +1,9 @@
 use crate::components::canvas_grid::CanvasGrid;
 use crate::components::error_display::{ErrorDisplay, ErrorMessage, ErrorSeverity};
 use crate::components::status_bar::StatusBar;
-use gridcore_controller::managers::SelectionStats;
 use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
+use gridcore_controller::managers::SelectionStats;
 use gridcore_core::types::CellAddress;
 use leptos::prelude::*;
 use std::cell::RefCell;
@@ -103,7 +103,7 @@ pub fn App() -> impl IntoView {
     let _ctrl_for_effect = controller.clone();
     // Removed duplicate create_effect - we have the better one below
     let (current_mode, set_current_mode) = signal(initial_mode);
-    
+
     // State version to trigger updates when UIState changes internally
     let (state_version, set_state_version) = signal(0u32);
 
@@ -135,7 +135,7 @@ pub fn App() -> impl IntoView {
     Effect::new(move |_| {
         // Track active cell changes to trigger recalculation
         let _ = active_cell.get();
-        
+
         // Get the current selection stats from the controller
         let stats = controller_for_stats.borrow().get_current_selection_stats();
         set_selection_stats.set(stats);

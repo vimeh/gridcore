@@ -2,8 +2,9 @@
 mod tests {
     use super::super::*;
     use crate::state::{
-        actions::Action, create_navigation_state, transition_handlers::navigation::NavigationHandler,
-        CellMode, InsertMode, UIState, ViewportInfo,
+        actions::Action, create_navigation_state,
+        transition_handlers::navigation::NavigationHandler, CellMode, InsertMode, UIState,
+        ViewportInfo,
     };
     use gridcore_core::types::CellAddress;
 
@@ -18,7 +19,7 @@ mod tests {
                 rows: 10,
                 cols: 10,
             },
-            None
+            None,
         );
         let handler = NavigationHandler;
         let action = Action::StartEditing {
@@ -33,7 +34,7 @@ mod tests {
         // Assert
         assert!(result.is_ok());
         let new_state = result.unwrap();
-        
+
         match new_state {
             UIState::Editing {
                 editing_value,
@@ -43,7 +44,10 @@ mod tests {
                 ..
             } => {
                 assert_eq!(editing_value, "existing text");
-                assert_eq!(cursor_position, 0, "Cursor should be at position 0 for InsertMode::I");
+                assert_eq!(
+                    cursor_position, 0,
+                    "Cursor should be at position 0 for InsertMode::I"
+                );
                 assert_eq!(cell_mode, CellMode::Insert);
                 assert_eq!(edit_variant, Some(InsertMode::I));
             }
@@ -62,12 +66,12 @@ mod tests {
                 rows: 10,
                 cols: 10,
             },
-            None
+            None,
         );
         let handler = NavigationHandler;
         let text = "existing text".to_string();
         let expected_cursor_pos = text.len();
-        
+
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::A),
             initial_value: Some(text.clone()),
@@ -80,7 +84,7 @@ mod tests {
         // Assert
         assert!(result.is_ok());
         let new_state = result.unwrap();
-        
+
         match new_state {
             UIState::Editing {
                 editing_value,
@@ -90,7 +94,10 @@ mod tests {
                 ..
             } => {
                 assert_eq!(editing_value, text);
-                assert_eq!(cursor_position, expected_cursor_pos, "Cursor should be at end for InsertMode::A");
+                assert_eq!(
+                    cursor_position, expected_cursor_pos,
+                    "Cursor should be at end for InsertMode::A"
+                );
                 assert_eq!(cell_mode, CellMode::Insert);
                 assert_eq!(edit_variant, Some(InsertMode::A));
             }
@@ -109,7 +116,7 @@ mod tests {
                 rows: 10,
                 cols: 10,
             },
-            None
+            None,
         );
         let handler = NavigationHandler;
         let action = Action::StartEditing {
@@ -124,7 +131,7 @@ mod tests {
         // Assert
         assert!(result.is_ok());
         let new_state = result.unwrap();
-        
+
         match new_state {
             UIState::Editing {
                 cursor_position, ..
@@ -146,7 +153,7 @@ mod tests {
                 rows: 10,
                 cols: 10,
             },
-            None
+            None,
         );
         let handler = NavigationHandler;
         let action = Action::StartEditing {
@@ -161,7 +168,7 @@ mod tests {
         // Assert
         assert!(result.is_ok());
         let new_state = result.unwrap();
-        
+
         match new_state {
             UIState::Editing {
                 editing_value,
@@ -194,7 +201,7 @@ mod tests {
             visual_type: None,
             edit_variant: None,
         };
-        
+
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::I),
             initial_value: Some("test".to_string()),
@@ -202,7 +209,9 @@ mod tests {
         };
 
         // Act & Assert
-        assert!(!handler.can_handle(&editing_state, &action), 
-                "Should not handle actions when not in Navigation state");
+        assert!(
+            !handler.can_handle(&editing_state, &action),
+            "Should not handle actions when not in Navigation state"
+        );
     }
 }

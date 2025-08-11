@@ -186,7 +186,7 @@ impl SpreadsheetController {
     pub fn get_facade_mut(&mut self) -> &mut SpreadsheetFacade {
         &mut self.facade
     }
-    
+
     /// Get the display value for a cell in the UI
     /// Returns the formula if the cell has one, otherwise the display value
     pub fn get_cell_display_for_ui(&self, address: &CellAddress) -> String {
@@ -243,19 +243,19 @@ impl SpreadsheetController {
 
     pub fn get_current_selection_stats(&self) -> crate::managers::SelectionStats {
         use crate::state::SelectionType;
-        
+
         // Get the current selection from the state
         let selection = self.state_machine.get_state().selection();
-        
+
         if let Some(sel) = selection {
             // Calculate stats based on selection type
             match &sel.selection_type {
-                SelectionType::Range { start, end } => {
-                    self.selection_stats_manager.calculate_range(&self.facade, start, end)
-                }
-                SelectionType::Cell { address } => {
-                    self.selection_stats_manager.calculate_single_cell(&self.facade, address)
-                }
+                SelectionType::Range { start, end } => self
+                    .selection_stats_manager
+                    .calculate_range(&self.facade, start, end),
+                SelectionType::Cell { address } => self
+                    .selection_stats_manager
+                    .calculate_single_cell(&self.facade, address),
                 SelectionType::Column { columns: _ } => {
                     // For column selections, calculate stats for all cells in those columns
                     // For now, just return default stats
@@ -278,7 +278,8 @@ impl SpreadsheetController {
         } else {
             // No selection, calculate for current cursor position
             let cursor = self.state_machine.get_state().cursor();
-            self.selection_stats_manager.calculate_single_cell(&self.facade, cursor)
+            self.selection_stats_manager
+                .calculate_single_cell(&self.facade, cursor)
         }
     }
 

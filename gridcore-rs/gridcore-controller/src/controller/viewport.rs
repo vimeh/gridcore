@@ -119,7 +119,7 @@ pub trait ViewportManager: Send + Sync {
     fn get_viewport_width(&self) -> f64;
     fn get_viewport_height(&self) -> f64;
     fn set_viewport_size(&mut self, width: f64, height: f64);
-    
+
     /// Get total grid dimensions
     fn get_total_grid_width(&self) -> f64;
     fn get_total_grid_height(&self) -> f64;
@@ -474,7 +474,7 @@ impl ViewportManager for DefaultViewportManager {
         self.viewport_width = width;
         self.viewport_height = height;
     }
-    
+
     fn get_total_grid_width(&self) -> f64 {
         let mut width = 0.0;
         for col in 0..self.config.total_cols {
@@ -482,7 +482,7 @@ impl ViewportManager for DefaultViewportManager {
         }
         width
     }
-    
+
     fn get_total_grid_height(&self) -> f64 {
         let mut height = 0.0;
         for row in 0..self.config.total_rows {

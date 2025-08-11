@@ -27,7 +27,7 @@ impl SelectionStatsManager {
         cell: &CellAddress,
     ) -> SelectionStats {
         let mut stats = SelectionStats::default();
-        
+
         if let Some(cell_obj) = facade.get_cell(cell) {
             let value = cell_obj.get_display_value();
             if let CellValue::Number(n) = value {
@@ -40,7 +40,7 @@ impl SelectionStatsManager {
                 stats.count = 1;
             }
         }
-        
+
         stats
     }
 
@@ -116,7 +116,7 @@ impl SelectionStatsManager {
         for (start, end) in selections {
             let range_stats = self.calculate_range(facade, start, end);
             total_count += range_stats.count;
-            
+
             // Collect numbers from this range for overall statistics
             let min_col = start.col.min(end.col);
             let max_col = start.col.max(end.col);
@@ -176,10 +176,10 @@ mod tests {
         let facade = create_test_facade();
         let cell = CellAddress::new(0, 0);
         facade.set_cell_value(&cell, "42").unwrap();
-        
+
         let manager = SelectionStatsManager::new();
         let stats = manager.calculate_single_cell(&facade, &cell);
-        
+
         assert_eq!(stats.count, 1);
         assert_eq!(stats.sum, Some(42.0));
         assert_eq!(stats.average, Some(42.0));
@@ -192,10 +192,10 @@ mod tests {
         let facade = create_test_facade();
         let cell = CellAddress::new(0, 0);
         facade.set_cell_value(&cell, "Hello").unwrap();
-        
+
         let manager = SelectionStatsManager::new();
         let stats = manager.calculate_single_cell(&facade, &cell);
-        
+
         assert_eq!(stats.count, 1);
         assert_eq!(stats.sum, None);
         assert_eq!(stats.average, None);
@@ -207,10 +207,10 @@ mod tests {
     fn test_empty_cell() {
         let facade = create_test_facade();
         let cell = CellAddress::new(0, 0);
-        
+
         let manager = SelectionStatsManager::new();
         let stats = manager.calculate_single_cell(&facade, &cell);
-        
+
         assert_eq!(stats.count, 0);
         assert_eq!(stats.sum, None);
     }
@@ -218,18 +218,23 @@ mod tests {
     #[test]
     fn test_range_with_mixed_values() {
         let facade = create_test_facade();
-        facade.set_cell_value(&CellAddress::new(0, 0), "10").unwrap();
-        facade.set_cell_value(&CellAddress::new(1, 0), "20").unwrap();
-        facade.set_cell_value(&CellAddress::new(0, 1), "Text").unwrap();
-        facade.set_cell_value(&CellAddress::new(1, 1), "30").unwrap();
-        
+        facade
+            .set_cell_value(&CellAddress::new(0, 0), "10")
+            .unwrap();
+        facade
+            .set_cell_value(&CellAddress::new(1, 0), "20")
+            .unwrap();
+        facade
+            .set_cell_value(&CellAddress::new(0, 1), "Text")
+            .unwrap();
+        facade
+            .set_cell_value(&CellAddress::new(1, 1), "30")
+            .unwrap();
+
         let manager = SelectionStatsManager::new();
-        let stats = manager.calculate_range(
-            &facade,
-            &CellAddress::new(0, 0),
-            &CellAddress::new(1, 1),
-        );
-        
+        let stats =
+            manager.calculate_range(&facade, &CellAddress::new(0, 0), &CellAddress::new(1, 1));
+
         assert_eq!(stats.count, 4); // 3 numbers + 1 text
         assert_eq!(stats.sum, Some(60.0));
         assert_eq!(stats.average, Some(20.0)); // Average of numbers only
@@ -241,16 +246,17 @@ mod tests {
     fn test_range_with_only_numbers() {
         let facade = create_test_facade();
         facade.set_cell_value(&CellAddress::new(0, 0), "5").unwrap();
-        facade.set_cell_value(&CellAddress::new(1, 0), "10").unwrap();
-        facade.set_cell_value(&CellAddress::new(2, 0), "15").unwrap();
-        
+        facade
+            .set_cell_value(&CellAddress::new(1, 0), "10")
+            .unwrap();
+        facade
+            .set_cell_value(&CellAddress::new(2, 0), "15")
+            .unwrap();
+
         let manager = SelectionStatsManager::new();
-        let stats = manager.calculate_range(
-            &facade,
-            &CellAddress::new(0, 0),
-            &CellAddress::new(2, 0),
-        );
-        
+        let stats =
+            manager.calculate_range(&facade, &CellAddress::new(0, 0), &CellAddress::new(2, 0));
+
         assert_eq!(stats.count, 3);
         assert_eq!(stats.sum, Some(30.0));
         assert_eq!(stats.average, Some(10.0));
@@ -262,19 +268,27 @@ mod tests {
     fn test_multiple_selections() {
         let facade = create_test_facade();
         // First range: A1:A2 with values 10, 20
-        facade.set_cell_value(&CellAddress::new(0, 0), "10").unwrap();
-        facade.set_cell_value(&CellAddress::new(0, 1), "20").unwrap();
+        facade
+            .set_cell_value(&CellAddress::new(0, 0), "10")
+            .unwrap();
+        facade
+            .set_cell_value(&CellAddress::new(0, 1), "20")
+            .unwrap();
         // Second range: C1:C2 with values 30, 40
-        facade.set_cell_value(&CellAddress::new(2, 0), "30").unwrap();
-        facade.set_cell_value(&CellAddress::new(2, 1), "40").unwrap();
-        
+        facade
+            .set_cell_value(&CellAddress::new(2, 0), "30")
+            .unwrap();
+        facade
+            .set_cell_value(&CellAddress::new(2, 1), "40")
+            .unwrap();
+
         let manager = SelectionStatsManager::new();
         let selections = vec![
             (CellAddress::new(0, 0), CellAddress::new(0, 1)), // A1:A2
             (CellAddress::new(2, 0), CellAddress::new(2, 1)), // C1:C2
         ];
         let stats = manager.calculate_multiple_selections(&facade, &selections);
-        
+
         assert_eq!(stats.count, 4);
         assert_eq!(stats.sum, Some(100.0));
         assert_eq!(stats.average, Some(25.0));

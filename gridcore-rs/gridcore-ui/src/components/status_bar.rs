@@ -25,7 +25,7 @@ pub fn StatusBar(
         // Read both signals to ensure reactivity - this creates the reactive dependencies
         let signal_mode = current_mode.get();
         let _ = state_version.get(); // Track state version changes
-        
+
         // Always get fresh state from controller
         let state = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
@@ -65,7 +65,7 @@ pub fn StatusBar(
                 SpreadsheetMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
                 SpreadsheetMode::Delete => ("DELETE", "#e91e63", ""),
                 SpreadsheetMode::BulkOperation => ("BULK", "#607d8b", ""),
-            }
+            },
         };
         (text, color, detail)
     };

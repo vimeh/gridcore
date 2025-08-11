@@ -485,13 +485,17 @@ pub fn CanvasGrid(
         // Check for both mode changes and cell_mode changes within Editing state
         let mode_changed = new_mode != old_mode;
         let cell_mode_changed = new_cell_mode != old_cell_mode;
-        
+
         if mode_changed || cell_mode_changed {
             if mode_changed {
                 leptos::logging::log!("Mode changed from {:?} to {:?}", old_mode, new_mode);
             }
             if cell_mode_changed {
-                leptos::logging::log!("Cell mode changed from {:?} to {:?}", old_cell_mode, new_cell_mode);
+                leptos::logging::log!(
+                    "Cell mode changed from {:?} to {:?}",
+                    old_cell_mode,
+                    new_cell_mode
+                );
             }
             // Trigger a re-render when mode or cell_mode changes
             set_state_version.update(|v| *v += 1);

@@ -57,12 +57,16 @@ pub fn CellEditor(
                     // - For direct typing: the typed character
                     // - For 'i' key: existing cell content with cursor at 0
                     // - For 'a' key: existing cell content with cursor at end
-                    leptos::logging::log!("Setting editor value from state: '{}', cursor at {}", editing_value, cursor_position);
+                    leptos::logging::log!(
+                        "Setting editor value from state: '{}', cursor at {}",
+                        editing_value,
+                        cursor_position
+                    );
                     set_editor_value.set(editing_value.clone());
 
                     // Store the expected cursor position for handling input events
                     set_expected_cursor_pos.set(Some(*cursor_position));
-                    
+
                     // Use the cursor position directly from state
                     *cursor_position
                 }
@@ -78,16 +82,16 @@ pub fn CellEditor(
             if let Some(input) = input_ref.get() {
                 // Focus immediately
                 let _ = input.focus();
-                
+
                 // Force the value to be set in the DOM after focus
                 let value_to_set = editor_value.get();
                 input.set_value(&value_to_set);
-                
+
                 // Set cursor position after focus and value
                 let _ = input.set_selection_start(Some(cursor_pos_to_set as u32));
                 let _ = input.set_selection_end(Some(cursor_pos_to_set as u32));
                 leptos::logging::log!("Set cursor position to {} immediately", cursor_pos_to_set);
-                
+
                 // Store expected cursor position for a short time to handle timing issues
                 // Clear it after a delay
                 set_timeout(
@@ -114,9 +118,9 @@ pub fn CellEditor(
                     // Save cursor position before update
                     let cursor_start = input.selection_start().unwrap_or(Some(0)).unwrap_or(0);
                     let cursor_end = input.selection_end().unwrap_or(Some(0)).unwrap_or(0);
-                    
+
                     input.set_value(&value);
-                    
+
                     // Restore cursor position after update if it was within bounds
                     if cursor_start <= value.len() as u32 {
                         let _ = input.set_selection_start(Some(cursor_start));
@@ -176,7 +180,7 @@ pub fn CellEditor(
                     on:input=move |ev| {
                         let new_value = event_target_value(&ev);
                         leptos::logging::log!("Input event: new value = '{}'", new_value);
-                        
+
                         // Update the editor value signal
                         set_editor_value.set(new_value.clone());
                         // Also update formula bar
@@ -484,7 +488,7 @@ pub fn CellEditor(
                                                 } else {
                                                     current_value.len()
                                                 };
-                                                
+
                                                 // Use controller's AutocompleteManager to apply the suggestion
                                                 let (new_value, new_cursor) = controller_stored.with_value(|ctrl| {
                                                     let ctrl_borrow = ctrl.borrow();
@@ -495,11 +499,11 @@ pub fn CellEditor(
                                                     };
                                                     manager.apply_suggestion(&current_value, &suggestion, cursor_pos)
                                                 });
-                                                
+
                                                 set_editor_value.set(new_value);
                                                 set_suggestions.set(Vec::new());
                                                 set_selected_suggestion.set(None);
-                                                
+
                                                 // Refocus the input and set cursor position
                                                 if let Some(input) = input_ref.get() {
                                                     let _ = input.focus();

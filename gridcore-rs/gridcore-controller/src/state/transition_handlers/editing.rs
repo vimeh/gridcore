@@ -249,7 +249,7 @@ impl TransitionHandler for EditingHandler {
                             0
                         }
                     };
-                    
+
                     Ok(UIState::Editing {
                         cursor: *cursor,
                         viewport: *viewport,
