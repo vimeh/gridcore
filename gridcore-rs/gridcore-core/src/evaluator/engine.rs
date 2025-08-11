@@ -4,6 +4,7 @@ use super::operators;
 use crate::formula::ast::{CellRange, Expr};
 use crate::types::{CellValue, ErrorType};
 use crate::{Result, SpreadsheetError};
+use smallvec::SmallVec;
 
 /// Main formula evaluator
 pub struct Evaluator<'a> {
@@ -79,7 +80,8 @@ impl<'a> Evaluator<'a> {
     /// Evaluate a function call
     fn evaluate_function(&mut self, name: &str, args: &[Expr]) -> Result<CellValue> {
         // Special handling for functions that take ranges
-        let mut evaluated_args = Vec::with_capacity(args.len());
+        // Most functions have 1-4 arguments, so use SmallVec to avoid heap allocation
+        let mut evaluated_args: SmallVec<[CellValue; 4]> = SmallVec::with_capacity(args.len());
 
         for arg in args {
             match arg {
@@ -113,7 +115,7 @@ impl<'a> Evaluator<'a> {
             }
         }
 
-        // Call the function
+        // Call the function (convert SmallVec to slice)
         self.function_library.call(name, &evaluated_args)
     }
 
