@@ -33,7 +33,7 @@ mod edge_case_tests {
         for i in 0..10 {
             let machine_clone = Arc::clone(&machine);
             let handle = thread::spawn(move || {
-                let mut m = machine_clone.lock().unwrap();
+                let mut m = machine_clone.lock().expect("Test mutex should not be poisoned");
                 m.transition(Action::UpdateCursor {
                     cursor: CellAddress::new(i, i),
                 })
@@ -47,7 +47,7 @@ mod edge_case_tests {
         }
 
         // Machine should still be in valid state
-        let m = machine.lock().unwrap();
+        let m = machine.lock().expect("Test mutex should not be poisoned");
         assert!(matches!(m.get_state(), UIState::Navigation { .. }));
     }
 
@@ -242,7 +242,7 @@ mod edge_case_tests {
 
         // Add listener that removes itself
         let listener_id = machine.subscribe(move |_, _| {
-            let mut r = removed_clone.lock().unwrap();
+            let mut r = removed_clone.lock().expect("Test mutex should not be poisoned");
             *r = true;
         });
 
@@ -250,17 +250,17 @@ mod edge_case_tests {
         machine.transition(Action::EnterCommandMode).unwrap();
 
         // Check listener was called
-        assert!(*removed.lock().unwrap());
+        assert!(*removed.lock().expect("Test mutex should not be poisoned"));
 
         // Remove listener
         machine.unsubscribe(listener_id);
 
         // Reset flag
-        *removed.lock().unwrap() = false;
+        *removed.lock().expect("Test mutex should not be poisoned") = false;
 
         // Another transition shouldn't trigger removed listener
         machine.transition(Action::ExitCommandMode).unwrap();
-        assert!(!*removed.lock().unwrap());
+        assert!(!*removed.lock().expect("Test mutex should not be poisoned"));
     }
 
     #[test]

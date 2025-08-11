@@ -147,7 +147,7 @@ mod performance_tests {
         for counter in &counters {
             let counter_clone = counter.clone();
             machine.subscribe(move |_, _| {
-                let mut c = counter_clone.lock().unwrap();
+                let mut c = counter_clone.lock().expect("Test mutex should not be poisoned");
                 *c += 1;
             });
         }
@@ -167,7 +167,7 @@ mod performance_tests {
 
         // Verify all listeners were called
         for counter in &counters {
-            assert_eq!(*counter.lock().unwrap(), 100);
+            assert_eq!(*counter.lock().expect("Test mutex should not be poisoned"), 100);
         }
 
         assert!(

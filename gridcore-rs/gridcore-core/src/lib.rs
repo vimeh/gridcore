@@ -16,6 +16,9 @@ pub mod traits;
 pub mod types;
 pub mod workbook;
 
+#[cfg(test)]
+pub mod test_utils;
+
 // Re-export commonly used types
 pub use dependency::{DependencyAnalyzer, DependencyGraph};
 pub use domain::Cell;

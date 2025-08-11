@@ -215,7 +215,12 @@ impl Sheet {
         Self {
             name: new_name.into(),
             cells: new_repo as Arc<dyn RepositoryPort>,
-            dependencies: Arc::new(Mutex::new(self.dependencies.lock().unwrap().clone())),
+            dependencies: Arc::new(Mutex::new(
+                self.dependencies
+                    .lock()
+                    .expect("Failed to acquire dependencies lock for cloning")
+                    .clone()
+            )),
             properties: self.properties.clone(),
             named_ranges: self.named_ranges.clone(),
         }

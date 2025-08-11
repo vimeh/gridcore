@@ -331,7 +331,7 @@ mod tests {
         let received_clone = received.clone();
 
         dispatcher.subscribe(move |event| {
-            let mut events = received_clone.lock().unwrap();
+            let mut events = received_clone.lock().expect("Test mutex should not be poisoned");
             events.push(format!("{:?}", event));
         });
 
@@ -340,7 +340,7 @@ mod tests {
             to: CellAddress::new(1, 1),
         });
 
-        let events = received.lock().unwrap();
+        let events = received.lock().expect("Test mutex should not be poisoned");
         assert_eq!(events.len(), 1);
     }
 }
