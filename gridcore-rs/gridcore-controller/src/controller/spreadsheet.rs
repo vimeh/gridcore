@@ -654,22 +654,70 @@ impl SpreadsheetController {
             "Escape" => Ok(()),
 
             _ => {
-                // Check if this is a single printable character that should start editing
-                if event.key.len() == 1 && !event.ctrl && !event.alt && !event.meta {
-                    // Single character typed - start editing with this character
-                    log::debug!("Starting edit mode with typed character: '{}'", event.key);
-                    let result = self.dispatch_action(Action::StartEditing {
-                        edit_mode: Some(InsertMode::I),
-                        initial_value: Some(event.key.clone()),
-                        cursor_position: Some(1), // Position cursor after the typed character
-                    });
-                    if let Err(ref e) = result {
-                        log::error!("Failed to start editing with typed character: {:?}", e);
+                // Check if this is a vim mode command that should be handled specially
+                match event.key.as_str() {
+                    // Vim mode commands for entering insert mode
+                    "i" => {
+                        // Get existing value for the current cell
+                        let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                        log::debug!("'i' key pressed, entering insert mode at beginning");
+                        self.dispatch_action(Action::StartEditing {
+                            edit_mode: Some(InsertMode::I),
+                            initial_value: Some(existing_value),
+                            cursor_position: Some(0), // Cursor at beginning for 'i'
+                        })
                     }
-                    result
-                } else {
-                    log::debug!("Unhandled navigation key: '{}'", event.key);
-                    Ok(())
+                    "a" => {
+                        // Get existing value for the current cell
+                        let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                        let cursor_pos = if existing_value.is_empty() { 0 } else { 1 };
+                        log::debug!("'a' key pressed, entering insert mode after first char");
+                        self.dispatch_action(Action::StartEditing {
+                            edit_mode: Some(InsertMode::A),
+                            initial_value: Some(existing_value),
+                            cursor_position: Some(cursor_pos),
+                        })
+                    }
+                    "I" => {
+                        // Get existing value for the current cell
+                        let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                        log::debug!("'I' key pressed, entering insert mode at start of line");
+                        self.dispatch_action(Action::StartEditing {
+                            edit_mode: Some(InsertMode::CapitalI),
+                            initial_value: Some(existing_value),
+                            cursor_position: Some(0),
+                        })
+                    }
+                    "A" => {
+                        // Get existing value for the current cell
+                        let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                        let cursor_pos = existing_value.len();
+                        log::debug!("'A' key pressed, entering insert mode at end of line");
+                        self.dispatch_action(Action::StartEditing {
+                            edit_mode: Some(InsertMode::CapitalA),
+                            initial_value: Some(existing_value),
+                            cursor_position: Some(cursor_pos),
+                        })
+                    }
+                    _ => {
+                        // Check if this is a single printable character that should start editing
+                        if event.key.len() == 1 && !event.ctrl && !event.alt && !event.meta {
+                            // Single character typed - start editing with this character
+                            log::debug!("Starting edit mode with typed character: '{}'", event.key);
+                            let result = self.dispatch_action(Action::StartEditing {
+                                edit_mode: Some(InsertMode::I),
+                                initial_value: Some(event.key.clone()),
+                                cursor_position: Some(1), // Position cursor after the typed character
+                            });
+                            if let Err(ref e) = result {
+                                log::error!("Failed to start editing with typed character: {:?}", e);
+                            }
+                            result
+                        } else {
+                            log::debug!("Unhandled navigation key: '{}'", event.key);
+                            Ok(())
+                        }
+                    }
                 }
             }
         }

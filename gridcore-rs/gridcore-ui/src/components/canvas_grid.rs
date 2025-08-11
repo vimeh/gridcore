@@ -48,14 +48,21 @@ pub fn CanvasGrid(
     let (canvas_dimensions, set_canvas_dimensions) = signal((0.0, 0.0));
 
     // Derive editing_mode from controller state
+    // Check for UIState::Editing directly to avoid confusion with UIState::Insert (structural ops)
     let editing_mode = Memo::new(move |_| {
+        // Track state_version to ensure memo updates when state changes
+        let _ = state_version.get();
+        
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let mode = ctrl_borrow.get_state().spreadsheet_mode();
-            matches!(
-                mode,
-                SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
-            )
+            let state = ctrl_borrow.get_state();
+            let is_editing = matches!(state, UIState::Editing { .. });
+            leptos::logging::log!(
+                "editing_mode memo: state type = {:?}, is UIState::Editing = {}",
+                std::mem::discriminant(state),
+                is_editing
+            );
+            is_editing
         })
     });
 
@@ -543,37 +550,18 @@ pub fn CanvasGrid(
             leptos::logging::log!("Cursor did not change, still at {:?}", new_cursor);
         }
 
-        // Update cell position for editor if we're in editing mode (including visual mode within editing)
-        leptos::logging::log!(
-            "Checking if should show editor: new_mode = {:?}, matches Editing/Insert/Visual = {}",
-            new_mode,
-            matches!(
-                new_mode,
-                SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
-            )
-        );
-        if matches!(
-            new_mode,
-            SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
-        ) {
-            // Cell position is now derived from memo, no need to calculate
-
-            // Editor visibility is now controlled by editing_mode memo
-            leptos::logging::log!("Editing mode active, editor should be visible");
-        } else {
-            // Not in editing mode, editor should be hidden
-            leptos::logging::log!("Not in editing mode, editor should be hidden");
-        }
+        // Update cell position for editor if we're in editing mode
+        // The editing_mode memo will handle checking if we're in UIState::Editing
+        // which properly distinguishes cell editing from structural insert operations
 
         // Formula bar is now updated via controller events
 
         // Auto-scroll to keep the active cell visible if cursor moved
-        if new_cursor != old_cursor
-            && !matches!(
-                new_mode,
-                SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
-            )
-        {
+        // Don't auto-scroll if we're in editing mode (UIState::Editing)
+        let is_editing = controller_stored.with_value(|ctrl| {
+            matches!(ctrl.borrow().get_state(), UIState::Editing { .. })
+        });
+        if new_cursor != old_cursor && !is_editing {
             let mut vp_borrow = viewport_rc.borrow_mut();
 
             // Check if the cell is visible and scroll if needed
