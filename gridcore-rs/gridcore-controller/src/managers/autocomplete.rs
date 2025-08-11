@@ -213,10 +213,8 @@ impl AutocompleteManager {
                 // For input like "=SU", we want to split on non-alphanumeric chars
                 // but '=' is at the start, so we need special handling
 
-                if input.starts_with('=') {
+                if let Some(after_equals) = input.strip_prefix('=') {
                     // Get everything after the '='
-                    let after_equals = &input[1..];
-
                     // Find the last word being typed (the function prefix)
                     let parts: Vec<&str> = after_equals
                         .rsplitn(2, |c: char| !c.is_alphanumeric() && c != '_')
