@@ -84,25 +84,26 @@ pub enum TextObject {
 /// Represents a complete Vim command
 #[derive(Debug, Clone)]
 pub struct VimCommand {
-    pub count: Option<usize>,
-    pub operator: Option<Operator>,
-    pub motion: Option<Motion>,
-    pub text_object: Option<TextObject>,
-    pub register: Option<char>,
+    pub(crate) count: Option<usize>,
+    pub(crate) operator: Option<Operator>,
+    pub(crate) motion: Option<Motion>,
+    #[allow(dead_code)]
+    pub(crate) text_object: Option<TextObject>,
+    pub(crate) register: Option<char>,
 }
 
 /// Vim state machine for handling Vim commands
 pub struct VimBehavior {
-    mode: VimMode,
-    command_buffer: String,
-    current_command: VimCommand,
-    repeat_command: Option<VimCommand>,
-    registers: HashMap<char, String>,
-    marks: HashMap<char, CellAddress>,
-    last_find_char: Option<(char, bool)>, // char, forward?
-    visual_anchor: Option<CellAddress>,
-    count_buffer: String,
-    _settings: HashMap<String, String>,
+    pub(crate) mode: VimMode,
+    pub(crate) command_buffer: String,
+    pub(crate) current_command: VimCommand,
+    pub(crate) repeat_command: Option<VimCommand>,
+    pub(crate) registers: HashMap<char, String>,
+    pub(crate) marks: HashMap<char, CellAddress>,
+    pub(crate) last_find_char: Option<(char, bool)>, // char, forward?
+    pub(crate) visual_anchor: Option<CellAddress>,
+    pub(crate) count_buffer: String,
+    pub(crate) _settings: HashMap<String, String>,
 }
 
 impl VimBehavior {
@@ -545,8 +546,12 @@ impl Default for VimBehavior {
 
 // Re-export submodules
 pub mod cell_vim;
+#[cfg(test)]
+mod cell_vim_tests;
 pub mod command;
 pub mod motion;
 pub mod normal;
+#[cfg(test)]
+mod normal_tests;
 pub mod operator;
 pub mod visual;

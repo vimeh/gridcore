@@ -1,3 +1,4 @@
+pub mod actions;
 pub mod context;
 pub mod diff;
 pub mod machine;
@@ -13,8 +14,9 @@ mod performance_tests;
 #[cfg(test)]
 mod tests;
 
+pub use actions::Action;
 pub use context::StateContext;
-pub use machine::{Action, UIStateMachine};
+pub use machine::UIStateMachine;
 pub use spreadsheet::{
     create_command_state, create_editing_state, create_navigation_state, create_visual_state,
     is_bulk_operation_mode, is_command_mode, is_editing_mode, is_navigation_mode, is_resize_mode,

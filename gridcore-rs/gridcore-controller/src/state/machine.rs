@@ -1,131 +1,17 @@
 use crate::state::{
-    create_command_state, create_editing_state, create_navigation_state, create_visual_state,
-    diff::StateDiff,
-    BulkOperationStatus, CellMode, DeleteType, InsertMode, InsertPosition, InsertType,
-    ParsedBulkCommand, ResizeMoveDirection, ResizeTarget, Selection, SpreadsheetVisualMode,
-    UIState, ViewportInfo, VisualMode,
+    actions::Action, create_command_state, create_editing_state, create_navigation_state,
+    create_visual_state, diff::StateDiff, BulkOperationStatus, CellMode, InsertMode,
+    ResizeMoveDirection, ResizeTarget, Selection, SpreadsheetVisualMode, UIState, ViewportInfo,
 };
 use gridcore_core::{types::CellAddress, Result, SpreadsheetError};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Action {
-    StartEditing {
-        edit_mode: Option<InsertMode>,
-        initial_value: Option<String>,
-        cursor_position: Option<usize>,
-    },
-    ExitToNavigation,
-    EnterInsertMode {
-        mode: Option<InsertMode>,
-    },
-    ExitInsertMode,
-    EnterVisualMode {
-        visual_type: VisualMode,
-        anchor: Option<usize>,
-    },
-    ExitVisualMode,
-    EnterSpreadsheetVisualMode {
-        visual_mode: SpreadsheetVisualMode,
-        selection: Selection,
-    },
-    ExitSpreadsheetVisualMode,
-    UpdateSelection {
-        selection: Selection,
-    },
-    EnterCommandMode,
-    ExitCommandMode,
-    EnterResizeMode {
-        target: ResizeTarget,
-        index: u32,
-        size: u32,
-    },
-    ExitResizeMode,
-    EnterStructuralInsertMode {
-        insert_type: InsertType,
-        insert_position: InsertPosition,
-    },
-    StartInsert {
-        insert_type: InsertType,
-        position: InsertPosition,
-        reference: u32,
-    },
-    ExitStructuralInsertMode,
-    UpdateInsertCount {
-        count: u32,
-    },
-    ConfirmInsert,
-    CancelInsert,
-    StartResize {
-        target: ResizeTarget,
-        initial_position: f64,
-    },
-    UpdateResize {
-        delta: f64,
-    },
-    MoveResizeTarget {
-        direction: ResizeMoveDirection,
-    },
-    AutoFitResize,
-    ConfirmResize,
-    CancelResize,
-    EnterDeleteMode {
-        delete_type: DeleteType,
-        selection: Vec<u32>,
-    },
-    ExitDeleteMode,
-    ConfirmDelete,
-    CancelDelete,
-    StartDelete {
-        targets: Vec<u32>,
-        delete_type: DeleteType,
-    },
-    ChangeVisualMode {
-        new_mode: SpreadsheetVisualMode,
-    },
-    UpdateEditingValue {
-        value: String,
-        cursor_position: usize,
-    },
-    UpdateCommandValue {
-        value: String,
-    },
-    UpdateResizeSize {
-        size: u32,
-    },
-    UpdateCursor {
-        cursor: CellAddress,
-    },
-    UpdateViewport {
-        viewport: ViewportInfo,
-    },
-    Escape,
-    StartBulkOperation {
-        parsed_command: ParsedBulkCommand,
-        affected_cells: Option<u32>,
-    },
-    ShowBulkPreview,
-    GeneratePreview,
-    ExecuteBulkOperation,
-    CancelBulkOperation,
-    CompleteBulkOperation,
-    BulkOperationError {
-        error: String,
-    },
-    BulkCommand {
-        command: ParsedBulkCommand,
-    },
-    Undo,
-    UndoLine,
-    Redo,
-}
-
 type StateListener = Box<dyn Fn(&UIState, &Action) + Send>;
 
 pub struct UIStateMachine {
     state: UIState,
-    initial_state: UIState,  // Store the initial state for history reconstruction
+    initial_state: UIState, // Store the initial state for history reconstruction
     listeners: Vec<StateListener>,
     history: VecDeque<HistoryEntry>,
     max_history_size: usize,
@@ -170,17 +56,19 @@ impl UIStateMachine {
             "UIStateMachine::transition called with action: {:?}",
             action
         );
-        let new_state = self.apply_transition(&self.state, &action)?;
-        log::debug!("UIStateMachine::transition - apply_transition succeeded");
 
-        // Store old state for history
+        // Store old state for history before applying transition
         log::debug!("UIStateMachine::transition - storing old state");
         let old_state = self.state.clone();
+
+        // Apply transition and update state
+        let new_state = self.apply_transition(&self.state, &action)?;
+        log::debug!("UIStateMachine::transition - apply_transition succeeded");
 
         // Update state
         log::debug!("UIStateMachine::transition - updating state");
         self.state = new_state;
-        
+
         // Add to history with the diff between old and new state
         log::debug!("UIStateMachine::transition - adding to history");
         self.add_to_history(old_state, action.clone());
@@ -264,7 +152,7 @@ impl UIStateMachine {
                 },
             ) => Ok(create_visual_state(
                 *cursor,
-                viewport.clone(),
+                *viewport,
                 *visual_mode,
                 *cursor,
                 selection.clone(),
@@ -279,72 +167,86 @@ impl UIStateMachine {
             ) => Ok(create_navigation_state(*cursor, *viewport, None)),
 
             (
-                UIState::Editing { .. },
+                UIState::Editing {
+                    cursor,
+                    viewport,
+                    editing_value,
+                    cursor_position,
+                    edit_variant,
+                    ..
+                },
                 Action::EnterVisualMode {
                     visual_type,
                     anchor,
                 },
             ) => {
-                // Allow entering visual mode from editing (handles both Normal and other modes)
-                let mut new_state = state.clone();
-                if let UIState::Editing {
-                    cell_mode: mode,
-                    visual_type: v_type,
-                    visual_start,
-                    cursor_position,
-                    ..
-                } = &mut new_state
-                {
-                    *mode = CellMode::Visual;
-                    *v_type = Some(*visual_type);
-                    *visual_start = Some(anchor.unwrap_or(*cursor_position));
-                }
-                Ok(new_state)
+                // Reconstruct state without cloning unchanged fields
+                Ok(UIState::Editing {
+                    cursor: *cursor,
+                    viewport: *viewport,
+                    cell_mode: CellMode::Visual,
+                    editing_value: editing_value.clone(),
+                    cursor_position: *cursor_position,
+                    visual_start: Some(anchor.unwrap_or(*cursor_position)),
+                    visual_type: Some(*visual_type),
+                    edit_variant: *edit_variant,
+                })
             }
 
             (
                 UIState::Editing {
                     cell_mode: CellMode::Normal,
+                    cursor,
+                    viewport,
+                    editing_value,
+                    cursor_position,
+                    visual_start,
+                    visual_type,
                     ..
                 },
                 Action::EnterInsertMode { mode },
-            ) => {
-                let mut new_state = state.clone();
-                if let UIState::Editing {
-                    cell_mode,
-                    edit_variant,
-                    ..
-                } = &mut new_state
-                {
-                    *cell_mode = CellMode::Insert;
-                    *edit_variant = *mode;
-                }
-                Ok(new_state)
-            }
+            ) => Ok(UIState::Editing {
+                cursor: *cursor,
+                viewport: *viewport,
+                cell_mode: CellMode::Insert,
+                editing_value: editing_value.clone(),
+                cursor_position: *cursor_position,
+                visual_start: *visual_start,
+                visual_type: *visual_type,
+                edit_variant: *mode,
+            }),
 
             (
                 UIState::Editing {
                     cell_mode: CellMode::Insert,
+                    cursor,
+                    viewport,
+                    editing_value,
+                    cursor_position,
+                    visual_start,
+                    visual_type,
                     ..
                 },
                 Action::ExitInsertMode,
-            ) => {
-                let mut new_state = state.clone();
-                if let UIState::Editing {
-                    cell_mode,
-                    edit_variant,
-                    ..
-                } = &mut new_state
-                {
-                    *cell_mode = CellMode::Normal;
-                    *edit_variant = None;
-                }
-                Ok(new_state)
-            }
+            ) => Ok(UIState::Editing {
+                cursor: *cursor,
+                viewport: *viewport,
+                cell_mode: CellMode::Normal,
+                editing_value: editing_value.clone(),
+                cursor_position: *cursor_position,
+                visual_start: *visual_start,
+                visual_type: *visual_type,
+                edit_variant: None,
+            }),
 
             (
                 UIState::Editing {
                     cell_mode: CellMode::Visual,
+                    cursor,
+                    viewport,
+                    editing_value,
+                    cursor_position,
+                    edit_variant,
                     ..
                 },
                 Action::ExitVisualMode,
@@ -352,41 +254,42 @@ impl UIStateMachine {
                 log::debug!(
                     "State machine: ExitVisualMode from CellMode::Visual to CellMode::Normal"
                 );
-                let mut new_state = state.clone();
-                if let UIState::Editing {
-                    cell_mode,
-                    visual_type,
-                    visual_start,
-                    ..
-                } = &mut new_state
-                {
-                    *cell_mode = CellMode::Normal;
-                    *visual_type = None;
-                    *visual_start = None;
-                    log::debug!("State machine: Successfully transitioned to CellMode::Normal");
-                }
-                Ok(new_state)
+                Ok(UIState::Editing {
+                    cursor: *cursor,
+                    viewport: *viewport,
+                    cell_mode: CellMode::Normal,
+                    editing_value: editing_value.clone(),
+                    cursor_position: *cursor_position,
+                    visual_start: None,
+                    visual_type: None,
+                    edit_variant: *edit_variant,
+                })
             }
 
             (
-                UIState::Editing { .. },
+                UIState::Editing {
+                    cursor,
+                    viewport,
+                    cell_mode,
+                    visual_start,
+                    visual_type,
+                    edit_variant,
+                    ..
+                },
                 Action::UpdateEditingValue {
                     value,
                     cursor_position,
                 },
-            ) => {
-                let mut new_state = state.clone();
-                if let UIState::Editing {
-                    editing_value,
-                    cursor_position: pos,
-                    ..
-                } = &mut new_state
-                {
-                    *editing_value = value.clone();
-                    *pos = *cursor_position;
-                }
-                Ok(new_state)
-            }
+            ) => Ok(UIState::Editing {
+                cursor: *cursor,
+                viewport: *viewport,
+                cell_mode: *cell_mode,
+                editing_value: value.clone(),
+                cursor_position: *cursor_position,
+                visual_start: *visual_start,
+                visual_type: *visual_type,
+                edit_variant: *edit_variant,
+            }),
 
             // Command mode transitions
             (
@@ -396,13 +299,16 @@ impl UIStateMachine {
                 Action::ExitCommandMode,
             ) => Ok(create_navigation_state(*cursor, *viewport, None)),
 
-            (UIState::Command { .. }, Action::UpdateCommandValue { value }) => {
-                let mut new_state = state.clone();
-                if let UIState::Command { command_value, .. } = &mut new_state {
-                    *command_value = value.clone();
-                }
-                Ok(new_state)
-            }
+            (
+                UIState::Command {
+                    cursor, viewport, ..
+                },
+                Action::UpdateCommandValue { value },
+            ) => Ok(UIState::Command {
+                cursor: *cursor,
+                viewport: *viewport,
+                command_value: value.clone(),
+            }),
 
             // Visual mode transitions
             (
@@ -412,21 +318,41 @@ impl UIStateMachine {
                 Action::ExitSpreadsheetVisualMode,
             ) => Ok(create_navigation_state(*cursor, *viewport, None)),
 
-            (UIState::Visual { .. }, Action::UpdateSelection { selection }) => {
-                let mut new_state = state.clone();
-                if let UIState::Visual { selection: sel, .. } = &mut new_state {
-                    *sel = selection.clone();
-                }
-                Ok(new_state)
+            (
+                UIState::Visual {
+                    cursor,
+                    viewport,
+                    anchor,
+                    visual_mode,
+                    ..
+                },
+                Action::UpdateSelection { selection },
+            ) => {
+                Ok(UIState::Visual {
+                    cursor: *cursor,
+                    viewport: *viewport,
+                    selection: selection.clone(),
+                    visual_mode: *visual_mode, // Keep current mode
+                    anchor: *anchor,
+                })
             }
 
-            (UIState::Visual { .. }, Action::ChangeVisualMode { new_mode }) => {
-                let mut new_state = state.clone();
-                if let UIState::Visual { visual_mode, .. } = &mut new_state {
-                    *visual_mode = *new_mode;
-                }
-                Ok(new_state)
-            }
+            (
+                UIState::Visual {
+                    cursor,
+                    viewport,
+                    selection,
+                    anchor,
+                    ..
+                },
+                Action::ChangeVisualMode { new_mode },
+            ) => Ok(UIState::Visual {
+                cursor: *cursor,
+                viewport: *viewport,
+                selection: selection.clone(),
+                visual_mode: *new_mode,
+                anchor: *anchor,
+            }),
 
             // Resize mode transitions
             (
@@ -777,23 +703,23 @@ impl UIStateMachine {
     pub fn get_history(&self) -> Vec<HistoryEntry> {
         self.history.iter().cloned().collect()
     }
-    
+
     /// Reconstruct a state from history at a given index
     pub fn reconstruct_state_at(&self, index: usize) -> Option<UIState> {
         if index >= self.history.len() {
             return None;
         }
-        
+
         // Start with the stored initial state
         let mut state = self.initial_state.clone();
-        
+
         // Apply diffs up to the requested index
         for i in 0..=index {
             if let Some(entry) = self.history.get(i) {
                 state = entry.diff.apply(&state);
             }
         }
-        
+
         Some(state)
     }
 
@@ -819,7 +745,7 @@ impl UIStateMachine {
 
         // Create a diff between the old state and the current state
         let diff = StateDiff::create(&old_state, &self.state);
-        
+
         let entry = HistoryEntry {
             diff,
             action,
