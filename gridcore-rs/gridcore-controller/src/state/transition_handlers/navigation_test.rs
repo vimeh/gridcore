@@ -214,4 +214,51 @@ mod tests {
             "Should not handle actions when not in Navigation state"
         );
     }
+
+    #[test]
+    fn test_update_editing_value_action() {
+        // Arrange
+        use crate::state::transition_handlers::editing::EditingHandler;
+        
+        let initial_state = UIState::Editing {
+            cursor: CellAddress::new(0, 0),
+            viewport: ViewportInfo {
+                start_row: 0,
+                start_col: 0,
+                rows: 10,
+                cols: 10,
+            },
+            cell_mode: CellMode::Insert,
+            editing_value: "Hello".to_string(),
+            cursor_position: 5,
+            visual_start: None,
+            visual_type: None,
+            edit_variant: Some(InsertMode::I),
+        };
+        
+        let handler = EditingHandler;
+        let action = Action::UpdateEditingValue {
+            value: "Hello World".to_string(),
+            cursor_position: 11,
+        };
+        
+        // Act
+        let result = handler.handle(&initial_state, &action);
+        
+        // Assert
+        assert!(result.is_ok());
+        let new_state = result.unwrap();
+        
+        match new_state {
+            UIState::Editing {
+                editing_value,
+                cursor_position,
+                ..
+            } => {
+                assert_eq!(editing_value, "Hello World", "Value should be updated");
+                assert_eq!(cursor_position, 11, "Cursor position should be updated");
+            }
+            _ => panic!("Expected Editing state after UpdateEditingValue"),
+        }
+    }
 }

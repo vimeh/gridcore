@@ -25,115 +25,68 @@ pub fn CellEditor(
     let controller = controller_stored.with_value(|c| c.clone());
 
     let input_ref = NodeRef::<Textarea>::new();
-    let (editor_value, set_editor_value) = signal(String::new());
     let (suggestions, set_suggestions) = signal::<Vec<String>>(Vec::new());
     let (selected_suggestion, set_selected_suggestion) = signal::<Option<usize>>(None);
-    let (_expected_cursor_pos, set_expected_cursor_pos) = signal::<Option<usize>>(None);
 
     // Store controller refs for closures using LocalStorage
     let ctrl_value = controller.clone();
     let _ctrl_submit_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
     let _ctrl_cancel_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
 
-    // Initialize editor value when entering edit mode
+    // Initialize editor when entering edit mode
     Effect::new(move |_| {
         if editing_mode.get() {
             let _cell = active_cell.get();
             let ctrl = ctrl_value.clone();
             let ctrl_borrow = ctrl.borrow();
 
-            // Check the current editing state to get initial value and cursor position
+            // Get the current editing state
             let editing_state = ctrl_borrow.get_state();
 
-            let cursor_pos_to_set = match editing_state {
-                gridcore_controller::state::UIState::Editing {
-                    editing_value,
-                    cursor_position,
-                    ..
-                } => {
-                    // Always use the editing_value from state
-                    // The state machine now properly sets it based on the action:
-                    // - For Enter key: empty string (clear content)
-                    // - For direct typing: the typed character
-                    // - For 'i' key: existing cell content with cursor at 0
-                    // - For 'a' key: existing cell content with cursor at end
+            if let gridcore_controller::state::UIState::Editing {
+                editing_value,
+                cursor_position,
+                ..
+            } = editing_state
+            {
+                // Focus the input and set value and cursor from controller state
+                if let Some(input) = input_ref.get() {
+                    // Focus immediately
+                    let _ = input.focus();
+
+                    // Set the value from controller state
+                    input.set_value(editing_value);
+
+                    // Set cursor position from controller state
+                    let _ = input.set_selection_start(Some(*cursor_position as u32));
+                    let _ = input.set_selection_end(Some(*cursor_position as u32));
                     leptos::logging::log!(
-                        "Setting editor value from state: '{}', cursor at {}",
+                        "Initialized editor with value '{}' and cursor at {}",
                         editing_value,
                         cursor_position
                     );
-                    set_editor_value.set(editing_value.clone());
-
-                    // Store the expected cursor position for handling input events
-                    set_expected_cursor_pos.set(Some(*cursor_position));
-
-                    // Use the cursor position directly from state
-                    *cursor_position
                 }
-                _ => {
-                    // Not in editing state
-                    set_editor_value.set(String::new());
-                    set_expected_cursor_pos.set(None);
-                    0
-                }
-            };
-
-            // Focus the input and set cursor position from state
-            if let Some(input) = input_ref.get() {
-                // Focus immediately
-                let _ = input.focus();
-
-                // Force the value to be set in the DOM after focus
-                let value_to_set = editor_value.get();
-                input.set_value(&value_to_set);
-
-                // Set cursor position after focus and value
-                let _ = input.set_selection_start(Some(cursor_pos_to_set as u32));
-                let _ = input.set_selection_end(Some(cursor_pos_to_set as u32));
-                leptos::logging::log!("Set cursor position to {} immediately", cursor_pos_to_set);
-
-                // Store expected cursor position for a short time to handle timing issues
-                // Clear it after a delay
-                set_timeout(
-                    move || {
-                        set_expected_cursor_pos.set(None);
-                        leptos::logging::log!("Cleared expected cursor position");
-                    },
-                    std::time::Duration::from_millis(50),
-                );
             }
-        } else {
-            set_expected_cursor_pos.set(None);
         }
     });
 
-    // Sync textarea value with editor_value signal
-    // Only update if editing mode is active
-    Effect::new(move |_| {
-        if editing_mode.get() {
-            let value = editor_value.get();
-            if let Some(input) = input_ref.get() {
-                // Only update if the value is different to avoid cursor jumping
-                if input.value() != value {
-                    // Save cursor position before update
-                    let cursor_start = input.selection_start().unwrap_or(Some(0)).unwrap_or(0);
-                    let cursor_end = input.selection_end().unwrap_or(Some(0)).unwrap_or(0);
-
-                    input.set_value(&value);
-
-                    // Restore cursor position after update if it was within bounds
-                    if cursor_start <= value.len() as u32 {
-                        let _ = input.set_selection_start(Some(cursor_start));
-                        let _ = input.set_selection_end(Some(cursor_end));
-                    }
-                }
+    // Create a derived signal for the current editing value from controller
+    let current_editing_value = Signal::derive(move || {
+        controller_stored.with_value(|ctrl| {
+            let ctrl_borrow = ctrl.borrow();
+            if let gridcore_controller::state::UIState::Editing { editing_value, .. } =
+                ctrl_borrow.get_state()
+            {
+                editing_value.clone()
+            } else {
+                String::new()
             }
-        }
+        })
     });
 
     // Handle formula autocomplete using controller's AutocompleteManager
     Effect::new(move |_| {
-        let value = editor_value.get();
+        let value = current_editing_value.get();
 
         // Get suggestions from the controller's AutocompleteManager
         let suggestions = controller_stored.with_value(|ctrl| {
@@ -179,11 +132,32 @@ pub fn CellEditor(
                     node_ref=input_ref
                     on:input=move |ev| {
                         let new_value = event_target_value(&ev);
-                        leptos::logging::log!("Input event: new value = '{}'", new_value);
-
-                        // Update the editor value signal
-                        set_editor_value.set(new_value.clone());
-                        // Also update formula bar
+                        
+                        // Get current cursor position
+                        let cursor_pos = if let Some(input) = input_ref.get() {
+                            input.selection_start().unwrap_or(Some(0)).unwrap_or(0) as usize
+                        } else {
+                            new_value.len()
+                        };
+                        
+                        leptos::logging::log!(
+                            "Input event: new value = '{}', cursor at {}",
+                            new_value,
+                            cursor_pos
+                        );
+                        
+                        // Update the controller's editing value immediately
+                        controller_stored.with_value(|ctrl| {
+                            let mut ctrl_mut = ctrl.borrow_mut();
+                            if let Err(e) = ctrl_mut.dispatch_action(Action::UpdateEditingValue {
+                                value: new_value.clone(),
+                                cursor_position: cursor_pos,
+                            }) {
+                                leptos::logging::log!("Error updating editing value: {:?}", e);
+                            }
+                        });
+                        
+                        // Update formula bar
                         set_formula_value.set(new_value);
                     }
                     on:keydown=move |ev: KeyboardEvent| {
@@ -217,12 +191,21 @@ pub fn CellEditor(
                                         new_value.push('\n');
                                         new_value.push_str(&current_value[cursor_pos..]);
 
-                                        // Update the value
-                                        set_editor_value.set(new_value.clone());
-                                        input.set_value(&new_value);
-
-                                        // Set cursor position after the newline
                                         let new_cursor_pos = cursor_pos + 1;
+
+                                        // Update the controller's editing value
+                                        controller_stored.with_value(|ctrl| {
+                                            let mut ctrl_mut = ctrl.borrow_mut();
+                                            if let Err(e) = ctrl_mut.dispatch_action(Action::UpdateEditingValue {
+                                                value: new_value.clone(),
+                                                cursor_position: new_cursor_pos,
+                                            }) {
+                                                leptos::logging::log!("Error updating editing value: {:?}", e);
+                                            }
+                                        });
+
+                                        // Set the value and cursor in the textarea
+                                        input.set_value(&new_value);
                                         let _ = input.set_selection_start(Some(new_cursor_pos as u32));
                                         let _ = input.set_selection_end(Some(new_cursor_pos as u32));
 
@@ -231,7 +214,7 @@ pub fn CellEditor(
                                     }
                                 } else {
                                     // Not in INSERT mode - Enter saves and exits
-                                    let value = editor_value.get();
+                                    let value = current_editing_value.get();
 
                                     // Use the new SubmitCellEdit action to handle all submission logic
                                     controller_stored.with_value(|ctrl| {
@@ -294,7 +277,7 @@ pub fn CellEditor(
                                         leptos::logging::log!("Updated mode to {:?} after ExitVisualMode", new_mode);
                                     } else if is_normal_mode {
                                         // In Normal mode - save and exit
-                                        let value = editor_value.get();
+                                        let value = current_editing_value.get();
 
                                         // Use the consolidated submission action
                                         drop(ctrl_borrow);
@@ -482,7 +465,7 @@ pub fn CellEditor(
                                     view! {
                                         <div
                                             on:click=move |_| {
-                                                let current_value = editor_value.get();
+                                                let current_value = current_editing_value.get();
                                                 let cursor_pos = if let Some(input) = input_ref.get() {
                                                     input.selection_start().unwrap_or(Some(0)).unwrap_or(0) as usize
                                                 } else {
@@ -500,12 +483,23 @@ pub fn CellEditor(
                                                     manager.apply_suggestion(&current_value, &suggestion, cursor_pos)
                                                 });
 
-                                                set_editor_value.set(new_value);
+                                                // Update the controller's editing value
+                                                controller_stored.with_value(|ctrl| {
+                                                    let mut ctrl_mut = ctrl.borrow_mut();
+                                                    if let Err(e) = ctrl_mut.dispatch_action(Action::UpdateEditingValue {
+                                                        value: new_value.clone(),
+                                                        cursor_position: new_cursor,
+                                                    }) {
+                                                        leptos::logging::log!("Error updating editing value: {:?}", e);
+                                                    }
+                                                });
+                                                
                                                 set_suggestions.set(Vec::new());
                                                 set_selected_suggestion.set(None);
 
                                                 // Refocus the input and set cursor position
                                                 if let Some(input) = input_ref.get() {
+                                                    input.set_value(&new_value);
                                                     let _ = input.focus();
                                                     let _ = input.set_selection_start(Some(new_cursor as u32));
                                                     let _ = input.set_selection_end(Some(new_cursor as u32));
