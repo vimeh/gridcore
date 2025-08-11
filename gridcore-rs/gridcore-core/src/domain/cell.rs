@@ -1,6 +1,7 @@
 use crate::constants::*;
 use crate::types::{CellValue, ErrorType};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 /// Represents a spreadsheet cell with its value and optional formula
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -12,10 +13,10 @@ pub struct Cell {
     pub computed_value: CellValue,
 
     /// The formula text if this cell contains a formula (without the leading '=')
-    pub formula_text: Option<String>,
+    pub formula_text: Option<Arc<str>>,
 
     /// Any error that occurred during parsing or evaluation
-    pub error: Option<String>,
+    pub error: Option<Arc<str>>,
 }
 
 impl Cell {
@@ -35,7 +36,7 @@ impl Cell {
         Cell {
             raw_value,
             computed_value: CellValue::Empty, // Will be computed later
-            formula_text: Some(formula_text),
+            formula_text: Some(Arc::from(formula_text.as_str())),
             error: None,
         }
     }
@@ -43,31 +44,30 @@ impl Cell {
     /// Create a cell with an error
     pub fn with_error(raw_value: CellValue, error: String) -> Self {
         // Parse the error string to determine the appropriate ErrorType
-        // Clone once for the error type, keep original for the error field
-        let error_clone = error.clone();
-        let error_type = if error_clone.contains(ERROR_DIV_ZERO)
-            || error_clone.contains(DESC_DIVISION_BY_ZERO)
+        let error_arc = Arc::from(error.as_str());
+        let error_type = if error.contains(ERROR_DIV_ZERO)
+            || error.contains(DESC_DIVISION_BY_ZERO)
         {
             ErrorType::DivideByZero
-        } else if error_clone.contains(ERROR_REF) || error_clone.contains(DESC_INVALID_REFERENCE) {
+        } else if error.contains(ERROR_REF) || error.contains(DESC_INVALID_REFERENCE) {
             ErrorType::InvalidRef {
-                reference: error_clone,
+                reference: error.clone(),
             }
-        } else if error_clone.contains(ERROR_NAME) || error_clone.contains(DESC_UNKNOWN_FUNCTION) {
-            ErrorType::NameError { name: error_clone }
-        } else if error_clone.contains(ERROR_VALUE) || error_clone.contains(DESC_TYPE_MISMATCH) {
+        } else if error.contains(ERROR_NAME) || error.contains(DESC_UNKNOWN_FUNCTION) {
+            ErrorType::NameError { name: error.clone() }
+        } else if error.contains(ERROR_VALUE) || error.contains(DESC_TYPE_MISMATCH) {
             ErrorType::ValueError {
                 expected: ERROR_VALID_VALUE.to_string(),
-                actual: error_clone,
+                actual: error.clone(),
             }
-        } else if error_clone.contains(ERROR_CIRC) || error_clone.contains(DESC_CIRCULAR_REFERENCE)
+        } else if error.contains(ERROR_CIRC) || error.contains(DESC_CIRCULAR_REFERENCE)
         {
             ErrorType::CircularDependency { cells: Vec::new() }
-        } else if error_clone.contains(ERROR_NUM) {
+        } else if error.contains(ERROR_NUM) {
             ErrorType::NumError
         } else {
             ErrorType::ParseError {
-                message: error_clone,
+                message: error.clone(),
             }
         };
 
@@ -75,7 +75,7 @@ impl Cell {
             raw_value,
             computed_value: CellValue::from_error(error_type),
             formula_text: None,
-            error: Some(error),
+            error: Some(error_arc),
         }
     }
 
@@ -122,32 +122,32 @@ impl Cell {
 
     /// Set an error on the cell
     pub fn set_error(&mut self, error: String) {
-        // Clone once for the error type
-        let error_clone = error.clone();
-        self.error = Some(error);
+        // Convert to Arc for storage
+        let error_arc = Arc::from(error.as_str());
+        self.error = Some(Arc::clone(&error_arc));
 
         // Parse the error string to determine the appropriate ErrorType
         let error_type =
-            if error_clone.contains("#DIV/0!") || error_clone.contains("Division by zero") {
+            if error.contains("#DIV/0!") || error.contains("Division by zero") {
                 ErrorType::DivideByZero
-            } else if error_clone.contains("#REF!") || error_clone.contains("Invalid reference") {
+            } else if error.contains("#REF!") || error.contains("Invalid reference") {
                 ErrorType::InvalidRef {
-                    reference: error_clone,
+                    reference: error.clone(),
                 }
-            } else if error_clone.contains("#NAME?") || error_clone.contains("Unknown function") {
-                ErrorType::NameError { name: error_clone }
-            } else if error_clone.contains("#VALUE!") || error_clone.contains("Type mismatch") {
+            } else if error.contains("#NAME?") || error.contains("Unknown function") {
+                ErrorType::NameError { name: error.clone() }
+            } else if error.contains("#VALUE!") || error.contains("Type mismatch") {
                 ErrorType::ValueError {
                     expected: "valid".to_string(),
-                    actual: error_clone,
+                    actual: error.clone(),
                 }
-            } else if error_clone.contains("#CIRC!") || error_clone.contains("Circular") {
+            } else if error.contains("#CIRC!") || error.contains("Circular") {
                 ErrorType::CircularDependency { cells: Vec::new() }
-            } else if error_clone.contains("#NUM!") {
+            } else if error.contains("#NUM!") {
                 ErrorType::NumError
             } else {
                 ErrorType::ParseError {
-                    message: error_clone,
+                    message: error.clone(),
                 }
             };
 
