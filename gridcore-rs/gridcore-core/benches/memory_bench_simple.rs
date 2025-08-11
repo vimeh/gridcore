@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use gridcore_core::{
     domain::cell::Cell,
     formula::parser::FormulaParser,
@@ -10,7 +10,7 @@ use std::hint::black_box;
 
 fn bench_cell_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("cell_operations");
-    
+
     group.bench_function("create_1000_cells", |b| {
         b.iter(|| {
             let cells: Vec<Cell> = (0..1000)
@@ -24,19 +24,19 @@ fn bench_cell_operations(c: &mut Criterion) {
         let cells: Vec<Cell> = (0..100)
             .map(|i| Cell::new(CellValue::Number(i as f64)))
             .collect();
-        
+
         b.iter(|| {
             let cloned: Vec<Cell> = cells.iter().cloned().collect();
             black_box(cloned)
         });
     });
-    
+
     group.finish();
 }
 
 fn bench_formula_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("formula_operations");
-    
+
     let formulas = vec![
         "=A1+B2",
         "=SUM(A1:A100)",
@@ -54,13 +54,13 @@ fn bench_formula_operations(c: &mut Criterion) {
             }
         });
     });
-    
+
     group.finish();
 }
 
 fn bench_repository_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("repository");
-    
+
     group.bench_function("insert_10k_cells", |b| {
         b.iter(|| {
             let mut repo = CellRepository::new();
@@ -74,13 +74,13 @@ fn bench_repository_operations(c: &mut Criterion) {
             black_box(repo)
         });
     });
-    
+
     group.finish();
 }
 
 fn bench_string_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("strings");
-    
+
     group.bench_function("address_to_string", |b| {
         b.iter(|| {
             let mut strings = Vec::with_capacity(1000);
@@ -93,13 +93,13 @@ fn bench_string_operations(c: &mut Criterion) {
             black_box(strings)
         });
     });
-    
+
     group.finish();
 }
 
 fn bench_collection_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("collections");
-    
+
     // Compare HashMap vs FxHashMap
     group.bench_function("std_hashmap_small", |b| {
         b.iter(|| {
@@ -113,7 +113,7 @@ fn bench_collection_operations(c: &mut Criterion) {
             black_box(map)
         });
     });
-    
+
     group.bench_function("fx_hashmap_small", |b| {
         use rustc_hash::FxHashMap;
         b.iter(|| {
@@ -127,7 +127,7 @@ fn bench_collection_operations(c: &mut Criterion) {
             black_box(map)
         });
     });
-    
+
     // Compare Vec with and without capacity
     group.bench_function("vec_no_capacity", |b| {
         b.iter(|| {
@@ -138,7 +138,7 @@ fn bench_collection_operations(c: &mut Criterion) {
             black_box(v)
         });
     });
-    
+
     group.bench_function("vec_with_capacity", |b| {
         b.iter(|| {
             let mut v = Vec::with_capacity(100);
@@ -148,7 +148,7 @@ fn bench_collection_operations(c: &mut Criterion) {
             black_box(v)
         });
     });
-    
+
     group.finish();
 }
 

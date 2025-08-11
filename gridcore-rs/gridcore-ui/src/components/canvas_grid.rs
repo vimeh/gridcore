@@ -28,7 +28,7 @@ pub fn CanvasGrid(
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
     let controller_rc = controller_stored.get_value();
-    
+
     // Create a signal to track state changes and trigger re-renders
     let (state_version, set_state_version) = signal(0u32);
 
@@ -188,17 +188,17 @@ pub fn CanvasGrid(
             // Now update active cell if we found one
             if let Some(cell) = new_cell {
                 leptos::logging::log!("Setting active cell to {:?} from click", cell);
-                
+
                 // Update the controller's cursor and the signal
                 controller_stored.with_value(|c| {
-                    let _ = c.borrow_mut().dispatch_action(Action::UpdateCursor { 
-                        cursor: cell 
-                    });
+                    let _ = c
+                        .borrow_mut()
+                        .dispatch_action(Action::UpdateCursor { cursor: cell });
                 });
-                
+
                 // Update the active cell signal
                 set_active_cell.set(cell);
-                
+
                 // Trigger a re-render
                 set_state_version.update(|v| *v += 1);
 
@@ -246,14 +246,14 @@ pub fn CanvasGrid(
             if let Some(cell) = new_cell {
                 // Update cursor in controller
                 controller_stored.with_value(|c| {
-                    let _ = c.borrow_mut().dispatch_action(Action::UpdateCursor { 
-                        cursor: cell 
-                    });
+                    let _ = c
+                        .borrow_mut()
+                        .dispatch_action(Action::UpdateCursor { cursor: cell });
                 });
-                
+
                 // Update the active cell signal
                 set_active_cell.set(cell);
-                
+
                 // Trigger a re-render
                 set_state_version.update(|v| *v += 1);
 
