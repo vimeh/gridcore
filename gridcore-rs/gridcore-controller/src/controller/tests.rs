@@ -125,7 +125,10 @@ mod tests {
 
         // Subscribe to events
         let index = controller.subscribe_to_events(move |event| {
-            events_clone.lock().expect("Test mutex should not be poisoned").push(format!("{:?}", event));
+            events_clone
+                .lock()
+                .expect("Test mutex should not be poisoned")
+                .push(format!("{:?}", event));
         });
 
         // Trigger a mode change
@@ -134,7 +137,9 @@ mod tests {
             .unwrap();
 
         // Should have received a mode change event
-        let events = received_events.lock().expect("Test mutex should not be poisoned");
+        let events = received_events
+            .lock()
+            .expect("Test mutex should not be poisoned");
         assert!(!events.is_empty());
 
         // Unsubscribe

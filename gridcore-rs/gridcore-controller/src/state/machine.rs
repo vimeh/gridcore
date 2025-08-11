@@ -90,14 +90,14 @@ impl UIStateMachine {
             state.spreadsheet_mode(),
             action
         );
-        
+
         // Create handler registry and find appropriate handler
         let registry = HandlerRegistry::new();
-        
+
         if let Some(handler) = registry.find_handler(state, action) {
             return handler.handle(state, action);
         }
-        
+
         // If no handler found, return an error
         Err(SpreadsheetError::InvalidOperation(format!(
             "Invalid transition from {:?} with action {:?}",
@@ -105,7 +105,6 @@ impl UIStateMachine {
             action
         )))
     }
-
 
     pub fn get_state(&self) -> &UIState {
         &self.state

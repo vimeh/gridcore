@@ -77,7 +77,8 @@ impl Workbook {
         let mut workbook = Self::new();
         let name = sheet_name.into();
         // This is safe because we just created an empty workbook, so the sheet name can't exist yet
-        workbook.add_sheet(Sheet::new(name.clone()))
+        workbook
+            .add_sheet(Sheet::new(name.clone()))
             .expect("Failed to add initial sheet to new workbook - this should never happen");
         workbook.active_sheet = Some(name);
         workbook

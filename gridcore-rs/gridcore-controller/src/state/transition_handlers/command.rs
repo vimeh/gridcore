@@ -1,7 +1,5 @@
 use super::TransitionHandler;
-use crate::state::{
-    actions::Action, create_navigation_state, UIState,
-};
+use crate::state::{actions::Action, create_navigation_state, UIState};
 use gridcore_core::Result;
 
 pub struct CommandHandler;

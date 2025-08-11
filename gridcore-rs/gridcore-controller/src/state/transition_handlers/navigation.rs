@@ -34,8 +34,7 @@ impl TransitionHandler for NavigationHandler {
                     } else {
                         CellMode::Normal
                     };
-                    let mut new_state =
-                        create_editing_state(*cursor, *viewport, cell_mode);
+                    let mut new_state = create_editing_state(*cursor, *viewport, cell_mode);
 
                     if let UIState::Editing {
                         editing_value,

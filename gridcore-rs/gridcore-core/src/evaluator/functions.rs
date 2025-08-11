@@ -103,7 +103,9 @@ impl FunctionLibrary {
 
                 if has_error {
                     // Safe to unwrap because has_error is only true when error_value is Some
-                    Ok(CellValue::Error(error_value.expect("error_value should be set when has_error is true")))
+                    Ok(CellValue::Error(error_value.expect(
+                        "error_value should be set when has_error is true",
+                    )))
                 } else {
                     Ok(CellValue::Number(sum))
                 }

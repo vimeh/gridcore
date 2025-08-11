@@ -57,8 +57,12 @@ mod complex_transition_tests {
         }
 
         // Escape back through modes
-        machine.transition(Action::ExitVisualMode).expect("Transition should succeed in test"); // To normal
-        machine.transition(Action::Escape).expect("Transition should succeed in test"); // To navigation
+        machine
+            .transition(Action::ExitVisualMode)
+            .expect("Transition should succeed in test"); // To normal
+        machine
+            .transition(Action::Escape)
+            .expect("Transition should succeed in test"); // To navigation
 
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
@@ -68,13 +72,17 @@ mod complex_transition_tests {
         let mut machine = UIStateMachine::new(None);
 
         // Navigation -> Command -> Navigation -> Visual -> Navigation
-        machine.transition(Action::EnterCommandMode).expect("Transition should succeed in test");
+        machine
+            .transition(Action::EnterCommandMode)
+            .expect("Transition should succeed in test");
         machine
             .transition(Action::UpdateCommandValue {
                 value: ":set number".to_string(),
             })
             .unwrap();
-        machine.transition(Action::ExitCommandMode).expect("Transition should succeed in test");
+        machine
+            .transition(Action::ExitCommandMode)
+            .expect("Transition should succeed in test");
 
         let selection = Selection {
             selection_type: SelectionType::Range {
@@ -189,14 +197,18 @@ mod complex_transition_tests {
             .unwrap();
 
         // Exit editing
-        machine.transition(Action::ExitToNavigation).expect("Transition should succeed in test");
+        machine
+            .transition(Action::ExitToNavigation)
+            .expect("Transition should succeed in test");
 
         // History should contain all transitions
         let history = machine.get_history();
         assert!(history.len() >= 6);
 
         // Verify we can continue after all these transitions
-        machine.transition(Action::EnterCommandMode).expect("Transition should succeed in test");
+        machine
+            .transition(Action::EnterCommandMode)
+            .expect("Transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Command { .. }));
     }
 
@@ -229,7 +241,9 @@ mod complex_transition_tests {
         }
 
         // Generate preview
-        machine.transition(Action::GeneratePreview).expect("Transition should succeed in test");
+        machine
+            .transition(Action::GeneratePreview)
+            .expect("Transition should succeed in test");
 
         match machine.get_state() {
             UIState::BulkOperation {
@@ -241,7 +255,9 @@ mod complex_transition_tests {
         }
 
         // Execute operation
-        machine.transition(Action::ExecuteBulkOperation).expect("Transition should succeed in test");
+        machine
+            .transition(Action::ExecuteBulkOperation)
+            .expect("Transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
 
@@ -260,10 +276,14 @@ mod complex_transition_tests {
             .unwrap();
 
         // Generate preview
-        machine.transition(Action::GeneratePreview).expect("Transition should succeed in test");
+        machine
+            .transition(Action::GeneratePreview)
+            .expect("Transition should succeed in test");
 
         // Cancel instead of executing
-        machine.transition(Action::CancelBulkOperation).expect("Transition should succeed in test");
+        machine
+            .transition(Action::CancelBulkOperation)
+            .expect("Transition should succeed in test");
 
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
@@ -307,7 +327,9 @@ mod complex_transition_tests {
         }
 
         // Complete resize
-        machine.transition(Action::ConfirmResize).expect("Transition should succeed in test");
+        machine
+            .transition(Action::ConfirmResize)
+            .expect("Transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
 
@@ -346,7 +368,9 @@ mod complex_transition_tests {
             .unwrap();
 
         // Confirm insert
-        machine.transition(Action::ConfirmInsert).expect("Transition should succeed in test");
+        machine
+            .transition(Action::ConfirmInsert)
+            .expect("Transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
 
         // Start delete mode
@@ -370,7 +394,9 @@ mod complex_transition_tests {
         }
 
         // Cancel delete
-        machine.transition(Action::CancelDelete).expect("Transition should succeed in test");
+        machine
+            .transition(Action::CancelDelete)
+            .expect("Transition should succeed in test");
         assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
 
@@ -448,7 +474,9 @@ mod complex_transition_tests {
         let mut machine = UIStateMachine::new(None);
 
         // Enter command mode
-        machine.transition(Action::EnterCommandMode).expect("Transition should succeed in test");
+        machine
+            .transition(Action::EnterCommandMode)
+            .expect("Transition should succeed in test");
 
         // Build complex command character by character
         let command = ":s/foo/bar/g";
@@ -468,8 +496,12 @@ mod complex_transition_tests {
         }
 
         // Exit and re-enter with different command
-        machine.transition(Action::ExitCommandMode).expect("Transition should succeed in test");
-        machine.transition(Action::EnterCommandMode).expect("Transition should succeed in test");
+        machine
+            .transition(Action::ExitCommandMode)
+            .expect("Transition should succeed in test");
+        machine
+            .transition(Action::EnterCommandMode)
+            .expect("Transition should succeed in test");
 
         // Try range command
         let range_command = ":1,100d";

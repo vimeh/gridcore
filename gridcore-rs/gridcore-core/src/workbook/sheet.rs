@@ -219,7 +219,7 @@ impl Sheet {
                 self.dependencies
                     .lock()
                     .expect("Failed to acquire dependencies lock for cloning")
-                    .clone()
+                    .clone(),
             )),
             properties: self.properties.clone(),
             named_ranges: self.named_ranges.clone(),

@@ -418,14 +418,18 @@ mod tests {
         let notifications_clone = notifications.clone();
 
         machine.subscribe(move |state, _action| {
-            let mut notifs = notifications_clone.lock().expect("Test mutex should not be poisoned");
+            let mut notifs = notifications_clone
+                .lock()
+                .expect("Test mutex should not be poisoned");
             notifs.push(format!("{:?}", state.spreadsheet_mode()));
         });
 
         machine.transition(Action::EnterCommandMode).unwrap();
         machine.transition(Action::ExitCommandMode).unwrap();
 
-        let notifs = notifications.lock().expect("Test mutex should not be poisoned");
+        let notifs = notifications
+            .lock()
+            .expect("Test mutex should not be poisoned");
         assert_eq!(notifs.len(), 2);
         assert_eq!(notifs[0], "Command");
         assert_eq!(notifs[1], "Navigation");

@@ -33,7 +33,9 @@ mod edge_case_tests {
         for i in 0..10 {
             let machine_clone = Arc::clone(&machine);
             let handle = thread::spawn(move || {
-                let mut m = machine_clone.lock().expect("Test mutex should not be poisoned");
+                let mut m = machine_clone
+                    .lock()
+                    .expect("Test mutex should not be poisoned");
                 m.transition(Action::UpdateCursor {
                     cursor: CellAddress::new(i, i),
                 })
@@ -242,7 +244,9 @@ mod edge_case_tests {
 
         // Add listener that removes itself
         let listener_id = machine.subscribe(move |_, _| {
-            let mut r = removed_clone.lock().expect("Test mutex should not be poisoned");
+            let mut r = removed_clone
+                .lock()
+                .expect("Test mutex should not be poisoned");
             *r = true;
         });
 

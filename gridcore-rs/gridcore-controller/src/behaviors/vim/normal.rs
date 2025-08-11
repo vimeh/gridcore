@@ -452,4 +452,3 @@ impl VimBehavior {
         Ok(None) // TODO: Implement
     }
 }
-

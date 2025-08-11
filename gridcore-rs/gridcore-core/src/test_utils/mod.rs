@@ -7,42 +7,44 @@ use std::fmt::Debug;
 
 /// Helper for expecting successful results in tests with descriptive messages
 pub fn expect_ok<T>(result: Result<T>, context: &str) -> T {
-    result.unwrap_or_else(|e| {
-        panic!("Test expectation failed: {} - Error: {:?}", context, e)
-    })
+    result.unwrap_or_else(|e| panic!("Test expectation failed: {} - Error: {:?}", context, e))
 }
 
 /// Helper for parsing operations in tests
 pub fn expect_parse<T>(result: Result<T>, input: &str) -> T {
-    result.unwrap_or_else(|e| {
-        panic!("Failed to parse '{}' - Error: {:?}", input, e)
-    })
+    result.unwrap_or_else(|e| panic!("Failed to parse '{}' - Error: {:?}", input, e))
 }
 
 /// Helper for mutex lock operations in tests
 pub fn expect_lock<'a, T>(
-    lock_result: std::result::Result<std::sync::MutexGuard<'a, T>, std::sync::PoisonError<std::sync::MutexGuard<'a, T>>>,
+    lock_result: std::result::Result<
+        std::sync::MutexGuard<'a, T>,
+        std::sync::PoisonError<std::sync::MutexGuard<'a, T>>,
+    >,
     context: &str,
 ) -> std::sync::MutexGuard<'a, T> {
     lock_result.unwrap_or_else(|_| {
-        panic!("Test mutex poisoned: {} - Previous test likely panicked", context)
+        panic!(
+            "Test mutex poisoned: {} - Previous test likely panicked",
+            context
+        )
     })
 }
 
 /// Helper for cell address creation in tests
 pub fn expect_cell_address(a1_notation: &str) -> crate::types::CellAddress {
-    crate::types::CellAddress::from_a1(a1_notation)
-        .unwrap_or_else(|_| {
-            panic!("'{}' should be a valid cell address in A1 notation", a1_notation)
-        })
+    crate::types::CellAddress::from_a1(a1_notation).unwrap_or_else(|_| {
+        panic!(
+            "'{}' should be a valid cell address in A1 notation",
+            a1_notation
+        )
+    })
 }
 
 /// Helper for formula parsing in tests
 pub fn expect_formula(formula_str: &str) -> crate::formula::Expr {
     crate::formula::FormulaParser::parse(formula_str)
-        .unwrap_or_else(|e| {
-            panic!("Failed to parse formula '{}' - Error: {:?}", formula_str, e)
-        })
+        .unwrap_or_else(|e| panic!("Failed to parse formula '{}' - Error: {:?}", formula_str, e))
 }
 
 /// Macro for creating expect messages with context

@@ -702,4 +702,3 @@ impl CellVimBehavior {
         pos
     }
 }
-
