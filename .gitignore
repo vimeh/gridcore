@@ -22,3 +22,4 @@ gridcore-rs/*/target/
 packages/ui-web/public/wasm/
 packages/ui-core/dist/wasm/
 
+repomix-output.xml
