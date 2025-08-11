@@ -16,8 +16,9 @@ regex = { workspace = true, default-features = false, features = [
   "perf",
 ] }
 chrono = { workspace = true, default-features = false, features = [
-  "clock",
   "std",
+  "wasmbind",
+  "clock",
 ] }
 uuid = { version = "1.17", features = ["v4", "js"] }
 rustc-hash = "2.1.1"
