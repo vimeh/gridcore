@@ -28,16 +28,16 @@ pub fn ErrorDisplay(state_version: ReadSignal<u32>) -> impl IntoView {
     // Get controller from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
-    
+
     // Derive errors from controller's ErrorManager
     let errors = Memo::new(move |_| {
         // Track state version to trigger updates
         let _ = state_version.get();
-        
+
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             let active_errors = ctrl_borrow.get_active_errors();
-            
+
             // Convert from controller's ErrorEntry to our ErrorMessage
             active_errors
                 .into_iter()
@@ -53,7 +53,7 @@ pub fn ErrorDisplay(state_version: ReadSignal<u32>) -> impl IntoView {
                             ErrorSeverity::Info
                         }
                     };
-                    
+
                     ErrorMessage {
                         message: entry.message,
                         severity,
@@ -63,7 +63,7 @@ pub fn ErrorDisplay(state_version: ReadSignal<u32>) -> impl IntoView {
                 .collect::<Vec<_>>()
         })
     });
-    
+
     // Provide context for other components (if needed)
     provide_context(ErrorContext {
         add_error: Callback::new(move |(message, severity): (String, ErrorSeverity)| {

@@ -45,7 +45,7 @@ pub fn CanvasGrid(
     )));
     let (viewport, set_viewport) = signal_local(viewport_rc.clone());
     let (canvas_dimensions, set_canvas_dimensions) = signal((0.0, 0.0));
-    
+
     // Derive editing_mode from controller state
     let editing_mode = Memo::new(move |_| {
         controller_stored.with_value(|ctrl| {
@@ -57,7 +57,7 @@ pub fn CanvasGrid(
             )
         })
     });
-    
+
     // Derive cell_position from viewport when needed
     let cell_position = Memo::new(move |_| {
         if editing_mode.get() {
@@ -76,10 +76,10 @@ pub fn CanvasGrid(
             (0.0, 0.0, 100.0, 25.0)
         }
     });
-    
+
     // Store resize handler state for cursor style
     let (resize_hover_state, set_resize_hover_state) = signal("cell");
-    
+
     // Derive cursor_style from resize handler state
     let cursor_style = Memo::new(move |_| resize_hover_state.get());
 

@@ -181,10 +181,7 @@ impl SpreadsheetController {
                 }
                 Err(e) => {
                     let message = ErrorFormatter::format_error(&e);
-                    self.emit_error(
-                        message,
-                        crate::controller::events::ErrorSeverity::Error,
-                    );
+                    self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
                 }
             }
             return Ok(());
@@ -220,10 +217,7 @@ impl SpreadsheetController {
                     Err(e) => {
                         let message = ErrorFormatter::format_error(&e);
                         log::error!("Parse/Set error in cell {}: {}", address, message);
-                        self.emit_error(
-                            message,
-                            crate::controller::events::ErrorSeverity::Error,
-                        );
+                        self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
                     }
                 }
 
@@ -292,8 +286,8 @@ impl SpreadsheetController {
         severity: crate::controller::events::ErrorSeverity,
     ) {
         // Add to error manager
-        self.error_manager.add_error(message.clone(), severity.clone());
-        
+        self.error_manager.add_error(message.clone(), severity);
+
         // Dispatch event for UI updates
         self.event_dispatcher
             .dispatch(&SpreadsheetEvent::ErrorOccurred { message, severity });
@@ -869,10 +863,7 @@ impl SpreadsheetController {
                     log::error!("Parse/Set error in cell {}: {}", address, message);
 
                     // Emit error event for setting errors
-                    self.emit_error(
-                        message,
-                        crate::controller::events::ErrorSeverity::Error,
-                    );
+                    self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
                     // Still exit editing mode even if the value couldn't be set
                 }
             }
@@ -920,6 +911,7 @@ impl Default for SpreadsheetController {
 #[cfg(test)]
 mod sheet_tests {
     use super::*;
+    use crate::controller::events::ErrorSeverity;
     use std::sync::{Arc, Mutex};
 
     #[test]
@@ -1093,5 +1085,77 @@ mod sheet_tests {
             let result = controller.remove_sheet(&sheets[0].0);
             assert!(result.is_err());
         }
+    }
+
+    #[test]
+    fn test_error_manager_integration() {
+        let mut controller = SpreadsheetController::new();
+
+        // Add an error
+        controller.emit_error("Test error".to_string(), ErrorSeverity::Error);
+
+        // Check that error was added
+        let errors = controller.get_active_errors();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].message, "Test error");
+
+        // Add warning
+        controller.emit_error("Test warning".to_string(), ErrorSeverity::Warning);
+
+        // Check both are present
+        let errors = controller.get_active_errors();
+        assert_eq!(errors.len(), 2);
+
+        // Clear all errors
+        controller.clear_all_errors();
+        let errors = controller.get_active_errors();
+        assert_eq!(errors.len(), 0);
+    }
+
+    #[test]
+    fn test_error_removal() {
+        let mut controller = SpreadsheetController::new();
+
+        // Add multiple errors
+        controller.emit_error("Error 1".to_string(), ErrorSeverity::Error);
+        controller.emit_error("Error 2".to_string(), ErrorSeverity::Warning);
+        controller.emit_error("Error 3".to_string(), ErrorSeverity::Info);
+
+        let errors = controller.get_active_errors();
+        assert_eq!(errors.len(), 3);
+
+        // Remove middle error
+        let error_id = errors[1].id;
+        assert!(controller.remove_error(error_id));
+
+        // Check that only 2 remain
+        let errors = controller.get_active_errors();
+        assert_eq!(errors.len(), 2);
+        assert_eq!(errors[0].message, "Error 1");
+        assert_eq!(errors[1].message, "Error 3");
+
+        // Try to remove non-existent error
+        assert!(!controller.remove_error(999));
+    }
+
+    #[test]
+    fn test_error_events() {
+        let mut controller = SpreadsheetController::new();
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let events_clone = events.clone();
+
+        // Subscribe to events
+        controller.subscribe_to_events(move |event| {
+            let mut e = events_clone.lock().unwrap();
+            e.push(format!("{:?}", event));
+        });
+
+        // Emit an error
+        controller.emit_error("Test error".to_string(), ErrorSeverity::Error);
+
+        // Check that ErrorOccurred event was dispatched
+        let e = events.lock().unwrap();
+        assert!(e.iter().any(|s| s.contains("ErrorOccurred")));
+        assert!(e.iter().any(|s| s.contains("Test error")));
     }
 }
