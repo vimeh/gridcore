@@ -1,12 +1,14 @@
 # Phase 4.1: Clone Usage Audit Report
 
 ## Summary
-- **Total clone() calls:** 303 (was 358, reduced by 55 - 15.4% reduction)
-- **Target:** <100
-- **String allocations:** ~589 (was 607, reduced by ~18)
+- **Total clone() calls:** 356 (was 370, reduced by 14 in latest pass)
+  - Total reduction from original: 358 → 303 → 356 → ongoing
+- **Target:** <100 (need 256 more reductions)
+- **String allocations:** ~760 (needs investigation)
 - **Memory optimization:** Implemented state diffing for history (significant memory savings)
 - **CellValue optimization:** Now uses Arc for heap types (String, Error, Array) - clones are now O(1)
 - **State machine optimization:** Reduced clones from 31 to 28 by reconstructing states instead of cloning
+- **UI layer optimization:** Reduced controller and config clones
 
 ## Clone Distribution by Module
 
@@ -16,18 +18,18 @@
 | gridcore-controller | 103 | 18 |
 | gridcore-ui | 63 | 10 |
 
-## Top Offenders (Final Status)
+## Top Offenders (Current Status - 2025-08-11)
 
-1. ~~`gridcore-core/src/facade/spreadsheet_facade.rs`: 49 clones~~ → 3 clones ✅
-2. `gridcore-controller/src/state/machine.rs`: ~~49~~ → ~~32~~ → 28 clones (optimized transitions) ✅
-3. ~~`gridcore-ui/src/components/canvas_grid.rs`: 26 clones~~ → 18 clones ✅
-4. ~~`gridcore-ui/src/components/cell_editor.rs`: 13 clones~~ → 12 clones ✅
+1. `gridcore-controller/src/controller/spreadsheet.rs`: 19 clones
+2. `gridcore-controller/src/state/transition_handlers/editing.rs`: 18 clones
+3. `gridcore-ui/src/components/canvas_grid.rs`: 16 clones (was 19) ✅
+4. `gridcore-core/src/evaluator/operators.rs`: 13 clones
 5. `gridcore-core/benches/transformer_bench.rs`: 12 clones (test code - no action needed)
-6. ~~`gridcore-core/src/domain/cell.rs`: 11 clones~~ → 7 clones ✅
-7. `gridcore-core/src/error/mod.rs`: 11 clones (necessary for error conversion)
-8. `gridcore-controller/src/state/diff.rs`: 10 clones (new state diffing) 🆕
-9. `gridcore-controller/src/controller/spreadsheet.rs`: 10 clones (state management)
-10. `gridcore-core/src/workbook/types.rs`: 10 clones (sheet operations)
+6. `gridcore-core/src/error/mod.rs`: 11 clones (necessary for error conversion)
+7. `gridcore-ui/src/components/cell_editor.rs`: 10 clones (was 21) ✅
+8. `gridcore-core/src/workbook/types.rs`: 10 clones (sheet operations)
+9. `gridcore-core/src/domain/cell.rs`: 10 clones
+10. `gridcore-controller/src/state/diff.rs`: 10 clones (state diffing)
 
 ## Clone Categories
 
@@ -112,9 +114,19 @@ Most common pattern. Opportunities:
 - [x] No performance regression in benchmarks ✅
 - [x] All tests passing ✅ (445 tests pass)
 
-## Progress Update
+## Progress Update (2025-08-11)
 
-### Completed Optimizations:
+### Latest Optimizations:
+1. **Added Copy trait** to ErrorSeverity, CellRange, ResizeState
+2. **Optimized UI controller usage** in cell_editor.rs (21→10 clones)
+   - Removed unnecessary Rc clones
+   - Use stored values directly in closures  
+   - Avoid cloning full state when only mode is needed
+3. **Optimized canvas_grid.rs** config access (19→16 clones)
+   - Extract only needed fields instead of cloning full config
+4. **Total reduction**: 370→356 (14 clones removed)
+
+### Previously Completed Optimizations:
 1. **Added Copy trait** to ViewportInfo, CellRange, StructuralOperation
 2. **Removed viewport clones** in state machine (20 instances)
 3. **Created constants module** for common strings
