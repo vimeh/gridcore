@@ -3,7 +3,6 @@ use crate::components::error_display::ErrorDisplay;
 use crate::components::status_bar::StatusBar;
 use crate::components::tab_bar::{Sheet, TabBar};
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::managers::SelectionStats;
 use gridcore_core::types::CellAddress;
 use leptos::prelude::*;
 use std::cell::RefCell;
@@ -153,16 +152,11 @@ pub fn App() -> impl IntoView {
     // Keyboard-only mode state
     let (keyboard_only_mode, set_keyboard_only_mode) = signal(false);
 
-    // Keep selection stats as signal for now since SelectionStats doesn't implement PartialEq
-    let (selection_stats, set_selection_stats) = signal(SelectionStats::default());
-
-    // Update selection stats when state changes
-    let controller_for_stats = controller.clone();
-    Effect::new(move |_| {
+    // Derive selection stats from controller state
+    let selection_stats = Memo::new(move |_| {
         // Trigger on state_version change
         let _ = state_version.get();
-        let stats = controller_for_stats.borrow().get_current_selection_stats();
-        set_selection_stats.set(stats);
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_current_selection_stats())
     });
 
     // Handle formula bar Enter key

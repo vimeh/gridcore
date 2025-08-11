@@ -43,7 +43,8 @@ pub fn CanvasGrid(
         theme.clone(),
         controller_rc.clone(),
     )));
-    let (viewport, set_viewport) = signal_local(viewport_rc.clone());
+    // Store viewport in LocalStorage for non-Send access
+    let viewport_stored = StoredValue::<_, LocalStorage>::new_local(viewport_rc.clone());
     let (canvas_dimensions, set_canvas_dimensions) = signal((0.0, 0.0));
 
     // Derive editing_mode from controller state
@@ -62,16 +63,17 @@ pub fn CanvasGrid(
     let cell_position = Memo::new(move |_| {
         if editing_mode.get() {
             let cell = active_cell.get();
-            let vp = viewport.get();
-            let vp_borrow = vp.borrow();
-            let pos = vp_borrow.get_cell_position(&cell);
-            let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
-            (
-                pos.x + config.row_header_width,
-                pos.y + config.column_header_height,
-                pos.width,
-                pos.height,
-            )
+            viewport_stored.with_value(|vp| {
+                let vp_borrow = vp.borrow();
+                let pos = vp_borrow.get_cell_position(&cell);
+                let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
+                (
+                    pos.x + config.row_header_width,
+                    pos.y + config.column_header_height,
+                    pos.width,
+                    pos.height,
+                )
+            })
         } else {
             (0.0, 0.0, 100.0, 25.0)
         }
@@ -181,6 +183,7 @@ pub fn CanvasGrid(
     });
 
     // Handle canvas click
+    let viewport_for_click = viewport_rc.clone();
     let on_click = move |ev: MouseEvent| {
         leptos::logging::log!("Canvas click at ({}, {})", ev.offset_x(), ev.offset_y());
         if let Some(_canvas) = canvas_ref.get() {
@@ -188,11 +191,9 @@ pub fn CanvasGrid(
             let y = ev.offset_y() as f64;
 
             // Only process clicks in the cell area (not headers)
-            let vp = viewport.get();
-
             // Use a block to ensure the borrow is dropped before setting active cell
             let new_cell = {
-                let vp_borrow = vp.borrow();
+                let vp_borrow = viewport_for_click.borrow();
                 let _theme = vp_borrow.get_theme();
                 let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
                 if x > config.row_header_width && y > config.column_header_height {
@@ -233,6 +234,7 @@ pub fn CanvasGrid(
     };
 
     // Handle double-click to edit
+    let viewport_for_dblclick = viewport_rc.clone();
     let on_dblclick = move |ev: MouseEvent| {
         leptos::logging::log!(
             "Canvas double-click at ({}, {})",
@@ -244,11 +246,9 @@ pub fn CanvasGrid(
             let y = ev.offset_y() as f64;
 
             // Only process clicks in the cell area (not headers)
-            let vp = viewport.get();
-
             // Use a block to ensure the borrow is dropped before setting active cell
             let new_cell = {
-                let vp_borrow = vp.borrow();
+                let vp_borrow = viewport_for_dblclick.borrow();
                 let _theme = vp_borrow.get_theme();
                 let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
                 if x > config.row_header_width && y > config.column_header_height {
@@ -313,8 +313,8 @@ pub fn CanvasGrid(
         // Check if we're resizing
         if resize_handler_move.is_resizing() {
             resize_handler_move.handle_resize(&ev);
-            // Trigger re-render
-            set_viewport.update(|_| {});
+            // Trigger re-render via state_version update
+            set_state_version.update(|v| *v += 1);
         } else {
             // Check if we're hovering over a resize handle
             let _theme = default_theme();
@@ -362,8 +362,8 @@ pub fn CanvasGrid(
     let on_mouse_up = move |_ev: MouseEvent| {
         if resize_handler_up.is_resizing() {
             resize_handler_up.end_resize();
-            // Trigger final re-render
-            set_viewport.update(|_| {});
+            // Trigger final re-render via state_version update
+            set_state_version.update(|v| *v += 1);
         }
     };
 
@@ -393,8 +393,8 @@ pub fn CanvasGrid(
 
         if scroll_x != 0.0 || scroll_y != 0.0 {
             vp.borrow_mut().scroll_by(scroll_x, scroll_y);
-            // Trigger re-render
-            set_viewport.update(|_| {});
+            // Trigger re-render via state_version update
+            set_state_version.update(|v| *v += 1);
             debug_log!("Scrolled by: x={}, y={}", scroll_x, scroll_y);
         }
     };
@@ -562,8 +562,7 @@ pub fn CanvasGrid(
                 SpreadsheetMode::Editing | SpreadsheetMode::Insert | SpreadsheetMode::Visual
             )
         {
-            let vp = viewport.get();
-            let mut vp_borrow = vp.borrow_mut();
+            let mut vp_borrow = viewport_rc.borrow_mut();
 
             // Check if the cell is visible and scroll if needed
             let cell_pos = vp_borrow.get_cell_position(&new_cursor);
@@ -603,7 +602,7 @@ pub fn CanvasGrid(
             if needs_scroll {
                 vp_borrow.set_scroll_position(new_scroll_x.max(0.0), new_scroll_y.max(0.0));
                 drop(vp_borrow);
-                set_viewport.update(|_| {});
+                set_state_version.update(|v| *v += 1);
                 debug_log!("Auto-scrolled to keep cell {:?} visible", new_cursor);
             }
         }

@@ -43,11 +43,11 @@ This document tracks the migration of state management from the UI layer to the 
 - [x] Sync formula bar via controller events
 - [x] Add comprehensive unit tests
 
-### Phase 5: Selection & Stats
+### Phase 5: Selection & Stats ✅
 
 - [x] Use controller's selection stats via events
 - [x] Update on state_version changes
-- [ ] Remove direct selection tracking
+- [x] Remove direct selection tracking (converted to Memo)
 
 ### Phase 6: Sheet Management ✅
 
@@ -70,18 +70,18 @@ This document tracks the migration of state management from the UI layer to the 
 - [x] Centralize error dispatching
 - [x] Remove error signals from UI
 
-### Phase 9: Viewport Direct Access
+### Phase 9: Viewport Direct Access ✅
 
-- [ ] Remove viewport wrapper signal
-- [ ] Direct ViewportManager access
-- [ ] Update rendering to use controller
+- [x] Remove viewport wrapper signal
+- [x] Direct ViewportManager access through StoredValue
+- [x] Update rendering to use state_version for triggers
 
 ## Progress Tracking
 
 | Component     | Signals Before | Signals After | Status      |
 | ------------- | -------------- | ------------- | ----------- |
 | App.rs        | 10             | 3             | Complete    |
-| CanvasGrid    | 5              | 1             | Complete    |
+| CanvasGrid    | 5              | 0             | Complete    |
 | CellEditor    | 2              | 0             | Complete    |
 | TabBar        | 4              | 3             | Complete    |
 | StatusBar     | 0              | 0             | Complete    |
@@ -90,8 +90,8 @@ This document tracks the migration of state management from the UI layer to the 
 ## Metrics
 
 - **Total Signals Before**: ~15
-- **Current Signals**: ~4 (state_version, active_cell, sheets, active_sheet)
-- **Target Signals After**: 2-3
+- **Current Signals**: 3 (state_version, active_cell, sheets)
+- **Target Signals After**: 2-3 ✅ Achieved!
 - **Code Reduction**: ~500 lines removed
 - **Performance**: Significantly fewer reactive updates, fully centralized state management
 
@@ -126,5 +126,8 @@ This document tracks the migration of state management from the UI layer to the 
 2. ~~Implement sheet management in core~~ ✅  
 3. ~~Simplify canvas grid signals (Phase 7)~~ ✅
 4. ~~Consolidate error handling (Phase 8)~~ ✅
-5. Implement viewport direct access (Phase 9)
-6. Consider further optimizations
+5. ~~Implement viewport direct access (Phase 9)~~ ✅
+6. Consider further optimizations:
+   - Convert remaining signals to Memos where possible
+   - Optimize controller event handling
+   - Further reduce UI layer complexity

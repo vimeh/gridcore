@@ -3,7 +3,7 @@ use gridcore_core::SpreadsheetFacade;
 use serde::{Deserialize, Serialize};
 
 /// Statistics for a selection of cells
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct SelectionStats {
     pub count: usize,
     pub sum: Option<f64>,
