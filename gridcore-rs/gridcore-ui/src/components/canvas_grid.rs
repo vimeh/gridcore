@@ -36,8 +36,7 @@ pub fn CanvasGrid(
     // State
     let viewport_rc = Rc::new(RefCell::new(Viewport::new(
         theme.clone(),
-        Some(10000), // Support up to 10,000 rows
-        Some(256),   // Support up to 256 columns (A-IV)
+        controller_rc.clone(),
     )));
     let (viewport, set_viewport) = signal_local(viewport_rc.clone());
     let (editing_mode, set_editing_mode) = signal(false);

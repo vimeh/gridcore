@@ -1,46 +1,32 @@
 use crate::rendering::GridTheme;
 use gridcore_controller::controller::{
-    CellPosition, GridConfiguration, ScrollPosition, ViewportBounds,
+    CellPosition, ScrollPosition, SpreadsheetController, ViewportBounds,
 };
 use gridcore_core::types::CellAddress;
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::rc::Rc;
 
+/// Thin wrapper around controller's ViewportManager for UI rendering
 #[derive(Clone)]
 pub struct Viewport {
     theme: GridTheme,
-    config: GridConfiguration,
-    scroll_position: ScrollPosition,
-    viewport_width: f64,
-    viewport_height: f64,
-    column_widths: HashMap<usize, f64>,
-    row_heights: HashMap<usize, f64>,
+    controller: Rc<RefCell<SpreadsheetController>>,
 }
 
 impl Viewport {
-    pub fn new(theme: GridTheme, total_rows: Option<usize>, total_cols: Option<usize>) -> Self {
-        let config = GridConfiguration {
-            total_rows: total_rows.unwrap_or(10000),
-            total_cols: total_cols.unwrap_or(256),
-            ..GridConfiguration::default()
-        };
-
-        Self {
-            theme,
-            config,
-            scroll_position: ScrollPosition::default(),
-            viewport_width: 800.0,
-            viewport_height: 600.0,
-            column_widths: HashMap::new(),
-            row_heights: HashMap::new(),
-        }
+    pub fn new(
+        theme: GridTheme,
+        controller: Rc<RefCell<SpreadsheetController>>,
+    ) -> Self {
+        Self { theme, controller }
     }
 
     pub fn get_total_rows(&self) -> usize {
-        self.config.total_rows
+        self.controller.borrow().get_config().total_rows
     }
 
     pub fn get_total_cols(&self) -> usize {
-        self.config.total_cols
+        self.controller.borrow().get_config().total_cols
     }
 
     pub fn get_theme(&self) -> &GridTheme {
@@ -48,211 +34,121 @@ impl Viewport {
     }
 
     pub fn set_viewport_size(&mut self, width: f64, height: f64) {
-        self.viewport_width = width;
-        self.viewport_height = height;
+        self.controller
+            .borrow_mut()
+            .get_viewport_manager_mut()
+            .set_viewport_size(width, height);
     }
 
     pub fn set_scroll_position(&mut self, x: f64, y: f64) {
-        self.scroll_position = ScrollPosition { x, y };
+        self.controller
+            .borrow_mut()
+            .get_viewport_manager_mut()
+            .set_scroll_position(x, y);
     }
 
     pub fn get_scroll_position(&self) -> ScrollPosition {
-        self.scroll_position.clone()
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_scroll_position()
     }
 
     pub fn get_viewport_width(&self) -> f64 {
-        self.viewport_width
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_viewport_width()
     }
 
     pub fn get_viewport_height(&self) -> f64 {
-        self.viewport_height
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_viewport_height()
     }
 
     pub fn scroll_by(&mut self, delta_x: f64, delta_y: f64) {
-        let new_x = (self.scroll_position.x + delta_x).max(0.0);
-        let new_y = (self.scroll_position.y + delta_y).max(0.0);
-
-        let max_x = (self.get_total_grid_width() - self.viewport_width).max(0.0);
-        let max_y = (self.get_total_grid_height() - self.viewport_height).max(0.0);
-
-        self.scroll_position = ScrollPosition {
-            x: new_x.min(max_x),
-            y: new_y.min(max_y),
-        };
+        self.controller
+            .borrow_mut()
+            .get_viewport_manager_mut()
+            .scroll_by(delta_x, delta_y);
     }
 
     pub fn scroll_to_cell(&mut self, cell: &CellAddress, position: &str) {
-        let cell_pos = self.get_cell_position(cell);
-        let absolute_x = cell_pos.x + self.scroll_position.x;
-        let absolute_y = cell_pos.y + self.scroll_position.y;
-
-        let new_y = match position {
-            "center" => absolute_y - self.viewport_height / 2.0 + cell_pos.height / 2.0,
-            "top" => absolute_y,
-            "bottom" => absolute_y - self.viewport_height + cell_pos.height,
-            _ => self.scroll_position.y,
-        };
-
-        // Ensure cell is horizontally visible
-        let mut new_x = self.scroll_position.x;
-        if absolute_x < self.scroll_position.x {
-            new_x = absolute_x;
-        } else if absolute_x + cell_pos.width > self.scroll_position.x + self.viewport_width {
-            new_x = absolute_x + cell_pos.width - self.viewport_width;
-        }
-
-        self.set_scroll_position(
-            new_x
-                .max(0.0)
-                .min(self.get_total_grid_width() - self.viewport_width),
-            new_y
-                .max(0.0)
-                .min(self.get_total_grid_height() - self.viewport_height),
-        );
+        self.controller
+            .borrow_mut()
+            .get_viewport_manager_mut()
+            .scroll_to_cell(cell, position);
     }
 
     pub fn get_column_width(&self, col: usize) -> f64 {
-        *self
-            .column_widths
-            .get(&col)
-            .unwrap_or(&self.config.default_cell_width)
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_column_width(col)
     }
 
     pub fn set_column_width(&mut self, col: usize, width: f64) {
-        let clamped_width = width
-            .max(self.config.min_cell_width)
-            .min(self.config.max_cell_width);
-        self.column_widths.insert(col, clamped_width);
+        self.controller
+            .borrow_mut()
+            .get_viewport_manager_mut()
+            .set_column_width(col, width);
     }
 
     pub fn get_row_height(&self, row: usize) -> f64 {
-        *self
-            .row_heights
-            .get(&row)
-            .unwrap_or(&self.config.default_cell_height)
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_row_height(row)
     }
 
     pub fn set_row_height(&mut self, row: usize, height: f64) {
-        self.row_heights.insert(row, height.max(16.0));
+        self.controller
+            .borrow_mut()
+            .get_viewport_manager_mut()
+            .set_row_height(row, height);
     }
 
     pub fn get_visible_bounds(&self) -> ViewportBounds {
-        let mut start_row = None;
-        let mut end_row = self.config.total_rows;
-        let mut start_col = None;
-        let mut end_col = self.config.total_cols;
-
-        // Calculate visible rows
-        let mut y = 0.0;
-        let scroll_y = self.scroll_position.y;
-        for row in 0..self.config.total_rows {
-            let height = self.get_row_height(row);
-            if y + height > scroll_y && start_row.is_none() {
-                start_row = Some(row);
-            }
-            if y >= scroll_y + self.viewport_height {
-                end_row = row;
-                break;
-            }
-            y += height;
-        }
-
-        // Calculate visible columns
-        let mut x = 0.0;
-        let scroll_x = self.scroll_position.x;
-        for col in 0..self.config.total_cols {
-            let width = self.get_column_width(col);
-            if x + width > scroll_x && start_col.is_none() {
-                start_col = Some(col);
-            }
-            if x >= scroll_x + self.viewport_width {
-                end_col = col;
-                break;
-            }
-            x += width;
-        }
-
-        ViewportBounds {
-            start_row: start_row.unwrap_or(0),
-            end_row: end_row.min(self.config.total_rows - 1),
-            start_col: start_col.unwrap_or(0),
-            end_col: end_col.min(self.config.total_cols - 1),
-        }
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_visible_bounds()
     }
 
     pub fn get_cell_position(&self, address: &CellAddress) -> CellPosition {
-        let mut x = 0.0;
-        let mut y = 0.0;
-
-        for col in 0..address.col as usize {
-            x += self.get_column_width(col);
-        }
-
-        for row in 0..address.row as usize {
-            y += self.get_row_height(row);
-        }
-
-        CellPosition {
-            x: x - self.scroll_position.x,
-            y: y - self.scroll_position.y,
-            width: self.get_column_width(address.col as usize),
-            height: self.get_row_height(address.row as usize),
-        }
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_cell_position(address)
     }
 
     pub fn get_cell_at_position(&self, x: f64, y: f64) -> Option<CellAddress> {
-        let absolute_x = x + self.scroll_position.x;
-        let absolute_y = y + self.scroll_position.y;
-
-        let mut current_x = 0.0;
-        let mut col = None;
-
-        for c in 0..self.config.total_cols {
-            let width = self.get_column_width(c);
-            if absolute_x >= current_x && absolute_x < current_x + width {
-                col = Some(c);
-                break;
-            }
-            current_x += width;
-        }
-
-        let mut current_y = 0.0;
-        let mut row = None;
-
-        for r in 0..self.config.total_rows {
-            let height = self.get_row_height(r);
-            if absolute_y >= current_y && absolute_y < current_y + height {
-                row = Some(r);
-                break;
-            }
-            current_y += height;
-        }
-
-        match (row, col) {
-            (Some(r), Some(c)) => Some(CellAddress::new(c as u32, r as u32)),
-            _ => None,
-        }
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_cell_at_position(x, y)
     }
 
     pub fn get_column_x(&self, col: usize) -> f64 {
-        let mut x = 0.0;
-        for c in 0..col {
-            x += self.get_column_width(c);
-        }
-        x
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_column_x(col)
     }
 
     pub fn get_row_y(&self, row: usize) -> f64 {
-        let mut y = 0.0;
-        for r in 0..row {
-            y += self.get_row_height(r);
-        }
-        y
+        self.controller
+            .borrow()
+            .get_viewport_manager()
+            .get_row_y(row)
     }
 
     pub fn get_total_grid_width(&self) -> f64 {
         let mut width = 0.0;
-        for col in 0..self.config.total_cols {
+        let total_cols = self.get_total_cols();
+        for col in 0..total_cols {
             width += self.get_column_width(col);
         }
         width
@@ -260,29 +156,10 @@ impl Viewport {
 
     pub fn get_total_grid_height(&self) -> f64 {
         let mut height = 0.0;
-        for row in 0..self.config.total_rows {
+        let total_rows = self.get_total_rows();
+        for row in 0..total_rows {
             height += self.get_row_height(row);
         }
         height
-    }
-
-    pub fn get_column_widths(&self) -> HashMap<usize, f64> {
-        self.column_widths.clone()
-    }
-
-    pub fn get_row_heights(&self) -> HashMap<usize, f64> {
-        self.row_heights.clone()
-    }
-
-    pub fn set_column_widths(&mut self, widths: HashMap<usize, f64>) {
-        for (col, width) in widths {
-            self.set_column_width(col, width);
-        }
-    }
-
-    pub fn set_row_heights(&mut self, heights: HashMap<usize, f64>) {
-        for (row, height) in heights {
-            self.set_row_height(row, height);
-        }
     }
 }
