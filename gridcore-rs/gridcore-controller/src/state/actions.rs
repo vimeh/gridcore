@@ -84,6 +84,9 @@ pub enum Action {
         value: String,
         cursor_position: usize,
     },
+    SubmitCellEdit {
+        value: String,
+    },
     UpdateCommandValue {
         value: String,
     },

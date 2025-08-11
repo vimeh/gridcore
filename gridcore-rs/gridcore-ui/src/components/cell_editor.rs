@@ -1,6 +1,5 @@
 // use crate::components::error_display::use_error_context; // TODO: Re-enable when full keyboard support is restored
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::managers::ErrorFormatter;
 use gridcore_controller::state::{actions::Action, InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Textarea;
@@ -105,7 +104,7 @@ pub fn CellEditor(
                         match variant {
                             InsertMode::I => {
                                 // Insert mode 'i' - cursor at beginning
-                                // Use set_timeout to ensure the value is set first
+                                // Need a minimal timeout to ensure the value is rendered first
                                 let input_clone = input_ref;
                                 set_timeout(
                                     move || {
@@ -114,12 +113,12 @@ pub fn CellEditor(
                                             let _ = input.set_selection_end(Some(0));
                                         }
                                     },
-                                    std::time::Duration::from_millis(0),
+                                    std::time::Duration::from_millis(10),
                                 );
                             }
                             InsertMode::CapitalI => {
                                 // Insert mode 'I' - cursor at beginning of line
-                                // Use set_timeout to ensure the value is set first
+                                // Need a minimal timeout to ensure the value is rendered first
                                 let input_clone = input_ref;
                                 set_timeout(
                                     move || {
@@ -128,7 +127,7 @@ pub fn CellEditor(
                                             let _ = input.set_selection_end(Some(0));
                                         }
                                     },
-                                    std::time::Duration::from_millis(0),
+                                    std::time::Duration::from_millis(10),
                                 );
                             }
                             InsertMode::A => {
@@ -141,7 +140,7 @@ pub fn CellEditor(
                             }
                             InsertMode::CapitalA => {
                                 // Append mode 'A' - cursor at end of line
-                                // Use set_timeout to ensure the value is set first
+                                // Need a minimal timeout to ensure the value is rendered first
                                 let input_clone = input_ref;
                                 set_timeout(
                                     move || {
@@ -151,7 +150,7 @@ pub fn CellEditor(
                                             let _ = input.set_selection_end(Some(len as u32));
                                         }
                                     },
-                                    std::time::Duration::from_millis(0),
+                                    std::time::Duration::from_millis(10),
                                 );
                             }
                             _ => {
@@ -282,43 +281,15 @@ pub fn CellEditor(
                                     }
                                 } else {
                                     // Not in INSERT mode - Enter saves and exits
-                                    let cell = active_cell.get();
                                     let value = editor_value.get();
 
-                                    // Submit the value and handle errors
+                                    // Use the new SubmitCellEdit action to handle all submission logic
                                     controller_stored.with_value(|ctrl| {
                                         let mut ctrl_mut = ctrl.borrow_mut();
-                                        let facade = ctrl_mut.get_facade();
-                                        match facade.set_cell_value(&cell, &value) {
-                                            Ok(_) => {
-                                                // Check if the cell now contains an error value
-                                                if let Some(gridcore_core::types::CellValue::Error(error_type)) =
-                                                    facade.get_cell_raw_value(&cell)
-                                                {
-                                                    // Emit error event for formula evaluation errors
-                                                    let enhanced_message =
-                                                        format!("Formula error: {}", error_type.full_display());
-
-                                                    leptos::logging::log!(
-                                                        "Formula error detected: {}",
-                                                        enhanced_message
-                                                    );
-
-                                                    ctrl_mut.emit_error(
-                                                        enhanced_message,
-                                                        gridcore_controller::controller::events::ErrorSeverity::Error,
-                                                    );
-                                                }
-                                            }
-                                            Err(e) => {
-                                                // Use centralized error formatter
-                                                let message = ErrorFormatter::format_error(&e);
-                                                leptos::logging::log!("Error setting cell value: {}", message);
-                                                ctrl_mut.emit_error(
-                                                    message,
-                                                    gridcore_controller::controller::events::ErrorSeverity::Error,
-                                                );
-                                            }
+                                        if let Err(e) = ctrl_mut.dispatch_action(Action::SubmitCellEdit {
+                                            value: value.clone(),
+                                        }) {
+                                            leptos::logging::log!("Error submitting cell edit: {:?}", e);
                                         }
                                     });
 
@@ -363,46 +334,16 @@ pub fn CellEditor(
                                         set_current_mode.set(SpreadsheetMode::Editing);
                                     } else if is_normal_mode {
                                         // In Normal mode - save and exit
-                                        let cell = active_cell.get();
                                         let value = editor_value.get();
 
-                                        // Save the value and handle errors
+                                        // Use the consolidated submission action
                                         drop(ctrl_borrow);
                                         let mut ctrl_mut = ctrl.borrow_mut();
-                                        let facade = ctrl_mut.get_facade();
-                                        match facade.set_cell_value(&cell, &value) {
-                                            Ok(_) => {
-                                                // Check if the cell now contains an error value
-                                                if let Some(gridcore_core::types::CellValue::Error(error_type)) =
-                                                    facade.get_cell_raw_value(&cell)
-                                                {
-                                                    // Emit error event for formula evaluation errors
-                                                    let enhanced_message =
-                                                        format!("Formula error: {}", error_type.full_display());
-
-                                                    leptos::logging::log!(
-                                                        "Formula error detected: {}",
-                                                        enhanced_message
-                                                    );
-
-                                                    ctrl_mut.emit_error(
-                                                        enhanced_message,
-                                                        gridcore_controller::controller::events::ErrorSeverity::Error,
-                                                    );
-                                                }
-                                            }
-                                            Err(e) => {
-                                                // Use centralized error formatter
-                                                let message = ErrorFormatter::format_error(&e);
-                                                leptos::logging::log!("Error setting cell value: {}", message);
-                                                ctrl_mut.emit_error(
-                                                    message,
-                                                    gridcore_controller::controller::events::ErrorSeverity::Error,
-                                                );
-                                            }
+                                        if let Err(e) = ctrl_mut.dispatch_action(Action::SubmitCellEdit {
+                                            value: value.clone(),
+                                        }) {
+                                            leptos::logging::log!("Error submitting cell edit: {:?}", e);
                                         }
-
-                                        let _ = ctrl_mut.dispatch_action(Action::Escape);
 
                                         // Exit editing mode
                                         set_editing_mode.set(false);

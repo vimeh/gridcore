@@ -96,6 +96,55 @@ impl SpreadsheetController {
     }
 
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
+        // Handle special actions that need controller logic
+        match &action {
+            Action::SubmitCellEdit { value } => {
+                // Update the editing value and complete editing
+                if let UIState::Editing { cursor, .. } = self.state_machine.get_state() {
+                    let address = *cursor;
+
+                    // Update the cell value in the facade and handle errors
+                    match self.facade.set_cell_value(&address, value) {
+                        Ok(_) => {
+                            // Check if the cell now contains an error value
+                            if let Some(gridcore_core::types::CellValue::Error(error_type)) =
+                                self.facade.get_cell_raw_value(&address)
+                            {
+                                let enhanced_message =
+                                    format!("Formula error: {}", error_type.full_display());
+                                log::error!("Error in cell {}: {}", address, enhanced_message);
+                                self.event_dispatcher
+                                    .dispatch(&SpreadsheetEvent::ErrorOccurred {
+                                        message: enhanced_message,
+                                        severity: crate::controller::events::ErrorSeverity::Error,
+                                    });
+                            }
+
+                            self.event_dispatcher
+                                .dispatch(&SpreadsheetEvent::CellEditCompleted {
+                                    address,
+                                    value: value.clone(),
+                                });
+                        }
+                        Err(e) => {
+                            let message = ErrorFormatter::format_error(&e);
+                            log::error!("Parse/Set error in cell {}: {}", address, message);
+                            self.event_dispatcher
+                                .dispatch(&SpreadsheetEvent::ErrorOccurred {
+                                    message,
+                                    severity: crate::controller::events::ErrorSeverity::Error,
+                                });
+                        }
+                    }
+
+                    // Exit editing mode
+                    return self.dispatch_action(Action::ExitToNavigation);
+                }
+                return Ok(());
+            }
+            _ => {}
+        }
+
         let old_mode = self.state_machine.get_state().spreadsheet_mode();
         log::debug!(
             "dispatch_action: about to transition with action {:?}",
