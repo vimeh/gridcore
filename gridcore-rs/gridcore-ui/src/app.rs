@@ -1,7 +1,10 @@
 use crate::components::canvas_grid::CanvasGrid;
 use crate::components::error_display::ErrorDisplay;
+use crate::components::performance_overlay::{DemoProgressBar, PerformanceOverlay};
 use crate::components::status_bar::StatusBar;
 use crate::components::tab_bar::{Sheet, TabBar};
+use crate::demo::performance::Metrics;
+use crate::demo::DemoController;
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_core::types::CellAddress;
 use leptos::prelude::*;
@@ -20,11 +23,25 @@ pub fn App() -> impl IntoView {
     // Create the SpreadsheetController
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
 
+    // Create the DemoController
+    let demo_controller = Rc::new(RefCell::new(DemoController::new()));
+
     // We'll initialize test data after ErrorDisplay is available
     let init_data = RwSignal::new(false);
 
     let controller_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
     provide_context(controller_stored);
+
+    let demo_controller_stored = StoredValue::<_, LocalStorage>::new_local(demo_controller);
+
+    // Demo mode state
+    let (demo_mode, set_demo_mode) = signal(false);
+    let (demo_scenario, set_demo_scenario) = signal(String::from("Basic Operations"));
+    let (demo_running, set_demo_running) = signal(false);
+    let (demo_metrics, set_demo_metrics) = signal(Metrics::default());
+    let (demo_current_step, set_demo_current_step) = signal(0usize);
+    let (demo_total_steps, set_demo_total_steps) = signal(0usize);
+    let (show_performance, set_show_performance) = signal(false);
 
     // State version to trigger updates when controller events occur
     let (state_version, set_state_version) = signal(0u32);
@@ -230,6 +247,98 @@ pub fn App() -> impl IntoView {
                         />
                         " Debug Mode"
                     </label>
+                    <label style="margin-left: 10px;">
+                        <input
+                            type="checkbox"
+                            prop:checked=move || demo_mode.get()
+                            on:change=move |ev| {
+                                let checked = event_target_checked(&ev);
+                                set_demo_mode.set(checked);
+                                leptos::logging::log!("Demo mode toggled: {}", checked);
+                            }
+                        />
+                        " Demo Mode"
+                    </label>
+                    <Show
+                        when=move || demo_mode.get()
+                        fallback=|| view! { <span></span> }
+                    >
+                        <div style="display: inline-block; margin-left: 20px;">
+                            <select
+                                on:change=move |ev| {
+                                    let value = event_target_value(&ev);
+                                    set_demo_scenario.set(value);
+                                }
+                            >
+                                <option value="Basic Operations">"Basic Operations"</option>
+                                <option value="Formula Engine">"Formula Engine"</option>
+                                <option value="Large Dataset">"Large Dataset"</option>
+                                <option value="Financial Dashboard">"Financial Dashboard"</option>
+                                <option value="Scientific Data">"Scientific Data"</option>
+                                <option value="Fill Operations">"Fill Operations"</option>
+                                <option value="Performance Stress Test">"Performance Stress Test"</option>
+                                <option value="Error Handling">"Error Handling"</option>
+                            </select>
+                            <button
+                                style="margin-left: 10px;"
+                                on:click=move |_| {
+                                    let scenario = demo_scenario.get();
+
+                                    demo_controller_stored.with_value(|demo| {
+                                        let mut demo = demo.borrow_mut();
+
+                                        if demo_running.get() {
+                                            demo.stop_demo();
+                                            set_demo_running.set(false);
+                                            leptos::logging::log!("Demo stopped");
+                                        } else {
+                                            controller_stored.with_value(|ctrl| {
+                                                match demo.start_demo(&scenario, ctrl.clone()) {
+                                                    Ok(_) => {
+                                                        set_demo_running.set(true);
+                                                        set_demo_current_step.set(demo.get_current_step());
+                                                        set_demo_total_steps.set(demo.get_total_steps());
+                                                        set_demo_metrics.set(demo.get_performance_metrics());
+                                                        leptos::logging::log!("Demo started: {}", scenario);
+                                                    }
+                                                    Err(e) => {
+                                                        leptos::logging::log!("Failed to start demo: {}", e);
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            >
+                                {move || if demo_running.get() { "Stop" } else { "Start" }}
+                            </button>
+                            <button
+                                style="margin-left: 5px;"
+                                on:click=move |_| {
+                                    demo_controller_stored.with_value(|demo| {
+                                        let mut demo = demo.borrow_mut();
+                                        controller_stored.with_value(|ctrl| {
+                                            demo.step_forward(ctrl.clone());
+                                            // Update step counters
+                                            set_demo_current_step.set(demo.get_current_step());
+                                            set_demo_total_steps.set(demo.get_total_steps());
+                                            set_demo_metrics.set(demo.get_performance_metrics());
+                                        });
+                                    });
+                                }
+                            >
+                                "Step"
+                            </button>
+                            <button
+                                style="margin-left: 5px;"
+                                on:click=move |_| {
+                                    set_show_performance.set(!show_performance.get());
+                                }
+                            >
+                                "Performance"
+                            </button>
+                        </div>
+                    </Show>
                 </div>
                 <div class="formula-bar">
                     <input
@@ -291,6 +400,16 @@ pub fn App() -> impl IntoView {
                     current_mode=current_mode
                     selection_stats=selection_stats
                     state_version=state_version
+                />
+                <DemoProgressBar
+                    current_step=Signal::from(demo_current_step)
+                    total_steps=Signal::from(demo_total_steps)
+                    scenario_name=Signal::from(demo_scenario)
+                    is_running=Signal::from(demo_running)
+                />
+                <PerformanceOverlay
+                    metrics=Signal::from(demo_metrics)
+                    visible=Signal::from(show_performance)
                 />
             </div>
 

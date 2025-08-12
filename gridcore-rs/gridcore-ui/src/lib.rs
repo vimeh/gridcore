@@ -1,6 +1,7 @@
 pub mod app;
 pub mod components;
 pub mod debug;
+pub mod demo;
 pub mod interaction;
 pub mod rendering;
 pub mod utils;
