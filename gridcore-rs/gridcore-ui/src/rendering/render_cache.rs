@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use web_sys::CanvasRenderingContext2d;
 
 /// Cache for rendered elements to avoid re-rendering unchanged cells
 pub struct RenderCache {

@@ -6,7 +6,6 @@ use crate::state::{
 use gridcore_core::{types::CellAddress, Result, SpreadsheetError};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
-use std::rc::Rc;
 
 type StateListener = Box<dyn Fn(&UIState, &Action) + Send>;
 
