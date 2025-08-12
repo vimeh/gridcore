@@ -56,12 +56,12 @@ pub struct PooledObject<T> {
 
 impl<T> PooledObject<T> {
     /// Get a reference to the pooled object
-    pub fn as_ref(&self) -> &T {
+    pub fn get(&self) -> &T {
         self.object.as_ref().expect("Pooled object already taken")
     }
 
     /// Get a mutable reference to the pooled object
-    pub fn as_mut(&mut self) -> &mut T {
+    pub fn get_mut(&mut self) -> &mut T {
         self.object.as_mut().expect("Pooled object already taken")
     }
 
@@ -90,13 +90,13 @@ impl<T> std::ops::Deref for PooledObject<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.as_ref()
+        self.get()
     }
 }
 
 impl<T> std::ops::DerefMut for PooledObject<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.as_mut()
+        self.get_mut()
     }
 }
 
