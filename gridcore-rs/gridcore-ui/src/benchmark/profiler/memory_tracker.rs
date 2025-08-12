@@ -11,8 +11,10 @@ pub struct MemoryTracker {
 
 #[derive(Debug, Clone)]
 struct MemorySnapshot {
+    #[allow(dead_code)]
     timestamp: f64,
     heap_used: f64,
+    #[allow(dead_code)]
     heap_total: f64,
 }
 

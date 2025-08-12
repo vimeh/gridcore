@@ -1,5 +1,3 @@
-use web_sys::Performance;
-
 /// Tracks frame rate and frame timing information
 pub struct FpsTracker {
     frame_times: Vec<f64>,

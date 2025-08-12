@@ -153,7 +153,7 @@ impl BenchmarkScenario for JumpNavigationBenchmark {
     }
     
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
-        let mut ctrl = controller.borrow_mut();
+        let ctrl = controller.borrow();
         let facade = ctrl.get_facade();
         
         // Generate sparse data across large area
@@ -259,7 +259,7 @@ impl BenchmarkScenario for LargeDatasetScrollBenchmark {
     }
     
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
-        let mut ctrl = controller.borrow_mut();
+        let ctrl = controller.borrow();
         let facade = ctrl.get_facade();
         
         // Generate large dataset (sparse to avoid memory issues)

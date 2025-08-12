@@ -65,7 +65,7 @@ impl BenchmarkScenario for MemoryGrowthBenchmark {
         let mut memory_samples = Vec::new();
         memory_samples.push(metrics.heap_used_start);
         
-        let mut gen = DataGenerator::new();
+        let _gen = DataGenerator::new();
         
         // Run multiple cycles of operations
         for cycle in 0..self.cycles {

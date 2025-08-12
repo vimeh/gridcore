@@ -1,4 +1,4 @@
-use super::{BenchmarkConfig, BenchmarkMetrics, BenchmarkResult};
+use super::{BenchmarkConfig, BenchmarkResult};
 use super::runner::{BenchmarkReport, BenchmarkSummary};
 use std::collections::HashMap;
 

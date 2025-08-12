@@ -124,6 +124,7 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
 /// Benchmark complex formula calculations with dependencies
 pub struct ComplexFormulaBenchmark {
     chain_length: u32,
+    #[allow(dead_code)]
     branch_factor: u32,
 }
 

@@ -5,7 +5,7 @@ pub mod memory;
 pub mod rendering;
 pub mod scroll;
 
-use super::{BenchmarkResult, BenchmarkScenario};
+use super::BenchmarkScenario;
 use std::collections::HashMap;
 
 /// Registry of available benchmark scenarios
