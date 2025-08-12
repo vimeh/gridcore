@@ -6,6 +6,7 @@ use crate::state::{
 use gridcore_core::{types::CellAddress, Result, SpreadsheetError};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
+use std::rc::Rc;
 
 type StateListener = Box<dyn Fn(&UIState, &Action) + Send>;
 
@@ -57,23 +58,28 @@ impl UIStateMachine {
             action
         );
 
-        // Store old state for history before applying transition
-        log::debug!("UIStateMachine::transition - storing old state");
-        let old_state = self.state.clone();
-
-        // Apply transition and update state
+        // Apply transition and get new state
         let new_state = self.apply_transition(&self.state, &action)?;
         log::debug!("UIStateMachine::transition - apply_transition succeeded");
 
-        // Update state
-        log::debug!("UIStateMachine::transition - updating state");
-        self.state = new_state;
-
-        // Add to history with the diff between old and new state
-        log::debug!("UIStateMachine::transition - adding to history");
-        self.add_to_history(old_state, action.clone());
-        log::debug!("UIStateMachine::transition - history added");
-        log::debug!("UIStateMachine::transition - state updated");
+        // Only clone the old state if we need it for history
+        if self.history.len() < self.max_history_size {
+            log::debug!("UIStateMachine::transition - storing old state for history");
+            let old_state = self.state.clone();
+            
+            // Update state
+            log::debug!("UIStateMachine::transition - updating state");
+            self.state = new_state;
+            
+            // Add to history with the diff between old and new state
+            log::debug!("UIStateMachine::transition - adding to history");
+            self.add_to_history(old_state, action.clone());
+            log::debug!("UIStateMachine::transition - history added");
+        } else {
+            // Just update state without storing history
+            log::debug!("UIStateMachine::transition - updating state without history");
+            self.state = new_state;
+        }
 
         // Notify listeners
         log::debug!("UIStateMachine::transition - notifying listeners");

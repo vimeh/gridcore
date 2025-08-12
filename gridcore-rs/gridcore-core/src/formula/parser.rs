@@ -3,7 +3,13 @@ use crate::types::CellAddress;
 use crate::{Result, SpreadsheetError};
 use chumsky::pratt::*;
 use chumsky::prelude::*;
+use once_cell::sync::Lazy;
 use regex::Regex;
+
+// Static regex for cell reference validation
+static CELL_REF_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^([A-Z]+)([0-9]+)$").expect("Invalid regex pattern for cell reference")
+});
 
 /// Main formula parser that coordinates tokenization and expression building
 pub struct FormulaParser;
@@ -24,8 +30,7 @@ impl FormulaParser {
                     // Reasonable length for a cell reference
                     // Try to parse as a cell reference directly to check for #REF! errors
                     let upper_formula = formula.to_uppercase();
-                    let re = Regex::new(r"^([A-Z]+)([0-9]+)$").unwrap();
-                    if let Some(caps) = re.captures(&upper_formula)
+                    if let Some(caps) = CELL_REF_REGEX.captures(&upper_formula)
                         && let Some(col_str) = caps.get(1).map(|m| m.as_str())
                     {
                         // Check if this column would exceed Excel's limit
