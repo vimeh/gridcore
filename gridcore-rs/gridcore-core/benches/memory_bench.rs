@@ -66,7 +66,7 @@ fn bench_cell_cloning(c: &mut Criterion) {
     c.bench_function("cell_cloning", |b| {
         b.iter(|| {
             reset_metrics();
-            let cloned: Vec<Cell> = cells.iter().cloned().collect();
+            let cloned: Vec<Cell> = cells.to_vec();
             let (allocs, deallocs, bytes) = get_metrics();
             black_box((cloned, allocs, deallocs, bytes))
         });

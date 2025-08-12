@@ -26,7 +26,7 @@ fn bench_cell_operations(c: &mut Criterion) {
             .collect();
 
         b.iter(|| {
-            let cloned: Vec<Cell> = cells.iter().cloned().collect();
+            let cloned: Vec<Cell> = cells.to_vec();
             black_box(cloned)
         });
     });

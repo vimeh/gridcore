@@ -116,10 +116,11 @@ fn bench_smallvec(c: &mut Criterion) {
         b.iter(|| {
             let mut results = Vec::with_capacity(100);
             for _ in 0..100 {
-                let mut args: Vec<CellValue> = Vec::with_capacity(3);
-                args.push(CellValue::Number(1.0));
-                args.push(CellValue::Number(2.0));
-                args.push(CellValue::Number(3.0));
+                let args: Vec<CellValue> = vec![
+                    CellValue::Number(1.0),
+                    CellValue::Number(2.0),
+                    CellValue::Number(3.0),
+                ];
                 results.push(args);
             }
             black_box(results)
