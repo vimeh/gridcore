@@ -265,7 +265,7 @@ mod tests {
         // XYZ would be: X*26^2 + Y*26 + Z + offset
         // Since X is the 24th letter (X=23 in 0-based), Y=24, Z=25
         // In Excel column numbering: 24*26^2 + 25*26 + 26 - 1 = 16224 + 650 + 25 = 16899
-        
+
         let result = CellAddress::parse_a1_notation("XYZ999");
         assert!(result.is_err());
         match result {

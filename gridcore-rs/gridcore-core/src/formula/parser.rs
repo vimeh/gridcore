@@ -1,6 +1,6 @@
 use super::ast::{BinaryOperator, Expr, UnaryOperator};
-use crate::{Result, SpreadsheetError};
 use crate::types::CellAddress;
+use crate::{Result, SpreadsheetError};
 use chumsky::pratt::*;
 use chumsky::prelude::*;
 use regex::Regex;
@@ -20,12 +20,14 @@ impl FormulaParser {
             Err(errors) => {
                 // Check for specific invalid reference patterns
                 // XYZ is a valid column pattern but exceeds Excel's limit
-                if formula.len() <= 10 {  // Reasonable length for a cell reference
+                if formula.len() <= 10 {
+                    // Reasonable length for a cell reference
                     // Try to parse as a cell reference directly to check for #REF! errors
                     let upper_formula = formula.to_uppercase();
                     let re = Regex::new(r"^([A-Z]+)([0-9]+)$").unwrap();
                     if let Some(caps) = re.captures(&upper_formula)
-                        && let Some(col_str) = caps.get(1).map(|m| m.as_str()) {
+                        && let Some(col_str) = caps.get(1).map(|m| m.as_str())
+                    {
                         // Check if this column would exceed Excel's limit
                         if let Ok(col_num) = CellAddress::column_label_to_number(col_str) {
                             // Excel's maximum column is 16383 (0-based), so 16384 columns total
@@ -35,19 +37,19 @@ impl FormulaParser {
                         }
                     }
                 }
-                
+
                 // Combine error messages
                 let msg = errors
                     .iter()
                     .map(|e| format!("{:?}", e))
                     .collect::<Vec<_>>()
                     .join("; ");
-                
+
                 // Check if any error is a #REF! error
                 if msg.contains("#REF!") {
                     return Err(SpreadsheetError::RefError);
                 }
-                
+
                 Err(SpreadsheetError::Parse(msg))
             }
         }

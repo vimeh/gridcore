@@ -577,11 +577,11 @@ fn test_invalid_column_reference() {
         Err(e) => panic!("Expected RefError for XYZ999, got: {:?}", e),
         Ok(_) => panic!("XYZ999 should not parse successfully"),
     }
-    
+
     // XFD is the maximum valid column in Excel
     let result = FormulaParser::parse("=XFD1");
     assert!(result.is_ok(), "XFD1 should be valid");
-    
+
     // XFE exceeds the limit
     let result = FormulaParser::parse("=XFE1");
     assert!(result.is_err());
