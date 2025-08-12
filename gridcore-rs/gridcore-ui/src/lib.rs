@@ -1,4 +1,5 @@
 pub mod app;
+pub mod benchmark;
 pub mod components;
 pub mod debug;
 pub mod demo;

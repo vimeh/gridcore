@@ -66,15 +66,31 @@ impl SpreadsheetFacade {
 
     /// Get a cell value
     pub fn get_cell(&self, address: &CellAddress) -> Option<Cell> {
-        self.container.repository()?.get(address)
+        // Get from the active sheet's repository
+        let manager = self.sheet_manager.lock().unwrap();
+        let active_sheet_name = self.active_sheet.lock().unwrap();
+        
+        if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
+            sheet.cells().get(address)
+        } else {
+            // Fallback to container repository
+            self.container.repository()?.get(address)
+        }
     }
 
     /// Set a cell value (simplified version)
     pub fn set_cell(&self, address: &CellAddress, value: CellValue) -> Result<()> {
         let old_value = self.get_cell(address).map(|c| c.get_computed_value());
 
-        // Create and store the new cell
-        if let Some(repository) = self.container.repository() {
+        // Create and store the new cell in the active sheet
+        let manager = self.sheet_manager.lock().unwrap();
+        let active_sheet_name = self.active_sheet.lock().unwrap();
+        
+        if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
+            let cell = Cell::new(value.clone());
+            sheet.cells().set(address, cell)?;
+        } else if let Some(repository) = self.container.repository() {
+            // Fallback to container repository
             let cell = Cell::new(value.clone());
             repository.set(address, cell)?;
         }
@@ -127,10 +143,19 @@ impl SpreadsheetFacade {
 
     /// Get the number of cells
     pub fn cell_count(&self) -> usize {
-        self.container
-            .repository()
-            .map(|repo| repo.count())
-            .unwrap_or(0)
+        // Get count from the active sheet's repository
+        let manager = self.sheet_manager.lock().unwrap();
+        let active_sheet_name = self.active_sheet.lock().unwrap();
+        
+        if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
+            sheet.cells().count()
+        } else {
+            // Fallback to container repository
+            self.container
+                .repository()
+                .map(|repo| repo.count())
+                .unwrap_or(0)
+        }
     }
 
     // Methods for command system compatibility
@@ -139,7 +164,16 @@ impl SpreadsheetFacade {
     pub fn set_cell_value(&self, address: &CellAddress, value: &str) -> Result<()> {
         if let Some(formula_text) = value.strip_prefix('=') {
             // It's a formula - create a cell with formula
-            if let Some(repository) = self.container.repository() {
+            let manager = self.sheet_manager.lock().unwrap();
+            let active_sheet_name = self.active_sheet.lock().unwrap();
+            
+            let repository = if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
+                Some(sheet.cells())
+            } else {
+                self.container.repository()
+            };
+            
+            if let Some(repo) = repository {
                 let formula_string = formula_text.to_string();
                 let mut cell = Cell::with_formula(
                     CellValue::from_string(value.to_string()),
@@ -147,34 +181,32 @@ impl SpreadsheetFacade {
                 );
 
                 // Try to evaluate the formula
-                if let Some(repo_for_eval) = self.container.repository() {
-                    use crate::evaluator::{Evaluator, PortContext};
-                    use crate::formula::FormulaParser;
+                use crate::evaluator::{Evaluator, PortContext};
+                use crate::formula::FormulaParser;
 
-                    // Parse the formula
-                    match FormulaParser::parse(&formula_string) {
-                        Ok(expr) => {
-                            let mut context = PortContext::new(repo_for_eval);
-                            let mut evaluator = Evaluator::new(&mut context);
+                // Parse the formula
+                match FormulaParser::parse(&formula_string) {
+                    Ok(expr) => {
+                        let mut context = PortContext::new(repo.clone());
+                        let mut evaluator = Evaluator::new(&mut context);
 
-                            // Evaluate and set the computed value
-                            match evaluator.evaluate(&expr) {
-                                Ok(result) => cell.set_computed_value(result),
-                                Err(e) => cell.set_error(e.to_string()),
-                            }
+                        // Evaluate and set the computed value
+                        match evaluator.evaluate(&expr) {
+                            Ok(result) => cell.set_computed_value(result),
+                            Err(e) => cell.set_error(e.to_string()),
                         }
-                        Err(crate::SpreadsheetError::RefError) => {
-                            // RefError - set #REF! error on the cell
-                            cell.set_error("#REF!".to_string());
-                        }
-                        Err(e) => {
-                            // Other parse errors - set error on the cell
-                            cell.set_error(e.to_string());
-                        }
+                    }
+                    Err(crate::SpreadsheetError::RefError) => {
+                        // RefError - set #REF! error on the cell
+                        cell.set_error("#REF!".to_string());
+                    }
+                    Err(e) => {
+                        // Other parse errors - set error on the cell
+                        cell.set_error(e.to_string());
                     }
                 }
 
-                repository.set(address, cell)?;
+                repo.set(address, cell)?;
             }
         } else {
             // Regular value

@@ -1,9 +1,7 @@
 use super::scenarios::{self, DemoScenario, StepResult};
-use gloo_timers::future::TimeoutFuture;
 use gridcore_controller::controller::SpreadsheetController;
 use std::cell::RefCell;
 use std::rc::Rc;
-use wasm_bindgen_futures::spawn_local;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RunnerState {
@@ -112,28 +110,20 @@ impl DemoRunner {
     }
 
     fn run_loop(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
-        let delay = (self.step_delay_ms as f32 / self.playback_speed) as u32;
-        let state = self.state.clone();
-
-        if state != RunnerState::Running {
+        if self.state != RunnerState::Running {
             return;
         }
 
-        // Clone necessary data for the async block
-        let _controller_clone = controller.clone();
+        // Execute the current step
+        self.step(controller.clone());
 
-        // Use spawn_local for async execution in WASM
-        spawn_local(async move {
-            // Wait for the delay
-            TimeoutFuture::new(delay).await;
-
-            // Continue execution if still running
-            // Note: In a real implementation, we'd need to maintain a reference
-            // to the runner instance. For now, this is a simplified version.
-        });
-
-        // For the demo, we'll just execute one step
-        self.step(controller);
+        // If still running after the step, schedule the next iteration
+        if self.state == RunnerState::Running {
+            let _delay = (self.step_delay_ms as f32 / self.playback_speed) as u32;
+            
+            // Note: The continuous execution is now handled by the UI layer using set_interval.
+            // This allows proper integration with Leptos's reactive system.
+        }
     }
 
     pub fn set_speed(&mut self, speed: f32) {

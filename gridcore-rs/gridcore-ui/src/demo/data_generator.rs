@@ -184,6 +184,26 @@ impl DataGenerator {
         data
     }
 
+    /// Generate sparse data across a large grid
+    pub fn generate_sparse_data(
+        &mut self,
+        rows: u32,
+        cols: u32,
+        density: f64,
+    ) -> Vec<(CellAddress, String)> {
+        let mut data = Vec::new();
+        let total_cells = (rows as f64 * cols as f64 * density) as u32;
+        
+        for _ in 0..total_cells {
+            let row = self.rng.gen_range(0..rows);
+            let col = self.rng.gen_range(0..cols);
+            let value = self.rng.gen_range(0.0..1000.0);
+            data.push((CellAddress::new(col, row), format!("{:.2}", value)));
+        }
+        
+        data
+    }
+
     /// Generate data with complex formulas and dependencies
     pub fn generate_formula_stress_test(&mut self) -> Vec<(CellAddress, String)> {
         let mut data = Vec::new();

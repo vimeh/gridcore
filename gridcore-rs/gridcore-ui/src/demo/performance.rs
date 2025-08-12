@@ -59,6 +59,8 @@ impl PerformanceMonitor {
         self.last_operation_count_time = self.last_frame_time;
         self.frame_count = 0;
         self.operation_count = 0;
+        self.current_fps = 0.0;
+        leptos::logging::log!("Performance monitoring started at time: {}", self.last_frame_time);
     }
 
     pub fn stop_monitoring(&mut self) {
@@ -77,6 +79,8 @@ impl PerformanceMonitor {
         let time_since_fps_update = current_time - self.last_fps_update;
         if time_since_fps_update >= self.fps_update_interval {
             self.current_fps = (self.frame_count as f64 * 1000.0) / time_since_fps_update;
+            leptos::logging::log!("FPS Update: {} frames in {}ms = {:.1} FPS", 
+                self.frame_count, time_since_fps_update, self.current_fps);
             self.frame_count = 0;
             self.last_fps_update = current_time;
         }
@@ -90,6 +94,7 @@ impl PerformanceMonitor {
         }
 
         self.operation_count += 1;
+        leptos::logging::log!("Operation recorded. Total: {}", self.operation_count);
     }
 
     pub fn record_render_time(&mut self, start_time: f64) {
@@ -131,10 +136,19 @@ impl PerformanceMonitor {
         self.add_metrics(metrics);
     }
 
-    pub fn get_current_metrics(&self) -> Metrics {
+    pub fn get_current_metrics(&mut self) -> Metrics {
         let current_time = self.performance.now();
+        
+        // Calculate operations per second and reset counter periodically
         let time_since_operation_count = (current_time - self.last_operation_count_time) / 1000.0;
-        let ops_per_second = if time_since_operation_count > 0.0 {
+        let ops_per_second = if time_since_operation_count >= 1.0 {
+            // Calculate rate and reset counter every second
+            let rate = self.operation_count as f64 / time_since_operation_count;
+            self.operation_count = 0;
+            self.last_operation_count_time = current_time;
+            rate
+        } else if time_since_operation_count > 0.0 {
+            // Calculate current rate without resetting
             self.operation_count as f64 / time_since_operation_count
         } else {
             0.0
@@ -143,13 +157,22 @@ impl PerformanceMonitor {
         // Get memory usage if available
         let memory_usage_mb = self.get_memory_usage();
 
+        // Get the latest metrics from history or use defaults
+        let (render_time, calc_time, cell_count, formula_count) = 
+            if let Some(latest) = self.metrics_history.back() {
+                (latest.render_time_ms, latest.calculation_time_ms, 
+                 latest.cell_count, latest.formula_count)
+            } else {
+                (0.0, 0.0, 0, 0)
+            };
+
         Metrics {
             fps: self.current_fps,
-            render_time_ms: 0.0,
-            calculation_time_ms: 0.0,
+            render_time_ms: render_time,
+            calculation_time_ms: calc_time,
             memory_usage_mb,
-            cell_count: 0,
-            formula_count: 0,
+            cell_count,
+            formula_count,
             operations_per_second: ops_per_second,
         }
     }
@@ -205,7 +228,7 @@ impl PerformanceMonitor {
         avg
     }
 
-    pub fn get_percentile_metrics(&self, percentile: f64) -> Metrics {
+    pub fn get_percentile_metrics(&mut self, percentile: f64) -> Metrics {
         if self.metrics_history.is_empty() {
             return Metrics::default();
         }
