@@ -1,5 +1,6 @@
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ViewportInfo {
@@ -127,7 +128,7 @@ pub enum ParsedBulkCommand {
         clear_type: String,
     },
     Sort {
-        direction: String,
+        direction: Cow<'static, str>,
         column: Option<u32>,
     },
 }
