@@ -77,28 +77,26 @@ pub fn CellEditor(
         })
     });
 
-    // Handle formula autocomplete using controller's AutocompleteManager
+    // Handle formula autocomplete using pure functions
     Effect::new(move |_| {
         let value = current_editing_value.get();
 
-        // Get suggestions from the controller's AutocompleteManager
-        let suggestions = controller_stored.with_value(|ctrl| {
-            let ctrl_borrow = ctrl.borrow();
+        // Get suggestions using pure autocomplete functions
+        let suggestions = {
             let cursor_pos = if let Some(input) = input_ref.get() {
                 input.selection_start().unwrap_or(Some(0)).unwrap_or(0) as usize
             } else {
                 value.len()
             };
 
-            let autocomplete_manager = ctrl_borrow.get_autocomplete_manager();
-            let suggestions = autocomplete_manager.get_suggestions(&value, cursor_pos);
+            let suggestions = gridcore_controller::behaviors::autocomplete::get_suggestions(&value, cursor_pos);
 
             // Convert to simple string suggestions for the UI
             suggestions
                 .into_iter()
                 .map(|s| s.value().to_string())
                 .collect::<Vec<String>>()
-        });
+        };
 
         set_suggestions.set(suggestions.clone());
         if !suggestions.is_empty() {
@@ -451,16 +449,16 @@ pub fn CellEditor(
                                                     current_value.len()
                                                 };
 
-                                                // Use controller's AutocompleteManager to apply the suggestion
-                                                let (new_value, new_cursor) = controller_stored.with_value(|ctrl| {
-                                                    let ctrl_borrow = ctrl.borrow();
-                                                    let manager = ctrl_borrow.get_autocomplete_manager();
-                                                    let suggestion = gridcore_controller::managers::autocomplete::AutocompleteSuggestion::Function {
-                                                        name: suggestion_for_click.clone(),
-                                                        signature: String::new(), // Not needed for application
-                                                    };
-                                                    manager.apply_suggestion(&current_value, &suggestion, cursor_pos)
-                                                });
+                                                // Use pure autocomplete functions to apply the suggestion
+                                                let suggestion = gridcore_controller::behaviors::autocomplete::AutocompleteSuggestion::Function {
+                                                    name: suggestion_for_click.clone(),
+                                                    signature: String::new(), // Not needed for application
+                                                };
+                                                let (new_value, new_cursor) = gridcore_controller::behaviors::autocomplete::apply_suggestion(
+                                                    &current_value,
+                                                    &suggestion,
+                                                    cursor_pos
+                                                );
 
                                                 // Update the controller's editing value
                                                 controller_stored.with_value(|ctrl| {

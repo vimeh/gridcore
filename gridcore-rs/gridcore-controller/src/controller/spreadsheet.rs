@@ -3,7 +3,7 @@ use crate::controller::{
     DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
     SpreadsheetEvent, ViewportManager,
 };
-use crate::managers::{AutocompleteManager, ErrorFormatter, ErrorManager};
+use crate::managers::{ErrorFormatter, ErrorManager};
 use crate::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
@@ -13,7 +13,6 @@ pub struct SpreadsheetController {
     event_dispatcher: EventDispatcher,
     viewport_manager: Box<dyn ViewportManager>,
     resize_state: ResizeState,
-    autocomplete_manager: AutocompleteManager,
     error_manager: ErrorManager,
     config: GridConfiguration,
     formula_bar_value: String,
@@ -47,7 +46,6 @@ impl SpreadsheetController {
             event_dispatcher: EventDispatcher::new(),
             viewport_manager,
             resize_state: ResizeState::default(),
-            autocomplete_manager: AutocompleteManager::new(),
             error_manager: ErrorManager::new(),
             config,
             formula_bar_value: String::new(),
@@ -73,7 +71,6 @@ impl SpreadsheetController {
                 DefaultViewportManager::new(1000, 100).with_config(config.clone()),
             ),
             resize_state: ResizeState::default(),
-            autocomplete_manager: AutocompleteManager::new(),
             error_manager: ErrorManager::new(),
             config,
             formula_bar_value: String::new(),
@@ -319,10 +316,6 @@ impl SpreadsheetController {
         &mut self.resize_state
     }
 
-    pub fn get_autocomplete_manager(&self) -> &AutocompleteManager {
-        &self.autocomplete_manager
-    }
-
     pub fn get_current_selection_stats(&self) -> selection_stats::SelectionStats {
         use crate::state::SelectionType;
 
@@ -364,9 +357,6 @@ impl SpreadsheetController {
         }
     }
 
-    pub fn get_autocomplete_manager_mut(&mut self) -> &mut AutocompleteManager {
-        &mut self.autocomplete_manager
-    }
 
     /// Get the error manager
     pub fn get_error_manager(&self) -> &ErrorManager {
