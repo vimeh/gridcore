@@ -3,7 +3,7 @@ Plan: Reduce State Complexity at the Source
 ## Progress Tracking
 
 **Starting Point**: 33,066 lines of Rust code
-**Current**: 33,091 lines of Rust code (+25 lines)
+**Current**: 33,011 lines of Rust code (-55 lines)
 **Target**: ~28,000 lines (-5,000 lines)
 
 ### Completed Phases:
@@ -11,12 +11,18 @@ Plan: Reduce State Complexity at the Source
   - Removed state_version hack
   - Implemented fine-grained Leptos Triggers
   - Better reactive performance
+  
+- ✅ Phase 3 (Partial): Convert Managers to Pure Functions
+  - ✅ SelectionStatsManager → pure functions (-86 lines)
+  - Already mostly stateless, easy conversion
 
 ### In Progress:
-- 🔄 Phase 3: Convert ResizeManager to pure functions
+- 🔄 Phase 3: Convert remaining managers to pure functions
+  - ResizeManager (in progress)
+  - AutocompleteManager
+  - SelectionManager
 
 ### Upcoming:
-- Phase 3: Convert SelectionManager & AutocompleteManager
 - Phase 1: Simplify UIState enum
 - Phase 4: Unify mode enums
 - Phase 5: Simplify Action system
