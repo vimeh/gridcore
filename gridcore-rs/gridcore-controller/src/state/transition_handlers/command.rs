@@ -1,12 +1,12 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, UIState};
+use crate::state::{actions::Action, create_navigation_state, ModalData, ModalKind, UIState};
 use gridcore_core::Result;
 
 pub struct CommandHandler;
 
 impl TransitionHandler for CommandHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
-        matches!(state, UIState::Command { .. })
+        matches!(state, UIState::Modal { kind: ModalKind::Command, .. })
             && matches!(
                 action,
                 Action::ExitCommandMode | Action::UpdateCommandValue { .. }
@@ -16,8 +16,8 @@ impl TransitionHandler for CommandHandler {
     fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
         match action {
             Action::ExitCommandMode => {
-                if let UIState::Command {
-                    cursor, viewport, ..
+                if let UIState::Modal {
+                    cursor, viewport, kind: ModalKind::Command, ..
                 } = state
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
@@ -26,14 +26,17 @@ impl TransitionHandler for CommandHandler {
                 }
             }
             Action::UpdateCommandValue { value } => {
-                if let UIState::Command {
-                    cursor, viewport, ..
+                if let UIState::Modal {
+                    cursor, viewport, kind: ModalKind::Command, ..
                 } = state
                 {
-                    Ok(UIState::Command {
+                    Ok(UIState::Modal {
                         cursor: *cursor,
                         viewport: *viewport,
-                        command_value: value.clone(),
+                        kind: ModalKind::Command,
+                        data: ModalData::Command {
+                            value: value.clone(),
+                        },
                     })
                 } else {
                     unreachable!("CommandHandler::handle called with incompatible state/action")

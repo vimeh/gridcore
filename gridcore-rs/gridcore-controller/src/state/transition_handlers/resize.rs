@@ -1,6 +1,7 @@
 use super::TransitionHandler;
 use crate::state::{
-    actions::Action, create_navigation_state, ResizeMoveDirection, ResizeTarget, UIState,
+    actions::Action, create_navigation_state, ModalData, ModalKind, ResizeMoveDirection, 
+    ResizeSizes, ResizeTarget, UIState,
 };
 use gridcore_core::Result;
 
@@ -10,7 +11,7 @@ impl TransitionHandler for ResizeHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
         (matches!(state, UIState::Navigation { .. })
             && matches!(action, Action::StartResize { .. }))
-            || (matches!(state, UIState::Resize { .. })
+            || (matches!(state, UIState::Modal { kind: ModalKind::Resize, .. })
                 && matches!(
                     action,
                     Action::UpdateResize { .. }
@@ -31,19 +32,23 @@ impl TransitionHandler for ResizeHandler {
                     cursor, viewport, ..
                 } = state
                 {
-                    Ok(UIState::Resize {
+                    Ok(UIState::Modal {
                         cursor: *cursor,
                         viewport: *viewport,
-                        target: *target,
-                        resize_target: *target,
-                        resize_index: match target {
-                            ResizeTarget::Column { index } => *index,
-                            ResizeTarget::Row { index } => *index,
+                        kind: ModalKind::Resize,
+                        data: ModalData::Resize {
+                            target: *target,
+                            sizes: ResizeSizes {
+                                resize_index: match target {
+                                    ResizeTarget::Column { index } => *index,
+                                    ResizeTarget::Row { index } => *index,
+                                },
+                                original_size: 100, // Default size, should be fetched from actual data
+                                current_size: 100,
+                                initial_position: *initial_position,
+                                current_position: *initial_position,
+                            },
                         },
-                        original_size: 100, // Default size, should be fetched from actual data
-                        current_size: 100,
-                        initial_position: *initial_position,
-                        current_position: *initial_position,
                     })
                 } else {
                     unreachable!("ResizeHandler::handle called with incompatible state/action")

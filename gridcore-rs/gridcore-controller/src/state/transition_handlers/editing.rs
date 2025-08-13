@@ -1,5 +1,5 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, CellMode, UIState};
+use crate::state::{actions::Action, create_navigation_state, EditMode, UIState};
 use gridcore_core::Result;
 
 pub struct EditingHandler;
@@ -38,47 +38,47 @@ impl TransitionHandler for EditingHandler {
                 if let UIState::Editing {
                     cursor,
                     viewport,
-                    editing_value,
-                    cursor_position,
-                    edit_variant,
+                    value,
+                    cursor_pos,
+                    insert_variant,
                     ..
                 } = state
                 {
                     Ok(UIState::Editing {
                         cursor: *cursor,
                         viewport: *viewport,
-                        cell_mode: CellMode::Visual,
-                        editing_value: editing_value.clone(),
-                        cursor_position: *cursor_position,
-                        visual_start: Some(anchor.unwrap_or(*cursor_position)),
+                        mode: EditMode::Visual,
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
+                        visual_start: Some(anchor.unwrap_or(*cursor_pos)),
                         visual_type: Some(*visual_type),
-                        edit_variant: *edit_variant,
+                        insert_variant: *insert_variant,
                     })
                 } else {
                     unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
-            Action::EnterInsertMode { mode } => {
+            Action::EnterInsertMode { mode: insert_mode } => {
                 if let UIState::Editing {
                     cursor,
                     viewport,
-                    editing_value,
-                    cursor_position,
+                    value,
+                    cursor_pos,
                     visual_start,
                     visual_type,
-                    cell_mode: CellMode::Normal,
+                    mode: EditMode::Normal,
                     ..
                 } = state
                 {
                     Ok(UIState::Editing {
                         cursor: *cursor,
                         viewport: *viewport,
-                        cell_mode: CellMode::Insert,
-                        editing_value: editing_value.clone(),
-                        cursor_position: *cursor_position,
+                        mode: EditMode::Insert,
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
                         visual_start: *visual_start,
                         visual_type: *visual_type,
-                        edit_variant: *mode,
+                        insert_variant: *insert_mode,
                     })
                 } else {
                     unreachable!("EditingHandler::handle called with incompatible state/action")
@@ -88,23 +88,23 @@ impl TransitionHandler for EditingHandler {
                 if let UIState::Editing {
                     cursor,
                     viewport,
-                    editing_value,
-                    cursor_position,
+                    value,
+                    cursor_pos,
                     visual_start,
                     visual_type,
-                    cell_mode: CellMode::Insert,
+                    mode: EditMode::Insert,
                     ..
                 } = state
                 {
                     Ok(UIState::Editing {
                         cursor: *cursor,
                         viewport: *viewport,
-                        cell_mode: CellMode::Normal,
-                        editing_value: editing_value.clone(),
-                        cursor_position: *cursor_position,
+                        mode: EditMode::Normal,
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
                         visual_start: *visual_start,
                         visual_type: *visual_type,
-                        edit_variant: None,
+                        insert_variant: None,
                     })
                 } else {
                     unreachable!("EditingHandler::handle called with incompatible state/action")
@@ -114,50 +114,50 @@ impl TransitionHandler for EditingHandler {
                 if let UIState::Editing {
                     cursor,
                     viewport,
-                    editing_value,
-                    cursor_position,
-                    edit_variant,
-                    cell_mode: CellMode::Visual,
+                    value,
+                    cursor_pos,
+                    insert_variant,
+                    mode: EditMode::Visual,
                     ..
                 } = state
                 {
                     Ok(UIState::Editing {
                         cursor: *cursor,
                         viewport: *viewport,
-                        cell_mode: CellMode::Normal,
-                        editing_value: editing_value.clone(),
-                        cursor_position: *cursor_position,
+                        mode: EditMode::Normal,
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
                         visual_start: None,
                         visual_type: None,
-                        edit_variant: *edit_variant,
+                        insert_variant: *insert_variant,
                     })
                 } else {
                     unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateEditingValue {
-                value,
+                value: new_value,
                 cursor_position: new_cursor_position,
             } => {
                 if let UIState::Editing {
                     cursor,
                     viewport,
-                    cell_mode,
+                    mode,
                     visual_start,
                     visual_type,
-                    edit_variant,
+                    insert_variant,
                     ..
                 } = state
                 {
                     Ok(UIState::Editing {
                         cursor: *cursor,
                         viewport: *viewport,
-                        cell_mode: *cell_mode,
-                        editing_value: value.clone(),
-                        cursor_position: *new_cursor_position,
+                        mode: *mode,
+                        value: new_value.clone(),
+                        cursor_pos: *new_cursor_position,
                         visual_start: *visual_start,
                         visual_type: *visual_type,
-                        edit_variant: *edit_variant,
+                        insert_variant: *insert_variant,
                     })
                 } else {
                     unreachable!("EditingHandler::handle called with incompatible state/action")

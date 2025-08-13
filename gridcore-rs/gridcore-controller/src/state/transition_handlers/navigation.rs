@@ -1,7 +1,7 @@
 use super::TransitionHandler;
 use crate::state::{
-    actions::Action, create_command_state, create_editing_state, create_visual_state, CellMode,
-    UIState,
+    actions::Action, create_command_state, create_editing_state, create_visual_state, 
+    CellMode, EditMode, UIState,
 };
 use gridcore_core::Result;
 
@@ -37,9 +37,9 @@ impl TransitionHandler for NavigationHandler {
                     let mut new_state = create_editing_state(*cursor, *viewport, cell_mode);
 
                     if let UIState::Editing {
-                        editing_value,
-                        cursor_position: pos,
-                        edit_variant,
+                        value,
+                        cursor_pos: pos,
+                        insert_variant,
                         ..
                     } = &mut new_state
                     {
@@ -47,12 +47,12 @@ impl TransitionHandler for NavigationHandler {
                         // - Some(value): Use the provided value (can be empty string for Enter key)
                         // - None: Keep empty string
                         if let Some(val) = initial_value {
-                            *editing_value = val.clone();
+                            *value = val.clone();
                         }
                         if let Some(cp) = cursor_position {
                             *pos = *cp;
                         }
-                        *edit_variant = *edit_mode;
+                        *insert_variant = *edit_mode;
                     }
 
                     Ok(new_state)

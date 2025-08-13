@@ -1,13 +1,13 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, UIState};
+use crate::state::{actions::Action, create_navigation_state, ModalData, ModalKind, UIState};
 use gridcore_core::Result;
 
 pub struct VisualHandler;
 
 impl TransitionHandler for VisualHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
-        // Only handle when in UIState::Visual (spreadsheet-level visual mode)
-        matches!(state, UIState::Visual { .. })
+        // Only handle when in Modal::Visual (spreadsheet-level visual mode)
+        matches!(state, UIState::Modal { kind: ModalKind::Visual, .. })
             && matches!(
                 action,
                 Action::ExitSpreadsheetVisualMode
@@ -19,8 +19,8 @@ impl TransitionHandler for VisualHandler {
     fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
         match action {
             Action::ExitSpreadsheetVisualMode => {
-                if let UIState::Visual {
-                    cursor, viewport, ..
+                if let UIState::Modal {
+                    cursor, viewport, kind: ModalKind::Visual, ..
                 } = state
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
@@ -29,21 +29,27 @@ impl TransitionHandler for VisualHandler {
                 }
             }
             Action::UpdateSelection { selection } => {
-                if let UIState::Visual {
+                if let UIState::Modal {
                     cursor,
                     viewport,
-                    anchor,
-                    visual_mode,
-                    ..
+                    kind: ModalKind::Visual,
+                    data,
                 } = state
                 {
-                    Ok(UIState::Visual {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        selection: selection.clone(),
-                        visual_mode: *visual_mode,
-                        anchor: *anchor,
-                    })
+                    if let ModalData::Visual { visual_mode, anchor, .. } = data {
+                        Ok(UIState::Modal {
+                            cursor: *cursor,
+                            viewport: *viewport,
+                            kind: ModalKind::Visual,
+                            data: ModalData::Visual {
+                                selection: selection.clone(),
+                                visual_mode: *visual_mode,
+                                anchor: *anchor,
+                            },
+                        })
+                    } else {
+                        unreachable!("VisualHandler: Modal data mismatch")
+                    }
                 } else {
                     unreachable!("VisualHandler::handle called with incompatible state/action")
                 }
