@@ -83,7 +83,12 @@ impl ResizeBehavior {
         is_horizontal: bool,
     ) -> Result<Option<Action>> {
         // Check if we're in resize mode and get the target
-        if let UIState::Modal { kind: crate::state::ModalKind::Resize, data, .. } = state {
+        if let UIState::Modal {
+            kind: crate::state::ModalKind::Resize,
+            data,
+            ..
+        } = state
+        {
             if let crate::state::ModalData::Resize { target, .. } = data {
                 let is_column_resize = matches!(target, ResizeTarget::Column { .. });
 
@@ -119,7 +124,12 @@ impl ResizeBehavior {
 
     /// Get current resize info for display
     pub fn get_resize_info(&self, state: &UIState) -> Option<ResizeInfo> {
-        if let UIState::Modal { kind: crate::state::ModalKind::Resize, data, .. } = state {
+        if let UIState::Modal {
+            kind: crate::state::ModalKind::Resize,
+            data,
+            ..
+        } = state
+        {
             if let crate::state::ModalData::Resize { target, sizes } = data {
                 return Some(ResizeInfo {
                     target: *target,

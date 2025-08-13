@@ -1,5 +1,7 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, BulkOperationStatus, ModalData, ModalKind, UIState};
+use crate::state::{
+    actions::Action, create_navigation_state, BulkOperationStatus, ModalData, ModalKind, UIState,
+};
 use gridcore_core::Result;
 
 pub struct BulkHandler;
@@ -8,14 +10,19 @@ impl TransitionHandler for BulkHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
         (matches!(state, UIState::Navigation { .. })
             && matches!(action, Action::StartBulkOperation { .. }))
-            || (matches!(state, UIState::Modal { kind: ModalKind::BulkOperation, .. })
-                && matches!(
-                    action,
-                    Action::CompleteBulkOperation
-                        | Action::CancelBulkOperation
-                        | Action::GeneratePreview
-                        | Action::ExecuteBulkOperation
-                ))
+            || (matches!(
+                state,
+                UIState::Modal {
+                    kind: ModalKind::BulkOperation,
+                    ..
+                }
+            ) && matches!(
+                action,
+                Action::CompleteBulkOperation
+                    | Action::CancelBulkOperation
+                    | Action::GeneratePreview
+                    | Action::ExecuteBulkOperation
+            ))
     }
 
     fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
@@ -47,7 +54,10 @@ impl TransitionHandler for BulkHandler {
             }
             Action::CompleteBulkOperation | Action::CancelBulkOperation => {
                 if let UIState::Modal {
-                    cursor, viewport, kind: ModalKind::BulkOperation, ..
+                    cursor,
+                    viewport,
+                    kind: ModalKind::BulkOperation,
+                    ..
                 } = state
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
@@ -94,7 +104,10 @@ impl TransitionHandler for BulkHandler {
                 // For testing, execute completes immediately and returns to navigation
                 // In a real implementation, this would update status and handle async execution
                 if let UIState::Modal {
-                    cursor, viewport, kind: ModalKind::BulkOperation, ..
+                    cursor,
+                    viewport,
+                    kind: ModalKind::BulkOperation,
+                    ..
                 } = state
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))

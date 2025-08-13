@@ -83,10 +83,10 @@ pub struct Selection {
 pub enum ModalKind {
     Command,
     Resize,
-    Insert,      // Structural insert (rows/columns)
-    Delete,      // Structural delete (rows/columns)  
+    Insert, // Structural insert (rows/columns)
+    Delete, // Structural delete (rows/columns)
     BulkOperation,
-    Visual,      // Spreadsheet visual mode (range selection)
+    Visual, // Spreadsheet visual mode (range selection)
 }
 
 // EditMode represents modes within cell editing
@@ -133,36 +133,36 @@ pub struct ResizeSizes {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "modalType", rename_all = "camelCase")]
 pub enum ModalData {
-    Command { 
-        value: String 
+    Command {
+        value: String,
     },
-    Resize { 
-        target: ResizeTarget, 
-        sizes: ResizeSizes 
+    Resize {
+        target: ResizeTarget,
+        sizes: ResizeSizes,
     },
-    Insert { 
-        insert_type: InsertType, 
-        position: InsertPosition, 
+    Insert {
+        insert_type: InsertType,
+        position: InsertPosition,
         reference: u32,
         count: u32,
         target_index: u32,
     },
-    Delete { 
-        delete_type: DeleteType, 
+    Delete {
+        delete_type: DeleteType,
         targets: Vec<u32>,
         selection: Vec<u32>,
         confirmation_pending: bool,
     },
-    BulkOperation { 
-        parsed_command: ParsedBulkCommand, 
+    BulkOperation {
+        parsed_command: ParsedBulkCommand,
         preview_available: bool,
         preview_visible: bool,
         affected_cells: u32,
         status: BulkOperationStatus,
         error_message: Option<String>,
     },
-    Visual { 
-        selection: Selection, 
+    Visual {
+        selection: Selection,
         visual_mode: SpreadsheetVisualMode,
         anchor: CellAddress,
     },
@@ -225,9 +225,9 @@ pub enum UIState {
         mode: EditMode,
         // Cell editing specific fields
         #[serde(rename = "visualStart")]
-        visual_start: Option<usize>,        // For visual mode within editing
+        visual_start: Option<usize>, // For visual mode within editing
         #[serde(rename = "visualType")]
-        visual_type: Option<VisualMode>,    // Character/Line/Block selection
+        visual_type: Option<VisualMode>, // Character/Line/Block selection
         #[serde(rename = "insertVariant")]
         insert_variant: Option<InsertMode>, // Which insert mode (i, a, I, A, etc.)
     },
@@ -321,7 +321,11 @@ impl UIState {
     pub fn selection(&self) -> Option<&Selection> {
         match self {
             UIState::Navigation { selection, .. } => selection.as_ref(),
-            UIState::Modal { kind: ModalKind::Visual, data, .. } => {
+            UIState::Modal {
+                kind: ModalKind::Visual,
+                data,
+                ..
+            } => {
                 if let ModalData::Visual { selection, .. } = data {
                     Some(selection)
                 } else {
@@ -343,19 +347,43 @@ pub fn is_editing_mode(state: &UIState) -> bool {
 }
 
 pub fn is_command_mode(state: &UIState) -> bool {
-    matches!(state, UIState::Modal { kind: ModalKind::Command, .. })
+    matches!(
+        state,
+        UIState::Modal {
+            kind: ModalKind::Command,
+            ..
+        }
+    )
 }
 
 pub fn is_visual_mode(state: &UIState) -> bool {
-    matches!(state, UIState::Modal { kind: ModalKind::Visual, .. })
+    matches!(
+        state,
+        UIState::Modal {
+            kind: ModalKind::Visual,
+            ..
+        }
+    )
 }
 
 pub fn is_resize_mode(state: &UIState) -> bool {
-    matches!(state, UIState::Modal { kind: ModalKind::Resize, .. })
+    matches!(
+        state,
+        UIState::Modal {
+            kind: ModalKind::Resize,
+            ..
+        }
+    )
 }
 
 pub fn is_bulk_operation_mode(state: &UIState) -> bool {
-    matches!(state, UIState::Modal { kind: ModalKind::BulkOperation, .. })
+    matches!(
+        state,
+        UIState::Modal {
+            kind: ModalKind::BulkOperation,
+            ..
+        }
+    )
 }
 
 // Factory functions

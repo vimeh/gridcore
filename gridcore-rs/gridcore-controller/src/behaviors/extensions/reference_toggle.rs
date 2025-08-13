@@ -93,9 +93,7 @@ impl VimExtension for ReferenceToggleExtension {
 
         // Get the editing value and cursor position
         if let UIState::Editing {
-            value,
-            cursor_pos,
-            ..
+            value, cursor_pos, ..
         } = state
         {
             // Only work with formulas
@@ -104,8 +102,7 @@ impl VimExtension for ReferenceToggleExtension {
             }
 
             // Find reference at cursor
-            if let Some(reference) = self.find_reference_at_cursor(value, *cursor_pos)
-            {
+            if let Some(reference) = self.find_reference_at_cursor(value, *cursor_pos) {
                 // Cycle to next reference type
                 let new_reference = self.cycle_reference_type(&reference);
 

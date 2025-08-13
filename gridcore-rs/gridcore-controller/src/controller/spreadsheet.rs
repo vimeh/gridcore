@@ -4,7 +4,10 @@ use crate::controller::{
     SpreadsheetEvent, ViewportManager,
 };
 use crate::managers::{ErrorFormatter, ErrorManager};
-use crate::state::{Action, CellMode, EditMode, InsertMode, ModalData, ModalKind, SpreadsheetMode, UIState, UIStateMachine};
+use crate::state::{
+    Action, CellMode, EditMode, InsertMode, ModalData, ModalKind, SpreadsheetMode, UIState,
+    UIStateMachine,
+};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
 pub struct SpreadsheetController {
@@ -809,7 +812,12 @@ impl SpreadsheetController {
             return self.dispatch_action(Action::ExitCommandMode);
         }
 
-        if let UIState::Modal { kind: ModalKind::Command, data, .. } = self.state_machine.get_state() {
+        if let UIState::Modal {
+            kind: ModalKind::Command,
+            data,
+            ..
+        } = self.state_machine.get_state()
+        {
             if let ModalData::Command { value } = data {
                 if event.is_printable() {
                     let mut new_value = value.clone();
@@ -878,12 +886,7 @@ impl SpreadsheetController {
     }
 
     fn complete_editing(&mut self) -> Result<()> {
-        if let UIState::Editing {
-            cursor,
-            value,
-            ..
-        } = self.state_machine.get_state()
-        {
+        if let UIState::Editing { cursor, value, .. } = self.state_machine.get_state() {
             let address = *cursor;
             let cell_value = value.clone();
 
@@ -908,7 +911,10 @@ impl SpreadsheetController {
                     }
 
                     self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CellEditCompleted { address, value: cell_value });
+                        .dispatch(&SpreadsheetEvent::CellEditCompleted {
+                            address,
+                            value: cell_value,
+                        });
                 }
                 Err(e) => {
                     // Use ErrorFormatter to get consistent error messages

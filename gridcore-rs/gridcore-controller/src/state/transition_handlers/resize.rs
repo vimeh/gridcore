@@ -1,6 +1,6 @@
 use super::TransitionHandler;
 use crate::state::{
-    actions::Action, create_navigation_state, ModalData, ModalKind, ResizeMoveDirection, 
+    actions::Action, create_navigation_state, ModalData, ModalKind, ResizeMoveDirection,
     ResizeSizes, ResizeTarget, UIState,
 };
 use gridcore_core::Result;
@@ -11,15 +11,20 @@ impl TransitionHandler for ResizeHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
         (matches!(state, UIState::Navigation { .. })
             && matches!(action, Action::StartResize { .. }))
-            || (matches!(state, UIState::Modal { kind: ModalKind::Resize, .. })
-                && matches!(
-                    action,
-                    Action::UpdateResize { .. }
-                        | Action::MoveResizeTarget { .. }
-                        | Action::AutoFitResize
-                        | Action::ConfirmResize
-                        | Action::CancelResize
-                ))
+            || (matches!(
+                state,
+                UIState::Modal {
+                    kind: ModalKind::Resize,
+                    ..
+                }
+            ) && matches!(
+                action,
+                Action::UpdateResize { .. }
+                    | Action::MoveResizeTarget { .. }
+                    | Action::AutoFitResize
+                    | Action::ConfirmResize
+                    | Action::CancelResize
+            ))
     }
 
     fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
@@ -55,102 +60,116 @@ impl TransitionHandler for ResizeHandler {
                 }
             }
             Action::UpdateResize { delta } => {
-                if let UIState::Resize {
+                if let UIState::Modal {
                     cursor,
                     viewport,
-                    target,
-                    resize_target,
-                    resize_index,
-                    original_size,
-                    current_size,
-                    initial_position,
-                    current_position,
+                    kind: ModalKind::Resize,
+                    data,
                 } = state
                 {
-                    let new_size = (*current_size as i32 + *delta as i32).max(20) as u32;
-                    let new_position = current_position + delta;
-                    Ok(UIState::Resize {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        target: *target,
-                        resize_target: *resize_target,
-                        resize_index: *resize_index,
-                        original_size: *original_size,
-                        current_size: new_size,
-                        initial_position: *initial_position,
-                        current_position: new_position,
-                    })
+                    if let ModalData::Resize { target, sizes } = data {
+                        let new_size = (sizes.current_size as i32 + *delta as i32).max(20) as u32;
+                        let new_position = sizes.current_position + delta;
+                        Ok(UIState::Modal {
+                            cursor: *cursor,
+                            viewport: *viewport,
+                            kind: ModalKind::Resize,
+                            data: ModalData::Resize {
+                                target: *target,
+                                sizes: ResizeSizes {
+                                    resize_index: sizes.resize_index,
+                                    original_size: sizes.original_size,
+                                    current_size: new_size,
+                                    initial_position: sizes.initial_position,
+                                    current_position: new_position,
+                                },
+                            },
+                        })
+                    } else {
+                        unreachable!("ResizeHandler: Modal data mismatch")
+                    }
                 } else {
                     unreachable!("ResizeHandler::handle called with incompatible state/action")
                 }
             }
             Action::MoveResizeTarget { direction } => {
-                if let UIState::Resize {
+                if let UIState::Modal {
                     cursor,
                     viewport,
-                    resize_target,
-                    resize_index,
-                    original_size,
-                    current_size,
-                    initial_position,
-                    current_position,
-                    ..
+                    kind: ModalKind::Resize,
+                    data,
                 } = state
                 {
-                    let new_index = match direction {
-                        ResizeMoveDirection::Previous => resize_index.saturating_sub(1),
-                        ResizeMoveDirection::Next => resize_index.saturating_add(1),
-                    };
-                    let new_target = match resize_target {
-                        ResizeTarget::Column { .. } => ResizeTarget::Column { index: new_index },
-                        ResizeTarget::Row { .. } => ResizeTarget::Row { index: new_index },
-                    };
-                    Ok(UIState::Resize {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        target: new_target,
-                        resize_target: new_target,
-                        resize_index: new_index,
-                        original_size: *original_size,
-                        current_size: *current_size,
-                        initial_position: *initial_position,
-                        current_position: *current_position,
-                    })
+                    if let ModalData::Resize { target, sizes } = data {
+                        let new_index = match direction {
+                            ResizeMoveDirection::Previous => sizes.resize_index.saturating_sub(1),
+                            ResizeMoveDirection::Next => sizes.resize_index.saturating_add(1),
+                        };
+                        let new_target = match target {
+                            ResizeTarget::Column { .. } => {
+                                ResizeTarget::Column { index: new_index }
+                            }
+                            ResizeTarget::Row { .. } => ResizeTarget::Row { index: new_index },
+                        };
+                        Ok(UIState::Modal {
+                            cursor: *cursor,
+                            viewport: *viewport,
+                            kind: ModalKind::Resize,
+                            data: ModalData::Resize {
+                                target: new_target,
+                                sizes: ResizeSizes {
+                                    resize_index: new_index,
+                                    original_size: sizes.original_size,
+                                    current_size: sizes.current_size,
+                                    initial_position: sizes.initial_position,
+                                    current_position: sizes.current_position,
+                                },
+                            },
+                        })
+                    } else {
+                        unreachable!("ResizeHandler: Modal data mismatch")
+                    }
                 } else {
                     unreachable!("ResizeHandler::handle called with incompatible state/action")
                 }
             }
             Action::AutoFitResize => {
-                if let UIState::Resize {
+                if let UIState::Modal {
                     cursor,
                     viewport,
-                    target,
-                    resize_target,
-                    resize_index,
-                    original_size,
-                    initial_position,
-                    current_position,
-                    ..
+                    kind: ModalKind::Resize,
+                    data,
                 } = state
                 {
-                    Ok(UIState::Resize {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        target: *target,
-                        resize_target: *resize_target,
-                        resize_index: *resize_index,
-                        original_size: *original_size,
-                        current_size: 120, // Default auto-fit size
-                        initial_position: *initial_position,
-                        current_position: *current_position,
-                    })
+                    if let ModalData::Resize { target, sizes } = data {
+                        Ok(UIState::Modal {
+                            cursor: *cursor,
+                            viewport: *viewport,
+                            kind: ModalKind::Resize,
+                            data: ModalData::Resize {
+                                target: *target,
+                                sizes: ResizeSizes {
+                                    resize_index: sizes.resize_index,
+                                    original_size: sizes.original_size,
+                                    current_size: 120, // Default auto-fit size
+                                    initial_position: sizes.initial_position,
+                                    current_position: sizes.current_position,
+                                },
+                            },
+                        })
+                    } else {
+                        unreachable!("ResizeHandler: Modal data mismatch")
+                    }
                 } else {
                     unreachable!("ResizeHandler::handle called with incompatible state/action")
                 }
             }
             Action::ConfirmResize | Action::CancelResize => {
-                if let UIState::Resize {
-                    cursor, viewport, ..
+                if let UIState::Modal {
+                    cursor,
+                    viewport,
+                    kind: ModalKind::Resize,
+                    ..
                 } = state
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))

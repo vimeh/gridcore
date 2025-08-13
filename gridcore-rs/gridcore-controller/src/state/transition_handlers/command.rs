@@ -6,18 +6,26 @@ pub struct CommandHandler;
 
 impl TransitionHandler for CommandHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
-        matches!(state, UIState::Modal { kind: ModalKind::Command, .. })
-            && matches!(
-                action,
-                Action::ExitCommandMode | Action::UpdateCommandValue { .. }
-            )
+        matches!(
+            state,
+            UIState::Modal {
+                kind: ModalKind::Command,
+                ..
+            }
+        ) && matches!(
+            action,
+            Action::ExitCommandMode | Action::UpdateCommandValue { .. }
+        )
     }
 
     fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
         match action {
             Action::ExitCommandMode => {
                 if let UIState::Modal {
-                    cursor, viewport, kind: ModalKind::Command, ..
+                    cursor,
+                    viewport,
+                    kind: ModalKind::Command,
+                    ..
                 } = state
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
@@ -27,7 +35,10 @@ impl TransitionHandler for CommandHandler {
             }
             Action::UpdateCommandValue { value } => {
                 if let UIState::Modal {
-                    cursor, viewport, kind: ModalKind::Command, ..
+                    cursor,
+                    viewport,
+                    kind: ModalKind::Command,
+                    ..
                 } = state
                 {
                     Ok(UIState::Modal {

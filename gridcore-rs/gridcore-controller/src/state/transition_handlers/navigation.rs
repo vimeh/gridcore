@@ -1,7 +1,7 @@
 use super::TransitionHandler;
 use crate::state::{
-    actions::Action, create_command_state, create_editing_state, create_visual_state, 
-    CellMode, EditMode, UIState,
+    actions::Action, create_command_state, create_editing_state, create_visual_state, CellMode,
+    EditMode, UIState,
 };
 use gridcore_core::Result;
 

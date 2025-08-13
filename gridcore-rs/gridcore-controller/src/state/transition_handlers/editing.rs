@@ -169,23 +169,23 @@ impl TransitionHandler for EditingHandler {
                 if let UIState::Editing {
                     cursor,
                     viewport,
-                    cell_mode,
-                    editing_value,
+                    mode,
+                    value,
                     visual_start,
                     visual_type,
-                    edit_variant,
+                    insert_variant,
                     ..
                 } = state
                 {
                     Ok(UIState::Editing {
                         cursor: *cursor,
                         viewport: *viewport,
-                        cell_mode: *cell_mode,
-                        editing_value: editing_value.clone(),
-                        cursor_position: *new_cursor_position,
+                        mode: *mode,
+                        value: value.clone(),
+                        cursor_pos: *new_cursor_position,
                         visual_start: *visual_start,
                         visual_type: *visual_type,
-                        edit_variant: *edit_variant,
+                        insert_variant: *insert_variant,
                     })
                 } else {
                     unreachable!("EditingHandler::handle called with incompatible state/action")
@@ -195,25 +195,25 @@ impl TransitionHandler for EditingHandler {
                 if let UIState::Editing {
                     cursor,
                     viewport,
-                    cell_mode,
-                    editing_value,
-                    cursor_position,
+                    mode,
+                    value,
+                    cursor_pos,
                     visual_start,
                     visual_type,
-                    edit_variant,
+                    insert_variant,
                 } = state
                 {
-                    let mut new_value = editing_value.clone();
-                    new_value.insert(*cursor_position, *character);
+                    let mut new_value = value.clone();
+                    new_value.insert(*cursor_pos, *character);
                     Ok(UIState::Editing {
                         cursor: *cursor,
                         viewport: *viewport,
-                        cell_mode: *cell_mode,
-                        editing_value: new_value,
-                        cursor_position: cursor_position + 1,
+                        mode: *mode,
+                        value: new_value,
+                        cursor_pos: cursor_pos + 1,
                         visual_start: *visual_start,
                         visual_type: *visual_type,
-                        edit_variant: *edit_variant,
+                        insert_variant: *insert_variant,
                     })
                 } else {
                     unreachable!("EditingHandler::handle called with incompatible state/action")
@@ -223,28 +223,28 @@ impl TransitionHandler for EditingHandler {
                 if let UIState::Editing {
                     cursor,
                     viewport,
-                    cell_mode,
-                    editing_value,
-                    cursor_position,
+                    mode,
+                    value,
+                    cursor_pos,
                     visual_start,
                     visual_type,
-                    edit_variant,
+                    insert_variant,
                 } = state
                 {
-                    let mut new_value = editing_value.clone();
+                    let mut new_value = value.clone();
                     let new_cursor_pos = if *forward {
                         // Delete (forward)
-                        if *cursor_position < editing_value.len() {
-                            new_value.remove(*cursor_position);
-                            *cursor_position
+                        if *cursor_pos < value.len() {
+                            new_value.remove(*cursor_pos);
+                            *cursor_pos
                         } else {
-                            *cursor_position
+                            *cursor_pos
                         }
                     } else {
                         // Backspace (backward)
-                        if *cursor_position > 0 {
-                            new_value.remove(cursor_position - 1);
-                            cursor_position - 1
+                        if *cursor_pos > 0 {
+                            new_value.remove(cursor_pos - 1);
+                            cursor_pos - 1
                         } else {
                             0
                         }
@@ -253,12 +253,12 @@ impl TransitionHandler for EditingHandler {
                     Ok(UIState::Editing {
                         cursor: *cursor,
                         viewport: *viewport,
-                        cell_mode: *cell_mode,
-                        editing_value: new_value,
-                        cursor_position: new_cursor_pos,
+                        mode: *mode,
+                        value: new_value,
+                        cursor_pos: new_cursor_pos,
                         visual_start: *visual_start,
                         visual_type: *visual_type,
-                        edit_variant: *edit_variant,
+                        insert_variant: *insert_variant,
                     })
                 } else {
                     Ok(state.clone())

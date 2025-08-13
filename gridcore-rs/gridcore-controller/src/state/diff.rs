@@ -1,5 +1,5 @@
 use super::{
-    CellMode, EditMode, InsertMode, ModalData, ModalKind, Selection, SpreadsheetVisualMode, 
+    CellMode, EditMode, InsertMode, ModalData, ModalKind, Selection, SpreadsheetVisualMode,
     UIState, ViewportInfo, VisualMode,
 };
 use gridcore_core::types::CellAddress;
@@ -96,21 +96,23 @@ impl StateDiff {
                     cursor: old_cursor,
                     viewport: old_viewport,
                     kind: ModalKind::Visual,
-                    data: ModalData::Visual {
-                        selection: old_selection,
-                        visual_mode: old_mode,
-                        anchor: old_anchor,
-                    },
+                    data:
+                        ModalData::Visual {
+                            selection: old_selection,
+                            visual_mode: old_mode,
+                            anchor: old_anchor,
+                        },
                 },
                 UIState::Modal {
                     cursor: new_cursor,
                     viewport: new_viewport,
                     kind: ModalKind::Visual,
-                    data: ModalData::Visual {
-                        selection: new_selection,
-                        visual_mode: new_mode,
-                        anchor: new_anchor,
-                    },
+                    data:
+                        ModalData::Visual {
+                            selection: new_selection,
+                            visual_mode: new_mode,
+                            anchor: new_anchor,
+                        },
                 },
             ) => {
                 if old_cursor != new_cursor {
@@ -241,38 +243,15 @@ impl StateChanges {
                     *selection = new_selection.clone();
                 }
             }
-            UIState::Visual {
-                cursor,
-                viewport,
-                selection,
-                visual_mode,
-                anchor,
-            } => {
-                if let Some(new_cursor) = self.cursor_changed {
-                    *cursor = new_cursor;
-                }
-                if let Some(new_viewport) = self.viewport_changed {
-                    *viewport = new_viewport;
-                }
-                if let Some(Some(ref new_selection)) = self.selection_changed {
-                    *selection = new_selection.clone();
-                }
-                if let Some(new_mode) = self.visual_mode_changed {
-                    *visual_mode = new_mode;
-                }
-                if let Some(new_anchor) = self.anchor_changed {
-                    *anchor = new_anchor;
-                }
-            }
             UIState::Editing {
                 cursor,
                 viewport,
-                cell_mode,
-                editing_value,
-                cursor_position,
+                mode,
+                value,
+                cursor_pos,
                 visual_start,
                 visual_type,
-                edit_variant,
+                insert_variant,
             } => {
                 if let Some(new_cursor) = self.cursor_changed {
                     *cursor = new_cursor;
@@ -281,13 +260,17 @@ impl StateChanges {
                     *viewport = new_viewport;
                 }
                 if let Some(new_mode) = self.cell_mode_changed {
-                    *cell_mode = new_mode;
+                    *mode = match new_mode {
+                        CellMode::Normal => EditMode::Normal,
+                        CellMode::Insert => EditMode::Insert,
+                        CellMode::Visual => EditMode::Visual,
+                    };
                 }
                 if let Some(ref new_value) = self.editing_value_changed {
-                    *editing_value = new_value.clone();
+                    *value = new_value.clone();
                 }
                 if let Some(new_pos) = self.text_cursor_changed {
-                    *cursor_position = new_pos;
+                    *cursor_pos = new_pos;
                 }
                 if let Some(new_vstart) = self.visual_start_changed {
                     *visual_start = new_vstart;
@@ -296,7 +279,7 @@ impl StateChanges {
                     *visual_type = new_vtype;
                 }
                 if let Some(new_variant) = self.edit_variant_changed {
-                    *edit_variant = new_variant;
+                    *insert_variant = new_variant;
                 }
             }
             _ => {

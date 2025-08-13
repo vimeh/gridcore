@@ -7,20 +7,28 @@ pub struct VisualHandler;
 impl TransitionHandler for VisualHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
         // Only handle when in Modal::Visual (spreadsheet-level visual mode)
-        matches!(state, UIState::Modal { kind: ModalKind::Visual, .. })
-            && matches!(
-                action,
-                Action::ExitSpreadsheetVisualMode
-                    | Action::UpdateSelection { .. }
-                    | Action::ChangeVisualMode { .. }
-            )
+        matches!(
+            state,
+            UIState::Modal {
+                kind: ModalKind::Visual,
+                ..
+            }
+        ) && matches!(
+            action,
+            Action::ExitSpreadsheetVisualMode
+                | Action::UpdateSelection { .. }
+                | Action::ChangeVisualMode { .. }
+        )
     }
 
     fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
         match action {
             Action::ExitSpreadsheetVisualMode => {
                 if let UIState::Modal {
-                    cursor, viewport, kind: ModalKind::Visual, ..
+                    cursor,
+                    viewport,
+                    kind: ModalKind::Visual,
+                    ..
                 } = state
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
@@ -36,7 +44,12 @@ impl TransitionHandler for VisualHandler {
                     data,
                 } = state
                 {
-                    if let ModalData::Visual { visual_mode, anchor, .. } = data {
+                    if let ModalData::Visual {
+                        visual_mode,
+                        anchor,
+                        ..
+                    } = data
+                    {
                         Ok(UIState::Modal {
                             cursor: *cursor,
                             viewport: *viewport,
@@ -55,21 +68,30 @@ impl TransitionHandler for VisualHandler {
                 }
             }
             Action::ChangeVisualMode { new_mode } => {
-                if let UIState::Visual {
+                if let UIState::Modal {
                     cursor,
                     viewport,
-                    selection,
-                    anchor,
-                    ..
+                    kind: ModalKind::Visual,
+                    data,
                 } = state
                 {
-                    Ok(UIState::Visual {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        selection: selection.clone(),
-                        visual_mode: *new_mode,
-                        anchor: *anchor,
-                    })
+                    if let ModalData::Visual {
+                        selection, anchor, ..
+                    } = data
+                    {
+                        Ok(UIState::Modal {
+                            cursor: *cursor,
+                            viewport: *viewport,
+                            kind: ModalKind::Visual,
+                            data: ModalData::Visual {
+                                selection: selection.clone(),
+                                visual_mode: *new_mode,
+                                anchor: *anchor,
+                            },
+                        })
+                    } else {
+                        unreachable!("VisualHandler: Modal data mismatch")
+                    }
                 } else {
                     unreachable!("VisualHandler::handle called with incompatible state/action")
                 }
