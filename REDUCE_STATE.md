@@ -3,7 +3,7 @@ Plan: Reduce State Complexity at the Source
 ## Progress Tracking
 
 **Starting Point**: 33,066 lines of Rust code
-**Current**: 33,011 lines of Rust code (-55 lines)
+**Current**: 32,852 lines of Rust code (-214 lines)
 **Target**: ~28,000 lines (-5,000 lines)
 
 ### Completed Phases:
@@ -14,11 +14,12 @@ Plan: Reduce State Complexity at the Source
   
 - ✅ Phase 3 (Partial): Convert Managers to Pure Functions
   - ✅ SelectionStatsManager → pure functions (-86 lines)
-  - Already mostly stateless, easy conversion
+  - ✅ ResizeManager → pure functions (-145 lines)
+    - Eliminated duplicate column_widths/row_heights state
+    - Consolidated resize logic in behaviors module
 
 ### In Progress:
 - 🔄 Phase 3: Convert remaining managers to pure functions
-  - ResizeManager (in progress)
   - AutocompleteManager
   - SelectionManager
 
