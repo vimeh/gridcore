@@ -1,5 +1,5 @@
+use gridcore_controller::behaviors::resize::{self, ResizeType};
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::managers::resize::ResizeType;
 use std::cell::RefCell;
 use std::rc::Rc;
 use web_sys::MouseEvent;
@@ -87,33 +87,50 @@ impl ResizeHandler {
             ResizeType::None => 0.0,
         };
 
-        controller.get_resize_manager_mut().start_resize(
+        // Use pure function to create resize state
+        let new_state = resize::start_mouse_resize(
             resize_type,
             index,
             start_position,
             start_size,
         );
+        
+        // Update the controller's resize state
+        *controller.get_resize_state_mut() = new_state;
     }
 
     pub fn handle_resize(&self, event: &MouseEvent) {
         let mut controller = self.controller.borrow_mut();
+        let resize_state = controller.get_resize_state();
 
-        if !controller.get_resize_manager().is_resizing() {
+        if !resize_state.is_resizing {
             return;
         }
 
-        let resize_type = controller.get_resize_manager().get_resize_type();
-        let current_position = match resize_type {
+        let current_position = match resize_state.resize_type {
             ResizeType::Column => event.client_x() as f64,
             ResizeType::Row => event.client_y() as f64,
             ResizeType::None => return,
         };
 
-        // Update resize and get the new size
-        if let Some((resize_type, index, new_size)) = controller
-            .get_resize_manager_mut()
-            .update_resize(current_position)
-        {
+        // Get config for min/max sizes
+        let config = controller.get_config();
+        let (min_size, max_size) = match resize_state.resize_type {
+            ResizeType::Column => (config.min_cell_width, config.max_cell_width),
+            ResizeType::Row => (config.default_cell_height.min(20.0), config.default_cell_height * 10.0),
+            ResizeType::None => return,
+        };
+
+        // Update resize using pure function
+        if let Some((resize_type, index, new_size)) = resize::update_mouse_resize(
+            resize_state,
+            current_position,
+            min_size,
+            max_size,
+        ) {
+            // Update the resize state
+            controller.get_resize_state_mut().current_size = new_size;
+            
             // Apply the resize to the viewport
             let viewport_manager = controller.get_viewport_manager_mut();
             match resize_type {
@@ -130,11 +147,17 @@ impl ResizeHandler {
 
     pub fn end_resize(&self) {
         let mut controller = self.controller.borrow_mut();
-        controller.get_resize_manager_mut().end_resize();
+        let resize_state = controller.get_resize_state();
+        
+        // Use pure function to end resize
+        resize::end_mouse_resize(resize_state);
+        
+        // Reset the resize state
+        *controller.get_resize_state_mut() = Default::default();
     }
 
     pub fn is_resizing(&self) -> bool {
-        self.controller.borrow().get_resize_manager().is_resizing()
+        self.controller.borrow().get_resize_state().is_resizing
     }
 
     pub fn get_cursor_style(&self, x: f64, y: f64, is_header: bool) -> &'static str {

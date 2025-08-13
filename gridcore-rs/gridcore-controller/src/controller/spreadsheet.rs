@@ -1,9 +1,9 @@
-use crate::behaviors::selection_stats;
+use crate::behaviors::{resize::ResizeState, selection_stats};
 use crate::controller::{
     DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
     SpreadsheetEvent, ViewportManager,
 };
-use crate::managers::{AutocompleteManager, ErrorFormatter, ErrorManager, ResizeManager};
+use crate::managers::{AutocompleteManager, ErrorFormatter, ErrorManager};
 use crate::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
@@ -12,7 +12,7 @@ pub struct SpreadsheetController {
     facade: SpreadsheetFacade,
     event_dispatcher: EventDispatcher,
     viewport_manager: Box<dyn ViewportManager>,
-    resize_manager: ResizeManager,
+    resize_state: ResizeState,
     autocomplete_manager: AutocompleteManager,
     error_manager: ErrorManager,
     config: GridConfiguration,
@@ -41,19 +41,12 @@ impl SpreadsheetController {
         viewport_manager: Box<dyn ViewportManager>,
         config: GridConfiguration,
     ) -> Self {
-        let resize_manager = ResizeManager::new().with_limits(
-            config.min_cell_width,
-            config.max_cell_width,
-            config.default_cell_height.min(20.0),
-            config.default_cell_height * 10.0,
-        );
-
         let mut controller = Self {
             state_machine: UIStateMachine::new(None),
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
             viewport_manager,
-            resize_manager,
+            resize_state: ResizeState::default(),
             autocomplete_manager: AutocompleteManager::new(),
             error_manager: ErrorManager::new(),
             config,
@@ -71,12 +64,6 @@ impl SpreadsheetController {
 
     pub fn with_state(initial_state: UIState) -> Self {
         let config = GridConfiguration::default();
-        let resize_manager = ResizeManager::new().with_limits(
-            config.min_cell_width,
-            config.max_cell_width,
-            config.default_cell_height.min(20.0),
-            config.default_cell_height * 10.0,
-        );
 
         let mut controller = Self {
             state_machine: UIStateMachine::new(Some(initial_state)),
@@ -85,7 +72,7 @@ impl SpreadsheetController {
             viewport_manager: Box::new(
                 DefaultViewportManager::new(1000, 100).with_config(config.clone()),
             ),
-            resize_manager,
+            resize_state: ResizeState::default(),
             autocomplete_manager: AutocompleteManager::new(),
             error_manager: ErrorManager::new(),
             config,
@@ -324,12 +311,12 @@ impl SpreadsheetController {
         &self.config
     }
 
-    pub fn get_resize_manager(&self) -> &ResizeManager {
-        &self.resize_manager
+    pub fn get_resize_state(&self) -> &ResizeState {
+        &self.resize_state
     }
 
-    pub fn get_resize_manager_mut(&mut self) -> &mut ResizeManager {
-        &mut self.resize_manager
+    pub fn get_resize_state_mut(&mut self) -> &mut ResizeState {
+        &mut self.resize_state
     }
 
     pub fn get_autocomplete_manager(&self) -> &AutocompleteManager {

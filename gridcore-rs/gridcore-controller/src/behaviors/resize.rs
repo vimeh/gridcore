@@ -1,5 +1,6 @@
 use crate::state::{Action, ResizeTarget, UIState};
 use gridcore_core::Result;
+use serde::{Deserialize, Serialize};
 
 /// Handles column and row resizing operations
 pub struct ResizeBehavior {
@@ -146,6 +147,119 @@ pub struct ResizeInfo {
 impl Default for ResizeBehavior {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// Mouse-based resize operations
+
+/// Type of resize operation (matches the old ResizeType from managers)
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ResizeType {
+    None,
+    Column,
+    Row,
+}
+
+/// State of an ongoing resize operation
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct ResizeState {
+    pub is_resizing: bool,
+    pub resize_type: ResizeType,
+    pub resize_index: usize,
+    pub start_position: f64,
+    pub start_size: f64,
+    pub current_size: f64,
+}
+
+impl Default for ResizeState {
+    fn default() -> Self {
+        Self {
+            is_resizing: false,
+            resize_type: ResizeType::None,
+            resize_index: 0,
+            start_position: 0.0,
+            start_size: 0.0,
+            current_size: 0.0,
+        }
+    }
+}
+
+/// Check if a position is near a resize handle
+pub fn check_resize_hover(
+    x: f64,
+    y: f64,
+    is_column_header: bool,
+    column_positions: &[(usize, f64)], // (index, x_position)
+    row_positions: &[(usize, f64)],    // (index, y_position)
+    resize_threshold: f64,
+) -> Option<(ResizeType, usize)> {
+    if is_column_header {
+        // Check column edges
+        for &(col_index, edge_x) in column_positions {
+            if (x - edge_x).abs() < resize_threshold {
+                return Some((ResizeType::Column, col_index));
+            }
+        }
+    } else {
+        // Check row edges
+        for &(row_index, edge_y) in row_positions {
+            if (y - edge_y).abs() < resize_threshold {
+                return Some((ResizeType::Row, row_index));
+            }
+        }
+    }
+    None
+}
+
+/// Start a mouse-based resize operation
+pub fn start_mouse_resize(
+    resize_type: ResizeType,
+    index: usize,
+    start_position: f64,
+    current_size: f64,
+) -> ResizeState {
+    ResizeState {
+        is_resizing: true,
+        resize_type,
+        resize_index: index,
+        start_position,
+        start_size: current_size,
+        current_size,
+    }
+}
+
+/// Update resize based on mouse position
+pub fn update_mouse_resize(
+    state: &ResizeState,
+    current_position: f64,
+    min_size: f64,
+    max_size: f64,
+) -> Option<(ResizeType, usize, f64)> {
+    if !state.is_resizing {
+        return None;
+    }
+
+    let delta = current_position - state.start_position;
+    let new_size = (state.start_size + delta).max(min_size).min(max_size);
+
+    Some((state.resize_type, state.resize_index, new_size))
+}
+
+/// End the resize operation
+pub fn end_mouse_resize(state: &ResizeState) -> Option<(ResizeType, usize, f64)> {
+    if !state.is_resizing {
+        return None;
+    }
+
+    Some((state.resize_type, state.resize_index, state.current_size))
+}
+
+/// Get cursor style for a given resize type
+pub fn get_cursor_style(resize_type: Option<ResizeType>) -> &'static str {
+    match resize_type {
+        Some(ResizeType::Column) => "col-resize",
+        Some(ResizeType::Row) => "row-resize",
+        _ => "default",
     }
 }
 
