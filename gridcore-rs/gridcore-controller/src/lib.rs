@@ -7,7 +7,7 @@ pub mod utils;
 // Re-export key types
 pub use controller::SpreadsheetController;
 pub use state::{
-    Action, CellMode, Selection, SelectionType, SpreadsheetMode, UIState, UIStateMachine,
+    Action, EditMode, Selection, SelectionType, SpreadsheetMode, UIState, UIStateMachine,
     ViewportInfo,
 };
 

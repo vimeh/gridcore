@@ -1,6 +1,6 @@
 use crate::state::{
     actions::Action, create_navigation_state, diff::StateDiff,
-    transition_handlers::HandlerRegistry, InsertMode, Selection, SpreadsheetVisualMode, UIState,
+    transition_handlers::HandlerRegistry, InsertMode, Selection, VisualMode, UIState,
     ViewportInfo,
 };
 use gridcore_core::{types::CellAddress, Result, SpreadsheetError};
@@ -214,7 +214,7 @@ impl UIStateMachine {
 
     pub fn enter_spreadsheet_visual_mode(
         &mut self,
-        visual_mode: SpreadsheetVisualMode,
+        visual_mode: VisualMode,
         selection: Selection,
     ) -> Result<()> {
         self.transition(Action::EnterSpreadsheetVisualMode {

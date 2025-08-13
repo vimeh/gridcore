@@ -6,7 +6,7 @@ use crate::controller::{
 use crate::managers::{ErrorFormatter, ErrorManager};
 use crate::state::{
     Action, EditMode, InsertMode, ModalData, ModalKind, SpreadsheetMode, UIState,
-    UIStateMachine,
+    UIStateMachine, VisualMode,
 };
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
@@ -250,10 +250,7 @@ impl SpreadsheetController {
         if old_mode != new_mode {
             log::debug!("dispatch_action: mode changed, dispatching event");
             self.event_dispatcher
-                .dispatch(&SpreadsheetEvent::ModeChanged {
-                    from: old_mode,
-                    to: new_mode,
-                });
+                .dispatch(&SpreadsheetEvent::StateChanged);
             log::debug!("dispatch_action: event dispatched");
         }
 
@@ -568,9 +565,9 @@ impl SpreadsheetController {
 
             // Visual mode
             "v" => {
-                use crate::state::{Selection, SelectionType, SpreadsheetVisualMode};
+                use crate::state::{Selection, SelectionType};
                 self.dispatch_action(Action::EnterSpreadsheetVisualMode {
-                    visual_mode: SpreadsheetVisualMode::Char,
+                    visual_mode: VisualMode::Character,
                     selection: Selection {
                         selection_type: SelectionType::Cell {
                             address: current_cursor,

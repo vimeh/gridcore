@@ -3,7 +3,7 @@ mod tests {
     use super::super::*;
     use crate::state::{
         actions::Action, create_navigation_state,
-        transition_handlers::navigation::NavigationHandler, CellMode, InsertMode, UIState,
+        transition_handlers::navigation::NavigationHandler, EditMode, InsertMode, UIState,
         ViewportInfo,
     };
     use gridcore_core::types::CellAddress;
@@ -25,7 +25,7 @@ mod tests {
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::I),
             initial_value: Some("existing text".to_string()),
-            cursor_position: Some(0),
+            cursor_pos: Some(0),
         };
 
         // Act
@@ -37,19 +37,19 @@ mod tests {
 
         match new_state {
             UIState::Editing {
-                editing_value,
-                cursor_position,
-                cell_mode,
-                edit_variant,
+                value,
+                cursor_pos,
+                mode,
+                insert_variant,
                 ..
             } => {
-                assert_eq!(editing_value, "existing text");
+                assert_eq!(value, "existing text");
                 assert_eq!(
-                    cursor_position, 0,
+                    cursor_pos, 0,
                     "Cursor should be at position 0 for InsertMode::I"
                 );
-                assert_eq!(cell_mode, CellMode::Insert);
-                assert_eq!(edit_variant, Some(InsertMode::I));
+                assert_eq!(mode, EditMode::Insert);
+                assert_eq!(insert_variant, Some(InsertMode::I));
             }
             _ => panic!("Expected Editing state, got {:?}", new_state),
         }
@@ -75,7 +75,7 @@ mod tests {
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::A),
             initial_value: Some(text.clone()),
-            cursor_position: Some(expected_cursor_pos),
+            cursor_pos: Some(expected_cursor_pos),
         };
 
         // Act
@@ -87,26 +87,26 @@ mod tests {
 
         match new_state {
             UIState::Editing {
-                editing_value,
-                cursor_position,
-                cell_mode,
-                edit_variant,
+                value,
+                cursor_pos,
+                mode,
+                insert_variant,
                 ..
             } => {
-                assert_eq!(editing_value, text);
+                assert_eq!(value, text);
                 assert_eq!(
-                    cursor_position, expected_cursor_pos,
+                    cursor_pos, expected_cursor_pos,
                     "Cursor should be at end for InsertMode::A"
                 );
-                assert_eq!(cell_mode, CellMode::Insert);
-                assert_eq!(edit_variant, Some(InsertMode::A));
+                assert_eq!(mode, EditMode::Insert);
+                assert_eq!(insert_variant, Some(InsertMode::A));
             }
             _ => panic!("Expected Editing state, got {:?}", new_state),
         }
     }
 
     #[test]
-    fn test_start_editing_preserves_cursor_position() {
+    fn test_start_editing_preserves_cursor_pos() {
         // Arrange
         let initial_state = create_navigation_state(
             CellAddress::new(0, 0),
@@ -122,7 +122,7 @@ mod tests {
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::I),
             initial_value: Some("test".to_string()),
-            cursor_position: Some(2), // Middle of "test"
+            cursor_pos: Some(2), // Middle of "test"
         };
 
         // Act
@@ -134,9 +134,9 @@ mod tests {
 
         match new_state {
             UIState::Editing {
-                cursor_position, ..
+                cursor_pos, ..
             } => {
-                assert_eq!(cursor_position, 2, "Cursor position should be preserved");
+                assert_eq!(cursor_pos, 2, "Cursor position should be preserved");
             }
             _ => panic!("Expected Editing state"),
         }
@@ -159,7 +159,7 @@ mod tests {
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::I),
             initial_value: Some(String::new()), // Empty string for Enter key
-            cursor_position: Some(0),
+            cursor_pos: Some(0),
         };
 
         // Act
@@ -171,12 +171,12 @@ mod tests {
 
         match new_state {
             UIState::Editing {
-                editing_value,
-                cursor_position,
+                value,
+                cursor_pos,
                 ..
             } => {
-                assert_eq!(editing_value, "");
-                assert_eq!(cursor_position, 0);
+                assert_eq!(value, "");
+                assert_eq!(cursor_pos, 0);
             }
             _ => panic!("Expected Editing state"),
         }
@@ -194,18 +194,18 @@ mod tests {
                 rows: 10,
                 cols: 10,
             },
-            cell_mode: CellMode::Normal,
-            editing_value: String::new(),
-            cursor_position: 0,
+            mode: EditMode::Normal,
+            value: String::new(),
+            cursor_pos: 0,
             visual_start: None,
             visual_type: None,
-            edit_variant: None,
+            insert_variant: None,
         };
 
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::I),
             initial_value: Some("test".to_string()),
-            cursor_position: Some(0),
+            cursor_pos: Some(0),
         };
 
         // Act & Assert
@@ -216,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_editing_value_action() {
+    fn test_update_value_action() {
         // Arrange
         use crate::state::transition_handlers::editing::EditingHandler;
 
@@ -228,18 +228,18 @@ mod tests {
                 rows: 10,
                 cols: 10,
             },
-            cell_mode: CellMode::Insert,
-            editing_value: "Hello".to_string(),
-            cursor_position: 5,
+            mode: EditMode::Insert,
+            value: "Hello".to_string(),
+            cursor_pos: 5,
             visual_start: None,
             visual_type: None,
-            edit_variant: Some(InsertMode::I),
+            insert_variant: Some(InsertMode::I),
         };
 
         let handler = EditingHandler;
         let action = Action::UpdateEditingValue {
             value: "Hello World".to_string(),
-            cursor_position: 11,
+            cursor_pos: 11,
         };
 
         // Act
@@ -251,12 +251,12 @@ mod tests {
 
         match new_state {
             UIState::Editing {
-                editing_value,
-                cursor_position,
+                value,
+                cursor_pos,
                 ..
             } => {
-                assert_eq!(editing_value, "Hello World", "Value should be updated");
-                assert_eq!(cursor_position, 11, "Cursor position should be updated");
+                assert_eq!(value, "Hello World", "Value should be updated");
+                assert_eq!(cursor_pos, 11, "Cursor position should be updated");
             }
             _ => panic!("Expected Editing state after UpdateEditingValue"),
         }

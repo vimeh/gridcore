@@ -1,5 +1,5 @@
 use super::{
-    CellMode, EditMode, InsertMode, ModalData, ModalKind, Selection, SpreadsheetVisualMode,
+    EditMode, InsertMode, ModalData, ModalKind, Selection,
     UIState, ViewportInfo, VisualMode,
 };
 use gridcore_core::types::CellAddress;
@@ -29,10 +29,10 @@ pub struct StateChanges {
     pub editing_value_changed: Option<String>,
     /// Cursor position in text change
     pub text_cursor_changed: Option<usize>,
-    /// Cell mode change
-    pub cell_mode_changed: Option<CellMode>,
+    /// Edit mode change
+    pub edit_mode_changed: Option<EditMode>,
     /// Visual mode change
-    pub visual_mode_changed: Option<SpreadsheetVisualMode>,
+    pub visual_mode_changed: Option<VisualMode>,
     /// Visual anchor change
     pub anchor_changed: Option<CellAddress>,
     /// Visual start position change
@@ -160,11 +160,7 @@ impl StateDiff {
                     changes.viewport_changed = Some(*new_viewport);
                 }
                 if old_mode != new_mode {
-                    changes.cell_mode_changed = Some(match new_mode {
-                        EditMode::Normal => CellMode::Normal,
-                        EditMode::Insert => CellMode::Insert,
-                        EditMode::Visual => CellMode::Visual,
-                    });
+                    changes.edit_mode_changed = Some(*new_mode);
                 }
                 if old_value != new_value {
                     changes.editing_value_changed = Some(new_value.clone());
@@ -215,7 +211,7 @@ impl StateChanges {
             || self.selection_changed.is_some()
             || self.editing_value_changed.is_some()
             || self.text_cursor_changed.is_some()
-            || self.cell_mode_changed.is_some()
+            || self.edit_mode_changed.is_some()
             || self.visual_mode_changed.is_some()
             || self.anchor_changed.is_some()
             || self.visual_start_changed.is_some()
@@ -259,12 +255,8 @@ impl StateChanges {
                 if let Some(new_viewport) = self.viewport_changed {
                     *viewport = new_viewport;
                 }
-                if let Some(new_mode) = self.cell_mode_changed {
-                    *mode = match new_mode {
-                        CellMode::Normal => EditMode::Normal,
-                        CellMode::Insert => EditMode::Insert,
-                        CellMode::Visual => EditMode::Visual,
-                    };
+                if let Some(new_mode) = self.edit_mode_changed {
+                    *mode = new_mode;
                 }
                 if let Some(ref new_value) = self.editing_value_changed {
                     *value = new_value.clone();

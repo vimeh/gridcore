@@ -1,6 +1,6 @@
 use super::TransitionHandler;
 use crate::state::{
-    actions::Action, create_command_state, create_editing_state, create_visual_state, CellMode,
+    actions::Action, create_command_state, create_editing_state, create_visual_state, EditMode,
     UIState,
 };
 use gridcore_core::Result;
@@ -29,12 +29,12 @@ impl TransitionHandler for NavigationHandler {
                     cursor, viewport, ..
                 } = state
                 {
-                    let cell_mode = if edit_mode.is_some() {
-                        CellMode::Insert
+                    let mode = if edit_mode.is_some() {
+                        EditMode::Insert
                     } else {
-                        CellMode::Normal
+                        EditMode::Normal
                     };
-                    let mut new_state = create_editing_state(*cursor, *viewport, cell_mode);
+                    let mut new_state = create_editing_state(*cursor, *viewport, mode);
 
                     if let UIState::Editing {
                         value,

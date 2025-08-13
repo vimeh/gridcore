@@ -3,7 +3,7 @@ Plan: Reduce State Complexity at the Source
 ## Progress Tracking
 
 **Starting Point**: 33,066 lines of Rust code
-**Current**: 32,387 lines of Rust code (-679 lines)
+**Current**: 32,526 lines of Rust code (-540 lines)
 **Target**: ~28,000 lines (-5,000 lines total)
 
 ### Completed Phases:
@@ -32,8 +32,13 @@ Plan: Reduce State Complexity at the Source
   - ✅ Fixed all compilation errors in controller
   - Note: UI components still need updating but controller is fully functional
 
+- ✅ Phase 4: Unify Mode Enums (COMPLETE - saved 41 lines)
+  - ✅ Removed SpreadsheetMode serialization (now derived from UIState)
+  - ✅ Eliminated CellMode enum (merged with EditMode)
+  - ✅ Combined VisualMode and SpreadsheetVisualMode into single enum
+  - ✅ InsertMode already unified
+
 ### Upcoming:
-- Phase 4: Unify mode enums
 - Phase 5: Simplify Action system
 
 ---

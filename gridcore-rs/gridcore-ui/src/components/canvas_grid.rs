@@ -482,15 +482,11 @@ pub fn CanvasGrid(
         let (old_mode, old_cursor, old_cell_mode) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
-            let cell_mode = match state {
-                UIState::Editing { mode, .. } => Some(match mode {
-                    gridcore_controller::state::EditMode::Normal => gridcore_controller::state::CellMode::Normal,
-                    gridcore_controller::state::EditMode::Insert => gridcore_controller::state::CellMode::Insert,
-                    gridcore_controller::state::EditMode::Visual => gridcore_controller::state::CellMode::Visual,
-                }),
+            let edit_mode = match state {
+                UIState::Editing { mode, .. } => Some(*mode),
                 _ => None,
             };
-            (state.spreadsheet_mode(), *state.cursor(), cell_mode)
+            (state.spreadsheet_mode(), *state.cursor(), edit_mode)
         });
 
         // Forward the event to the controller and drop the borrow immediately
@@ -514,21 +510,17 @@ pub fn CanvasGrid(
             let state = ctrl_borrow.get_state();
             let mode = state.spreadsheet_mode();
             let cursor = *state.cursor();
-            let cell_mode = match state {
-                UIState::Editing { mode, .. } => Some(match mode {
-                    gridcore_controller::state::EditMode::Normal => gridcore_controller::state::CellMode::Normal,
-                    gridcore_controller::state::EditMode::Insert => gridcore_controller::state::CellMode::Insert,
-                    gridcore_controller::state::EditMode::Visual => gridcore_controller::state::CellMode::Visual,
-                }),
+            let edit_mode = match state {
+                UIState::Editing { mode, .. } => Some(*mode),
                 _ => None,
             };
             leptos::logging::log!(
-                "Controller state after event: mode={:?}, cursor={:?}, cell_mode={:?}",
+                "Controller state after event: mode={:?}, cursor={:?}, edit_mode={:?}",
                 mode,
                 cursor,
-                cell_mode
+                edit_mode
             );
-            (mode, cursor, cell_mode)
+            (mode, cursor, edit_mode)
         });
 
         leptos::logging::log!(

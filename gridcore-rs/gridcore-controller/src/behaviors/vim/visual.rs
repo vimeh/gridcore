@@ -1,5 +1,5 @@
 use super::{Motion, Operator, VimBehavior, VimMode};
-use crate::state::{Action, Selection, SelectionType, SpreadsheetVisualMode, UIState};
+use crate::state::{Action, Selection, SelectionType, VisualMode, UIState};
 use gridcore_core::{types::CellAddress, Result};
 
 /// Visual mode selection state
@@ -91,10 +91,10 @@ impl VimBehavior {
         self.visual_anchor = Some(*current_state.cursor());
 
         let visual_mode = match mode {
-            VimMode::Visual => SpreadsheetVisualMode::Char,
-            VimMode::VisualLine => SpreadsheetVisualMode::Line,
-            VimMode::VisualBlock => SpreadsheetVisualMode::Block,
-            _ => SpreadsheetVisualMode::Char,
+            VimMode::Visual => VisualMode::Character,
+            VimMode::VisualLine => VisualMode::Line,
+            VimMode::VisualBlock => VisualMode::Block,
+            _ => VisualMode::Character,
         };
 
         let selection = Selection {
@@ -241,10 +241,10 @@ impl VimBehavior {
             let _selection = visual_selection.to_selection();
 
             let visual_mode = match self.mode {
-                VimMode::Visual => SpreadsheetVisualMode::Char,
-                VimMode::VisualLine => SpreadsheetVisualMode::Line,
-                VimMode::VisualBlock => SpreadsheetVisualMode::Block,
-                _ => SpreadsheetVisualMode::Char,
+                VimMode::Visual => VisualMode::Character,
+                VimMode::VisualLine => VisualMode::Line,
+                VimMode::VisualBlock => VisualMode::Block,
+                _ => VisualMode::Character,
             };
 
             Ok(Some(Action::ChangeVisualMode {

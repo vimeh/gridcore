@@ -193,7 +193,7 @@ impl VimBehavior {
                 self.mode = VimMode::Visual;
                 self.visual_anchor = Some(*current_state.cursor());
                 Ok(Some(Action::EnterSpreadsheetVisualMode {
-                    visual_mode: crate::state::SpreadsheetVisualMode::Char,
+                    visual_mode: crate::state::VisualMode::Character,
                     selection: crate::state::Selection {
                         selection_type: crate::state::SelectionType::Cell {
                             address: *current_state.cursor(),
@@ -206,7 +206,7 @@ impl VimBehavior {
                 self.mode = VimMode::VisualLine;
                 self.visual_anchor = Some(*current_state.cursor());
                 Ok(Some(Action::EnterSpreadsheetVisualMode {
-                    visual_mode: crate::state::SpreadsheetVisualMode::Line,
+                    visual_mode: crate::state::VisualMode::Line,
                     selection: crate::state::Selection {
                         selection_type: crate::state::SelectionType::Row {
                             rows: vec![current_state.cursor().row],

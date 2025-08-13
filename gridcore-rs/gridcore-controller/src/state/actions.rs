@@ -1,6 +1,6 @@
 use crate::state::{
     DeleteType, InsertMode, InsertPosition, InsertType, ParsedBulkCommand, ResizeMoveDirection,
-    ResizeTarget, Selection, SpreadsheetVisualMode, ViewportInfo, VisualMode,
+    ResizeTarget, Selection, ViewportInfo, VisualMode,
 };
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ pub enum Action {
     },
     ExitVisualMode,
     EnterSpreadsheetVisualMode {
-        visual_mode: SpreadsheetVisualMode,
+        visual_mode: VisualMode,
         selection: Selection,
     },
     ExitSpreadsheetVisualMode,
@@ -78,7 +78,7 @@ pub enum Action {
         delete_type: DeleteType,
     },
     ChangeVisualMode {
-        new_mode: SpreadsheetVisualMode,
+        new_mode: VisualMode,
     },
     UpdateEditingValue {
         value: String,

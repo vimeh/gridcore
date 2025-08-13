@@ -93,7 +93,7 @@ pub fn App() -> impl IntoView {
                     | SpreadsheetEvent::RangeSelected { .. } => {
                         selection_trigger.notify();
                     }
-                    SpreadsheetEvent::ModeChanged { .. }
+                    SpreadsheetEvent::StateChanged
                     | SpreadsheetEvent::CommandExecuted { .. }
                     | SpreadsheetEvent::CommandCancelled => {
                         mode_trigger.notify();

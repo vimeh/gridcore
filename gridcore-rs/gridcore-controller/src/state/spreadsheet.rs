@@ -10,30 +10,17 @@ pub struct ViewportInfo {
     pub cols: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum CellMode {
-    Normal,
-    Insert,
-    Visual,
-}
+// CellMode removed - use EditMode instead
 
+// Unified VisualMode for both cell editing and spreadsheet selection
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum VisualMode {
-    Character,
-    Line,
-    Block,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum SpreadsheetVisualMode {
-    Char,
-    Line,
-    Block,
-    Column,
-    Row,
+    Character, // For text selection within cell editing
+    Line,      // Line-based selection (text or spreadsheet rows)
+    Block,     // Block selection (text or spreadsheet range)
+    Column,    // Column selection (spreadsheet only)
+    Row,       // Row selection (spreadsheet only)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -98,7 +85,8 @@ pub enum EditMode {
     Visual,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+// SpreadsheetMode is derived from UIState, not stored separately
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpreadsheetMode {
     Navigation,
     Visual,
@@ -163,7 +151,7 @@ pub enum ModalData {
     },
     Visual {
         selection: Selection,
-        visual_mode: SpreadsheetVisualMode,
+        visual_mode: VisualMode,
         anchor: CellAddress,
     },
 }
@@ -402,13 +390,8 @@ pub fn create_navigation_state(
 pub fn create_editing_state(
     cursor: CellAddress,
     viewport: ViewportInfo,
-    cell_mode: CellMode,
+    mode: EditMode,
 ) -> UIState {
-    let mode = match cell_mode {
-        CellMode::Normal => EditMode::Normal,
-        CellMode::Insert => EditMode::Insert,
-        CellMode::Visual => EditMode::Visual,
-    };
     UIState::Editing {
         cursor,
         viewport,
@@ -435,7 +418,7 @@ pub fn create_command_state(cursor: CellAddress, viewport: ViewportInfo) -> UISt
 pub fn create_visual_state(
     cursor: CellAddress,
     viewport: ViewportInfo,
-    visual_mode: SpreadsheetVisualMode,
+    visual_mode: VisualMode,
     anchor: CellAddress,
     selection: Selection,
 ) -> UIState {

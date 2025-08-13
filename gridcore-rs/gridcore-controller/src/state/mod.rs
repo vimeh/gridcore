@@ -21,8 +21,8 @@ pub use machine::UIStateMachine;
 pub use spreadsheet::{
     create_command_state, create_editing_state, create_navigation_state, create_visual_state,
     is_bulk_operation_mode, is_command_mode, is_editing_mode, is_navigation_mode, is_resize_mode,
-    is_visual_mode, BulkOperationStatus, CellMode, DeleteType, EditMode, InsertMode,
+    is_visual_mode, BulkOperationStatus, DeleteType, EditMode, InsertMode,
     InsertPosition, InsertType, ModalData, ModalKind, ParsedBulkCommand, ResizeMoveDirection,
-    ResizeSizes, ResizeTarget, Selection, SelectionType, SpreadsheetMode, SpreadsheetVisualMode,
+    ResizeSizes, ResizeTarget, Selection, SelectionType, SpreadsheetMode,
     UIState, ViewportInfo, VisualMode,
 };

@@ -147,7 +147,7 @@ impl Default for ReferenceToggleExtension {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::{CellMode, ViewportInfo};
+    use crate::state::{EditMode, ViewportInfo};
     use gridcore_core::types::CellAddress;
 
     fn create_test_state(formula: &str, cursor_pos: usize) -> UIState {
@@ -159,12 +159,12 @@ mod tests {
                 rows: 10,
                 cols: 10,
             },
-            cell_mode: CellMode::Normal,
-            editing_value: formula.to_string(),
-            cursor_position: cursor_pos,
+            value: formula.to_string(),
+            cursor_pos: cursor_pos,
+            mode: EditMode::Normal,
             visual_start: None,
             visual_type: None,
-            edit_variant: None,
+            insert_variant: None,
         }
     }
 

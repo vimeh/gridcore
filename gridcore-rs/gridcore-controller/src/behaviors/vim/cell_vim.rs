@@ -1,10 +1,10 @@
-use crate::state::{Action, CellMode, InsertMode, VisualMode};
+use crate::state::{Action, EditMode, InsertMode, VisualMode};
 use gridcore_core::Result;
 
 /// Vim behavior within a cell editor
 pub struct CellVimBehavior {
     #[cfg_attr(test, allow(dead_code))]
-    pub(crate) mode: CellMode,
+    pub(crate) mode: EditMode,
     #[cfg_attr(test, allow(dead_code))]
     pub(crate) text: String,
     #[cfg_attr(test, allow(dead_code))]
@@ -38,7 +38,7 @@ enum ChangeAction {
 impl CellVimBehavior {
     pub fn new(initial_text: String) -> Self {
         Self {
-            mode: CellMode::Normal,
+            mode: EditMode::Normal,
             text: initial_text,
             cursor_position: 0,
             visual_anchor: None,
@@ -48,7 +48,7 @@ impl CellVimBehavior {
         }
     }
 
-    pub fn get_mode(&self) -> CellMode {
+    pub fn get_mode(&self) -> EditMode {
         self.mode
     }
 
@@ -61,7 +61,7 @@ impl CellVimBehavior {
     }
 
     pub fn get_visual_selection(&self) -> Option<(usize, usize)> {
-        if self.mode == CellMode::Visual {
+        if self.mode == EditMode::Visual {
             if let Some(anchor) = self.visual_anchor {
                 let start = anchor.min(self.cursor_position);
                 let end = anchor.max(self.cursor_position);
@@ -77,9 +77,9 @@ impl CellVimBehavior {
     /// Process a key press in the cell editor
     pub fn process_key(&mut self, key: &str) -> Result<Option<Action>> {
         match self.mode {
-            CellMode::Normal => self.process_normal_key(key),
-            CellMode::Insert => self.process_insert_key(key),
-            CellMode::Visual => self.process_visual_key(key),
+            EditMode::Normal => self.process_normal_key(key),
+            EditMode::Insert => self.process_insert_key(key),
+            EditMode::Visual => self.process_visual_key(key),
         }
     }
 
@@ -152,7 +152,7 @@ impl CellVimBehavior {
     fn process_insert_key(&mut self, key: &str) -> Result<Option<Action>> {
         match key {
             "Escape" => {
-                self.mode = CellMode::Normal;
+                self.mode = EditMode::Normal;
                 Ok(Some(Action::ExitInsertMode))
             }
             "Backspace" => {
@@ -204,7 +204,7 @@ impl CellVimBehavior {
     fn process_visual_key(&mut self, key: &str) -> Result<Option<Action>> {
         match key {
             "Escape" | "v" => {
-                self.mode = CellMode::Normal;
+                self.mode = EditMode::Normal;
                 self.visual_anchor = None;
                 self.visual_mode = None;
                 Ok(Some(Action::ExitVisualMode))
@@ -232,7 +232,7 @@ impl CellVimBehavior {
 
     // Mode transitions
     fn enter_insert_mode(&mut self, mode: InsertMode) -> Result<Option<Action>> {
-        self.mode = CellMode::Insert;
+        self.mode = EditMode::Insert;
 
         match mode {
             InsertMode::I => {
@@ -266,7 +266,7 @@ impl CellVimBehavior {
     }
 
     fn enter_visual_mode(&mut self, mode: VisualMode) -> Result<Option<Action>> {
-        self.mode = CellMode::Visual;
+        self.mode = EditMode::Visual;
         self.visual_mode = Some(mode);
         self.visual_anchor = Some(self.cursor_position);
 
@@ -384,20 +384,20 @@ impl CellVimBehavior {
     fn change_line(&mut self) -> Result<Option<Action>> {
         self.text.clear();
         self.cursor_position = 0;
-        self.mode = CellMode::Insert;
+        self.mode = EditMode::Insert;
         Ok(Some(Action::EnterInsertMode { mode: None }))
     }
 
     fn change_to_end(&mut self) -> Result<Option<Action>> {
         self.text.truncate(self.cursor_position);
-        self.mode = CellMode::Insert;
+        self.mode = EditMode::Insert;
         Ok(Some(Action::EnterInsertMode { mode: None }))
     }
 
     fn change_word(&mut self) -> Result<Option<Action>> {
         let end = self.find_next_word_start(self.cursor_position);
         self.text.drain(self.cursor_position..end);
-        self.mode = CellMode::Insert;
+        self.mode = EditMode::Insert;
         Ok(Some(Action::EnterInsertMode { mode: None }))
     }
 
@@ -405,7 +405,7 @@ impl CellVimBehavior {
         let start = self.find_prev_word_start(self.cursor_position);
         self.text.drain(start..self.cursor_position);
         self.cursor_position = start;
-        self.mode = CellMode::Insert;
+        self.mode = EditMode::Insert;
         Ok(Some(Action::EnterInsertMode { mode: None }))
     }
 
@@ -413,14 +413,14 @@ impl CellVimBehavior {
         if self.cursor_position < self.text.len() {
             self.text.remove(self.cursor_position);
         }
-        self.mode = CellMode::Insert;
+        self.mode = EditMode::Insert;
         Ok(Some(Action::EnterInsertMode { mode: None }))
     }
 
     fn substitute_line(&mut self) -> Result<Option<Action>> {
         self.text.clear();
         self.cursor_position = 0;
-        self.mode = CellMode::Insert;
+        self.mode = EditMode::Insert;
         Ok(Some(Action::EnterInsertMode { mode: None }))
     }
 
@@ -459,7 +459,7 @@ impl CellVimBehavior {
         if let Some((start, end)) = self.get_visual_selection() {
             self.text.drain(start..=end);
             self.cursor_position = start;
-            self.mode = CellMode::Normal;
+            self.mode = EditMode::Normal;
             self.visual_anchor = None;
             self.update_editing_value()
         } else {
@@ -471,7 +471,7 @@ impl CellVimBehavior {
         if let Some((start, end)) = self.get_visual_selection() {
             self.text.drain(start..=end);
             self.cursor_position = start;
-            self.mode = CellMode::Insert;
+            self.mode = EditMode::Insert;
             self.visual_anchor = None;
             Ok(Some(Action::EnterInsertMode { mode: None }))
         } else {
@@ -484,7 +484,7 @@ impl CellVimBehavior {
             let yanked = self.text[start..=end].to_string();
             self.registers.insert('0', yanked.clone());
             self.registers.insert('"', yanked);
-            self.mode = CellMode::Normal;
+            self.mode = EditMode::Normal;
             self.visual_anchor = None;
             Ok(Some(Action::ExitVisualMode))
         } else {
@@ -505,7 +505,7 @@ impl CellVimBehavior {
                 })
                 .collect::<String>();
             self.text.replace_range(start..=end, &selection);
-            self.mode = CellMode::Normal;
+            self.mode = EditMode::Normal;
             self.visual_anchor = None;
             self.update_editing_value()
         } else {
@@ -517,7 +517,7 @@ impl CellVimBehavior {
         if let Some((start, end)) = self.get_visual_selection() {
             let selection = self.text[start..=end].to_lowercase();
             self.text.replace_range(start..=end, &selection);
-            self.mode = CellMode::Normal;
+            self.mode = EditMode::Normal;
             self.visual_anchor = None;
             self.update_editing_value()
         } else {
@@ -529,7 +529,7 @@ impl CellVimBehavior {
         if let Some((start, end)) = self.get_visual_selection() {
             let selection = self.text[start..=end].to_uppercase();
             self.text.replace_range(start..=end, &selection);
-            self.mode = CellMode::Normal;
+            self.mode = EditMode::Normal;
             self.visual_anchor = None;
             self.update_editing_value()
         } else {

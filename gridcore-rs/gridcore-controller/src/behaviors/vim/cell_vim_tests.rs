@@ -1,5 +1,5 @@
 use super::cell_vim::*;
-use crate::state::{Action, CellMode, InsertMode, VisualMode};
+use crate::state::{Action, EditMode, InsertMode, VisualMode};
 
 fn create_cell_vim(text: &str) -> CellVimBehavior {
     CellVimBehavior::new(text.to_string())
@@ -8,7 +8,7 @@ fn create_cell_vim(text: &str) -> CellVimBehavior {
 #[test]
 fn test_initial_state() {
     let vim = create_cell_vim("test content");
-    assert_eq!(vim.get_mode(), CellMode::Normal);
+    assert_eq!(vim.get_mode(), EditMode::Normal);
     assert_eq!(vim.get_text(), "test content");
     assert_eq!(vim.get_cursor_position(), 0);
     assert_eq!(vim.get_visual_selection(), None);
@@ -108,7 +108,7 @@ fn test_i_enters_insert_mode_before_cursor() {
     let action = vim
         .process_key("i")
         .expect("Failed to process key 'i' in vim test");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_cursor_position(), 2);
     assert!(matches!(
         action,
@@ -126,7 +126,7 @@ fn test_a_enters_insert_mode_after_cursor() {
     let action = vim
         .process_key("a")
         .expect("Failed to process key 'a' in vim test");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_cursor_position(), 3);
     assert!(matches!(
         action,
@@ -144,7 +144,7 @@ fn test_capital_i_enters_insert_mode_at_line_start() {
     let action = vim
         .process_key("I")
         .expect("Failed to process key 'I' in vim test");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_cursor_position(), 0);
     assert!(matches!(
         action,
@@ -162,7 +162,7 @@ fn test_capital_a_enters_insert_mode_at_line_end() {
     let action = vim
         .process_key("A")
         .expect("Failed to process key 'A' in vim test");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_cursor_position(), 5);
     assert!(matches!(
         action,
@@ -179,7 +179,7 @@ fn test_o_opens_line_below() {
     let action = vim
         .process_key("o")
         .expect("Failed to process key 'o' in vim test");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_text(), "hello\n");
     // Cursor position is set to text.len() before adding '\n', so it's position 5
     // But after appending '\n', cursor stays at position 5 (which is where newline starts)
@@ -199,7 +199,7 @@ fn test_capital_o_opens_line_above() {
     let action = vim
         .process_key("O")
         .expect("Failed to process key 'O' in vim test");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_text(), "\nhello");
     assert_eq!(vim.get_cursor_position(), 0);
     assert!(matches!(
@@ -219,7 +219,7 @@ fn test_v_enters_visual_mode() {
     let action = vim
         .process_key("v")
         .expect("Failed to process key 'v' in vim test");
-    assert_eq!(vim.get_mode(), CellMode::Visual);
+    assert_eq!(vim.get_mode(), EditMode::Visual);
     assert_eq!(vim.visual_anchor, Some(5));
     assert!(matches!(
         action,
@@ -265,7 +265,7 @@ fn test_visual_mode_escape_exits() {
     let action = vim
         .process_key("Escape")
         .expect("Failed to process key 'Escape' in vim test");
-    assert_eq!(vim.get_mode(), CellMode::Normal);
+    assert_eq!(vim.get_mode(), EditMode::Normal);
     assert_eq!(vim.visual_anchor, None);
     assert!(matches!(action, Some(Action::ExitVisualMode)));
 }
@@ -288,7 +288,7 @@ fn test_visual_mode_d_deletes_selection() {
     vim.process_key("d")
         .expect("Failed to process key 'd' in vim test");
     assert_eq!(vim.get_text(), " world");
-    assert_eq!(vim.get_mode(), CellMode::Normal);
+    assert_eq!(vim.get_mode(), EditMode::Normal);
     assert_eq!(vim.get_cursor_position(), 0);
 }
 
@@ -311,7 +311,7 @@ fn test_visual_mode_c_changes_selection() {
         .process_key("c")
         .expect("Failed to process key 'c' in vim test");
     assert_eq!(vim.get_text(), " world");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_cursor_position(), 0);
     assert!(matches!(action, Some(Action::EnterInsertMode { .. })));
 }
@@ -335,7 +335,7 @@ fn test_visual_mode_y_yanks_selection() {
         .process_key("y")
         .expect("Failed to process key 'y' in vim test");
     assert_eq!(vim.get_text(), "hello world"); // Text unchanged
-    assert_eq!(vim.get_mode(), CellMode::Normal);
+    assert_eq!(vim.get_mode(), EditMode::Normal);
     assert_eq!(vim.registers.get(&'"'), Some(&"hello".to_string()));
     assert!(matches!(action, Some(Action::ExitVisualMode)));
 }
@@ -405,7 +405,7 @@ fn test_cc_changes_line() {
         .process_key("cc")
         .expect("Failed to process key 'cc' in vim test");
     assert_eq!(vim.get_text(), "");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert!(matches!(action, Some(Action::EnterInsertMode { .. })));
 }
 
@@ -418,7 +418,7 @@ fn test_capital_c_changes_to_end() {
         .process_key("C")
         .expect("Failed to process key 'C' in vim test");
     assert_eq!(vim.get_text(), "hello");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_cursor_position(), 5);
     assert!(matches!(action, Some(Action::EnterInsertMode { .. })));
 }
@@ -432,7 +432,7 @@ fn test_cw_changes_word() {
         .process_key("cw")
         .expect("Failed to process key 'cw' in vim test");
     assert_eq!(vim.get_text(), "world");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_cursor_position(), 0);
     assert!(matches!(action, Some(Action::EnterInsertMode { .. })));
 }
@@ -446,7 +446,7 @@ fn test_s_substitutes_char() {
         .process_key("s")
         .expect("Failed to process key 's' in vim test");
     assert_eq!(vim.get_text(), "hllo");
-    assert_eq!(vim.get_mode(), CellMode::Insert);
+    assert_eq!(vim.get_mode(), EditMode::Insert);
     assert_eq!(vim.get_cursor_position(), 1);
     assert!(matches!(action, Some(Action::EnterInsertMode { .. })));
 }
@@ -468,7 +468,7 @@ fn test_insert_mode_typing() {
 fn test_insert_mode_backspace() {
     let mut vim = create_cell_vim("hello");
     vim.cursor_position = 3;
-    vim.mode = CellMode::Insert;
+    vim.mode = EditMode::Insert;
 
     vim.process_key("Backspace")
         .expect("Failed to process key 'Backspace' in vim test");
@@ -480,7 +480,7 @@ fn test_insert_mode_backspace() {
 fn test_insert_mode_delete() {
     let mut vim = create_cell_vim("hello");
     vim.cursor_position = 1;
-    vim.mode = CellMode::Insert;
+    vim.mode = EditMode::Insert;
 
     vim.process_key("Delete")
         .expect("Failed to process key 'Delete' in vim test");
@@ -497,7 +497,7 @@ fn test_insert_mode_escape_returns_to_normal() {
     let action = vim
         .process_key("Escape")
         .expect("Failed to process key 'Escape' in vim test");
-    assert_eq!(vim.get_mode(), CellMode::Normal);
+    assert_eq!(vim.get_mode(), EditMode::Normal);
     assert!(matches!(action, Some(Action::ExitInsertMode)));
 }
 
@@ -558,7 +558,7 @@ fn test_visual_mode_tilde_toggles_case() {
     vim.process_key("~")
         .expect("Failed to process key '~' in vim test");
     assert_eq!(vim.get_text(), "hELlo");
-    assert_eq!(vim.get_mode(), CellMode::Normal);
+    assert_eq!(vim.get_mode(), EditMode::Normal);
 }
 
 #[test]
@@ -574,7 +574,7 @@ fn test_visual_mode_u_lowercases() {
     vim.process_key("u")
         .expect("Failed to process key 'u' in vim test");
     assert_eq!(vim.get_text(), "helLO");
-    assert_eq!(vim.get_mode(), CellMode::Normal);
+    assert_eq!(vim.get_mode(), EditMode::Normal);
 }
 
 #[test]
@@ -590,7 +590,7 @@ fn test_visual_mode_capital_u_uppercases() {
     vim.process_key("U")
         .expect("Failed to process key 'U' in vim test");
     assert_eq!(vim.get_text(), "HELlo");
-    assert_eq!(vim.get_mode(), CellMode::Normal);
+    assert_eq!(vim.get_mode(), EditMode::Normal);
 }
 
 // Edge cases

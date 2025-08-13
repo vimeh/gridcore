@@ -37,11 +37,8 @@ pub enum SpreadsheetEvent {
         end: CellAddress,
     },
 
-    // Mode changes
-    ModeChanged {
-        from: crate::state::SpreadsheetMode,
-        to: crate::state::SpreadsheetMode,
-    },
+    // State changes
+    StateChanged,
 
     // Command events
     CommandExecuted {
