@@ -54,20 +54,24 @@ pub fn App() -> impl IntoView {
     let fps_interval_handle =
         StoredValue::new_local(None::<leptos::leptos_dom::helpers::IntervalHandle>);
 
-    // State version to trigger updates when controller events occur
+    // Single state version signal for reactive updates
+    // This will be incremented when controller state changes
     let (state_version, set_state_version) = signal(0u32);
 
-    // Create signals that will be synced with controller state
-    let initial_cursor = controller.borrow().get_cursor();
-    let (active_cell, set_active_cell) = signal(initial_cursor);
+    // Create reactive memos that derive state directly from controller
+    // No more duplicate signals - just reactive accessors
+    let active_cell = Memo::new(move |_| {
+        let _ = state_version.get(); // Subscribe to state changes
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_cursor())
+    });
 
-    // Create formula bar signal that will be synced from controller
-    let (formula_bar_value, set_formula_bar_value) = signal(String::new());
+    let formula_bar_value = Memo::new(move |_| {
+        let _ = state_version.get(); // Subscribe to state changes
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_formula_bar_value().to_string())
+    });
 
     // Set up comprehensive controller event listener
     {
-        let set_formula_bar_for_event = set_formula_bar_value;
-        let set_active_cell_for_event = set_active_cell;
         let callback = Box::new(
             move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
                 use gridcore_controller::controller::events::SpreadsheetEvent;
@@ -75,6 +79,7 @@ pub fn App() -> impl IntoView {
                 leptos::logging::log!("Controller event received: {:?}", event);
 
                 // Increment state version for any state-changing event
+                // This will trigger all memos to re-evaluate
                 match event {
                     SpreadsheetEvent::CursorMoved { .. }
                     | SpreadsheetEvent::ViewportChanged { .. }
@@ -102,37 +107,30 @@ pub fn App() -> impl IntoView {
                     | SpreadsheetEvent::SheetRemoved { .. }
                     | SpreadsheetEvent::SheetRenamed { .. }
                     | SpreadsheetEvent::SheetChanged { .. }
+                    | SpreadsheetEvent::ErrorOccurred { .. }
                     | SpreadsheetEvent::ErrorDismissed { .. } => {
                         set_state_version.update(|v| *v += 1);
                     }
                     _ => {}
                 }
 
-                // Also handle CursorMoved specifically to update the active cell
+                // Log specific events for debugging
                 if let SpreadsheetEvent::CursorMoved { to, .. } = event {
                     leptos::logging::log!("CursorMoved event: {:?}", to);
-                    set_active_cell_for_event.set(*to);
                 }
 
-                // Handle specific events
                 if let SpreadsheetEvent::FormulaBarUpdated { value } = event {
                     leptos::logging::log!("Formula bar updated: {}", value);
-                    set_formula_bar_for_event.set(value.clone());
                 }
 
-                // Error handling is now done through the controller's ErrorManager
                 if let SpreadsheetEvent::ErrorOccurred { message, severity } = event {
                     leptos::logging::log!(
                         "ErrorOccurred event received: {} ({:?})",
                         message,
                         severity
                     );
-                    // The controller's ErrorManager has already added this error
-                    // Update state version to trigger error display re-render
-                    set_state_version.update(|v| *v += 1);
                 }
 
-                // Log error dismissal
                 if let SpreadsheetEvent::ErrorDismissed { id } = event {
                     leptos::logging::log!("Error dismissed: {}", id);
                 }
@@ -141,58 +139,28 @@ pub fn App() -> impl IntoView {
         controller.borrow_mut().subscribe_to_events(callback);
     }
 
-    // Sync active cell from controller state changes
-    Effect::new(move |_| {
-        // Trigger on state_version change
-        let _ = state_version.get();
-        controller_stored.with_value(|ctrl| {
-            let cursor = ctrl.borrow().get_cursor();
-            if active_cell.get() != cursor {
-                set_active_cell.set(cursor);
-            }
-        });
+    // Create reactive memo for current mode - derives directly from controller
+    let current_mode = Memo::new(move |_| {
+        let _ = state_version.get(); // Subscribe to state changes
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_state().spreadsheet_mode())
     });
 
-    // Create mode signal that will be synced with controller
-    let initial_mode = controller.borrow().get_state().spreadsheet_mode();
-    let (current_mode, set_current_mode) = signal(initial_mode);
-
-    // Sync mode from controller state changes
-    Effect::new(move |_| {
-        // Trigger on state_version change
-        let _ = state_version.get();
+    // Sheet management - reactive memos deriving from controller
+    let sheets = Memo::new(move |_| {
+        let _ = state_version.get(); // Subscribe to state changes
         controller_stored.with_value(|ctrl| {
-            let mode = ctrl.borrow().get_state().spreadsheet_mode();
-            if current_mode.get() != mode {
-                set_current_mode.set(mode);
-            }
-        });
-    });
-
-    // Sheet management - sync from controller
-    let initial_sheets = controller
-        .borrow()
-        .get_sheets()
-        .into_iter()
-        .map(|(name, id)| Sheet { id, name })
-        .collect::<Vec<_>>();
-    let (sheets, set_sheets) = signal(initial_sheets);
-    let _initial_active_sheet = controller.borrow().get_active_sheet();
-    let (active_sheet, set_active_sheet) = signal(0usize); // For now, we'll use index 0
-
-    // Sync sheets from controller state changes
-    Effect::new(move |_| {
-        // Trigger on state_version change
-        let _ = state_version.get();
-        controller_stored.with_value(|ctrl| {
-            let new_sheets = ctrl
-                .borrow()
+            ctrl.borrow()
                 .get_sheets()
                 .into_iter()
                 .map(|(name, id)| Sheet { id, name })
-                .collect::<Vec<_>>();
-            set_sheets.set(new_sheets);
-        });
+                .collect::<Vec<_>>()
+        })
+    });
+
+    let active_sheet = Memo::new(move |_| {
+        let _ = state_version.get(); // Subscribe to state changes
+        // For now, we'll use index 0 - this should be improved to track actual active sheet
+        0usize
     });
 
     // Derive selection stats from controller state
@@ -591,8 +559,7 @@ pub fn App() -> impl IntoView {
             <div class="main-content">
                 <CanvasGrid
                     active_cell=active_cell
-                    set_active_cell=set_active_cell
-                    set_current_mode=set_current_mode
+                    current_mode=current_mode
                     state_version=state_version
                     set_state_version=set_state_version
                 />
@@ -602,7 +569,6 @@ pub fn App() -> impl IntoView {
                 <TabBar
                     sheets=sheets
                     active_sheet=active_sheet
-                    set_active_sheet=set_active_sheet
                 />
                 <StatusBar
                     current_mode=current_mode

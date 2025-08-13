@@ -2,7 +2,7 @@ use leptos::prelude::*;
 
 #[component]
 pub fn FormulaBar(
-    value: ReadSignal<String>,
+    value: Memo<String>,
     on_change: impl Fn(String) + 'static,
 ) -> impl IntoView {
     view! {

@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use web_sys::MouseEvent;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Sheet {
     pub id: usize,
     pub name: String,
@@ -14,9 +14,8 @@ pub struct Sheet {
 
 #[component]
 pub fn TabBar(
-    sheets: ReadSignal<Vec<Sheet>>,
-    active_sheet: ReadSignal<usize>,
-    set_active_sheet: WriteSignal<usize>,
+    sheets: Memo<Vec<Sheet>>,
+    active_sheet: Memo<usize>,
 ) -> impl IntoView {
     let (show_context_menu, set_show_context_menu) = signal(false);
     let (context_menu_sheet, set_context_menu_sheet) = signal(0usize);
@@ -112,7 +111,7 @@ pub fn TabBar(
                                     .unwrap_or_else(|e| {
                                         leptos::logging::log!("Error switching sheet: {}", e);
                                     });
-                                set_active_sheet.set(sheet_id);
+                                // Active sheet is now derived from controller state
                             }
                             on:contextmenu=move |ev| on_context_menu(ev, sheet_id)
                             style=move || {

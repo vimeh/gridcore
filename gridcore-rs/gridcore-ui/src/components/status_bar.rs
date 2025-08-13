@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 #[component]
 pub fn StatusBar(
-    current_mode: ReadSignal<SpreadsheetMode>,
+    current_mode: Memo<SpreadsheetMode>,
     selection_stats: Memo<SelectionStats>,
     state_version: ReadSignal<u32>,
 ) -> impl IntoView {

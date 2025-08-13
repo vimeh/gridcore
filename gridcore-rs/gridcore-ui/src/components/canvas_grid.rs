@@ -19,9 +19,8 @@ use crate::rendering::default_theme;
 
 #[component]
 pub fn CanvasGrid(
-    active_cell: ReadSignal<CellAddress>,
-    set_active_cell: WriteSignal<CellAddress>,
-    set_current_mode: WriteSignal<SpreadsheetMode>,
+    active_cell: Memo<CellAddress>,
+    current_mode: Memo<SpreadsheetMode>,
     state_version: ReadSignal<u32>,
     set_state_version: WriteSignal<u32>,
 ) -> impl IntoView {
@@ -209,6 +208,7 @@ pub fn CanvasGrid(
 
     // Handle canvas click
     let viewport_for_click = viewport_rc.clone();
+    let controller_for_click = controller_rc.clone();
     let on_click = move |ev: MouseEvent| {
         leptos::logging::log!("Canvas click at ({}, {})", ev.offset_x(), ev.offset_y());
         if let Some(_canvas) = canvas_ref.get() {
@@ -248,7 +248,8 @@ pub fn CanvasGrid(
                 });
 
                 // Update the active cell signal
-                set_active_cell.set(cell);
+                // Update cursor through controller action
+                let _ = controller_for_click.borrow_mut().dispatch_action(Action::UpdateCursor { cursor: cell });
 
                 // State version now updated via controller events
 
@@ -264,6 +265,7 @@ pub fn CanvasGrid(
 
     // Handle double-click to edit
     let viewport_for_dblclick = viewport_rc.clone();
+    let controller_for_dblclick = controller_rc.clone();
     let on_dblclick = move |ev: MouseEvent| {
         leptos::logging::log!(
             "Canvas double-click at ({}, {})",
@@ -297,15 +299,8 @@ pub fn CanvasGrid(
 
             // Now update active cell and start editing
             if let Some(cell) = new_cell {
-                // Update cursor in controller
-                controller_stored.with_value(|c| {
-                    let _ = c
-                        .borrow_mut()
-                        .dispatch_action(Action::UpdateCursor { cursor: cell });
-                });
-
-                // Update the active cell signal
-                set_active_cell.set(cell);
+                // Update cursor through controller action
+                let _ = controller_for_dblclick.borrow_mut().dispatch_action(Action::UpdateCursor { cursor: cell });
 
                 // State version now updated via controller events
 
@@ -549,7 +544,8 @@ pub fn CanvasGrid(
             }
             // State version now updated via controller events
         }
-        set_current_mode.set(new_mode);
+        // Mode changes are already handled by controller state machine
+        // No need to manually set mode - it's derived from state
 
         if new_cursor != old_cursor {
             leptos::logging::log!(
@@ -558,7 +554,7 @@ pub fn CanvasGrid(
                 new_cursor
             );
             // Update the active cell signal when cursor changes
-            set_active_cell.set(new_cursor);
+            // Cursor update already handled above through controller action
             // State version now updated via controller events
         } else {
             leptos::logging::log!("Cursor did not change, still at {:?}", new_cursor);
@@ -660,7 +656,7 @@ pub fn CanvasGrid(
                 active_cell=active_cell
                 editing_mode=editing_mode
                 cell_position=cell_position
-                set_current_mode=set_current_mode
+                _current_mode=current_mode
                 _set_state_version=set_state_version
             />
         </div>

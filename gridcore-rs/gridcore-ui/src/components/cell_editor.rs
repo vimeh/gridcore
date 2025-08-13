@@ -11,10 +11,10 @@ use web_sys::KeyboardEvent;
 
 #[component]
 pub fn CellEditor(
-    active_cell: ReadSignal<CellAddress>,
+    active_cell: Memo<CellAddress>,
     editing_mode: Memo<bool>,
     cell_position: Memo<(f64, f64, f64, f64)>, // x, y, width, height
-    set_current_mode: WriteSignal<SpreadsheetMode>,
+    _current_mode: Memo<SpreadsheetMode>,
     _set_state_version: WriteSignal<u32>,
 ) -> impl IntoView {
     // Get controller from context
@@ -247,10 +247,9 @@ pub fn CellEditor(
                                         }
                                         // Update the mode signal to reflect the change
                                         drop(ctrl_mut);
-                                        let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
-                                        set_current_mode.set(new_mode);
+                                        // Mode is now derived from state, no need to manually update
                                         // State version now updated via controller events
-                                        leptos::logging::log!("Updated mode to {:?} after ExitInsertMode", new_mode);
+                                        // Mode logging removed - mode is now derived from state
                                     } else if is_visual_mode {
                                         // Escape from Visual mode goes to Normal mode (stay in editor)
                                         drop(ctrl_borrow);
@@ -260,10 +259,9 @@ pub fn CellEditor(
                                         }
                                         // Update the mode signal to reflect the change
                                         drop(ctrl_mut);
-                                        let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
-                                        set_current_mode.set(new_mode);
+                                        // Mode is now derived from state, no need to manually update
                                         // State version now updated via controller events
-                                        leptos::logging::log!("Updated mode to {:?} after ExitVisualMode", new_mode);
+                                        // Mode logging removed - mode is now derived from state
                                     } else if is_normal_mode {
                                         // In Normal mode - save and exit
                                         let value = current_editing_value.get();
@@ -338,10 +336,9 @@ pub fn CellEditor(
                                                 }
                                                 // Update the mode signal to reflect the change
                                                 drop(ctrl_mut);
-                                                let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
-                                                set_current_mode.set(new_mode);
+                                                // Mode is now derived from state, no need to manually update
                                                 // State version now updated via controller events
-                                                leptos::logging::log!("Updated mode to {:?} after EnterInsertMode", new_mode);
+                                                // Mode logging removed - mode is now derived from state
                                             });
                                         }
                                         "a" => {
@@ -355,10 +352,9 @@ pub fn CellEditor(
                                                 }
                                                 // Update the mode signal to reflect the change
                                                 drop(ctrl_mut);
-                                                let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
-                                                set_current_mode.set(new_mode);
+                                                // Mode is now derived from state, no need to manually update
                                                 // State version now updated via controller events
-                                                leptos::logging::log!("Updated mode to {:?} after EnterInsertMode", new_mode);
+                                                // Mode logging removed - mode is now derived from state
                                             });
                                         }
                                         "v" => {
@@ -400,10 +396,9 @@ pub fn CellEditor(
                                                 }
                                                 // Update the mode signal to reflect the change
                                                 drop(ctrl_mut);
-                                                let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
-                                                set_current_mode.set(new_mode);
+                                                // Mode is now derived from state, no need to manually update
                                                 // State version now updated via controller events
-                                                leptos::logging::log!("Updated mode to {:?} after EnterInsertMode (I)", new_mode);
+                                                // Mode logging removed - mode is now derived from state
                                             });
                                         }
                                         "A" => {
@@ -417,10 +412,9 @@ pub fn CellEditor(
                                                 }
                                                 // Update the mode signal to reflect the change
                                                 drop(ctrl_mut);
-                                                let new_mode = ctrl.borrow().get_state().spreadsheet_mode();
-                                                set_current_mode.set(new_mode);
+                                                // Mode is now derived from state, no need to manually update
                                                 // State version now updated via controller events
-                                                leptos::logging::log!("Updated mode to {:?} after EnterInsertMode (A)", new_mode);
+                                                // Mode logging removed - mode is now derived from state
                                             });
                                         }
                                         _ => {}
