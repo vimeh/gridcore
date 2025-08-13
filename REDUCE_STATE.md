@@ -1,5 +1,28 @@
 Plan: Reduce State Complexity at the Source
 
+## Progress Tracking
+
+**Starting Point**: 33,066 lines of Rust code
+**Current**: 33,091 lines of Rust code (+25 lines)
+**Target**: ~28,000 lines (-5,000 lines)
+
+### Completed Phases:
+- ✅ Phase 2: Remove Duplicate State in UI Layer
+  - Removed state_version hack
+  - Implemented fine-grained Leptos Triggers
+  - Better reactive performance
+
+### In Progress:
+- 🔄 Phase 3: Convert ResizeManager to pure functions
+
+### Upcoming:
+- Phase 3: Convert SelectionManager & AutocompleteManager
+- Phase 1: Simplify UIState enum
+- Phase 4: Unify mode enums
+- Phase 5: Simplify Action system
+
+---
+
 Problem Summary
 
 The codebase has 11+ state types, 11+ managers, 47+ actions, and 25+ events, with massive duplication between layers.
@@ -33,19 +56,21 @@ data: ModalData, // Specific data for each modal
 }
 This reduces state variants from 8 to 3 core modes that actually matter.
 
-Phase 2: Remove Duplicate State in UI Layer
+Phase 2: Remove Duplicate State in UI Layer ✅ COMPLETED
 
-1. Delete all duplicate signals in app.rs:
+1. ✅ Deleted all duplicate signals in app.rs:
+   - Removed active_cell, current_mode, formula_bar_value signals  
+   - Access state directly from controller via reactive Memos
 
-- Remove active_cell, current_mode, formula_bar_value signals
-- Access state directly from controller via reactive primitives
+2. ✅ Created reactive state accessors:
+   - Using Memos that derive from controller state
+   - No more manual synchronization
 
-2. Create single reactive state accessor:
-   // Instead of duplicate signals, use direct access
-   let state = create_memo(move |_| controller.get_state());
-   let cursor = create_memo(move |_| state().cursor());
-
-1. Remove state_version hack - use proper reactive dependencies
+3. ✅ Removed state_version hack - using Leptos Triggers:
+   - Replaced single state_version with fine-grained triggers
+   - cursor_trigger, mode_trigger, formula_trigger, etc.
+   - Each memo tracks only relevant triggers
+   - Better performance through targeted updates
 
 Phase 3: Convert Managers to Pure Functions
 

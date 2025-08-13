@@ -38,7 +38,9 @@
       "Bash(awk:*)",
       "Bash(cargo fmt:*)",
       "Bash(cargo clippy:*)",
-      "Bash(tokei:*)"
+      "Bash(tokei:*)",
+      "WebSearch",
+      "Bash(cargo search:*)"
     ],
     "deny": []
   }

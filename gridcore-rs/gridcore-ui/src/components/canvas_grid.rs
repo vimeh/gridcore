@@ -21,8 +21,7 @@ use crate::rendering::default_theme;
 pub fn CanvasGrid(
     active_cell: Memo<CellAddress>,
     current_mode: Memo<SpreadsheetMode>,
-    state_version: ReadSignal<u32>,
-    set_state_version: WriteSignal<u32>,
+    render_trigger: Trigger,
 ) -> impl IntoView {
     // Get controller from context (keep as StoredValue to avoid cloning)
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
@@ -49,8 +48,8 @@ pub fn CanvasGrid(
     // Derive editing_mode from controller state
     // Check for UIState::Editing directly to avoid confusion with UIState::Insert (structural ops)
     let editing_mode = Memo::new(move |_| {
-        // Track state_version to ensure memo updates when state changes
-        let _ = state_version.get();
+        // Track render trigger to ensure memo updates when state changes
+        render_trigger.track();
 
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
@@ -112,12 +111,12 @@ pub fn CanvasGrid(
 
             // Trigger initial render after a small delay to ensure DOM is ready
             // This ensures canvas dimensions are available
-            set_state_version.update(|v| *v += 1);
+            render_trigger.notify();
 
             // Also use requestAnimationFrame to ensure layout is complete
             let window = web_sys::window().expect("window should exist");
             let closure = wasm_bindgen::closure::Closure::once(move || {
-                set_state_version.update(|v| *v += 1);
+                render_trigger.notify();
             });
             window
                 .request_animation_frame(closure.as_ref().unchecked_ref())
@@ -133,9 +132,9 @@ pub fn CanvasGrid(
 
     // Set up canvas rendering after mount and when active cell changes
     Effect::new(move |_| {
-        // Track active_cell and state_version to trigger re-render when they change
+        // Track active_cell and render trigger to trigger re-render when they change
         let current_cell = active_cell.get();
-        let _ = state_version.get(); // Track state version to trigger re-renders
+        render_trigger.track(); // Track render trigger to trigger re-renders
 
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
@@ -342,7 +341,7 @@ pub fn CanvasGrid(
         if resize_handler_move.is_resizing() {
             resize_handler_move.handle_resize(&ev);
             // Trigger re-render via state_version update
-            set_state_version.update(|v| *v += 1);
+            render_trigger.notify();
         } else {
             // Check if we're hovering over a resize handle
             let _theme = default_theme();
@@ -391,7 +390,7 @@ pub fn CanvasGrid(
         if resize_handler_up.is_resizing() {
             resize_handler_up.end_resize();
             // Trigger final re-render via state_version update
-            set_state_version.update(|v| *v += 1);
+            render_trigger.notify();
         }
     };
 
@@ -422,7 +421,7 @@ pub fn CanvasGrid(
         if scroll_x != 0.0 || scroll_y != 0.0 {
             vp.borrow_mut().scroll_by(scroll_x, scroll_y);
             // Trigger re-render via state_version update
-            set_state_version.update(|v| *v += 1);
+            render_trigger.notify();
             debug_log!("Scrolled by: x={}, y={}", scroll_x, scroll_y);
         }
     };
@@ -611,7 +610,7 @@ pub fn CanvasGrid(
             if needs_scroll {
                 vp_borrow.set_scroll_position(new_scroll_x.max(0.0), new_scroll_y.max(0.0));
                 drop(vp_borrow);
-                set_state_version.update(|v| *v += 1);
+                render_trigger.notify();
                 debug_log!("Auto-scrolled to keep cell {:?} visible", new_cursor);
             }
         }
@@ -657,7 +656,7 @@ pub fn CanvasGrid(
                 editing_mode=editing_mode
                 cell_position=cell_position
                 _current_mode=current_mode
-                _set_state_version=set_state_version
+                _render_trigger=render_trigger
             />
         </div>
     }

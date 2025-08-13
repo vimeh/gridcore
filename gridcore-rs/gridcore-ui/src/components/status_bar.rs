@@ -9,7 +9,7 @@ use std::rc::Rc;
 pub fn StatusBar(
     current_mode: Memo<SpreadsheetMode>,
     selection_stats: Memo<SelectionStats>,
-    state_version: ReadSignal<u32>,
+    selection_trigger: Trigger,
 ) -> impl IntoView {
     // Get controller from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
@@ -19,12 +19,12 @@ pub fn StatusBar(
     // Store controller in LocalStorage for non-Send access
     let controller_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
 
-    // Create a reactive signal that updates when current_mode or state_version changes
+    // Create a reactive signal that updates when current_mode or selection changes
     // This ensures the UI updates when mode changes
     let mode_display = move || {
         // Read both signals to ensure reactivity - this creates the reactive dependencies
         let signal_mode = current_mode.get();
-        let _ = state_version.get(); // Track state version changes
+        selection_trigger.track(); // Track selection changes
 
         // Always get fresh state from controller
         let state = controller_stored.with_value(|ctrl| {

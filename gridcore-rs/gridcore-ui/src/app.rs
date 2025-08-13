@@ -54,19 +54,25 @@ pub fn App() -> impl IntoView {
     let fps_interval_handle =
         StoredValue::new_local(None::<leptos::leptos_dom::helpers::IntervalHandle>);
 
-    // Single state version signal for reactive updates
-    // This will be incremented when controller state changes
-    let (state_version, set_state_version) = signal(0u32);
+    // Fine-grained reactive triggers for different state aspects
+    // These notify memos when specific state changes occur
+    let cursor_trigger = Trigger::new();
+    let mode_trigger = Trigger::new();
+    let formula_trigger = Trigger::new();
+    let selection_trigger = Trigger::new();
+    let sheets_trigger = Trigger::new();
+    let error_trigger = Trigger::new();
+    let render_trigger = Trigger::new(); // For components that need to force re-render
 
     // Create reactive memos that derive state directly from controller
     // No more duplicate signals - just reactive accessors
     let active_cell = Memo::new(move |_| {
-        let _ = state_version.get(); // Subscribe to state changes
+        cursor_trigger.track(); // Track cursor changes only
         controller_stored.with_value(|ctrl| ctrl.borrow().get_cursor())
     });
 
     let formula_bar_value = Memo::new(move |_| {
-        let _ = state_version.get(); // Subscribe to state changes
+        formula_trigger.track(); // Track formula bar changes only
         controller_stored.with_value(|ctrl| ctrl.borrow().get_formula_bar_value().to_string())
     });
 
@@ -78,38 +84,62 @@ pub fn App() -> impl IntoView {
 
                 leptos::logging::log!("Controller event received: {:?}", event);
 
-                // Increment state version for any state-changing event
-                // This will trigger all memos to re-evaluate
+                // Notify specific triggers based on event type for fine-grained reactivity
                 match event {
-                    SpreadsheetEvent::CursorMoved { .. }
-                    | SpreadsheetEvent::ViewportChanged { .. }
+                    SpreadsheetEvent::CursorMoved { .. } => {
+                        cursor_trigger.notify();
+                    }
+                    SpreadsheetEvent::SelectionChanged { .. }
+                    | SpreadsheetEvent::RangeSelected { .. } => {
+                        selection_trigger.notify();
+                    }
+                    SpreadsheetEvent::ModeChanged { .. }
+                    | SpreadsheetEvent::CommandExecuted { .. }
+                    | SpreadsheetEvent::CommandCancelled => {
+                        mode_trigger.notify();
+                    }
+                    SpreadsheetEvent::FormulaBarUpdated { .. }
                     | SpreadsheetEvent::CellEditStarted { .. }
                     | SpreadsheetEvent::CellEditCompleted { .. }
-                    | SpreadsheetEvent::CellEditCancelled { .. }
-                    | SpreadsheetEvent::SelectionChanged { .. }
-                    | SpreadsheetEvent::RangeSelected { .. }
-                    | SpreadsheetEvent::ModeChanged { .. }
-                    | SpreadsheetEvent::CommandExecuted { .. }
-                    | SpreadsheetEvent::CommandCancelled
-                    | SpreadsheetEvent::RowsInserted { .. }
+                    | SpreadsheetEvent::CellEditCancelled { .. } => {
+                        formula_trigger.notify();
+                    }
+                    SpreadsheetEvent::SheetAdded { .. }
+                    | SpreadsheetEvent::SheetRemoved { .. }
+                    | SpreadsheetEvent::SheetRenamed { .. }
+                    | SpreadsheetEvent::SheetChanged { .. } => {
+                        sheets_trigger.notify();
+                    }
+                    SpreadsheetEvent::ErrorOccurred { .. }
+                    | SpreadsheetEvent::ErrorDismissed { .. } => {
+                        error_trigger.notify();
+                    }
+                    // Structural changes affect multiple aspects
+                    SpreadsheetEvent::RowsInserted { .. }
                     | SpreadsheetEvent::RowsDeleted { .. }
                     | SpreadsheetEvent::ColumnsInserted { .. }
                     | SpreadsheetEvent::ColumnsDeleted { .. }
                     | SpreadsheetEvent::ColumnResized { .. }
                     | SpreadsheetEvent::RowResized { .. }
-                    | SpreadsheetEvent::CellsCopied { .. }
+                    | SpreadsheetEvent::ViewportChanged { .. } => {
+                        // These affect cursor, selection, and general display
+                        cursor_trigger.notify();
+                        selection_trigger.notify();
+                        render_trigger.notify(); // Force canvas re-render
+                    }
+                    // Copy/paste affects selection
+                    SpreadsheetEvent::CellsCopied { .. }
                     | SpreadsheetEvent::CellsCut { .. }
-                    | SpreadsheetEvent::CellsPasted { .. }
-                    | SpreadsheetEvent::UndoPerformed
-                    | SpreadsheetEvent::RedoPerformed
-                    | SpreadsheetEvent::FormulaBarUpdated { .. }
-                    | SpreadsheetEvent::SheetAdded { .. }
-                    | SpreadsheetEvent::SheetRemoved { .. }
-                    | SpreadsheetEvent::SheetRenamed { .. }
-                    | SpreadsheetEvent::SheetChanged { .. }
-                    | SpreadsheetEvent::ErrorOccurred { .. }
-                    | SpreadsheetEvent::ErrorDismissed { .. } => {
-                        set_state_version.update(|v| *v += 1);
+                    | SpreadsheetEvent::CellsPasted { .. } => {
+                        selection_trigger.notify();
+                    }
+                    // Undo/redo can affect any state
+                    SpreadsheetEvent::UndoPerformed | SpreadsheetEvent::RedoPerformed => {
+                        cursor_trigger.notify();
+                        selection_trigger.notify();
+                        formula_trigger.notify();
+                        mode_trigger.notify();
+                        render_trigger.notify(); // Force canvas re-render
                     }
                     _ => {}
                 }
@@ -141,13 +171,13 @@ pub fn App() -> impl IntoView {
 
     // Create reactive memo for current mode - derives directly from controller
     let current_mode = Memo::new(move |_| {
-        let _ = state_version.get(); // Subscribe to state changes
+        mode_trigger.track(); // Track mode changes only
         controller_stored.with_value(|ctrl| ctrl.borrow().get_state().spreadsheet_mode())
     });
 
     // Sheet management - reactive memos deriving from controller
     let sheets = Memo::new(move |_| {
-        let _ = state_version.get(); // Subscribe to state changes
+        sheets_trigger.track(); // Track sheet changes only
         controller_stored.with_value(|ctrl| {
             ctrl.borrow()
                 .get_sheets()
@@ -158,15 +188,14 @@ pub fn App() -> impl IntoView {
     });
 
     let active_sheet = Memo::new(move |_| {
-        let _ = state_version.get(); // Subscribe to state changes
+        sheets_trigger.track(); // Track sheet changes only
         // For now, we'll use index 0 - this should be improved to track actual active sheet
         0usize
     });
 
     // Derive selection stats from controller state
     let selection_stats = Memo::new(move |_| {
-        // Trigger on state_version change
-        let _ = state_version.get();
+        selection_trigger.track(); // Track selection changes only
         controller_stored.with_value(|ctrl| ctrl.borrow().get_current_selection_stats())
     });
 
@@ -560,8 +589,7 @@ pub fn App() -> impl IntoView {
                 <CanvasGrid
                     active_cell=active_cell
                     current_mode=current_mode
-                    state_version=state_version
-                    set_state_version=set_state_version
+                    render_trigger=render_trigger
                 />
             </div>
 
@@ -573,7 +601,7 @@ pub fn App() -> impl IntoView {
                 <StatusBar
                     current_mode=current_mode
                     selection_stats=selection_stats
-                    state_version=state_version
+                    selection_trigger=selection_trigger
                 />
                 <DemoProgressBar
                     current_step=Signal::from(demo_current_step)
@@ -610,7 +638,7 @@ pub fn App() -> impl IntoView {
             </Show>
 
             // Add error display overlay
-            <ErrorDisplay state_version=state_version />
+            <ErrorDisplay error_trigger=error_trigger />
         </div>
     }
 }

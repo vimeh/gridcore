@@ -15,7 +15,7 @@ pub fn CellEditor(
     editing_mode: Memo<bool>,
     cell_position: Memo<(f64, f64, f64, f64)>, // x, y, width, height
     _current_mode: Memo<SpreadsheetMode>,
-    _set_state_version: WriteSignal<u32>,
+    _render_trigger: Trigger,
 ) -> impl IntoView {
     // Get controller from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
