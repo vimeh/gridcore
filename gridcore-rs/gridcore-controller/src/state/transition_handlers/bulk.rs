@@ -56,25 +56,36 @@ impl TransitionHandler for BulkHandler {
                 }
             }
             Action::GeneratePreview => {
-                if let UIState::BulkOperation {
+                if let UIState::Modal {
                     cursor,
                     viewport,
-                    parsed_command,
-                    affected_cells,
-                    error_message,
-                    ..
+                    kind: ModalKind::BulkOperation,
+                    data,
                 } = state
                 {
-                    Ok(UIState::BulkOperation {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        parsed_command: parsed_command.clone(),
-                        preview_available: true,
-                        preview_visible: false,
-                        affected_cells: *affected_cells,
-                        status: BulkOperationStatus::Previewing,
-                        error_message: error_message.clone(),
-                    })
+                    if let ModalData::BulkOperation {
+                        parsed_command,
+                        affected_cells,
+                        error_message,
+                        ..
+                    } = data
+                    {
+                        Ok(UIState::Modal {
+                            cursor: *cursor,
+                            viewport: *viewport,
+                            kind: ModalKind::BulkOperation,
+                            data: ModalData::BulkOperation {
+                                parsed_command: parsed_command.clone(),
+                                preview_available: true,
+                                preview_visible: false,
+                                affected_cells: *affected_cells,
+                                status: BulkOperationStatus::Previewing,
+                                error_message: error_message.clone(),
+                            },
+                        })
+                    } else {
+                        unreachable!("BulkHandler: Modal data mismatch")
+                    }
                 } else {
                     unreachable!("BulkHandler::handle called with incompatible state/action")
                 }
@@ -82,8 +93,8 @@ impl TransitionHandler for BulkHandler {
             Action::ExecuteBulkOperation => {
                 // For testing, execute completes immediately and returns to navigation
                 // In a real implementation, this would update status and handle async execution
-                if let UIState::BulkOperation {
-                    cursor, viewport, ..
+                if let UIState::Modal {
+                    cursor, viewport, kind: ModalKind::BulkOperation, ..
                 } = state
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))
