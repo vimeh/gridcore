@@ -89,7 +89,8 @@ pub fn CellEditor(
                 value.len()
             };
 
-            let suggestions = gridcore_controller::behaviors::autocomplete::get_suggestions(&value, cursor_pos);
+            let suggestions =
+                gridcore_controller::behaviors::autocomplete::get_suggestions(&value, cursor_pos);
 
             // Convert to simple string suggestions for the UI
             suggestions

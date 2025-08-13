@@ -357,7 +357,6 @@ impl SpreadsheetController {
         }
     }
 
-
     /// Get the error manager
     pub fn get_error_manager(&self) -> &ErrorManager {
         &self.error_manager
