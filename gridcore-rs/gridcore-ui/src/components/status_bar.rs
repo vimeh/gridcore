@@ -1,5 +1,5 @@
+use gridcore_controller::behaviors::selection_stats::SelectionStats;
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::managers::SelectionStats;
 use gridcore_controller::state::{CellMode, SpreadsheetMode, UIState, VisualMode};
 use leptos::prelude::*;
 use std::cell::RefCell;

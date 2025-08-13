@@ -1,10 +1,9 @@
+use crate::behaviors::selection_stats;
 use crate::controller::{
     DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
     SpreadsheetEvent, ViewportManager,
 };
-use crate::managers::{
-    AutocompleteManager, ErrorFormatter, ErrorManager, ResizeManager, SelectionStatsManager,
-};
+use crate::managers::{AutocompleteManager, ErrorFormatter, ErrorManager, ResizeManager};
 use crate::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
@@ -15,7 +14,6 @@ pub struct SpreadsheetController {
     viewport_manager: Box<dyn ViewportManager>,
     resize_manager: ResizeManager,
     autocomplete_manager: AutocompleteManager,
-    selection_stats_manager: SelectionStatsManager,
     error_manager: ErrorManager,
     config: GridConfiguration,
     formula_bar_value: String,
@@ -57,7 +55,6 @@ impl SpreadsheetController {
             viewport_manager,
             resize_manager,
             autocomplete_manager: AutocompleteManager::new(),
-            selection_stats_manager: SelectionStatsManager::new(),
             error_manager: ErrorManager::new(),
             config,
             formula_bar_value: String::new(),
@@ -90,7 +87,6 @@ impl SpreadsheetController {
             ),
             resize_manager,
             autocomplete_manager: AutocompleteManager::new(),
-            selection_stats_manager: SelectionStatsManager::new(),
             error_manager: ErrorManager::new(),
             config,
             formula_bar_value: String::new(),
@@ -340,11 +336,7 @@ impl SpreadsheetController {
         &self.autocomplete_manager
     }
 
-    pub fn get_selection_stats_manager(&self) -> &SelectionStatsManager {
-        &self.selection_stats_manager
-    }
-
-    pub fn get_current_selection_stats(&self) -> crate::managers::SelectionStats {
+    pub fn get_current_selection_stats(&self) -> selection_stats::SelectionStats {
         use crate::state::SelectionType;
 
         // Get the current selection from the state
@@ -353,36 +345,35 @@ impl SpreadsheetController {
         if let Some(sel) = selection {
             // Calculate stats based on selection type
             match &sel.selection_type {
-                SelectionType::Range { start, end } => self
-                    .selection_stats_manager
-                    .calculate_range(&self.facade, start, end),
-                SelectionType::Cell { address } => self
-                    .selection_stats_manager
-                    .calculate_single_cell(&self.facade, address),
+                SelectionType::Range { start, end } => {
+                    selection_stats::calculate_range(&self.facade, start, end)
+                }
+                SelectionType::Cell { address } => {
+                    selection_stats::calculate_single_cell(&self.facade, address)
+                }
                 SelectionType::Column { columns: _ } => {
                     // For column selections, calculate stats for all cells in those columns
                     // For now, just return default stats
                     // TODO: Implement column selection stats
-                    crate::managers::SelectionStats::default()
+                    selection_stats::SelectionStats::default()
                 }
                 SelectionType::Row { rows: _ } => {
                     // For row selections, calculate stats for all cells in those rows
                     // For now, just return default stats
                     // TODO: Implement row selection stats
-                    crate::managers::SelectionStats::default()
+                    selection_stats::SelectionStats::default()
                 }
                 SelectionType::Multi { selections: _ } => {
                     // For multi selections, we would need to handle multiple ranges
                     // For now, just return default stats
                     // TODO: Implement multi selection stats
-                    crate::managers::SelectionStats::default()
+                    selection_stats::SelectionStats::default()
                 }
             }
         } else {
             // No selection, calculate for current cursor position
             let cursor = self.state_machine.get_state().cursor();
-            self.selection_stats_manager
-                .calculate_single_cell(&self.facade, cursor)
+            selection_stats::calculate_single_cell(&self.facade, cursor)
         }
     }
 
