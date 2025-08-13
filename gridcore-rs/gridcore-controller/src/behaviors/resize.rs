@@ -83,19 +83,21 @@ impl ResizeBehavior {
         is_horizontal: bool,
     ) -> Result<Option<Action>> {
         // Check if we're in resize mode and get the target
-        if let UIState::Resize { target, .. } = state {
-            let is_column_resize = matches!(target, ResizeTarget::Column { .. });
+        if let UIState::Modal { kind: crate::state::ModalKind::Resize, data, .. } = state {
+            if let crate::state::ModalData::Resize { target, .. } = data {
+                let is_column_resize = matches!(target, ResizeTarget::Column { .. });
 
-            // Only allow horizontal navigation for columns, vertical for rows
-            if is_column_resize == is_horizontal {
-                let new_direction = match direction {
-                    MoveDirection::Previous => crate::state::ResizeMoveDirection::Previous,
-                    MoveDirection::Next => crate::state::ResizeMoveDirection::Next,
-                };
+                // Only allow horizontal navigation for columns, vertical for rows
+                if is_column_resize == is_horizontal {
+                    let new_direction = match direction {
+                        MoveDirection::Previous => crate::state::ResizeMoveDirection::Previous,
+                        MoveDirection::Next => crate::state::ResizeMoveDirection::Next,
+                    };
 
-                return Ok(Some(Action::MoveResizeTarget {
-                    direction: new_direction,
-                }));
+                    return Ok(Some(Action::MoveResizeTarget {
+                        direction: new_direction,
+                    }));
+                }
             }
         }
 
@@ -117,22 +119,17 @@ impl ResizeBehavior {
 
     /// Get current resize info for display
     pub fn get_resize_info(&self, state: &UIState) -> Option<ResizeInfo> {
-        if let UIState::Resize {
-            target,
-            current_size,
-            original_size,
-            ..
-        } = state
-        {
-            Some(ResizeInfo {
-                target: *target,
-                current_size: *current_size,
-                original_size: *original_size,
-                delta: (*current_size as i32 - *original_size as i32),
-            })
-        } else {
-            None
+        if let UIState::Modal { kind: crate::state::ModalKind::Resize, data, .. } = state {
+            if let crate::state::ModalData::Resize { target, sizes } = data {
+                return Some(ResizeInfo {
+                    target: *target,
+                    current_size: sizes.current_size,
+                    original_size: sizes.original_size,
+                    delta: (sizes.current_size as i32 - sizes.original_size as i32),
+                });
+            }
         }
+        None
     }
 }
 

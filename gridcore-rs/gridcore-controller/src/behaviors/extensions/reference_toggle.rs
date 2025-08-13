@@ -93,24 +93,24 @@ impl VimExtension for ReferenceToggleExtension {
 
         // Get the editing value and cursor position
         if let UIState::Editing {
-            editing_value,
-            cursor_position,
+            value,
+            cursor_pos,
             ..
         } = state
         {
             // Only work with formulas
-            if !editing_value.starts_with('=') {
+            if !value.starts_with('=') {
                 return Ok(None);
             }
 
             // Find reference at cursor
-            if let Some(reference) = self.find_reference_at_cursor(editing_value, *cursor_position)
+            if let Some(reference) = self.find_reference_at_cursor(value, *cursor_pos)
             {
                 // Cycle to next reference type
                 let new_reference = self.cycle_reference_type(&reference);
 
                 // Replace in formula
-                let new_formula = self.replace_reference(editing_value, &reference, &new_reference);
+                let new_formula = self.replace_reference(value, &reference, &new_reference);
 
                 // Calculate new cursor position (after the replaced reference)
                 let new_cursor_pos = reference.start + new_reference.len();

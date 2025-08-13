@@ -4,7 +4,7 @@ use crate::controller::{
     SpreadsheetEvent, ViewportManager,
 };
 use crate::managers::{ErrorFormatter, ErrorManager};
-use crate::state::{Action, CellMode, InsertMode, SpreadsheetMode, UIState, UIStateMachine};
+use crate::state::{Action, CellMode, EditMode, InsertMode, ModalData, ModalKind, SpreadsheetMode, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
 pub struct SpreadsheetController {
@@ -733,14 +733,14 @@ impl SpreadsheetController {
         let state = self.state_machine.get_state().clone();
 
         if let UIState::Editing {
-            cell_mode,
-            editing_value,
-            cursor_position,
+            mode,
+            value,
+            cursor_pos,
             ..
         } = state
         {
-            match cell_mode {
-                CellMode::Normal => match event.key.as_str() {
+            match mode {
+                EditMode::Normal => match event.key.as_str() {
                     "i" => self.dispatch_action(Action::EnterInsertMode {
                         mode: Some(InsertMode::I),
                     }),
@@ -750,11 +750,11 @@ impl SpreadsheetController {
                     "Escape" => self.dispatch_action(Action::ExitToNavigation),
                     _ => Ok(()),
                 },
-                CellMode::Insert => {
+                EditMode::Insert => {
                     if event.is_printable() {
                         // Add character to editing value
-                        let mut new_value = editing_value.clone();
-                        let pos = cursor_position;
+                        let mut new_value = value.clone();
+                        let pos = cursor_pos;
                         new_value.insert_str(pos, &event.key);
                         self.dispatch_action(Action::UpdateEditingValue {
                             value: new_value,
@@ -763,8 +763,8 @@ impl SpreadsheetController {
                     } else {
                         match event.key.as_str() {
                             "Backspace" => {
-                                let mut new_value = editing_value.clone();
-                                let pos = cursor_position;
+                                let mut new_value = value.clone();
+                                let pos = cursor_pos;
                                 if pos > 0 {
                                     new_value.remove(pos - 1);
                                     self.dispatch_action(Action::UpdateEditingValue {
@@ -784,7 +784,7 @@ impl SpreadsheetController {
                         }
                     }
                 }
-                CellMode::Visual => {
+                EditMode::Visual => {
                     // Visual mode handling would go here
                     Ok(())
                 }
@@ -809,22 +809,26 @@ impl SpreadsheetController {
             return self.dispatch_action(Action::ExitCommandMode);
         }
 
-        if let UIState::Command { command_value, .. } = self.state_machine.get_state() {
-            if event.is_printable() {
-                let mut new_value = command_value.clone();
-                new_value.push_str(&event.key);
-                self.dispatch_action(Action::UpdateCommandValue { value: new_value })
-            } else if event.key == "Enter" {
-                // Execute command
-                self.event_dispatcher
-                    .dispatch(&SpreadsheetEvent::CommandExecuted {
-                        command: command_value.clone(),
-                    });
-                self.dispatch_action(Action::ExitCommandMode)
-            } else if event.key == "Backspace" && !command_value.is_empty() {
-                let mut new_value = command_value.clone();
-                new_value.pop();
-                self.dispatch_action(Action::UpdateCommandValue { value: new_value })
+        if let UIState::Modal { kind: ModalKind::Command, data, .. } = self.state_machine.get_state() {
+            if let ModalData::Command { value } = data {
+                if event.is_printable() {
+                    let mut new_value = value.clone();
+                    new_value.push_str(&event.key);
+                    self.dispatch_action(Action::UpdateCommandValue { value: new_value })
+                } else if event.key == "Enter" {
+                    // Execute command
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::CommandExecuted {
+                            command: value.clone(),
+                        });
+                    self.dispatch_action(Action::ExitCommandMode)
+                } else if event.key == "Backspace" && !value.is_empty() {
+                    let mut new_value = value.clone();
+                    new_value.pop();
+                    self.dispatch_action(Action::UpdateCommandValue { value: new_value })
+                } else {
+                    Ok(())
+                }
             } else {
                 Ok(())
             }
@@ -876,15 +880,15 @@ impl SpreadsheetController {
     fn complete_editing(&mut self) -> Result<()> {
         if let UIState::Editing {
             cursor,
-            editing_value,
+            value,
             ..
         } = self.state_machine.get_state()
         {
             let address = *cursor;
-            let value = editing_value.clone();
+            let cell_value = value.clone();
 
             // Update the cell value in the facade and handle errors
-            match self.facade.set_cell_value(&address, &value) {
+            match self.facade.set_cell_value(&address, &cell_value) {
                 Ok(_) => {
                     // Check if the cell now contains an error value (e.g., from formula evaluation)
                     if let Some(gridcore_core::types::CellValue::Error(error_type)) =
@@ -904,7 +908,7 @@ impl SpreadsheetController {
                     }
 
                     self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CellEditCompleted { address, value });
+                        .dispatch(&SpreadsheetEvent::CellEditCompleted { address, value: cell_value });
                 }
                 Err(e) => {
                     // Use ErrorFormatter to get consistent error messages

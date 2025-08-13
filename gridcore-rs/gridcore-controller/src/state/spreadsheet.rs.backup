@@ -77,27 +77,6 @@ pub struct Selection {
     pub anchor: Option<CellAddress>,
 }
 
-// ModalKind represents different modal states the spreadsheet can be in
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ModalKind {
-    Command,
-    Resize,
-    Insert,      // Structural insert (rows/columns)
-    Delete,      // Structural delete (rows/columns)  
-    BulkOperation,
-    Visual,      // Spreadsheet visual mode (range selection)
-}
-
-// EditMode represents modes within cell editing
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum EditMode {
-    Normal,
-    Insert,
-    Visual,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SpreadsheetMode {
     Navigation,
@@ -117,55 +96,6 @@ pub enum BulkOperationStatus {
     Executing,
     Completed,
     Error,
-}
-
-// ResizeSizes holds the size information for resize operations
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct ResizeSizes {
-    pub original_size: u32,
-    pub current_size: u32,
-    pub initial_position: f64,
-    pub current_position: f64,
-    pub resize_index: u32,
-}
-
-// ModalData holds data specific to each modal type
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "modalType", rename_all = "camelCase")]
-pub enum ModalData {
-    Command { 
-        value: String 
-    },
-    Resize { 
-        target: ResizeTarget, 
-        sizes: ResizeSizes 
-    },
-    Insert { 
-        insert_type: InsertType, 
-        position: InsertPosition, 
-        reference: u32,
-        count: u32,
-        target_index: u32,
-    },
-    Delete { 
-        delete_type: DeleteType, 
-        targets: Vec<u32>,
-        selection: Vec<u32>,
-        confirmation_pending: bool,
-    },
-    BulkOperation { 
-        parsed_command: ParsedBulkCommand, 
-        preview_available: bool,
-        preview_visible: bool,
-        affected_cells: u32,
-        status: BulkOperationStatus,
-        error_message: Option<String>,
-    },
-    Visual { 
-        selection: Selection, 
-        visual_mode: SpreadsheetVisualMode,
-        anchor: CellAddress,
-    },
 }
 
 // ParsedBulkCommand represents different types of bulk operations
@@ -203,9 +133,8 @@ pub enum ParsedBulkCommand {
     },
 }
 
-// Simplified UIState with only 3 core variants
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "stateType", rename_all = "camelCase")]
+#[serde(tag = "spreadsheetMode", rename_all = "camelCase")]
 pub enum UIState {
     #[serde(rename = "navigation")]
     Navigation {
@@ -213,30 +142,96 @@ pub enum UIState {
         viewport: ViewportInfo,
         selection: Option<Selection>,
     },
+    #[serde(rename = "visual")]
+    Visual {
+        cursor: CellAddress,
+        viewport: ViewportInfo,
+        selection: Selection,
+        #[serde(rename = "visualMode")]
+        visual_mode: SpreadsheetVisualMode,
+        anchor: CellAddress,
+    },
     #[serde(rename = "editing")]
     Editing {
         cursor: CellAddress,
         viewport: ViewportInfo,
+        #[serde(rename = "cellMode")]
+        cell_mode: CellMode,
         #[serde(rename = "editingValue")]
-        value: String,
+        editing_value: String,
         #[serde(rename = "cursorPosition")]
-        cursor_pos: usize,
-        #[serde(rename = "editMode")]
-        mode: EditMode,
-        // Cell editing specific fields
+        cursor_position: usize,
         #[serde(rename = "visualStart")]
-        visual_start: Option<usize>,        // For visual mode within editing
+        visual_start: Option<usize>,
         #[serde(rename = "visualType")]
-        visual_type: Option<VisualMode>,    // Character/Line/Block selection
-        #[serde(rename = "insertVariant")]
-        insert_variant: Option<InsertMode>, // Which insert mode (i, a, I, A, etc.)
+        visual_type: Option<VisualMode>,
+        #[serde(rename = "editVariant")]
+        edit_variant: Option<InsertMode>,
     },
-    #[serde(rename = "modal")]
-    Modal {
+    #[serde(rename = "command")]
+    Command {
         cursor: CellAddress,
         viewport: ViewportInfo,
-        kind: ModalKind,
-        data: ModalData,
+        #[serde(rename = "commandValue")]
+        command_value: String,
+    },
+    #[serde(rename = "resize")]
+    Resize {
+        cursor: CellAddress,
+        viewport: ViewportInfo,
+        target: ResizeTarget,
+        #[serde(rename = "resizeTarget")]
+        resize_target: ResizeTarget,
+        #[serde(rename = "resizeIndex")]
+        resize_index: u32,
+        #[serde(rename = "originalSize")]
+        original_size: u32,
+        #[serde(rename = "currentSize")]
+        current_size: u32,
+        #[serde(rename = "initialPosition")]
+        initial_position: f64,
+        #[serde(rename = "currentPosition")]
+        current_position: f64,
+    },
+    #[serde(rename = "insert")]
+    Insert {
+        cursor: CellAddress,
+        viewport: ViewportInfo,
+        #[serde(rename = "insertType")]
+        insert_type: InsertType,
+        position: InsertPosition,
+        #[serde(rename = "insertPosition")]
+        insert_position: InsertPosition,
+        reference: u32,
+        count: u32,
+        target_index: u32,
+    },
+    #[serde(rename = "delete")]
+    Delete {
+        cursor: CellAddress,
+        viewport: ViewportInfo,
+        #[serde(rename = "deleteType")]
+        delete_type: DeleteType,
+        targets: Vec<u32>,
+        selection: Vec<u32>,
+        #[serde(rename = "confirmationPending")]
+        confirmation_pending: bool,
+    },
+    #[serde(rename = "bulkOperation")]
+    BulkOperation {
+        cursor: CellAddress,
+        viewport: ViewportInfo,
+        #[serde(rename = "command")]
+        parsed_command: ParsedBulkCommand,
+        #[serde(rename = "previewAvailable")]
+        preview_available: bool,
+        #[serde(rename = "previewVisible")]
+        preview_visible: bool,
+        #[serde(rename = "affectedCells")]
+        affected_cells: u32,
+        status: BulkOperationStatus,
+        #[serde(rename = "errorMessage")]
+        error_message: Option<String>,
     },
 }
 
@@ -283,51 +278,53 @@ impl UIState {
     pub fn spreadsheet_mode(&self) -> SpreadsheetMode {
         match self {
             UIState::Navigation { .. } => SpreadsheetMode::Navigation,
-            UIState::Editing { mode, .. } => {
-                // Return different modes based on the edit mode
-                match mode {
-                    EditMode::Insert => SpreadsheetMode::Insert,
-                    EditMode::Normal => SpreadsheetMode::Editing, // Shows as "EDIT" in status bar
-                    EditMode::Visual => SpreadsheetMode::Visual,
+            UIState::Visual { .. } => SpreadsheetMode::Visual,
+            UIState::Editing { cell_mode, .. } => {
+                // Return different modes based on the cell editing mode
+                match cell_mode {
+                    CellMode::Insert => SpreadsheetMode::Insert,
+                    CellMode::Normal => SpreadsheetMode::Editing, // Shows as "EDIT" in status bar
+                    CellMode::Visual => SpreadsheetMode::Visual,
                 }
             }
-            UIState::Modal { kind, .. } => match kind {
-                ModalKind::Command => SpreadsheetMode::Command,
-                ModalKind::Resize => SpreadsheetMode::Resize,
-                ModalKind::Insert => SpreadsheetMode::Insert,
-                ModalKind::Delete => SpreadsheetMode::Delete,
-                ModalKind::BulkOperation => SpreadsheetMode::BulkOperation,
-                ModalKind::Visual => SpreadsheetMode::Visual,
-            },
+            UIState::Command { .. } => SpreadsheetMode::Command,
+            UIState::Resize { .. } => SpreadsheetMode::Resize,
+            UIState::Insert { .. } => SpreadsheetMode::Insert,
+            UIState::Delete { .. } => SpreadsheetMode::Delete,
+            UIState::BulkOperation { .. } => SpreadsheetMode::BulkOperation,
         }
     }
 
     pub fn cursor(&self) -> &CellAddress {
         match self {
             UIState::Navigation { cursor, .. }
+            | UIState::Visual { cursor, .. }
             | UIState::Editing { cursor, .. }
-            | UIState::Modal { cursor, .. } => cursor,
+            | UIState::Command { cursor, .. }
+            | UIState::Resize { cursor, .. }
+            | UIState::Insert { cursor, .. }
+            | UIState::Delete { cursor, .. }
+            | UIState::BulkOperation { cursor, .. } => cursor,
         }
     }
 
     pub fn viewport(&self) -> &ViewportInfo {
         match self {
             UIState::Navigation { viewport, .. }
+            | UIState::Visual { viewport, .. }
             | UIState::Editing { viewport, .. }
-            | UIState::Modal { viewport, .. } => viewport,
+            | UIState::Command { viewport, .. }
+            | UIState::Resize { viewport, .. }
+            | UIState::Insert { viewport, .. }
+            | UIState::Delete { viewport, .. }
+            | UIState::BulkOperation { viewport, .. } => viewport,
         }
     }
 
     pub fn selection(&self) -> Option<&Selection> {
         match self {
             UIState::Navigation { selection, .. } => selection.as_ref(),
-            UIState::Modal { kind: ModalKind::Visual, data, .. } => {
-                if let ModalData::Visual { selection, .. } = data {
-                    Some(selection)
-                } else {
-                    None
-                }
-            }
+            UIState::Visual { selection, .. } => Some(selection),
             _ => None,
         }
     }
@@ -343,19 +340,19 @@ pub fn is_editing_mode(state: &UIState) -> bool {
 }
 
 pub fn is_command_mode(state: &UIState) -> bool {
-    matches!(state, UIState::Modal { kind: ModalKind::Command, .. })
+    matches!(state, UIState::Command { .. })
 }
 
 pub fn is_visual_mode(state: &UIState) -> bool {
-    matches!(state, UIState::Modal { kind: ModalKind::Visual, .. })
+    matches!(state, UIState::Visual { .. })
 }
 
 pub fn is_resize_mode(state: &UIState) -> bool {
-    matches!(state, UIState::Modal { kind: ModalKind::Resize, .. })
+    matches!(state, UIState::Resize { .. })
 }
 
 pub fn is_bulk_operation_mode(state: &UIState) -> bool {
-    matches!(state, UIState::Modal { kind: ModalKind::BulkOperation, .. })
+    matches!(state, UIState::BulkOperation { .. })
 }
 
 // Factory functions
@@ -376,31 +373,23 @@ pub fn create_editing_state(
     viewport: ViewportInfo,
     cell_mode: CellMode,
 ) -> UIState {
-    let mode = match cell_mode {
-        CellMode::Normal => EditMode::Normal,
-        CellMode::Insert => EditMode::Insert,
-        CellMode::Visual => EditMode::Visual,
-    };
     UIState::Editing {
         cursor,
         viewport,
-        value: String::new(),
-        cursor_pos: 0,
-        mode,
+        cell_mode,
+        editing_value: String::new(),
+        cursor_position: 0,
         visual_start: None,
         visual_type: None,
-        insert_variant: None,
+        edit_variant: None,
     }
 }
 
 pub fn create_command_state(cursor: CellAddress, viewport: ViewportInfo) -> UIState {
-    UIState::Modal {
+    UIState::Command {
         cursor,
         viewport,
-        kind: ModalKind::Command,
-        data: ModalData::Command {
-            value: String::new(),
-        },
+        command_value: String::new(),
     }
 }
 
@@ -411,14 +400,11 @@ pub fn create_visual_state(
     anchor: CellAddress,
     selection: Selection,
 ) -> UIState {
-    UIState::Modal {
+    UIState::Visual {
         cursor,
         viewport,
-        kind: ModalKind::Visual,
-        data: ModalData::Visual {
-            selection,
-            visual_mode,
-            anchor,
-        },
+        selection,
+        visual_mode,
+        anchor,
     }
 }

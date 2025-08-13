@@ -1,5 +1,6 @@
 use super::{
-    CellMode, InsertMode, Selection, SpreadsheetVisualMode, UIState, ViewportInfo, VisualMode,
+    CellMode, EditMode, InsertMode, ModalData, ModalKind, Selection, SpreadsheetVisualMode, 
+    UIState, ViewportInfo, VisualMode,
 };
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
@@ -91,19 +92,25 @@ impl StateDiff {
                 }
             }
             (
-                UIState::Visual {
+                UIState::Modal {
                     cursor: old_cursor,
                     viewport: old_viewport,
-                    selection: old_selection,
-                    visual_mode: old_mode,
-                    anchor: old_anchor,
+                    kind: ModalKind::Visual,
+                    data: ModalData::Visual {
+                        selection: old_selection,
+                        visual_mode: old_mode,
+                        anchor: old_anchor,
+                    },
                 },
-                UIState::Visual {
+                UIState::Modal {
                     cursor: new_cursor,
                     viewport: new_viewport,
-                    selection: new_selection,
-                    visual_mode: new_mode,
-                    anchor: new_anchor,
+                    kind: ModalKind::Visual,
+                    data: ModalData::Visual {
+                        selection: new_selection,
+                        visual_mode: new_mode,
+                        anchor: new_anchor,
+                    },
                 },
             ) => {
                 if old_cursor != new_cursor {
@@ -126,22 +133,22 @@ impl StateDiff {
                 UIState::Editing {
                     cursor: old_cursor,
                     viewport: old_viewport,
-                    cell_mode: old_mode,
-                    editing_value: old_value,
-                    cursor_position: old_pos,
+                    mode: old_mode,
+                    value: old_value,
+                    cursor_pos: old_pos,
                     visual_start: old_vstart,
                     visual_type: old_vtype,
-                    edit_variant: old_variant,
+                    insert_variant: old_variant,
                 },
                 UIState::Editing {
                     cursor: new_cursor,
                     viewport: new_viewport,
-                    cell_mode: new_mode,
-                    editing_value: new_value,
-                    cursor_position: new_pos,
+                    mode: new_mode,
+                    value: new_value,
+                    cursor_pos: new_pos,
                     visual_start: new_vstart,
                     visual_type: new_vtype,
-                    edit_variant: new_variant,
+                    insert_variant: new_variant,
                 },
             ) => {
                 if old_cursor != new_cursor {
