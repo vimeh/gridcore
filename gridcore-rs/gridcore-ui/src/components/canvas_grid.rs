@@ -483,7 +483,11 @@ pub fn CanvasGrid(
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.get_state();
             let cell_mode = match state {
-                UIState::Editing { cell_mode, .. } => Some(*cell_mode),
+                UIState::Editing { mode, .. } => Some(match mode {
+                    gridcore_controller::state::EditMode::Normal => gridcore_controller::state::CellMode::Normal,
+                    gridcore_controller::state::EditMode::Insert => gridcore_controller::state::CellMode::Insert,
+                    gridcore_controller::state::EditMode::Visual => gridcore_controller::state::CellMode::Visual,
+                }),
                 _ => None,
             };
             (state.spreadsheet_mode(), *state.cursor(), cell_mode)
@@ -511,7 +515,11 @@ pub fn CanvasGrid(
             let mode = state.spreadsheet_mode();
             let cursor = *state.cursor();
             let cell_mode = match state {
-                UIState::Editing { cell_mode, .. } => Some(*cell_mode),
+                UIState::Editing { mode, .. } => Some(match mode {
+                    gridcore_controller::state::EditMode::Normal => gridcore_controller::state::CellMode::Normal,
+                    gridcore_controller::state::EditMode::Insert => gridcore_controller::state::CellMode::Insert,
+                    gridcore_controller::state::EditMode::Visual => gridcore_controller::state::CellMode::Visual,
+                }),
                 _ => None,
             };
             leptos::logging::log!(

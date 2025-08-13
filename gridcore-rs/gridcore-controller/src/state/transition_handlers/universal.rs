@@ -95,6 +95,5 @@ fn handle_escape(state: &UIState) -> Result<UIState> {
             // Already in navigation, nothing to do
             Ok(state.clone())
         }
-        _ => Ok(state.clone()),
     }
 }

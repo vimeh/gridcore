@@ -1,6 +1,6 @@
 use gridcore_controller::behaviors::selection_stats::SelectionStats;
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{CellMode, SpreadsheetMode, UIState, VisualMode};
+use gridcore_controller::state::{SpreadsheetMode, UIState, VisualMode};
 use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -36,14 +36,14 @@ pub fn StatusBar(
         // This ensures proper display of NORMAL mode within editing
         let (text, color, detail) = match &state {
             UIState::Editing {
-                cell_mode,
+                mode,
                 visual_type,
                 ..
             } => {
-                match cell_mode {
-                    CellMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
-                    CellMode::Normal => ("NORMAL", "#ff9800", "i/a to insert"),
-                    CellMode::Visual => {
+                match mode {
+                    gridcore_controller::state::EditMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
+                    gridcore_controller::state::EditMode::Normal => ("NORMAL", "#ff9800", "i/a to insert"),
+                    gridcore_controller::state::EditMode::Visual => {
                         // Check visual type for line mode
                         match visual_type {
                             Some(VisualMode::Line) => ("VISUAL LINE", "#9c27b0", "hjkl to select"),
