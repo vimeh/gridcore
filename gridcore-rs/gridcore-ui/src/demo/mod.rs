@@ -4,16 +4,16 @@ pub mod runner;
 pub mod scenarios;
 
 use crate::benchmark::{
-    runner::{UIBenchmarkRunner, BenchmarkReport},
-    scenarios::{
-        scroll::{SmoothScrollBenchmark, JumpNavigationBenchmark, LargeDatasetScrollBenchmark},
-        rendering::{InitialRenderBenchmark, LargeGridRenderBenchmark},
-        interaction::{CellEditBenchmark, SelectionBenchmark},
-        formula::{SimpleFormulaBenchmark, ComplexFormulaBenchmark},
-        memory::{MemoryGrowthBenchmark, MemoryCleanupBenchmark},
-        canvas::{DrawCallBenchmark, CanvasStateBenchmark},
-    },
     config::BenchmarkPresets,
+    runner::{BenchmarkReport, UIBenchmarkRunner},
+    scenarios::{
+        canvas::{CanvasStateBenchmark, DrawCallBenchmark},
+        formula::{ComplexFormulaBenchmark, SimpleFormulaBenchmark},
+        interaction::{CellEditBenchmark, SelectionBenchmark},
+        memory::{MemoryCleanupBenchmark, MemoryGrowthBenchmark},
+        rendering::{InitialRenderBenchmark, LargeGridRenderBenchmark},
+        scroll::{JumpNavigationBenchmark, LargeDatasetScrollBenchmark, SmoothScrollBenchmark},
+    },
 };
 use gridcore_controller::controller::SpreadsheetController;
 use std::cell::RefCell;
@@ -76,14 +76,15 @@ impl DemoController {
         self.runner.load_scenario(scenario_name)?;
         self.runner.start(controller.clone())?;
         self.performance_monitor.start_monitoring();
-        
+
         // Initialize cell counts
         let ctrl = controller.borrow();
         let facade = ctrl.get_facade();
         let cell_count = facade.cell_count();
         let formula_count = 0; // TODO: Add formula count when available
-        self.performance_monitor.update_cell_counts(cell_count, formula_count);
-        
+        self.performance_monitor
+            .update_cell_counts(cell_count, formula_count);
+
         Ok(())
     }
 
@@ -103,17 +104,18 @@ impl DemoController {
 
     pub fn step_forward(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         self.runner.step(controller.clone());
-        
+
         // Record performance metrics
         self.performance_monitor.record_operation();
-        
+
         // Update cell counts from controller
         let ctrl = controller.borrow();
         let facade = ctrl.get_facade();
         let cell_count = facade.cell_count();
         // TODO: Add formula count when available
         let formula_count = 0;
-        self.performance_monitor.update_cell_counts(cell_count, formula_count);
+        self.performance_monitor
+            .update_cell_counts(cell_count, formula_count);
     }
 
     pub fn set_playback_speed(&mut self, speed: f32) {
@@ -156,24 +158,24 @@ impl DemoController {
     pub fn get_total_steps(&self) -> usize {
         self.runner.get_total_steps()
     }
-    
+
     /// Run a quick benchmark and return results
     pub fn run_quick_benchmark(
         &mut self,
         controller: Rc<RefCell<SpreadsheetController>>,
     ) -> Result<String, String> {
         leptos::logging::log!("Starting quick benchmark...");
-        
+
         // Create benchmark runner
-        let mut runner = UIBenchmarkRunner::new(controller.clone())
-            .with_config(BenchmarkPresets::smoke_test());
-        
+        let mut runner =
+            UIBenchmarkRunner::new(controller.clone()).with_config(BenchmarkPresets::smoke_test());
+
         // Add a simple scroll benchmark
         runner.add_scenario(Box::new(SmoothScrollBenchmark::new()));
-        
+
         // Run the benchmark
         let report = runner.run_all();
-        
+
         // Format results
         let summary = format!(
             "Benchmark Complete!\n\
@@ -188,17 +190,17 @@ impl DemoController {
             report.summary.avg_latency,
             report.summary.total_memory_growth
         );
-        
+
         leptos::logging::log!("{}", summary);
-        
+
         // Also log any warnings
         for warning in &report.warnings {
             leptos::logging::warn!("⚠️ {}", warning);
         }
-        
+
         Ok(summary)
     }
-    
+
     /// Run full benchmark suite
     pub fn run_full_benchmark(
         &mut self,
@@ -206,57 +208,52 @@ impl DemoController {
         callback: impl Fn(BenchmarkReport) + 'static,
     ) {
         let ctrl = controller.clone();
-        
+
         // Run benchmarks asynchronously
         spawn_local(async move {
             leptos::logging::log!("Starting full benchmark suite...");
-            
+
             // Create benchmark runner with standard config
-            let mut runner = UIBenchmarkRunner::new(ctrl.clone())
-                .with_config(BenchmarkPresets::standard());
-            
+            let mut runner =
+                UIBenchmarkRunner::new(ctrl.clone()).with_config(BenchmarkPresets::standard());
+
             // Add all benchmark scenarios
             runner.add_scenarios(vec![
                 // Scroll benchmarks
                 Box::new(SmoothScrollBenchmark::new()),
                 Box::new(JumpNavigationBenchmark::new()),
                 Box::new(LargeDatasetScrollBenchmark::new()),
-                
                 // Rendering benchmarks
                 Box::new(InitialRenderBenchmark::new()),
                 Box::new(LargeGridRenderBenchmark::new()),
-                
                 // Interaction benchmarks
                 Box::new(CellEditBenchmark::new()),
                 Box::new(SelectionBenchmark::new()),
-                
                 // Formula benchmarks
                 Box::new(SimpleFormulaBenchmark::new()),
                 Box::new(ComplexFormulaBenchmark::new()),
-                
                 // Memory benchmarks
                 Box::new(MemoryGrowthBenchmark::new()),
                 Box::new(MemoryCleanupBenchmark::new()),
-                
                 // Canvas benchmarks
                 Box::new(DrawCallBenchmark::new()),
                 Box::new(CanvasStateBenchmark::new()),
             ]);
-            
+
             // Run benchmarks
             let report = runner.run_all();
-            
+
             leptos::logging::log!(
                 "Benchmark suite complete: {} scenarios, {} successful",
                 report.summary.total_scenarios,
                 report.summary.successful_runs
             );
-            
+
             // Call the callback with results
             callback(report);
         });
     }
-    
+
     /// Get available benchmark scenarios
     pub fn get_available_benchmarks() -> Vec<String> {
         vec![
@@ -264,23 +261,18 @@ impl DemoController {
             "Smooth Scroll".to_string(),
             "Jump Navigation".to_string(),
             "Large Dataset Scroll".to_string(),
-            
             // Rendering benchmarks
             "Initial Render".to_string(),
             "Large Grid Render".to_string(),
-            
             // Interaction benchmarks
             "Cell Edit Latency".to_string(),
             "Selection Performance".to_string(),
-            
             // Formula benchmarks
             "Simple Formula".to_string(),
             "Complex Formula".to_string(),
-            
             // Memory benchmarks
             "Memory Growth".to_string(),
             "Memory Cleanup".to_string(),
-            
             // Canvas benchmarks
             "Canvas Draw Calls".to_string(),
             "Canvas State Management".to_string(),

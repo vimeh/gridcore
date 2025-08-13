@@ -232,20 +232,20 @@ impl SpreadsheetController {
 
         let old_mode = self.state_machine.get_state().spreadsheet_mode();
         let old_cursor = *self.state_machine.get_state().cursor();
-        
+
         log::debug!(
             "dispatch_action: about to transition with action {:?}",
             action
         );
-        
+
         // Store the action type for later event emission
         let action_clone = action.clone();
-        
+
         self.state_machine.transition(action)?;
         log::debug!("dispatch_action: transition succeeded");
         let new_mode = self.state_machine.get_state().spreadsheet_mode();
         let _new_cursor = *self.state_machine.get_state().cursor();
-        
+
         log::debug!(
             "dispatch_action: old_mode={:?}, new_mode={:?}",
             old_mode,

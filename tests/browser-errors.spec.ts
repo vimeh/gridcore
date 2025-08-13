@@ -15,7 +15,7 @@ test("check for browser errors during navigation", async ({ page }) => {
     logs.push(`[PAGE ERROR] ${error.message}`);
   });
   
-  await page.goto("http://localhost:8081");
+  await page.goto("/");
   await page.waitForSelector("canvas");
   
   console.log("=== Attempting navigation with 'l' key ===");

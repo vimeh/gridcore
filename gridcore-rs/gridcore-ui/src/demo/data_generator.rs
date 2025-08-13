@@ -193,14 +193,14 @@ impl DataGenerator {
     ) -> Vec<(CellAddress, String)> {
         let mut data = Vec::new();
         let total_cells = (rows as f64 * cols as f64 * density) as u32;
-        
+
         for _ in 0..total_cells {
             let row = self.rng.gen_range(0..rows);
             let col = self.rng.gen_range(0..cols);
             let value = self.rng.gen_range(0.0..1000.0);
             data.push((CellAddress::new(col, row), format!("{:.2}", value)));
         }
-        
+
         data
     }
 

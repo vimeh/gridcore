@@ -65,11 +65,11 @@ impl UIStateMachine {
         if self.history.len() < self.max_history_size {
             log::debug!("UIStateMachine::transition - storing old state for history");
             let old_state = self.state.clone();
-            
+
             // Update state
             log::debug!("UIStateMachine::transition - updating state");
             self.state = new_state;
-            
+
             // Add to history with the diff between old and new state
             log::debug!("UIStateMachine::transition - adding to history");
             self.add_to_history(old_state, action.clone());

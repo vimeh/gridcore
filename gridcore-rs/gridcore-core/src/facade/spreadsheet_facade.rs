@@ -69,7 +69,7 @@ impl SpreadsheetFacade {
         // Get from the active sheet's repository
         let manager = self.sheet_manager.lock().unwrap();
         let active_sheet_name = self.active_sheet.lock().unwrap();
-        
+
         if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
             sheet.cells().get(address)
         } else {
@@ -85,7 +85,7 @@ impl SpreadsheetFacade {
         // Create and store the new cell in the active sheet
         let manager = self.sheet_manager.lock().unwrap();
         let active_sheet_name = self.active_sheet.lock().unwrap();
-        
+
         if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
             let cell = Cell::new(value.clone());
             sheet.cells().set(address, cell)?;
@@ -146,7 +146,7 @@ impl SpreadsheetFacade {
         // Get count from the active sheet's repository
         let manager = self.sheet_manager.lock().unwrap();
         let active_sheet_name = self.active_sheet.lock().unwrap();
-        
+
         if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
             sheet.cells().count()
         } else {
@@ -166,13 +166,13 @@ impl SpreadsheetFacade {
             // It's a formula - create a cell with formula
             let manager = self.sheet_manager.lock().unwrap();
             let active_sheet_name = self.active_sheet.lock().unwrap();
-            
+
             let repository = if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
                 Some(sheet.cells())
             } else {
                 self.container.repository()
             };
-            
+
             if let Some(repo) = repository {
                 let formula_string = formula_text.to_string();
                 let mut cell = Cell::with_formula(

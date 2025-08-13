@@ -120,7 +120,7 @@ impl DemoRunner {
         // If still running after the step, schedule the next iteration
         if self.state == RunnerState::Running {
             let _delay = (self.step_delay_ms as f32 / self.playback_speed) as u32;
-            
+
             // Note: The continuous execution is now handled by the UI layer using set_interval.
             // This allows proper integration with Leptos's reactive system.
         }

@@ -9,11 +9,15 @@ pub struct SimpleFormulaBenchmark {
     formula_count: u32,
 }
 
+impl Default for SimpleFormulaBenchmark {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SimpleFormulaBenchmark {
     pub fn new() -> Self {
-        Self {
-            formula_count: 100,
-        }
+        Self { formula_count: 100 }
     }
 }
 
@@ -21,11 +25,11 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
     fn name(&self) -> &str {
         "Simple Formula Performance"
     }
-    
+
     fn description(&self) -> &str {
         "Measures performance of simple formula calculations"
     }
-    
+
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         // Clear any existing data
         let ctrl = controller.borrow();
@@ -35,14 +39,14 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
             let _ = facade.delete_cell(&addr);
         }
     }
-    
+
     fn run(&mut self, controller: Rc<RefCell<SpreadsheetController>>) -> BenchmarkResult {
         let mut metrics = BenchmarkMetrics::new();
         metrics.start_time = Self::now();
-        
+
         let ctrl = controller.borrow();
         let facade = ctrl.get_facade();
-        
+
         // Create base data
         let data_start = Self::now();
         for i in 0..self.formula_count {
@@ -50,7 +54,7 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
             let _ = facade.set_cell_value(&addr, &format!("{}", i + 1));
         }
         let data_time = Self::now() - data_start;
-        
+
         // Test arithmetic formulas
         let arithmetic_start = Self::now();
         for i in 0..self.formula_count {
@@ -59,7 +63,7 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
             let _ = facade.set_cell_value(&addr, &formula);
         }
         let arithmetic_time = Self::now() - arithmetic_start;
-        
+
         // Test SUM formulas
         let sum_start = Self::now();
         for i in 0..10 {
@@ -68,7 +72,7 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
             let _ = facade.set_cell_value(&addr, &formula);
         }
         let sum_time = Self::now() - sum_start;
-        
+
         // Test references
         let ref_start = Self::now();
         for i in 0..self.formula_count {
@@ -77,31 +81,43 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
             let _ = facade.set_cell_value(&addr, &formula);
         }
         let ref_time = Self::now() - ref_start;
-        
+
         // Force recalculation
         let recalc_start = Self::now();
         let _ = facade.recalculate();
         let recalc_time = Self::now() - recalc_start;
-        
+
         // Update a base cell to trigger dependency recalc
         let update_start = Self::now();
         let _ = facade.set_cell_value(&CellAddress::new(0, 0), "100");
         let update_time = Self::now() - update_start;
-        
+
         // Store metrics
-        metrics.custom_metrics.insert("data_setup_ms".to_string(), data_time);
-        metrics.custom_metrics.insert("arithmetic_formulas_ms".to_string(), arithmetic_time);
-        metrics.custom_metrics.insert("sum_formulas_ms".to_string(), sum_time);
-        metrics.custom_metrics.insert("reference_formulas_ms".to_string(), ref_time);
-        metrics.custom_metrics.insert("recalculation_ms".to_string(), recalc_time);
-        metrics.custom_metrics.insert("dependency_update_ms".to_string(), update_time);
-        
-        metrics.formulas_calculated = (self.formula_count * 2 + 10) as u32;
+        metrics
+            .custom_metrics
+            .insert("data_setup_ms".to_string(), data_time);
+        metrics
+            .custom_metrics
+            .insert("arithmetic_formulas_ms".to_string(), arithmetic_time);
+        metrics
+            .custom_metrics
+            .insert("sum_formulas_ms".to_string(), sum_time);
+        metrics
+            .custom_metrics
+            .insert("reference_formulas_ms".to_string(), ref_time);
+        metrics
+            .custom_metrics
+            .insert("recalculation_ms".to_string(), recalc_time);
+        metrics
+            .custom_metrics
+            .insert("dependency_update_ms".to_string(), update_time);
+
+        metrics.formulas_calculated = self.formula_count * 2 + 10;
         metrics.cells_updated = self.formula_count;
-        
+
         metrics.end_time = Self::now();
         metrics.finalize();
-        
+
         BenchmarkResult {
             scenario_name: self.name().to_string(),
             iteration: 1,
@@ -110,7 +126,7 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
             error_message: None,
         }
     }
-    
+
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
         let facade = ctrl.get_facade();
@@ -128,6 +144,12 @@ pub struct ComplexFormulaBenchmark {
     branch_factor: u32,
 }
 
+impl Default for ComplexFormulaBenchmark {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ComplexFormulaBenchmark {
     pub fn new() -> Self {
         Self {
@@ -141,11 +163,11 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
     fn name(&self) -> &str {
         "Complex Formula Performance"
     }
-    
+
     fn description(&self) -> &str {
         "Measures performance of complex formula dependency chains"
     }
-    
+
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
         let facade = ctrl.get_facade();
@@ -154,14 +176,14 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
             let _ = facade.delete_cell(&addr);
         }
     }
-    
+
     fn run(&mut self, controller: Rc<RefCell<SpreadsheetController>>) -> BenchmarkResult {
         let mut metrics = BenchmarkMetrics::new();
         metrics.start_time = Self::now();
-        
+
         let ctrl = controller.borrow();
         let facade = ctrl.get_facade();
-        
+
         // Create base data grid
         let base_start = Self::now();
         for row in 0..20 {
@@ -172,11 +194,11 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
             }
         }
         let base_time = Self::now() - base_start;
-        
+
         // Create dependency chain
         let chain_start = Self::now();
         let mut formula_count = 0;
-        
+
         // Level 1: Direct references
         for i in 0..self.chain_length {
             let addr = CellAddress::new(11, i);
@@ -184,7 +206,7 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
             let _ = facade.set_cell_value(&addr, &formula);
             formula_count += 1;
         }
-        
+
         // Level 2: References to level 1
         for i in 0..self.chain_length {
             let addr = CellAddress::new(12, i);
@@ -192,7 +214,7 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
             let _ = facade.set_cell_value(&addr, &formula);
             formula_count += 1;
         }
-        
+
         // Level 3: Complex combinations
         for i in 0..self.chain_length {
             let addr = CellAddress::new(13, i);
@@ -204,52 +226,68 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
             let _ = facade.set_cell_value(&addr, &formula);
             formula_count += 1;
         }
-        
+
         let chain_time = Self::now() - chain_start;
-        
+
         // Create nested formulas
         let nested_start = Self::now();
         for i in 0..5 {
             let addr = CellAddress::new(14, i);
             let formula = format!(
                 "=IF(A{}>5,SUM(B{}:D{}),AVERAGE(E{}:G{}))",
-                i + 1, i + 1, i + 1, i + 1, i + 1
+                i + 1,
+                i + 1,
+                i + 1,
+                i + 1,
+                i + 1
             );
             let _ = facade.set_cell_value(&addr, &formula);
             formula_count += 1;
         }
         let nested_time = Self::now() - nested_start;
-        
+
         // Force full recalculation
         let recalc_start = Self::now();
         let _ = facade.recalculate();
         let recalc_time = Self::now() - recalc_start;
-        
+
         // Update root cell to trigger cascade
         let cascade_start = Self::now();
         let _ = facade.set_cell_value(&CellAddress::new(0, 0), "999");
         let cascade_time = Self::now() - cascade_start;
-        
+
         // Test circular reference detection
         let circular_start = Self::now();
         let _ = facade.set_cell_value(&CellAddress::new(15, 0), "=P2");
         let _ = facade.set_cell_value(&CellAddress::new(15, 1), "=P1");
         let circular_time = Self::now() - circular_start;
-        
+
         // Store metrics
-        metrics.custom_metrics.insert("base_data_ms".to_string(), base_time);
-        metrics.custom_metrics.insert("dependency_chain_ms".to_string(), chain_time);
-        metrics.custom_metrics.insert("nested_formulas_ms".to_string(), nested_time);
-        metrics.custom_metrics.insert("full_recalc_ms".to_string(), recalc_time);
-        metrics.custom_metrics.insert("cascade_update_ms".to_string(), cascade_time);
-        metrics.custom_metrics.insert("circular_detection_ms".to_string(), circular_time);
-        
+        metrics
+            .custom_metrics
+            .insert("base_data_ms".to_string(), base_time);
+        metrics
+            .custom_metrics
+            .insert("dependency_chain_ms".to_string(), chain_time);
+        metrics
+            .custom_metrics
+            .insert("nested_formulas_ms".to_string(), nested_time);
+        metrics
+            .custom_metrics
+            .insert("full_recalc_ms".to_string(), recalc_time);
+        metrics
+            .custom_metrics
+            .insert("cascade_update_ms".to_string(), cascade_time);
+        metrics
+            .custom_metrics
+            .insert("circular_detection_ms".to_string(), circular_time);
+
         metrics.formulas_calculated = formula_count;
         metrics.cells_updated = 200; // Base grid
-        
+
         metrics.end_time = Self::now();
         metrics.finalize();
-        
+
         BenchmarkResult {
             scenario_name: self.name().to_string(),
             iteration: 1,
@@ -258,7 +296,7 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
             error_message: None,
         }
     }
-    
+
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
         let facade = ctrl.get_facade();

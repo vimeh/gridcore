@@ -6,7 +6,7 @@ test("debug navigation", async ({ page }) => {
     console.log(`[${msg.type()}] ${msg.text()}`);
   });
   
-  await page.goto("http://localhost:8081");
+  await page.goto("/");
   await page.waitForSelector("canvas");
   
   console.log("=== Pressing 'l' key ===");

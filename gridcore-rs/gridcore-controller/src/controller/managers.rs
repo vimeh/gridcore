@@ -1,6 +1,4 @@
-use crate::managers::{
-    AutocompleteManager, ErrorManager, ResizeManager, SelectionStatsManager,
-};
+use crate::managers::{AutocompleteManager, ErrorManager, ResizeManager, SelectionStatsManager};
 
 /// Manager access trait for SpreadsheetController
 pub trait ManagerAccess {

@@ -60,7 +60,10 @@ impl PerformanceMonitor {
         self.frame_count = 0;
         self.operation_count = 0;
         self.current_fps = 0.0;
-        leptos::logging::log!("Performance monitoring started at time: {}", self.last_frame_time);
+        leptos::logging::log!(
+            "Performance monitoring started at time: {}",
+            self.last_frame_time
+        );
     }
 
     pub fn stop_monitoring(&mut self) {
@@ -79,8 +82,12 @@ impl PerformanceMonitor {
         let time_since_fps_update = current_time - self.last_fps_update;
         if time_since_fps_update >= self.fps_update_interval {
             self.current_fps = (self.frame_count as f64 * 1000.0) / time_since_fps_update;
-            leptos::logging::log!("FPS Update: {} frames in {}ms = {:.1} FPS", 
-                self.frame_count, time_since_fps_update, self.current_fps);
+            leptos::logging::log!(
+                "FPS Update: {} frames in {}ms = {:.1} FPS",
+                self.frame_count,
+                time_since_fps_update,
+                self.current_fps
+            );
             self.frame_count = 0;
             self.last_fps_update = current_time;
         }
@@ -138,7 +145,7 @@ impl PerformanceMonitor {
 
     pub fn get_current_metrics(&mut self) -> Metrics {
         let current_time = self.performance.now();
-        
+
         // Calculate operations per second and reset counter periodically
         let time_since_operation_count = (current_time - self.last_operation_count_time) / 1000.0;
         let ops_per_second = if time_since_operation_count >= 1.0 {
@@ -158,10 +165,14 @@ impl PerformanceMonitor {
         let memory_usage_mb = self.get_memory_usage();
 
         // Get the latest metrics from history or use defaults
-        let (render_time, calc_time, cell_count, formula_count) = 
+        let (render_time, calc_time, cell_count, formula_count) =
             if let Some(latest) = self.metrics_history.back() {
-                (latest.render_time_ms, latest.calculation_time_ms, 
-                 latest.cell_count, latest.formula_count)
+                (
+                    latest.render_time_ms,
+                    latest.calculation_time_ms,
+                    latest.cell_count,
+                    latest.formula_count,
+                )
             } else {
                 (0.0, 0.0, 0, 0)
             };

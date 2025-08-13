@@ -6,7 +6,7 @@ test("debug navigation and cell indicator", async ({ page }) => {
     console.log(`[${msg.type()}] ${msg.text()}`);
   });
   
-  await page.goto("http://localhost:8081");
+  await page.goto("/");
   await page.waitForSelector("canvas");
   
   // Get initial cell indicator value

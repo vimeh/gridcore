@@ -42,15 +42,17 @@ pub fn App() -> impl IntoView {
     let (demo_current_step, set_demo_current_step) = signal(0usize);
     let (demo_total_steps, set_demo_total_steps) = signal(0usize);
     let (show_performance, set_show_performance) = signal(false);
-    
+
     // Benchmark state
     let (benchmark_running, set_benchmark_running) = signal(false);
     let (benchmark_results, set_benchmark_results) = signal(String::new());
     let (show_benchmark_results, set_show_benchmark_results) = signal(false);
-    
+
     // Store the interval handles for the demo runner
-    let demo_interval_handle = StoredValue::new_local(None::<leptos::leptos_dom::helpers::IntervalHandle>);
-    let fps_interval_handle = StoredValue::new_local(None::<leptos::leptos_dom::helpers::IntervalHandle>);
+    let demo_interval_handle =
+        StoredValue::new_local(None::<leptos::leptos_dom::helpers::IntervalHandle>);
+    let fps_interval_handle =
+        StoredValue::new_local(None::<leptos::leptos_dom::helpers::IntervalHandle>);
 
     // State version to trigger updates when controller events occur
     let (state_version, set_state_version) = signal(0u32);
@@ -58,7 +60,7 @@ pub fn App() -> impl IntoView {
     // Create signals that will be synced with controller state
     let initial_cursor = controller.borrow().get_cursor();
     let (active_cell, set_active_cell) = signal(initial_cursor);
-    
+
     // Create formula bar signal that will be synced from controller
     let (formula_bar_value, set_formula_bar_value) = signal(String::new());
 
@@ -105,7 +107,7 @@ pub fn App() -> impl IntoView {
                     }
                     _ => {}
                 }
-                
+
                 // Also handle CursorMoved specifically to update the active cell
                 if let SpreadsheetEvent::CursorMoved { to, .. } = event {
                     leptos::logging::log!("CursorMoved event: {:?}", to);
@@ -307,7 +309,7 @@ pub fn App() -> impl IntoView {
                                             // Stop the demo
                                             demo.stop_demo();
                                             set_demo_running.set(false);
-                                            
+
                                             // Clear both intervals if running
                                             demo_interval_handle.update_value(|handle| {
                                                 if let Some(h) = handle.take() {
@@ -319,7 +321,7 @@ pub fn App() -> impl IntoView {
                                                     h.clear();
                                                 }
                                             });
-                                            
+
                                             leptos::logging::log!("Demo stopped");
                                         } else {
                                             controller_stored.with_value(|ctrl| {
@@ -331,7 +333,7 @@ pub fn App() -> impl IntoView {
                                                         let metrics = demo.get_performance_metrics();
                                                         set_demo_metrics.set(metrics);
                                                         leptos::logging::log!("Demo started: {}", scenario);
-                                                        
+
                                                         // Set up a separate interval for FPS tracking (60fps target)
                                                         let fps_interval = leptos::leptos_dom::helpers::set_interval_with_handle(
                                                             move || {
@@ -344,25 +346,25 @@ pub fn App() -> impl IntoView {
                                                             },
                                                             std::time::Duration::from_millis(16), // ~60 FPS
                                                         ).ok();
-                                                        
+
                                                         // Store the FPS interval handle
                                                         fps_interval_handle.set_value(fps_interval);
-                                                        
+
                                                         // Set up interval for continuous execution
                                                         let interval_handle = leptos::leptos_dom::helpers::set_interval_with_handle(
                                                             move || {
                                                                 demo_controller_stored.with_value(|demo| {
                                                                     controller_stored.with_value(|ctrl| {
                                                                         let mut demo = demo.borrow_mut();
-                                                                        
+
                                                                         // Check if still running
                                                                         if demo.is_running() {
                                                                             demo.step_forward(ctrl.clone());
-                                                                            
+
                                                                             // Update UI state
                                                                             set_demo_current_step.set(demo.get_current_step());
                                                                             set_demo_total_steps.set(demo.get_total_steps());
-                                                                            
+
                                                                             // Check if demo completed
                                                                             if !demo.is_running() {
                                                                                 set_demo_running.set(false);
@@ -384,7 +386,7 @@ pub fn App() -> impl IntoView {
                                                             },
                                                             std::time::Duration::from_millis(100), // Run every 100ms by default
                                                         ).ok();
-                                                        
+
                                                         // Store the interval handle
                                                         demo_interval_handle.set_value(interval_handle);
                                                     }
@@ -427,7 +429,7 @@ pub fn App() -> impl IntoView {
                             </button>
                         </div>
                     </Show>
-                    
+
                     // Benchmark controls
                     <div style="display: inline-block; margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
                         <button
@@ -436,11 +438,11 @@ pub fn App() -> impl IntoView {
                             on:click=move |_| {
                                 set_benchmark_running.set(true);
                                 set_show_benchmark_results.set(false);
-                                
+
                                 demo_controller_stored.with_value(|demo| {
                                     controller_stored.with_value(|ctrl| {
                                         let mut demo = demo.borrow_mut();
-                                        
+
                                         // Run quick benchmark
                                         match demo.run_quick_benchmark(ctrl.clone()) {
                                             Ok(results) => {
@@ -454,7 +456,7 @@ pub fn App() -> impl IntoView {
                                                 leptos::logging::error!("Benchmark error: {}", e);
                                             }
                                         }
-                                        
+
                                         set_benchmark_running.set(false);
                                     });
                                 });
@@ -462,22 +464,22 @@ pub fn App() -> impl IntoView {
                         >
                             {move || if benchmark_running.get() { "Running..." } else { "Quick Benchmark" }}
                         </button>
-                        
+
                         <button
                             style="margin-right: 10px;"
                             disabled=move || benchmark_running.get()
                             on:click=move |_| {
                                 set_benchmark_running.set(true);
                                 set_show_benchmark_results.set(false);
-                                
-                                let results_setter = set_benchmark_results.clone();
-                                let show_setter = set_show_benchmark_results.clone();
-                                let running_setter = set_benchmark_running.clone();
-                                
+
+                                let results_setter = set_benchmark_results;
+                                let show_setter = set_show_benchmark_results;
+                                let running_setter = set_benchmark_running;
+
                                 demo_controller_stored.with_value(|demo| {
                                     controller_stored.with_value(|ctrl| {
                                         let mut demo = demo.borrow_mut();
-                                        
+
                                         // Run full benchmark suite
                                         demo.run_full_benchmark(ctrl.clone(), move |report| {
                                             // Format the report
@@ -503,7 +505,7 @@ pub fn App() -> impl IntoView {
                                                 report.summary.p95_latency,
                                                 report.summary.total_memory_growth
                                             );
-                                            
+
                                             // Add warnings if any
                                             if !report.warnings.is_empty() {
                                                 result_text.push_str("\n=== Warnings ===\n");
@@ -511,7 +513,7 @@ pub fn App() -> impl IntoView {
                                                     result_text.push_str(&format!("⚠️ {}\n", warning));
                                                 }
                                             }
-                                            
+
                                             // Add suggestions if any
                                             if !report.suggestions.is_empty() {
                                                 result_text.push_str("\n=== Suggestions ===\n");
@@ -519,7 +521,7 @@ pub fn App() -> impl IntoView {
                                                     result_text.push_str(&format!("💡 {}\n", suggestion));
                                                 }
                                             }
-                                            
+
                                             results_setter.set(result_text);
                                             show_setter.set(true);
                                             running_setter.set(false);
@@ -530,7 +532,7 @@ pub fn App() -> impl IntoView {
                         >
                             "Full Benchmark Suite"
                         </button>
-                        
+
                         <Show
                             when=move || show_benchmark_results.get()
                             fallback=|| ()
@@ -624,7 +626,7 @@ pub fn App() -> impl IntoView {
                 when=move || show_benchmark_results.get()
                 fallback=|| ()
             >
-                <div 
+                <div
                     style="position: fixed; top: 100px; right: 20px; width: 400px; max-height: 600px; \
                            background: white; border: 2px solid #333; border-radius: 8px; \
                            box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 20px; \
@@ -632,7 +634,7 @@ pub fn App() -> impl IntoView {
                 >
                     <h3 style="margin-top: 0; font-size: 16px;">Benchmark Results</h3>
                     <pre style="white-space: pre-wrap; margin: 0;">{move || benchmark_results.get()}</pre>
-                    <button 
+                    <button
                         style="margin-top: 15px; padding: 5px 10px;"
                         on:click=move |_| set_show_benchmark_results.set(false)
                     >
@@ -640,7 +642,7 @@ pub fn App() -> impl IntoView {
                     </button>
                 </div>
             </Show>
-            
+
             // Add error display overlay
             <ErrorDisplay state_version=state_version />
         </div>
