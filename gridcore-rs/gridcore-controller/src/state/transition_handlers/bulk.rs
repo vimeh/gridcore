@@ -1,5 +1,5 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, BulkOperationStatus, UIState};
+use crate::state::{actions::Action, create_navigation_state, BulkOperationStatus, ModalData, ModalKind, UIState};
 use gridcore_core::Result;
 
 pub struct BulkHandler;
@@ -8,7 +8,7 @@ impl TransitionHandler for BulkHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
         (matches!(state, UIState::Navigation { .. })
             && matches!(action, Action::StartBulkOperation { .. }))
-            || (matches!(state, UIState::BulkOperation { .. })
+            || (matches!(state, UIState::Modal { kind: ModalKind::BulkOperation, .. })
                 && matches!(
                     action,
                     Action::CompleteBulkOperation
@@ -28,23 +28,26 @@ impl TransitionHandler for BulkHandler {
                     cursor, viewport, ..
                 } = state
                 {
-                    Ok(UIState::BulkOperation {
+                    Ok(UIState::Modal {
                         cursor: *cursor,
                         viewport: *viewport,
-                        parsed_command: parsed_command.clone(),
-                        preview_available: false,
-                        preview_visible: false,
-                        affected_cells: affected_cells.unwrap_or(0),
-                        status: BulkOperationStatus::Preparing,
-                        error_message: None,
+                        kind: ModalKind::BulkOperation,
+                        data: ModalData::BulkOperation {
+                            parsed_command: parsed_command.clone(),
+                            preview_available: false,
+                            preview_visible: false,
+                            affected_cells: affected_cells.unwrap_or(0),
+                            status: BulkOperationStatus::Preparing,
+                            error_message: None,
+                        },
                     })
                 } else {
                     unreachable!("BulkHandler::handle called with incompatible state/action")
                 }
             }
             Action::CompleteBulkOperation | Action::CancelBulkOperation => {
-                if let UIState::BulkOperation {
-                    cursor, viewport, ..
+                if let UIState::Modal {
+                    cursor, viewport, kind: ModalKind::BulkOperation, ..
                 } = state
                 {
                     Ok(create_navigation_state(*cursor, *viewport, None))

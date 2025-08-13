@@ -1,5 +1,5 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, UIState};
+use crate::state::{actions::Action, create_navigation_state, ModalData, ModalKind, UIState};
 use gridcore_core::Result;
 
 pub struct StructuralHandler;
@@ -11,12 +11,12 @@ impl TransitionHandler for StructuralHandler {
                 action,
                 Action::StartInsert { .. } | Action::StartDelete { .. }
             ))
-            || (matches!(state, UIState::Insert { .. })
+            || (matches!(state, UIState::Modal { kind: ModalKind::Insert, .. })
                 && matches!(
                     action,
                     Action::UpdateInsertCount { .. } | Action::ConfirmInsert | Action::CancelInsert
                 ))
-            || (matches!(state, UIState::Delete { .. })
+            || (matches!(state, UIState::Modal { kind: ModalKind::Delete, .. })
                 && matches!(action, Action::ConfirmDelete | Action::CancelDelete))
     }
 
@@ -31,15 +31,17 @@ impl TransitionHandler for StructuralHandler {
                     cursor, viewport, ..
                 } = state
                 {
-                    Ok(UIState::Insert {
+                    Ok(UIState::Modal {
                         cursor: *cursor,
                         viewport: *viewport,
-                        insert_type: *insert_type,
-                        position: *position,
-                        insert_position: *position,
-                        reference: *reference,
-                        count: 1,
-                        target_index: *reference,
+                        kind: ModalKind::Insert,
+                        data: ModalData::Insert {
+                            insert_type: *insert_type,
+                            position: *position,
+                            reference: *reference,
+                            count: 1,
+                            target_index: *reference,
+                        },
                     })
                 } else {
                     unreachable!("StructuralHandler::handle called with incompatible state/action")

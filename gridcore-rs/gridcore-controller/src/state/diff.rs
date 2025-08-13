@@ -158,7 +158,11 @@ impl StateDiff {
                     changes.viewport_changed = Some(*new_viewport);
                 }
                 if old_mode != new_mode {
-                    changes.cell_mode_changed = Some(*new_mode);
+                    changes.cell_mode_changed = Some(match new_mode {
+                        EditMode::Normal => CellMode::Normal,
+                        EditMode::Insert => CellMode::Insert,
+                        EditMode::Visual => CellMode::Visual,
+                    });
                 }
                 if old_value != new_value {
                     changes.editing_value_changed = Some(new_value.clone());
