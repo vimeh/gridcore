@@ -22,6 +22,7 @@ pub fn CanvasGrid(
     active_cell: Memo<CellAddress>,
     current_mode: Memo<SpreadsheetMode>,
     render_trigger: Trigger,
+    mode_trigger: Trigger,
 ) -> impl IntoView {
     // Get controller from context (keep as StoredValue to avoid cloning)
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
@@ -48,8 +49,8 @@ pub fn CanvasGrid(
     // Derive editing_mode from controller state
     // Check for UIState::Editing directly to avoid confusion with UIState::Insert (structural ops)
     let editing_mode = Memo::new(move |_| {
-        // Track render trigger to ensure memo updates when state changes
-        render_trigger.track();
+        // Track mode trigger to ensure memo updates when editing mode changes
+        mode_trigger.track();
 
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
@@ -248,7 +249,9 @@ pub fn CanvasGrid(
 
                 // Update the active cell signal
                 // Update cursor through controller action
-                let _ = controller_for_click.borrow_mut().dispatch_action(Action::UpdateCursor { cursor: cell });
+                let _ = controller_for_click
+                    .borrow_mut()
+                    .dispatch_action(Action::UpdateCursor { cursor: cell });
 
                 // State version now updated via controller events
 
@@ -299,7 +302,9 @@ pub fn CanvasGrid(
             // Now update active cell and start editing
             if let Some(cell) = new_cell {
                 // Update cursor through controller action
-                let _ = controller_for_dblclick.borrow_mut().dispatch_action(Action::UpdateCursor { cursor: cell });
+                let _ = controller_for_dblclick
+                    .borrow_mut()
+                    .dispatch_action(Action::UpdateCursor { cursor: cell });
 
                 // State version now updated via controller events
 

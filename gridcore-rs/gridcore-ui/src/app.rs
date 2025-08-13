@@ -98,11 +98,15 @@ pub fn App() -> impl IntoView {
                     | SpreadsheetEvent::CommandCancelled => {
                         mode_trigger.notify();
                     }
-                    SpreadsheetEvent::FormulaBarUpdated { .. }
-                    | SpreadsheetEvent::CellEditStarted { .. }
+                    SpreadsheetEvent::FormulaBarUpdated { .. } => {
+                        formula_trigger.notify();
+                    }
+                    SpreadsheetEvent::CellEditStarted { .. }
                     | SpreadsheetEvent::CellEditCompleted { .. }
                     | SpreadsheetEvent::CellEditCancelled { .. } => {
+                        // Cell editing affects both formula bar and mode
                         formula_trigger.notify();
+                        mode_trigger.notify();
                     }
                     SpreadsheetEvent::SheetAdded { .. }
                     | SpreadsheetEvent::SheetRemoved { .. }
@@ -189,7 +193,7 @@ pub fn App() -> impl IntoView {
 
     let active_sheet = Memo::new(move |_| {
         sheets_trigger.track(); // Track sheet changes only
-        // For now, we'll use index 0 - this should be improved to track actual active sheet
+                                // For now, we'll use index 0 - this should be improved to track actual active sheet
         0usize
     });
 
@@ -590,6 +594,7 @@ pub fn App() -> impl IntoView {
                     active_cell=active_cell
                     current_mode=current_mode
                     render_trigger=render_trigger
+                    mode_trigger=mode_trigger
                 />
             </div>
 

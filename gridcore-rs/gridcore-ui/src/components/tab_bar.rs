@@ -13,10 +13,7 @@ pub struct Sheet {
 }
 
 #[component]
-pub fn TabBar(
-    sheets: Memo<Vec<Sheet>>,
-    active_sheet: Memo<usize>,
-) -> impl IntoView {
+pub fn TabBar(sheets: Memo<Vec<Sheet>>, active_sheet: Memo<usize>) -> impl IntoView {
     let (show_context_menu, set_show_context_menu) = signal(false);
     let (context_menu_sheet, set_context_menu_sheet) = signal(0usize);
     let (context_menu_pos, set_context_menu_pos) = signal((0.0, 0.0));
