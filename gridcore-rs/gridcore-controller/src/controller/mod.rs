@@ -5,6 +5,7 @@ pub mod operations;
 pub mod spreadsheet;
 #[cfg(test)]
 mod spreadsheet_test;
+pub mod state_access;
 pub mod viewport;
 
 // New modular organization
@@ -21,6 +22,7 @@ pub use managers::ManagerAccess;
 pub use operations::{CellOperations, ErrorOperations, SelectionOperations, SheetOperations};
 pub use sheet_management::SheetManagement;
 pub use spreadsheet::SpreadsheetController;
+pub use state_access::{actions, DirectStateAccess};
 pub use viewport::{
     CellPosition, DefaultViewportManager, GridConfiguration, ScrollPosition, ViewportBounds,
     ViewportManager,

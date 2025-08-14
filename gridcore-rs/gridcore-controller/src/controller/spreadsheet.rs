@@ -102,6 +102,16 @@ impl SpreadsheetController {
         *self.state_machine.get_state().cursor()
     }
 
+    /// Get direct access to the state machine
+    pub fn state_machine(&mut self) -> super::state_access::DirectStateAccess<'_> {
+        super::state_access::DirectStateAccess::new(&mut self.state_machine)
+    }
+
+    /// Get immutable direct access to state
+    pub fn state_ref(&self) -> &UIState {
+        self.state_machine.get_state()
+    }
+
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
         // Handle special actions that need controller logic
 
@@ -487,24 +497,24 @@ impl SpreadsheetController {
     pub fn unsubscribe_from_events(&mut self, index: usize) {
         self.event_dispatcher.unsubscribe(index)
     }
-    
+
     // ============= Operation Facades =============
-    
+
     /// Cell operations facade
     pub fn cells(&mut self) -> super::operations::CellOperations {
         super::operations::CellOperations::new(self)
     }
-    
+
     /// Sheet operations facade
     pub fn sheets_ops(&mut self) -> super::operations::SheetOperations {
         super::operations::SheetOperations::new(self)
     }
-    
+
     /// Error operations facade
     pub fn errors(&mut self) -> super::operations::ErrorOperations {
         super::operations::ErrorOperations::new(self)
     }
-    
+
     /// Selection operations facade
     pub fn selection(&self) -> super::operations::SelectionOperations {
         super::operations::SelectionOperations::new(self)

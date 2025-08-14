@@ -89,8 +89,7 @@ pub fn App() -> impl IntoView {
                     SpreadsheetEvent::CursorMoved { .. } => {
                         cursor_trigger.notify();
                     }
-                    SpreadsheetEvent::StateChanged
-                    | SpreadsheetEvent::CommandExecuted { .. } => {
+                    SpreadsheetEvent::StateChanged | SpreadsheetEvent::CommandExecuted { .. } => {
                         mode_trigger.notify();
                         // State changes may affect multiple things
                         cursor_trigger.notify();

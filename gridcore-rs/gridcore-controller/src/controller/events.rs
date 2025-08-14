@@ -10,23 +10,23 @@ pub enum SpreadsheetEvent {
         to: CellAddress,
     },
     StateChanged,
-    
+
     // Cell editing with unified state
     CellEditCompleted {
         address: CellAddress,
         value: String,
     },
-    
+
     // Formula bar
     FormulaBarUpdated {
         value: String,
     },
-    
+
     // Command execution
     CommandExecuted {
         command: String,
     },
-    
+
     // Sheet operations (consolidated)
     SheetChanged {
         from: String,
@@ -42,7 +42,7 @@ pub enum SpreadsheetEvent {
         old_name: String,
         new_name: String,
     },
-    
+
     // Error handling
     ErrorOccurred {
         message: String,
@@ -257,13 +257,13 @@ impl EventDispatcher {
             }
             _ => {}
         }
-        
+
         // Also dispatch to generic listeners
         for listener in &self.listeners {
             listener(event);
         }
     }
-    
+
     /// Set direct callback for state changes (avoids event allocation)
     pub fn on_state_change<F>(&mut self, callback: F)
     where
@@ -271,7 +271,7 @@ impl EventDispatcher {
     {
         self.state_callback = Some(Box::new(callback));
     }
-    
+
     /// Set direct callback for cell edits (avoids event allocation)
     pub fn on_cell_edit<F>(&mut self, callback: F)
     where
@@ -279,7 +279,7 @@ impl EventDispatcher {
     {
         self.cell_callback = Some(Box::new(callback));
     }
-    
+
     /// Set direct callback for errors (avoids event allocation)
     pub fn on_error<F>(&mut self, callback: F)
     where
@@ -287,7 +287,7 @@ impl EventDispatcher {
     {
         self.error_callback = Some(Box::new(callback));
     }
-    
+
     /// Direct notification methods for high-frequency events
     pub fn notify_state_change(&self) {
         if let Some(ref callback) = self.state_callback {
@@ -296,7 +296,7 @@ impl EventDispatcher {
         // Also dispatch as event for compatibility
         self.dispatch(&SpreadsheetEvent::StateChanged);
     }
-    
+
     pub fn notify_cell_edit(&self, address: &CellAddress, value: &str) {
         if let Some(ref callback) = self.cell_callback {
             callback(address, value);
@@ -307,7 +307,7 @@ impl EventDispatcher {
             value: value.to_string(),
         });
     }
-    
+
     pub fn notify_error(&self, message: &str, severity: ErrorSeverity) {
         if let Some(ref callback) = self.error_callback {
             callback(message, severity);

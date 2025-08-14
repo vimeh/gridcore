@@ -55,7 +55,7 @@ mod edge_case_tests {
 
         // Machine should still be in valid state
         let m = machine.lock().expect("Test mutex should not be poisoned");
-        assert!(matches!(m.state(), UIState::Navigation { .. }));
+        assert!(matches!(m.get_state(), UIState::Navigation { .. }));
     }
 
     #[test]
