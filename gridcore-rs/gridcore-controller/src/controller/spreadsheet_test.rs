@@ -370,7 +370,7 @@ mod tests {
 
         // Assert
         assert_eq!(
-            controller.get_cell_display_for_ui(&cell_addr),
+            controller.cells().display_value(&cell_addr),
             "",
             "Cell should be cleared"
         );
@@ -412,7 +412,7 @@ mod tests {
 
         // Assert
         assert_eq!(
-            controller.get_cell_display_for_ui(&cell_addr),
+            controller.cells().display_value(&cell_addr),
             "",
             "Cell should be cleared"
         );
@@ -559,24 +559,24 @@ mod tests {
         let mut controller = SpreadsheetController::new();
 
         // Add an error
-        controller.emit_error(
+        controller.errors().emit(
             "Test error".to_string(),
             crate::controller::events::ErrorSeverity::Error,
         );
 
         // Verify error exists
-        let errors = controller.get_active_errors();
+        let errors = controller.errors().active();
         assert_eq!(errors.len(), 1, "Should have one error");
         let error_id = errors[0].id;
 
         // Remove the error
         assert!(
-            controller.remove_error(error_id),
+            controller.errors().remove(error_id),
             "Should successfully remove error"
         );
 
         // Verify error is gone
-        let errors = controller.get_active_errors();
+        let errors = controller.errors().active();
         assert_eq!(errors.len(), 0, "Should have no errors after dismissal");
     }
 }

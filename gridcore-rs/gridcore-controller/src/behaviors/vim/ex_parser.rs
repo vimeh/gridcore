@@ -81,7 +81,7 @@ impl ExParser {
             ));
 
             // Range element can be a line spec or relative
-            let range_element = choice((line_spec.clone(), relative.clone()));
+            let range_element = choice((line_spec.clone(), relative));
 
             // Range with comma (e.g., 1,10 or .,$ or .,+5)
             let range_pair = range_element

@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod refactoring_tests {
+mod tests {
     use crate::state::{
         Action, BulkOperationStatus, CoreState, DeleteType, EditMode, InsertMode, InsertPosition,
         InsertType, ModalKind, NavigationModal, ParsedBulkCommand, ResizeTarget, Selection,

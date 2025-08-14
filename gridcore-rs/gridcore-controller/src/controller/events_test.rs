@@ -148,7 +148,7 @@ mod tests {
             .unwrap();
 
         // Get selection stats for current cell
-        let stats = controller.get_current_selection_stats();
+        let stats = controller.selection().stats();
         assert_eq!(stats.count, 1);
         assert_eq!(stats.sum, Some(10.0));
     }

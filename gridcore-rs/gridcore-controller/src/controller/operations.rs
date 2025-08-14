@@ -216,7 +216,7 @@ impl<'a> SelectionOperations<'a> {
                         .iter()
                         .filter_map(|s| {
                             if let SelectionType::Range { start, end } = &s.selection_type {
-                                Some((start.clone(), end.clone()))
+                                Some((*start, *end))
                             } else {
                                 None
                             }
@@ -229,14 +229,12 @@ impl<'a> SelectionOperations<'a> {
                 }
             }
         } else {
-            // No selection, return empty stats
-            SelectionStats {
-                count: 0,
-                sum: None,
-                average: None,
-                min: None,
-                max: None,
-            }
+            // No selection, calculate stats for current cursor position
+            let cursor = self.controller.state().cursor();
+            crate::behaviors::selection_stats::calculate_single_cell(
+                self.controller.facade(),
+                cursor,
+            )
         }
     }
 

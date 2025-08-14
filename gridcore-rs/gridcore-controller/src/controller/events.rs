@@ -204,13 +204,19 @@ impl MouseEvent {
 /// Type alias for event listener functions
 type EventListener = Box<dyn Fn(&SpreadsheetEvent) + Send>;
 
+/// Type alias for cell callback function
+type CellCallback = Box<dyn Fn(&CellAddress, &str)>;
+
+/// Type alias for error callback function
+type ErrorCallback = Box<dyn Fn(&str, ErrorSeverity)>;
+
 /// Simplified event dispatcher with direct callbacks for common events
 pub struct EventDispatcher {
     listeners: Vec<EventListener>,
     // Direct callbacks for high-frequency events
     state_callback: Option<Box<dyn Fn()>>,
-    cell_callback: Option<Box<dyn Fn(&CellAddress, &str)>>,
-    error_callback: Option<Box<dyn Fn(&str, ErrorSeverity)>>,
+    cell_callback: Option<CellCallback>,
+    error_callback: Option<ErrorCallback>,
 }
 
 impl EventDispatcher {

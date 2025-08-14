@@ -112,7 +112,6 @@ impl VimParser {
 
             // Operator + motion combinations
             let op_motion = operator
-                .clone()
                 .then(simple_motion.clone())
                 .map(|(op, mot)| VimCommand {
                     count: None,
@@ -123,7 +122,6 @@ impl VimParser {
 
             // Operator + two-char motion
             let op_two_char = operator
-                .clone()
                 .then(two_char_motion.clone())
                 .map(|(op, mot)| VimCommand {
                     count: None,

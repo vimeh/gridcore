@@ -1,4 +1,4 @@
-use crate::behaviors::{resize::ResizeState, selection_stats};
+use crate::behaviors::resize::ResizeState;
 use crate::controller::{
     DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
     SpreadsheetEvent, ViewportManager,
@@ -282,37 +282,6 @@ impl SpreadsheetController {
         &mut self.facade
     }
 
-    /// Get the display value for a cell in the UI
-    /// Returns the formula if the cell has one, otherwise the display value
-    #[deprecated(note = "Use cells().display_value() instead")]
-    pub fn get_cell_display_for_ui(&self, address: &CellAddress) -> String {
-        if let Some(cell) = self.facade.get_cell(address) {
-            if cell.has_formula() {
-                // Show the formula for editing
-                cell.raw_value.to_string()
-            } else {
-                // Show the display value
-                cell.get_display_value().to_string()
-            }
-        } else {
-            String::new()
-        }
-    }
-
-    /// Emit an error event and add to error manager
-    #[deprecated(note = "Use errors().emit() instead")]
-    pub fn emit_error(
-        &mut self,
-        message: String,
-        severity: crate::controller::events::ErrorSeverity,
-    ) {
-        // Add to error manager
-        self.error_manager.add_error(message.clone(), severity);
-
-        // Dispatch event for UI updates
-        self.event_dispatcher
-            .dispatch(&SpreadsheetEvent::ErrorOccurred { message, severity });
-    }
 
     pub fn get_viewport_manager(&self) -> &dyn ViewportManager {
         self.viewport_manager.as_ref()
@@ -336,47 +305,6 @@ impl SpreadsheetController {
         &mut self.resize_state
     }
 
-    #[deprecated(note = "Use selection().stats() instead")]
-    pub fn get_current_selection_stats(&self) -> selection_stats::SelectionStats {
-        use crate::state::SelectionType;
-
-        // Get the current selection from the state
-        let selection = self.state_machine.get_state().selection();
-
-        if let Some(sel) = selection {
-            // Calculate stats based on selection type
-            match &sel.selection_type {
-                SelectionType::Range { start, end } => {
-                    selection_stats::calculate_range(&self.facade, start, end)
-                }
-                SelectionType::Cell { address } => {
-                    selection_stats::calculate_single_cell(&self.facade, address)
-                }
-                SelectionType::Column { columns: _ } => {
-                    // For column selections, calculate stats for all cells in those columns
-                    // For now, just return default stats
-                    // TODO: Implement column selection stats
-                    selection_stats::SelectionStats::default()
-                }
-                SelectionType::Row { rows: _ } => {
-                    // For row selections, calculate stats for all cells in those rows
-                    // For now, just return default stats
-                    // TODO: Implement row selection stats
-                    selection_stats::SelectionStats::default()
-                }
-                SelectionType::Multi { selections: _ } => {
-                    // For multi selections, we would need to handle multiple ranges
-                    // For now, just return default stats
-                    // TODO: Implement multi selection stats
-                    selection_stats::SelectionStats::default()
-                }
-            }
-        } else {
-            // No selection, calculate for current cursor position
-            let cursor = self.state_machine.get_state().cursor();
-            selection_stats::calculate_single_cell(&self.facade, cursor)
-        }
-    }
 
     /// Get the error manager
     pub fn get_error_manager(&self) -> &ErrorManager {
@@ -388,23 +316,6 @@ impl SpreadsheetController {
         &mut self.error_manager
     }
 
-    /// Get active errors from the error manager
-    #[deprecated(note = "Use errors().active() instead")]
-    pub fn get_active_errors(&self) -> Vec<crate::managers::ErrorEntry> {
-        self.error_manager.get_active_errors()
-    }
-
-    /// Clear all errors
-    #[deprecated(note = "Use errors().clear_all() instead")]
-    pub fn clear_all_errors(&mut self) {
-        self.error_manager.clear_all();
-    }
-
-    /// Remove a specific error by ID
-    #[deprecated(note = "Use errors().remove() instead")]
-    pub fn remove_error(&mut self, id: usize) -> bool {
-        self.error_manager.remove_error(id)
-    }
 
     /// Dispatch an event to all listeners
     pub fn dispatch_event(&mut self, event: SpreadsheetEvent) {
@@ -1208,23 +1119,23 @@ mod sheet_tests {
         let mut controller = SpreadsheetController::new();
 
         // Add an error
-        controller.emit_error("Test error".to_string(), ErrorSeverity::Error);
+        controller.errors().emit("Test error".to_string(), ErrorSeverity::Error);
 
         // Check that error was added
-        let errors = controller.get_active_errors();
+        let errors = controller.errors().active();
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].message, "Test error");
 
         // Add warning
-        controller.emit_error("Test warning".to_string(), ErrorSeverity::Warning);
+        controller.errors().emit("Test warning".to_string(), ErrorSeverity::Warning);
 
         // Check both are present
-        let errors = controller.get_active_errors();
+        let errors = controller.errors().active();
         assert_eq!(errors.len(), 2);
 
         // Clear all errors
-        controller.clear_all_errors();
-        let errors = controller.get_active_errors();
+        controller.errors().clear_all();
+        let errors = controller.errors().active();
         assert_eq!(errors.len(), 0);
     }
 
@@ -1233,25 +1144,25 @@ mod sheet_tests {
         let mut controller = SpreadsheetController::new();
 
         // Add multiple errors
-        controller.emit_error("Error 1".to_string(), ErrorSeverity::Error);
-        controller.emit_error("Error 2".to_string(), ErrorSeverity::Warning);
-        controller.emit_error("Error 3".to_string(), ErrorSeverity::Info);
+        controller.errors().emit("Error 1".to_string(), ErrorSeverity::Error);
+        controller.errors().emit("Error 2".to_string(), ErrorSeverity::Warning);
+        controller.errors().emit("Error 3".to_string(), ErrorSeverity::Info);
 
-        let errors = controller.get_active_errors();
+        let errors = controller.errors().active();
         assert_eq!(errors.len(), 3);
 
         // Remove middle error
         let error_id = errors[1].id;
-        assert!(controller.remove_error(error_id));
+        assert!(controller.errors().remove(error_id));
 
         // Check that only 2 remain
-        let errors = controller.get_active_errors();
+        let errors = controller.errors().active();
         assert_eq!(errors.len(), 2);
         assert_eq!(errors[0].message, "Error 1");
         assert_eq!(errors[1].message, "Error 3");
 
         // Try to remove non-existent error
-        assert!(!controller.remove_error(999));
+        assert!(!controller.errors().remove(999));
     }
 
     #[test]
@@ -1267,7 +1178,7 @@ mod sheet_tests {
         });
 
         // Emit an error
-        controller.emit_error("Test error".to_string(), ErrorSeverity::Error);
+        controller.errors().emit("Test error".to_string(), ErrorSeverity::Error);
 
         // Check that ErrorOccurred event was dispatched
         let e = events.lock().unwrap();
