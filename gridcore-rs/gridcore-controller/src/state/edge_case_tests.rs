@@ -388,7 +388,7 @@ mod edge_case_tests {
             .expect("State transition should succeed in test");
 
         // Create new machine with initial state
-        let initial_state = UIState::create_navigation_state(
+        let initial_state = UIState::new_navigation(
             CellAddress::new(0, 0),
             ViewportInfo {
                 start_row: 0,

@@ -1,6 +1,6 @@
 use crate::state::{
-    actions::Action, create_navigation_state, diff::StateDiff,
-    transition_handlers::HandlerRegistry, InsertMode, Selection, UIState, ViewportInfo, VisualMode,
+    actions::Action, diff::StateDiff, transition_handlers::HandlerRegistry, CoreState, InsertMode,
+    Selection, UIState, ViewportInfo, VisualMode,
 };
 use gridcore_core::{types::CellAddress, Result};
 use serde::{Deserialize, Serialize};
@@ -28,8 +28,8 @@ impl UIStateMachine {
     pub fn new(initial_state: Option<UIState>) -> Self {
         let default_cursor = CellAddress::new(0, 0);
 
-        let default_state = initial_state.unwrap_or_else(|| {
-            create_navigation_state(
+        let default_state = initial_state.unwrap_or_else(|| UIState::Navigation {
+            core: CoreState::new(
                 default_cursor,
                 ViewportInfo {
                     start_row: 0,
@@ -37,8 +37,9 @@ impl UIStateMachine {
                     rows: 20,
                     cols: 10,
                 },
-                None,
-            )
+            ),
+            selection: None,
+            modal: None,
         });
 
         Self {
