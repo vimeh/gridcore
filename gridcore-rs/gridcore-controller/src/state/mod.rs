@@ -13,6 +13,8 @@ mod edge_case_tests;
 #[cfg(test)]
 mod performance_tests;
 #[cfg(test)]
+mod refactoring_tests;
+#[cfg(test)]
 mod tests;
 
 pub use actions::Action;

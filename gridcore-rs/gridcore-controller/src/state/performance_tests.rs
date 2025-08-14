@@ -2,7 +2,7 @@
 #[allow(clippy::module_inception)]
 mod performance_tests {
     use super::super::*;
-    use crate::state::{ModalData, ModalKind, VisualMode};
+    use crate::state::{ModalKind, VisualMode};
     use gridcore_core::types::CellAddress;
     use std::time::Instant;
 

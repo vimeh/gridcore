@@ -435,10 +435,10 @@ mod tests {
         // Check first entry
         assert!(matches!(history[0].action, Action::EnterCommandMode));
         // Now we store diffs instead of full states, so check the diff
-        // The first diff should be a Full transition from Navigation to Command
+        // Since Navigation to Navigation+Command is same variant, it's a Partial diff
         assert!(matches!(
             history[0].diff,
-            crate::state::diff::StateDiff::Full(_)
+            crate::state::diff::StateDiff::Partial(_)
         ));
 
         // Check that timestamps are set (non-wasm)

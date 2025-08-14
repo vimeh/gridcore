@@ -1,4 +1,4 @@
-use crate::state::{actions::Action, CoreState, EditMode, NavigationModal, Selection, UIState};
+use crate::state::{actions::Action, CoreState, EditMode, NavigationModal, Selection, UIState, VisualSelection};
 use gridcore_core::Result;
 
 /// Consolidated handler for all state transitions
@@ -10,6 +10,61 @@ impl StateTransitionHandler {
     }
 
     pub fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
+        // Handle core actions that work in any state
+        match action {
+            Action::UpdateCursor { cursor } => {
+                match state {
+                    UIState::Navigation { core, selection, modal } => {
+                        let mut new_core = core.clone();
+                        new_core.cursor = *cursor;
+                        return Ok(UIState::Navigation {
+                            core: new_core,
+                            selection: selection.clone(),
+                            modal: modal.clone(),
+                        });
+                    }
+                    UIState::Editing { core, value, cursor_pos, mode, visual_selection, insert_variant } => {
+                        let mut new_core = core.clone();
+                        new_core.cursor = *cursor;
+                        return Ok(UIState::Editing {
+                            core: new_core,
+                            value: value.clone(),
+                            cursor_pos: *cursor_pos,
+                            mode: *mode,
+                            visual_selection: visual_selection.clone(),
+                            insert_variant: *insert_variant,
+                        });
+                    }
+                }
+            }
+            Action::UpdateViewport { viewport } => {
+                match state {
+                    UIState::Navigation { core, selection, modal } => {
+                        let mut new_core = core.clone();
+                        new_core.viewport = *viewport;
+                        return Ok(UIState::Navigation {
+                            core: new_core,
+                            selection: selection.clone(),
+                            modal: modal.clone(),
+                        });
+                    }
+                    UIState::Editing { core, value, cursor_pos, mode, visual_selection, insert_variant } => {
+                        let mut new_core = core.clone();
+                        new_core.viewport = *viewport;
+                        return Ok(UIState::Editing {
+                            core: new_core,
+                            value: value.clone(),
+                            cursor_pos: *cursor_pos,
+                            mode: *mode,
+                            visual_selection: visual_selection.clone(),
+                            insert_variant: *insert_variant,
+                        });
+                    }
+                }
+            }
+            _ => {} // Fall through to state-specific handling
+        }
+
         match (state, action) {
             // ============================================================
             // Navigation State Transitions
@@ -89,20 +144,92 @@ impl StateTransitionHandler {
                 modal: None,
             }),
 
-            // No direct MoveCursor action in current system - handled elsewhere
+            // Start bulk operation
+            Action::StartBulkOperation { parsed_command, affected_cells: _ } => Ok(UIState::Navigation {
+                core: core.clone(),
+                selection,
+                modal: Some(NavigationModal::BulkOperation {
+                    command: parsed_command.clone(),
+                    status: crate::state::BulkOperationStatus::Preparing,
+                }),
+            }),
 
-            // Update viewport actions are handled separately
+            // Start resize
+            Action::StartResize { target, initial_position } => {
+                let resize_index = match target {
+                    crate::state::ResizeTarget::Column { index } |
+                    crate::state::ResizeTarget::Row { index } => *index,
+                };
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: Some(NavigationModal::Resize {
+                        target: *target,
+                        sizes: crate::state::ResizeSizes {
+                            original_size: 100,  // Default value
+                            current_size: 100,
+                            initial_position: *initial_position,
+                            current_position: *initial_position,
+                            resize_index,
+                        },
+                    }),
+                })
+            },
+
+            // Start insert
+            Action::StartInsert { insert_type, position, reference } => Ok(UIState::Navigation {
+                core: core.clone(),
+                selection,
+                modal: Some(NavigationModal::Insert {
+                    config: crate::state::InsertConfig {
+                        insert_type: *insert_type,
+                        position: *position,
+                        reference: *reference,
+                        count: 1,
+                        target_index: *reference,  // Use reference as target_index
+                    },
+                }),
+            }),
+
+            // Start delete
+            Action::StartDelete { targets, delete_type } => Ok(UIState::Navigation {
+                core: core.clone(),
+                selection,
+                modal: Some(NavigationModal::Delete {
+                    config: crate::state::DeleteConfig {
+                        targets: targets.clone(),
+                        delete_type: *delete_type,
+                        selection: targets.clone(),  // Use targets as selection
+                        confirmation_pending: false,
+                    },
+                }),
+            }),
 
             // Handle modal-specific actions
             _ => {
                 if let Some(modal) = modal {
                     self.handle_modal_action(core, selection, modal, action)
                 } else {
-                    Ok(UIState::Navigation {
-                        core: core.clone(),
-                        selection,
-                        modal: None,
-                    })
+                    // Check for invalid actions in Navigation state
+                    match action {
+                        Action::EnterInsertMode { .. } |
+                        Action::ExitInsertMode |
+                        Action::UpdateEditingValue { .. } |
+                        Action::UpdateEditingCursor { .. } |
+                        Action::InsertCharacterAtCursor { .. } |
+                        Action::DeleteCharacterAtCursor { .. } |
+                        Action::EnterVisualMode { .. } |
+                        Action::ExitVisualMode => {
+                            Err(gridcore_core::SpreadsheetError::Parse(
+                                "Invalid action for Navigation state".to_string()
+                            ))
+                        }
+                        _ => Ok(UIState::Navigation {
+                            core: core.clone(),
+                            selection,
+                            modal: None,
+                        })
+                    }
                 }
             }
         }
@@ -157,6 +284,134 @@ impl StateTransitionHandler {
                     modal: Some(NavigationModal::Resize {
                         target: *target,
                         sizes: new_sizes,
+                    }),
+                })
+            }
+
+            // Bulk operation actions
+            (NavigationModal::BulkOperation { command, .. }, Action::GeneratePreview) => {
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: Some(NavigationModal::BulkOperation {
+                        command: command.clone(),
+                        status: crate::state::BulkOperationStatus::Previewing,
+                    }),
+                })
+            }
+
+            (NavigationModal::BulkOperation { .. }, Action::ExecuteBulkOperation) => {
+                // Exit modal after execution
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            (NavigationModal::BulkOperation { .. }, Action::CancelBulkOperation) => {
+                // Exit modal on cancel
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            // Resize actions
+            (NavigationModal::Resize { .. }, Action::ConfirmResize) => {
+                // Exit modal after confirmation
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            (NavigationModal::Resize { .. }, Action::CancelResize) => {
+                // Exit modal on cancel
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            // Insert actions
+            (NavigationModal::Insert { config }, Action::UpdateInsertCount { count }) => {
+                let mut new_config = config.clone();
+                new_config.count = *count;
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: Some(NavigationModal::Insert { config: new_config }),
+                })
+            }
+
+            (NavigationModal::Insert { .. }, Action::ConfirmInsert) => {
+                // Exit modal after confirmation
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            (NavigationModal::Insert { .. }, Action::CancelInsert) => {
+                // Exit modal on cancel
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            // Delete actions
+            (NavigationModal::Delete { .. }, Action::ConfirmDelete) => {
+                // Exit modal after confirmation
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            (NavigationModal::Delete { .. }, Action::CancelDelete) => {
+                // Exit modal on cancel
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            // Command mode - exit
+            (NavigationModal::Command { .. }, Action::ExitCommandMode) => {
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            // Visual mode - exit
+            (NavigationModal::Visual { .. }, Action::ExitSpreadsheetVisualMode) => {
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: None,
+                })
+            }
+
+            // Visual mode - change mode
+            (NavigationModal::Visual { anchor, selection: vis_selection, .. }, Action::ChangeVisualMode { new_mode }) => {
+                Ok(UIState::Navigation {
+                    core: core.clone(),
+                    selection,
+                    modal: Some(NavigationModal::Visual {
+                        mode: *new_mode,
+                        anchor: *anchor,
+                        selection: vis_selection.clone(),
                     }),
                 })
             }
@@ -257,6 +512,18 @@ impl StateTransitionHandler {
                 })
             }
 
+            // Update editing value
+            Action::UpdateEditingValue { value: new_value, cursor_position } => {
+                Ok(UIState::Editing {
+                    core: core.clone(),
+                    value: new_value.clone(),
+                    cursor_pos: *cursor_position,
+                    mode,
+                    visual_selection: visual_selection.clone(),
+                    insert_variant,
+                })
+            }
+
             // Enter/Exit insert mode
             Action::EnterInsertMode { mode: insert_mode } => Ok(UIState::Editing {
                 core: core.clone(),
@@ -276,15 +543,90 @@ impl StateTransitionHandler {
                 insert_variant: None,
             }),
 
-            // Default: preserve current state
-            _ => Ok(UIState::Editing {
+            // Enter/Exit visual mode within editing
+            Action::EnterVisualMode { visual_type, anchor } => Ok(UIState::Editing {
                 core: core.clone(),
                 value: value.clone(),
                 cursor_pos,
-                mode,
-                visual_selection: visual_selection.clone(),
+                mode: EditMode::Visual,
+                visual_selection: Some(VisualSelection {
+                    mode: *visual_type,
+                    start: anchor.unwrap_or(cursor_pos),
+                }),
                 insert_variant,
             }),
+
+            Action::ExitVisualMode => Ok(UIState::Editing {
+                core: core.clone(),
+                value: value.clone(),
+                cursor_pos,
+                mode: EditMode::Normal,
+                visual_selection: None,
+                insert_variant,
+            }),
+
+            // Escape handling
+            Action::Escape => {
+                if mode == EditMode::Normal {
+                    // Exit to navigation
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: None,
+                        modal: None,
+                    })
+                } else {
+                    // Exit to normal mode
+                    Ok(UIState::Editing {
+                        core: core.clone(),
+                        value: value.clone(),
+                        cursor_pos,
+                        mode: EditMode::Normal,
+                        visual_selection: None,
+                        insert_variant: None,
+                    })
+                }
+            },
+
+            // Default: check for invalid actions
+            _ => {
+                // Check for invalid actions in Editing state
+                match action {
+                    Action::EnterCommandMode |
+                    Action::ExitCommandMode |
+                    Action::UpdateCommandValue { .. } |
+                    Action::EnterSpreadsheetVisualMode { .. } |
+                    Action::ExitSpreadsheetVisualMode |
+                    Action::UpdateSelection { .. } |
+                    Action::ChangeVisualMode { .. } |
+                    Action::StartBulkOperation { .. } |
+                    Action::GeneratePreview |
+                    Action::ExecuteBulkOperation |
+                    Action::CancelBulkOperation |
+                    Action::StartResize { .. } |
+                    Action::UpdateResize { .. } |
+                    Action::ConfirmResize |
+                    Action::CancelResize |
+                    Action::StartInsert { .. } |
+                    Action::UpdateInsertCount { .. } |
+                    Action::ConfirmInsert |
+                    Action::CancelInsert |
+                    Action::StartDelete { .. } |
+                    Action::ConfirmDelete |
+                    Action::CancelDelete => {
+                        Err(gridcore_core::SpreadsheetError::Parse(
+                            "Invalid action for Editing state".to_string()
+                        ))
+                    }
+                    _ => Ok(UIState::Editing {
+                        core: core.clone(),
+                        value: value.clone(),
+                        cursor_pos,
+                        mode,
+                        visual_selection: visual_selection.clone(),
+                        insert_variant,
+                    }),
+                }
+            },
         }
     }
 }
