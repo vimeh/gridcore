@@ -1,9 +1,9 @@
-use super::{Motion, Operator, VimBehavior};
+use super::{Direction, LegacyVimBehavior, Motion, Operator};
 use crate::state::{Action, InsertMode, UIState};
 use gridcore_core::Result;
 
 /// Handle normal mode key presses
-impl VimBehavior {
+impl LegacyVimBehavior {
     pub fn handle_normal_mode(
         &mut self,
         key: &str,
@@ -117,12 +117,22 @@ impl VimBehavior {
             }
 
             // Navigation
-            "h" | "ArrowLeft" => self.move_cursor(Motion::Left(count.unwrap_or(1)), current_state),
-            "j" | "ArrowDown" => self.move_cursor(Motion::Down(count.unwrap_or(1)), current_state),
-            "k" | "ArrowUp" => self.move_cursor(Motion::Up(count.unwrap_or(1)), current_state),
-            "l" | "ArrowRight" => {
-                self.move_cursor(Motion::Right(count.unwrap_or(1)), current_state)
-            }
+            "h" | "ArrowLeft" => self.move_cursor(
+                Motion::Char(Direction::Left, count.unwrap_or(1)),
+                current_state,
+            ),
+            "j" | "ArrowDown" => self.move_cursor(
+                Motion::Char(Direction::Down, count.unwrap_or(1)),
+                current_state,
+            ),
+            "k" | "ArrowUp" => self.move_cursor(
+                Motion::Char(Direction::Up, count.unwrap_or(1)),
+                current_state,
+            ),
+            "l" | "ArrowRight" => self.move_cursor(
+                Motion::Char(Direction::Right, count.unwrap_or(1)),
+                current_state,
+            ),
 
             "0" | "Home" => self.move_cursor(Motion::LineStart, current_state),
             "$" | "End" => self.move_cursor(Motion::LineEnd, current_state),
@@ -303,12 +313,12 @@ impl VimBehavior {
     }
 
     fn enter_insert_mode(&mut self, mode: InsertMode) -> Result<Option<Action>> {
-        self.mode = super::VimMode::Insert;
+        self.mode = super::VimMode::Insert(super::InsertMode::Insert);
         Ok(Some(Action::EnterInsertMode { mode: Some(mode) }))
     }
 
     fn enter_operator_pending(&mut self, operator: Operator) -> Result<Option<Action>> {
-        self.mode = super::VimMode::OperatorPending;
+        self.mode = super::VimMode::OperatorPending(operator);
         self.current_command.operator = Some(operator);
         self.command_buffer.push(match operator {
             Operator::Delete => 'd',
@@ -356,7 +366,7 @@ impl VimBehavior {
 
     fn change_lines(&mut self, _count: usize) -> Result<Option<Action>> {
         self.command_buffer.clear();
-        self.mode = super::VimMode::Insert;
+        self.mode = super::VimMode::Insert(super::InsertMode::Insert);
         Ok(Some(Action::EnterInsertMode { mode: None }))
     }
 
@@ -366,14 +376,14 @@ impl VimBehavior {
     }
 
     fn substitute_chars(&mut self, _count: usize) -> Result<Option<Action>> {
-        self.mode = super::VimMode::Insert;
+        self.mode = super::VimMode::Insert(super::InsertMode::Insert);
         Ok(Some(Action::EnterInsertMode {
             mode: Some(InsertMode::I),
         }))
     }
 
     fn substitute_lines(&mut self, _count: usize) -> Result<Option<Action>> {
-        self.mode = super::VimMode::Insert;
+        self.mode = super::VimMode::Insert(super::InsertMode::Insert);
         Ok(Some(Action::EnterInsertMode {
             mode: Some(InsertMode::CapitalI),
         }))

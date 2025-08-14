@@ -1,4 +1,4 @@
-use super::{Motion, Operator, VimBehavior, VimCommand};
+use super::{LegacyVimBehavior, Motion, Operator, VimCommand};
 use crate::state::{Action, UIState};
 use gridcore_core::{types::CellAddress, Result};
 
@@ -11,11 +11,16 @@ pub struct OperatorContext<'a> {
     pub current_state: &'a UIState,
 }
 
-impl VimBehavior {
+impl LegacyVimBehavior {
     /// Execute an operator with a motion
     pub fn execute_operator(&mut self, context: OperatorContext) -> Result<Option<Action>> {
         let range = if let Some(motion) = &context.motion {
-            self.calculate_operator_range(motion, context.current_state)?
+            // Calculate range based on motion
+            let motion_context = super::motion::MotionContext::new(
+                *context.current_state.cursor(),
+                *context.current_state.viewport(),
+            );
+            super::motion::motion_range(motion, &motion_context)?
         } else {
             // No motion - operate on current position
             let cursor = context.current_state.cursor();
@@ -33,18 +38,6 @@ impl VimBehavior {
             Operator::UpperCase => self.execute_uppercase_operator(range),
             Operator::ToggleCase => self.execute_togglecase_operator(range),
         }
-    }
-
-    /// Calculate the range affected by an operator motion
-    fn calculate_operator_range(
-        &self,
-        motion: &Motion,
-        current_state: &UIState,
-    ) -> Result<(CellAddress, CellAddress)> {
-        let context =
-            super::motion::MotionContext::new(*current_state.cursor(), *current_state.viewport());
-
-        super::motion::motion_range(motion, &context)
     }
 
     fn execute_delete_operator(
@@ -84,7 +77,7 @@ impl VimBehavior {
         self.registers.insert(reg, String::new()); // TODO: Get actual content
 
         // Delete and enter insert mode
-        self.mode = super::VimMode::Insert;
+        self.mode = super::VimMode::Insert(super::InsertMode::Insert);
 
         // TODO: Delete the range first
         Ok(Some(Action::EnterInsertMode { mode: None }))
@@ -218,10 +211,10 @@ impl VimBehavior {
 }
 
 /// Helper functions for operator-pending mode
-impl VimBehavior {
+impl LegacyVimBehavior {
     /// Check if we're in operator-pending mode
     pub fn is_operator_pending(&self) -> bool {
-        self.mode == super::VimMode::OperatorPending
+        matches!(self.mode, super::VimMode::OperatorPending(_))
     }
 
     /// Get the pending operator
@@ -287,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_address_to_string() {
-        let vim = VimBehavior::new();
+        let vim = LegacyVimBehavior::new();
 
         assert_eq!(vim._address_to_string(&CellAddress::new(0, 0)), "A1");
         assert_eq!(vim._address_to_string(&CellAddress::new(1, 0)), "B1");
@@ -298,7 +291,7 @@ mod tests {
 
     #[test]
     fn test_col_to_letter() {
-        let vim = VimBehavior::new();
+        let vim = LegacyVimBehavior::new();
 
         assert_eq!(vim._col_to_letter(0), "A");
         assert_eq!(vim._col_to_letter(25), "Z");

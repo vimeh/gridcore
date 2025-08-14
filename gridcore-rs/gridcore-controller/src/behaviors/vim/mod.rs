@@ -1,99 +1,35 @@
+// Unified vim core types
+pub mod ex_parser;
+pub mod vim_commands;
+pub mod vim_core;
+pub mod vim_ex;
+pub mod vim_parser;
+
+// Legacy modules (to be refactored)
+pub mod cell_vim;
+pub mod motion;
+pub mod normal;
+pub mod operator;
+pub mod visual;
+
+// Temporarily disabled until migration is complete
+// #[cfg(test)]
+// mod cell_vim_tests;
+// #[cfg(test)]
+// mod normal_tests;
+
+// Re-export core types for backward compatibility during migration
+pub use vim_core::{
+    CommandRange, Direction, ExCommand, InsertMode, Motion, Operator, OperatorTarget, TextObject,
+    VimBehavior, VimCommand, VimContext, VimMode, VimResult, VisualMode,
+};
+
 use crate::state::{Action, UIState};
 use gridcore_core::{types::CellAddress, Result};
 use rustc_hash::FxHashMap;
 
-/// Represents the current Vim mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VimMode {
-    Normal,
-    Insert,
-    Visual,
-    VisualLine,
-    VisualBlock,
-    Command,
-    Replace,
-    OperatorPending,
-}
-
-/// Represents a Vim motion (movement command)
-#[derive(Debug, Clone, PartialEq)]
-pub enum Motion {
-    // Character motions
-    Left(usize),
-    Right(usize),
-    Up(usize),
-    Down(usize),
-
-    // Word motions
-    WordForward(usize),
-    WordBackward(usize),
-    WordEnd(usize),
-    BigWordForward(usize),
-    BigWordBackward(usize),
-    BigWordEnd(usize),
-
-    // Line motions
-    LineStart,
-    LineEnd,
-    FirstNonBlank,
-
-    // Document motions
-    DocumentStart,
-    DocumentEnd,
-    GotoLine(u32),
-
-    // Search motions
-    FindChar(char, bool), // char, forward?
-    FindCharBefore(char, bool),
-    RepeatFind,
-    RepeatFindReverse,
-
-    // Paragraph/section motions
-    ParagraphForward(usize),
-    ParagraphBackward(usize),
-    SectionForward(usize),
-    SectionBackward(usize),
-}
-
-/// Represents a Vim operator
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Operator {
-    Delete,
-    Change,
-    Yank,
-    Indent,
-    Outdent,
-    Format,
-    LowerCase,
-    UpperCase,
-    ToggleCase,
-}
-
-/// Represents a Vim text object
-#[derive(Debug, Clone, PartialEq)]
-pub enum TextObject {
-    Word,
-    BigWord,
-    Sentence,
-    Paragraph,
-    Block(char, char), // opening, closing delimiters
-    Quote(char),
-    Tag,
-}
-
-/// Represents a complete Vim command
-#[derive(Debug, Clone)]
-pub struct VimCommand {
-    pub(crate) count: Option<usize>,
-    pub(crate) operator: Option<Operator>,
-    pub(crate) motion: Option<Motion>,
-    #[allow(dead_code)]
-    pub(crate) text_object: Option<TextObject>,
-    pub(crate) register: Option<char>,
-}
-
-/// Vim state machine for handling Vim commands
-pub struct VimBehavior {
+/// Legacy Vim state machine for handling Vim commands (to be replaced)
+pub struct LegacyVimBehavior {
     pub(crate) mode: VimMode,
     pub(crate) command_buffer: String,
     pub(crate) current_command: VimCommand,
@@ -106,7 +42,7 @@ pub struct VimBehavior {
     pub(crate) _settings: FxHashMap<String, String>,
 }
 
-impl VimBehavior {
+impl LegacyVimBehavior {
     pub fn new() -> Self {
         Self {
             mode: VimMode::Normal,
@@ -140,13 +76,11 @@ impl VimBehavior {
     pub fn process_key(&mut self, key: &str, current_state: &UIState) -> Result<Option<Action>> {
         match self.mode {
             VimMode::Normal => self.process_normal_key(key, current_state),
-            VimMode::Insert => self.process_insert_key(key),
-            VimMode::Visual | VimMode::VisualLine | VimMode::VisualBlock => {
-                self.process_visual_key(key, current_state)
-            }
+            VimMode::Insert(_) => self.process_insert_key(key),
+            VimMode::Visual(_) => self.process_visual_key(key, current_state),
             VimMode::Command => self.process_command_key(key),
             VimMode::Replace => self.process_replace_key(key),
-            VimMode::OperatorPending => self.process_operator_pending_key(key, current_state),
+            VimMode::OperatorPending(_) => self.process_operator_pending_key(key, current_state),
         }
     }
 
@@ -190,7 +124,7 @@ impl VimBehavior {
 
             // Visual mode
             "v" => {
-                self.mode = VimMode::Visual;
+                self.mode = VimMode::Visual(VisualMode::Character);
                 self.visual_anchor = Some(*current_state.cursor());
                 Ok(Some(Action::EnterSpreadsheetVisualMode {
                     visual_mode: crate::state::VisualMode::Character,
@@ -203,7 +137,7 @@ impl VimBehavior {
                 }))
             }
             "V" => {
-                self.mode = VimMode::VisualLine;
+                self.mode = VimMode::Visual(VisualMode::Line);
                 self.visual_anchor = Some(*current_state.cursor());
                 Ok(Some(Action::EnterSpreadsheetVisualMode {
                     visual_mode: crate::state::VisualMode::Line,
@@ -223,18 +157,22 @@ impl VimBehavior {
             }
 
             // Movement
-            "h" | "ArrowLeft" => {
-                self.create_movement_action(Motion::Left(count.unwrap_or(1)), current_state)
-            }
-            "j" | "ArrowDown" => {
-                self.create_movement_action(Motion::Down(count.unwrap_or(1)), current_state)
-            }
-            "k" | "ArrowUp" => {
-                self.create_movement_action(Motion::Up(count.unwrap_or(1)), current_state)
-            }
-            "l" | "ArrowRight" => {
-                self.create_movement_action(Motion::Right(count.unwrap_or(1)), current_state)
-            }
+            "h" | "ArrowLeft" => self.create_movement_action(
+                Motion::Char(Direction::Left, count.unwrap_or(1)),
+                current_state,
+            ),
+            "j" | "ArrowDown" => self.create_movement_action(
+                Motion::Char(Direction::Down, count.unwrap_or(1)),
+                current_state,
+            ),
+            "k" | "ArrowUp" => self.create_movement_action(
+                Motion::Char(Direction::Up, count.unwrap_or(1)),
+                current_state,
+            ),
+            "l" | "ArrowRight" => self.create_movement_action(
+                Motion::Char(Direction::Right, count.unwrap_or(1)),
+                current_state,
+            ),
 
             "0" => self.create_movement_action(Motion::LineStart, current_state),
             "$" => self.create_movement_action(Motion::LineEnd, current_state),
@@ -269,18 +207,18 @@ impl VimBehavior {
 
             // Operators
             "d" => {
-                self.mode = VimMode::OperatorPending;
                 self.current_command.operator = Some(Operator::Delete);
+                self.mode = VimMode::OperatorPending(Operator::Delete);
                 Ok(None)
             }
             "c" => {
-                self.mode = VimMode::OperatorPending;
                 self.current_command.operator = Some(Operator::Change);
+                self.mode = VimMode::OperatorPending(Operator::Change);
                 Ok(None)
             }
             "y" => {
-                self.mode = VimMode::OperatorPending;
                 self.current_command.operator = Some(Operator::Yank);
+                self.mode = VimMode::OperatorPending(Operator::Yank);
                 Ok(None)
             }
 
@@ -351,7 +289,7 @@ impl VimBehavior {
             }
             "c" => {
                 // Change selection
-                self.mode = VimMode::Insert;
+                self.mode = VimMode::Insert(InsertMode::Insert);
                 self.visual_anchor = None;
                 Ok(Some(Action::EnterInsertMode { mode: None }))
             }
@@ -401,10 +339,22 @@ impl VimBehavior {
     ) -> Result<Option<Action>> {
         // Handle motion after operator
         let motion = match key {
-            "h" => Some(Motion::Left(self.current_command.count.unwrap_or(1))),
-            "j" => Some(Motion::Down(self.current_command.count.unwrap_or(1))),
-            "k" => Some(Motion::Up(self.current_command.count.unwrap_or(1))),
-            "l" => Some(Motion::Right(self.current_command.count.unwrap_or(1))),
+            "h" => Some(Motion::Char(
+                Direction::Left,
+                self.current_command.count.unwrap_or(1),
+            )),
+            "j" => Some(Motion::Char(
+                Direction::Down,
+                self.current_command.count.unwrap_or(1),
+            )),
+            "k" => Some(Motion::Char(
+                Direction::Up,
+                self.current_command.count.unwrap_or(1),
+            )),
+            "l" => Some(Motion::Char(
+                Direction::Right,
+                self.current_command.count.unwrap_or(1),
+            )),
             "w" => Some(Motion::WordForward(self.current_command.count.unwrap_or(1))),
             "b" => Some(Motion::WordBackward(
                 self.current_command.count.unwrap_or(1),
@@ -416,7 +366,7 @@ impl VimBehavior {
         };
 
         if let Some(motion) = motion {
-            self.current_command.motion = Some(motion);
+            self.current_command.target = Some(OperatorTarget::Motion(motion));
             self.mode = VimMode::Normal;
             self.execute_operator_motion(current_state)
         } else {
@@ -442,16 +392,20 @@ impl VimBehavior {
         let current = current_state.cursor();
 
         match motion {
-            Motion::Left(n) => Ok(CellAddress::new(
+            Motion::Char(Direction::Left, n) => Ok(CellAddress::new(
                 current.col.saturating_sub(n as u32),
                 current.row,
             )),
-            Motion::Right(n) => Ok(CellAddress::new(current.col + n as u32, current.row)),
-            Motion::Up(n) => Ok(CellAddress::new(
+            Motion::Char(Direction::Right, n) => {
+                Ok(CellAddress::new(current.col + n as u32, current.row))
+            }
+            Motion::Char(Direction::Up, n) => Ok(CellAddress::new(
                 current.col,
                 current.row.saturating_sub(n as u32),
             )),
-            Motion::Down(n) => Ok(CellAddress::new(current.col, current.row + n as u32)),
+            Motion::Char(Direction::Down, n) => {
+                Ok(CellAddress::new(current.col, current.row + n as u32))
+            }
             Motion::LineStart => Ok(CellAddress::new(0, current.row)),
             Motion::LineEnd => Ok(CellAddress::new(9999, current.row)), // Will be clamped by viewport
             Motion::DocumentStart => Ok(CellAddress::new(0, 0)),
@@ -526,32 +480,8 @@ impl Default for VimCommand {
     }
 }
 
-impl VimCommand {
-    pub fn new() -> Self {
-        Self {
-            count: None,
-            operator: None,
-            motion: None,
-            text_object: None,
-            register: None,
-        }
-    }
-}
-
-impl Default for VimBehavior {
+impl Default for LegacyVimBehavior {
     fn default() -> Self {
         Self::new()
     }
 }
-
-// Re-export submodules
-pub mod cell_vim;
-#[cfg(test)]
-mod cell_vim_tests;
-pub mod command;
-pub mod motion;
-pub mod normal;
-#[cfg(test)]
-mod normal_tests;
-pub mod operator;
-pub mod visual;

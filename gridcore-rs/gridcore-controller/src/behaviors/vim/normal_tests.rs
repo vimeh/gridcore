@@ -1,9 +1,9 @@
-use super::{Operator, VimBehavior, VimMode};
+use super::{LegacyVimBehavior, Operator, VimMode};
 use crate::state::{create_navigation_state, Action, InsertMode, UIState, ViewportInfo};
 use gridcore_core::types::CellAddress;
 
-fn create_test_vim() -> VimBehavior {
-    VimBehavior::new()
+fn create_test_vim() -> LegacyVimBehavior {
+    LegacyVimBehavior::new()
 }
 
 fn create_test_state() -> UIState {
@@ -266,7 +266,7 @@ fn test_d_enters_operator_pending() {
     let action = vim
         .handle_normal_mode("d", &state)
         .expect("Failed to handle normal mode key 'd'");
-    assert_eq!(vim.mode, VimMode::OperatorPending);
+    assert_eq!(vim.mode, VimMode::OperatorPending(Operator::Delete));
     assert_eq!(vim.current_command.operator, Some(Operator::Delete));
     assert!(action.is_none());
 }
@@ -279,7 +279,7 @@ fn test_c_enters_operator_pending() {
     let action = vim
         .handle_normal_mode("c", &state)
         .expect("Failed to handle normal mode key 'c'");
-    assert_eq!(vim.mode, VimMode::OperatorPending);
+    assert_eq!(vim.mode, VimMode::OperatorPending(Operator::Change));
     assert_eq!(vim.current_command.operator, Some(Operator::Change));
     assert!(action.is_none());
 }
@@ -292,7 +292,7 @@ fn test_y_enters_operator_pending() {
     let action = vim
         .handle_normal_mode("y", &state)
         .expect("Failed to handle normal mode key 'y'");
-    assert_eq!(vim.mode, VimMode::OperatorPending);
+    assert_eq!(vim.mode, VimMode::OperatorPending(Operator::Yank));
     assert_eq!(vim.current_command.operator, Some(Operator::Yank));
     assert!(action.is_none());
 }
@@ -317,7 +317,7 @@ fn test_dd_deletes_line() {
         .expect("Failed to handle normal mode key 'd'");
     assert!(action2.is_none());
     assert_eq!(vim.command_buffer, "");
-    assert_eq!(vim.mode, VimMode::OperatorPending);
+    assert_eq!(vim.mode, VimMode::OperatorPending(Operator::Delete));
 }
 
 #[test]
@@ -365,7 +365,7 @@ fn test_yy_yanks_line() {
         .expect("Failed to handle normal mode key 'y'");
     assert!(action2.is_none());
     assert_eq!(vim.command_buffer, "");
-    assert_eq!(vim.mode, VimMode::OperatorPending);
+    assert_eq!(vim.mode, VimMode::OperatorPending(Operator::Yank));
 }
 
 // Multi-char command tests

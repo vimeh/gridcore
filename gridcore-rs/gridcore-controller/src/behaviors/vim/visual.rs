@@ -1,5 +1,5 @@
-use super::{Motion, Operator, VimBehavior, VimMode};
-use crate::state::{Action, Selection, SelectionType, VisualMode, UIState};
+use super::{Direction, LegacyVimBehavior, Motion, Operator, VimMode, VisualMode as VimVisualMode};
+use crate::state::{Action, Selection, SelectionType, UIState, VisualMode as StateVisualMode};
 use gridcore_core::{types::CellAddress, Result};
 
 /// Visual mode selection state
@@ -22,21 +22,21 @@ impl VisualSelection {
     /// Calculate the selection range
     pub fn to_selection(&self) -> Selection {
         let selection_type = match self.mode {
-            VimMode::Visual => {
+            VimMode::Visual(VimVisualMode::Character) => {
                 // Character-wise visual mode - select range
                 SelectionType::Range {
                     start: self.min_address(),
                     end: self.max_address(),
                 }
             }
-            VimMode::VisualLine => {
+            VimMode::Visual(VimVisualMode::Line) => {
                 // Line-wise visual mode - select entire rows
                 let min_row = self.anchor.row.min(self.cursor.row);
                 let max_row = self.anchor.row.max(self.cursor.row);
                 let rows: Vec<u32> = (min_row..=max_row).collect();
                 SelectionType::Row { rows }
             }
-            VimMode::VisualBlock => {
+            VimMode::Visual(VimVisualMode::Block) => {
                 // Block-wise visual mode - rectangular selection
                 let min_col = self.anchor.col.min(self.cursor.col);
                 let max_col = self.anchor.col.max(self.cursor.col);
@@ -48,9 +48,12 @@ impl VisualSelection {
                     end: CellAddress::new(max_col, max_row),
                 }
             }
-            _ => SelectionType::Cell {
-                address: self.cursor,
-            },
+            _ => {
+                // Non-visual modes shouldn't reach here, but default to cell selection
+                SelectionType::Cell {
+                    address: self.cursor,
+                }
+            }
         };
 
         Selection {
@@ -80,7 +83,7 @@ impl VisualSelection {
     }
 }
 
-impl VimBehavior {
+impl LegacyVimBehavior {
     /// Enter visual mode
     pub fn enter_visual_mode(
         &mut self,
@@ -91,15 +94,13 @@ impl VimBehavior {
         self.visual_anchor = Some(*current_state.cursor());
 
         let visual_mode = match mode {
-            VimMode::Visual => VisualMode::Character,
-            VimMode::VisualLine => VisualMode::Line,
-            VimMode::VisualBlock => VisualMode::Block,
-            _ => VisualMode::Character,
+            VimMode::Visual(v) => v.into(),
+            _ => StateVisualMode::Character,
         };
 
         let selection = Selection {
             selection_type: match mode {
-                VimMode::VisualLine => SelectionType::Row {
+                VimMode::Visual(VimVisualMode::Line) => SelectionType::Row {
                     rows: vec![current_state.cursor().row],
                 },
                 _ => SelectionType::Cell {
@@ -130,24 +131,34 @@ impl VimBehavior {
     ) -> Result<Option<Action>> {
         match key {
             // Exit visual mode
-            "Escape" | "v" if self.mode == VimMode::Visual => self.exit_visual_mode(),
-            "V" if self.mode == VimMode::VisualLine => self.exit_visual_mode(),
+            "Escape" | "v" if matches!(self.mode, VimMode::Visual(VimVisualMode::Character)) => {
+                self.exit_visual_mode()
+            }
+            "V" if matches!(self.mode, VimMode::Visual(VimVisualMode::Line)) => {
+                self.exit_visual_mode()
+            }
 
             // Switch visual modes
-            "v" if self.mode != VimMode::Visual => {
-                self.mode = VimMode::Visual;
+            "v" if !matches!(self.mode, VimMode::Visual(VimVisualMode::Character)) => {
+                self.mode = VimMode::Visual(VimVisualMode::Character);
                 self.update_visual_selection(current_state)
             }
-            "V" if self.mode != VimMode::VisualLine => {
-                self.mode = VimMode::VisualLine;
+            "V" if !matches!(self.mode, VimMode::Visual(VimVisualMode::Line)) => {
+                self.mode = VimMode::Visual(VimVisualMode::Line);
                 self.update_visual_selection(current_state)
             }
 
             // Movement extends selection
-            "h" | "ArrowLeft" => self.extend_selection(Motion::Left(1), current_state),
-            "j" | "ArrowDown" => self.extend_selection(Motion::Down(1), current_state),
-            "k" | "ArrowUp" => self.extend_selection(Motion::Up(1), current_state),
-            "l" | "ArrowRight" => self.extend_selection(Motion::Right(1), current_state),
+            "h" | "ArrowLeft" => {
+                self.extend_selection(Motion::Char(Direction::Left, 1), current_state)
+            }
+            "j" | "ArrowDown" => {
+                self.extend_selection(Motion::Char(Direction::Down, 1), current_state)
+            }
+            "k" | "ArrowUp" => self.extend_selection(Motion::Char(Direction::Up, 1), current_state),
+            "l" | "ArrowRight" => {
+                self.extend_selection(Motion::Char(Direction::Right, 1), current_state)
+            }
 
             "w" => self.extend_selection(Motion::WordForward(1), current_state),
             "b" => self.extend_selection(Motion::WordBackward(1), current_state),
@@ -166,7 +177,9 @@ impl VimBehavior {
 
             // Switch selection anchor
             "o" => self.switch_visual_anchor(current_state),
-            "O" if self.mode == VimMode::VisualBlock => self.switch_visual_corner(current_state),
+            "O" if matches!(self.mode, VimMode::Visual(VimVisualMode::Block)) => {
+                self.switch_visual_corner(current_state)
+            }
 
             // Operators on selection
             "d" | "x" => self.delete_selection(current_state),
@@ -180,8 +193,12 @@ impl VimBehavior {
             "U" => self.uppercase_selection(current_state),
 
             // Special visual mode operations
-            "I" if self.mode == VimMode::VisualBlock => self.block_insert_before(current_state),
-            "A" if self.mode == VimMode::VisualBlock => self.block_insert_after(current_state),
+            "I" if matches!(self.mode, VimMode::Visual(VimVisualMode::Block)) => {
+                self.block_insert_before(current_state)
+            }
+            "A" if matches!(self.mode, VimMode::Visual(VimVisualMode::Block)) => {
+                self.block_insert_after(current_state)
+            }
 
             // Join lines
             "J" => self.join_selection(current_state),
@@ -241,10 +258,8 @@ impl VimBehavior {
             let _selection = visual_selection.to_selection();
 
             let visual_mode = match self.mode {
-                VimMode::Visual => VisualMode::Character,
-                VimMode::VisualLine => VisualMode::Line,
-                VimMode::VisualBlock => VisualMode::Block,
-                _ => VisualMode::Character,
+                VimMode::Visual(v) => v.into(),
+                _ => StateVisualMode::Character,
             };
 
             Ok(Some(Action::ChangeVisualMode {
@@ -330,7 +345,7 @@ impl VimBehavior {
             }
             Operator::Change => {
                 // Delete and enter insert mode
-                self.mode = VimMode::Insert;
+                self.mode = VimMode::Insert(super::InsertMode::Insert);
                 Ok(Some(Action::EnterInsertMode { mode: None }))
             }
             Operator::Yank => {
@@ -356,7 +371,7 @@ impl VimBehavior {
     fn block_insert_before(&mut self, _current_state: &UIState) -> Result<Option<Action>> {
         // Block insert - apply the same text to all cells in the visual block
         // The insert mode will handle applying changes to all selected cells
-        self.mode = VimMode::Insert;
+        self.mode = VimMode::Insert(super::InsertMode::Insert);
         Ok(Some(Action::EnterInsertMode {
             mode: Some(crate::state::InsertMode::I),
         }))
@@ -365,7 +380,7 @@ impl VimBehavior {
     fn block_insert_after(&mut self, _current_state: &UIState) -> Result<Option<Action>> {
         // Block append - append the same text to all cells in the visual block
         // The insert mode will handle applying changes to all selected cells
-        self.mode = VimMode::Insert;
+        self.mode = VimMode::Insert(super::InsertMode::Insert);
         Ok(Some(Action::EnterInsertMode {
             mode: Some(crate::state::InsertMode::A),
         }))
@@ -383,7 +398,7 @@ mod tests {
         let selection = VisualSelection {
             anchor,
             cursor,
-            mode: VimMode::Visual,
+            mode: VimMode::Visual(VimVisualMode::Character),
         };
 
         let result = selection.to_selection();
@@ -403,7 +418,7 @@ mod tests {
         let selection = VisualSelection {
             anchor,
             cursor,
-            mode: VimMode::VisualLine,
+            mode: VimMode::Visual(VimVisualMode::Line),
         };
 
         let result = selection.to_selection();

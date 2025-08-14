@@ -35,13 +35,17 @@ pub fn apply_motion(motion: &super::Motion, context: &MotionContext) -> Result<C
     let current = &context.current_position;
 
     let new_address = match motion {
-        Motion::Left(n) => CellAddress::new(current.col.saturating_sub(*n as u32), current.row),
-        Motion::Right(n) => CellAddress::new(
+        Motion::Char(super::Direction::Left, n) => {
+            CellAddress::new(current.col.saturating_sub(*n as u32), current.row)
+        }
+        Motion::Char(super::Direction::Right, n) => CellAddress::new(
             (current.col + *n as u32).min(context.max_cols - 1),
             current.row,
         ),
-        Motion::Up(n) => CellAddress::new(current.col, current.row.saturating_sub(*n as u32)),
-        Motion::Down(n) => CellAddress::new(
+        Motion::Char(super::Direction::Up, n) => {
+            CellAddress::new(current.col, current.row.saturating_sub(*n as u32))
+        }
+        Motion::Char(super::Direction::Down, n) => CellAddress::new(
             current.col,
             (current.row + *n as u32).min(context.max_rows - 1),
         ),
@@ -110,6 +114,21 @@ pub fn apply_motion(motion: &super::Motion, context: &MotionContext) -> Result<C
         | Motion::RepeatFind
         | Motion::RepeatFindReverse => {
             // These require cell content, return current position for now
+            *current
+        }
+
+        // Search motions
+        Motion::SearchForward(_)
+        | Motion::SearchBackward(_)
+        | Motion::NextMatch
+        | Motion::PreviousMatch => {
+            // Search requires content search, return current position for now
+            *current
+        }
+
+        // Bracket motion
+        Motion::MatchingBracket => {
+            // Requires parsing cell content, return current position for now
             *current
         }
     };
@@ -212,12 +231,20 @@ mod tests {
         );
 
         // Test left motion
-        let result = apply_motion(&super::super::Motion::Left(2), &context).unwrap();
+        let result = apply_motion(
+            &super::super::Motion::Char(super::super::Direction::Left, 2),
+            &context,
+        )
+        .unwrap();
         assert_eq!(result.col, 3);
         assert_eq!(result.row, 5);
 
         // Test down motion
-        let result = apply_motion(&super::super::Motion::Down(3), &context).unwrap();
+        let result = apply_motion(
+            &super::super::Motion::Char(super::super::Direction::Down, 3),
+            &context,
+        )
+        .unwrap();
         assert_eq!(result.col, 5);
         assert_eq!(result.row, 8);
 
@@ -240,12 +267,20 @@ mod tests {
         );
 
         // Test moving left at boundary
-        let result = apply_motion(&super::super::Motion::Left(5), &context).unwrap();
+        let result = apply_motion(
+            &super::super::Motion::Char(super::super::Direction::Left, 5),
+            &context,
+        )
+        .unwrap();
         assert_eq!(result.col, 0);
         assert_eq!(result.row, 0);
 
         // Test moving up at boundary
-        let result = apply_motion(&super::super::Motion::Up(5), &context).unwrap();
+        let result = apply_motion(
+            &super::super::Motion::Char(super::super::Direction::Up, 5),
+            &context,
+        )
+        .unwrap();
         assert_eq!(result.col, 0);
         assert_eq!(result.row, 0);
     }
