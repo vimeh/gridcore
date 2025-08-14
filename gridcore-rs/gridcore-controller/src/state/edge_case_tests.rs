@@ -4,6 +4,7 @@ mod edge_case_tests {
     use super::super::*;
     use gridcore_core::types::CellAddress;
     use std::sync::{Arc, Mutex};
+    use crate::state::{ModalKind, ModalData, VisualMode};
 
     #[test]
     fn test_maximum_history_size() {
@@ -69,7 +70,10 @@ mod edge_case_tests {
         machine
             .transition(Action::EnterCommandMode)
             .expect("State transition should succeed in test");
-        assert!(matches!(machine.get_state(), UIState::Command { .. }));
+        assert!(matches!(machine.get_state(), UIState::Modal {
+            kind: ModalKind::Command,
+            ..
+        }));
     }
 
     #[test]
@@ -88,12 +92,12 @@ mod edge_case_tests {
 
         match machine.get_state() {
             UIState::Editing {
-                editing_value,
-                cursor_position,
+                value,
+                cursor_pos,
                 ..
             } => {
-                assert_eq!(editing_value.len(), 100_000);
-                assert_eq!(*cursor_position, 50_000);
+                assert_eq!(value.len(), 100_000);
+                assert_eq!(*cursor_pos, 50_000);
             }
             _ => panic!("Expected editing state"),
         }
@@ -108,8 +112,8 @@ mod edge_case_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Editing { editing_value, .. } => {
-                assert_eq!(editing_value.len(), 500_000);
+            UIState::Editing { value, .. } => {
+                assert_eq!(value.len(), 500_000);
             }
             _ => panic!("Expected editing state"),
         }
@@ -168,7 +172,10 @@ mod edge_case_tests {
         machine
             .transition(Action::EnterCommandMode)
             .expect("State transition should succeed in test");
-        assert!(matches!(machine.get_state(), UIState::Command { .. }));
+        assert!(matches!(machine.get_state(), UIState::Modal {
+            kind: ModalKind::Command,
+            ..
+        }));
     }
 
     #[test]
@@ -220,13 +227,17 @@ mod edge_case_tests {
 
         machine
             .transition(Action::EnterSpreadsheetVisualMode {
-                visual_mode: SpreadsheetVisualMode::Block,
+                visual_mode: VisualMode::Block,
                 selection: huge_selection.clone(),
             })
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Visual { selection, .. } => {
+            UIState::Modal {
+                kind: ModalKind::Visual,
+                data: ModalData::Visual { selection, .. },
+                ..
+            } => {
                 assert_eq!(*selection, huge_selection);
             }
             _ => panic!("Expected visual state"),
@@ -307,8 +318,8 @@ mod edge_case_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Editing { editing_value, .. } => {
-                assert_eq!(editing_value, special_chars);
+            UIState::Editing { value, .. } => {
+                assert_eq!(value, special_chars);
             }
             _ => panic!("Expected editing state"),
         }
@@ -330,8 +341,12 @@ mod edge_case_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Command { command_value, .. } => {
-                assert_eq!(command_value, special_chars);
+            UIState::Modal {
+                kind: ModalKind::Command,
+                data: ModalData::Command { value },
+                ..
+            } => {
+                assert_eq!(value, special_chars);
             }
             _ => panic!("Expected command state"),
         }

@@ -84,8 +84,8 @@ mod tests {
         controller
             .handle_keyboard_event(KeyboardEvent::new("i".to_string()))
             .unwrap();
-        if let UIState::Editing { edit_variant, .. } = controller.get_state() {
-            assert_eq!(*edit_variant, Some(InsertMode::I));
+        if let UIState::Editing { insert_variant, .. } = controller.get_state() {
+            assert_eq!(*insert_variant, Some(InsertMode::I));
         }
 
         // Return to navigation
@@ -97,8 +97,8 @@ mod tests {
         controller
             .handle_keyboard_event(KeyboardEvent::new("a".to_string()))
             .unwrap();
-        if let UIState::Editing { edit_variant, .. } = controller.get_state() {
-            assert_eq!(*edit_variant, Some(InsertMode::A));
+        if let UIState::Editing { insert_variant, .. } = controller.get_state() {
+            assert_eq!(*insert_variant, Some(InsertMode::A));
         }
     }
 
@@ -197,8 +197,12 @@ mod tests {
             .unwrap();
 
         // Check command value
-        if let UIState::Command { command_value, .. } = controller.get_state() {
-            assert!(command_value.contains("wq"));
+        if let UIState::Modal {
+            kind: crate::state::ModalKind::Command,
+            data: crate::state::ModalData::Command { value },
+            ..
+        } = controller.get_state() {
+            assert!(value.contains("wq"));
         }
     }
 

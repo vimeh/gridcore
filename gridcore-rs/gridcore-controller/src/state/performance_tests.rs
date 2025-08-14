@@ -4,6 +4,7 @@ mod performance_tests {
     use super::super::*;
     use gridcore_core::types::CellAddress;
     use std::time::Instant;
+    use crate::state::{ModalKind, ModalData, VisualMode};
 
     #[test]
     fn test_rapid_state_transitions() {
@@ -63,7 +64,7 @@ mod performance_tests {
 
         machine
             .transition(Action::EnterSpreadsheetVisualMode {
-                visual_mode: SpreadsheetVisualMode::Block,
+                visual_mode: VisualMode::Block,
                 selection: large_selection.clone(),
             })
             .unwrap();
@@ -355,7 +356,7 @@ mod performance_tests {
 
         // Should still be functional
         machine.transition(Action::EnterCommandMode).unwrap();
-        assert!(matches!(machine.get_state(), UIState::Command { .. }));
+        assert!(matches!(machine.get_state(), UIState::Modal { kind: ModalKind::Command, data: ModalData::Command { .. }, .. }));
 
         println!("Memory usage remained stable after 10,000 operations");
     }

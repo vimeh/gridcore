@@ -3,6 +3,7 @@
 mod tests {
     use super::super::*;
     use gridcore_core::types::CellAddress;
+    use crate::state::{EditMode, ModalKind, ModalData, VisualMode};
 
     fn create_test_state_machine() -> UIStateMachine {
         UIStateMachine::new(None)
@@ -44,14 +45,14 @@ mod tests {
 
         match machine.get_state() {
             UIState::Editing {
-                cell_mode,
-                editing_value,
-                cursor_position,
+                mode,
+                value,
+                cursor_pos,
                 ..
             } => {
-                assert_eq!(*cell_mode, CellMode::Normal);
-                assert_eq!(editing_value, "");
-                assert_eq!(*cursor_position, 0);
+                assert_eq!(*mode, EditMode::Normal);
+                assert_eq!(value, "");
+                assert_eq!(*cursor_pos, 0);
             }
             _ => panic!("Expected editing state"),
         }
@@ -72,16 +73,16 @@ mod tests {
 
         match machine.get_state() {
             UIState::Editing {
-                cell_mode,
-                editing_value,
-                cursor_position,
-                edit_variant,
+                mode,
+                value,
+                cursor_pos,
+                insert_variant,
                 ..
             } => {
-                assert_eq!(*cell_mode, CellMode::Insert);
-                assert_eq!(editing_value, "test");
-                assert_eq!(*cursor_position, 2);
-                assert_eq!(*edit_variant, Some(InsertMode::I));
+                assert_eq!(*mode, EditMode::Insert);
+                assert_eq!(value, "test");
+                assert_eq!(*cursor_pos, 2);
+                assert_eq!(*insert_variant, Some(InsertMode::I));
             }
             _ => panic!("Expected editing state"),
         }
@@ -108,12 +109,12 @@ mod tests {
 
         match machine.get_state() {
             UIState::Editing {
-                cell_mode,
-                edit_variant,
+                mode,
+                insert_variant,
                 ..
             } => {
-                assert_eq!(*cell_mode, CellMode::Insert);
-                assert_eq!(*edit_variant, Some(InsertMode::A));
+                assert_eq!(*mode, EditMode::Insert);
+                assert_eq!(*insert_variant, Some(InsertMode::A));
             }
             _ => panic!("Expected editing state"),
         }
@@ -125,12 +126,12 @@ mod tests {
 
         match machine.get_state() {
             UIState::Editing {
-                cell_mode,
-                edit_variant,
+                mode,
+                insert_variant,
                 ..
             } => {
-                assert_eq!(*cell_mode, CellMode::Normal);
-                assert_eq!(*edit_variant, None);
+                assert_eq!(*mode, EditMode::Normal);
+                assert_eq!(*insert_variant, None);
             }
             _ => panic!("Expected editing state"),
         }
@@ -158,12 +159,12 @@ mod tests {
 
         match machine.get_state() {
             UIState::Editing {
-                cell_mode,
+                mode,
                 visual_type,
                 visual_start,
                 ..
             } => {
-                assert_eq!(*cell_mode, CellMode::Visual);
+                assert_eq!(*mode, EditMode::Visual);
                 assert_eq!(*visual_type, Some(VisualMode::Character));
                 assert_eq!(*visual_start, Some(3));
             }
@@ -177,12 +178,12 @@ mod tests {
 
         match machine.get_state() {
             UIState::Editing {
-                cell_mode,
+                mode,
                 visual_type,
                 visual_start,
                 ..
             } => {
-                assert_eq!(*cell_mode, CellMode::Normal);
+                assert_eq!(*mode, EditMode::Normal);
                 assert_eq!(*visual_type, None);
                 assert_eq!(*visual_start, None);
             }
@@ -199,8 +200,12 @@ mod tests {
         assert!(result.is_ok());
 
         match machine.get_state() {
-            UIState::Command { command_value, .. } => {
-                assert_eq!(command_value, "");
+            UIState::Modal {
+                kind: ModalKind::Command,
+                data: ModalData::Command { value },
+                ..
+            } => {
+                assert_eq!(value, "");
             }
             _ => panic!("Expected command state"),
         }
@@ -213,8 +218,12 @@ mod tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Command { command_value, .. } => {
-                assert_eq!(command_value, ":w");
+            UIState::Modal {
+                kind: ModalKind::Command,
+                data: ModalData::Command { value },
+                ..
+            } => {
+                assert_eq!(value, ":w");
             }
             _ => panic!("Expected command state"),
         }
@@ -239,18 +248,22 @@ mod tests {
 
         // Enter spreadsheet visual mode
         let result = machine.transition(Action::EnterSpreadsheetVisualMode {
-            visual_mode: SpreadsheetVisualMode::Block,
+            visual_mode: VisualMode::Block,
             selection: selection.clone(),
         });
         assert!(result.is_ok());
 
         match machine.get_state() {
-            UIState::Visual {
-                visual_mode,
-                selection: sel,
+            UIState::Modal {
+                kind: ModalKind::Visual,
+                data: ModalData::Visual {
+                    visual_mode,
+                    selection: sel,
+                    ..
+                },
                 ..
             } => {
-                assert_eq!(*visual_mode, SpreadsheetVisualMode::Block);
+                assert_eq!(*visual_mode, VisualMode::Block);
                 assert_eq!(*sel, selection);
             }
             _ => panic!("Expected visual state"),
@@ -272,7 +285,11 @@ mod tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Visual { selection, .. } => {
+            UIState::Modal {
+                kind: ModalKind::Visual,
+                data: ModalData::Visual { selection, .. },
+                ..
+            } => {
                 assert_eq!(*selection, new_selection);
             }
             _ => panic!("Expected visual state"),
@@ -309,8 +326,8 @@ mod tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Editing { cell_mode, .. } => {
-                assert_eq!(*cell_mode, CellMode::Normal);
+            UIState::Editing { mode, .. } => {
+                assert_eq!(*mode, EditMode::Normal);
             }
             _ => panic!("Expected editing state"),
         }
@@ -333,7 +350,7 @@ mod tests {
         // Test escape in spreadsheet visual mode
         machine
             .transition(Action::EnterSpreadsheetVisualMode {
-                visual_mode: SpreadsheetVisualMode::Block,
+                visual_mode: VisualMode::Block,
                 selection: Selection {
                     selection_type: SelectionType::Cell {
                         address: CellAddress::new(0, 0),
@@ -472,12 +489,12 @@ mod tests {
 
         match machine.get_state() {
             UIState::Editing {
-                editing_value,
-                cursor_position,
+                value,
+                cursor_pos,
                 ..
             } => {
-                assert_eq!(editing_value, "test");
-                assert_eq!(*cursor_position, 2);
+                assert_eq!(value, "test");
+                assert_eq!(*cursor_pos, 2);
             }
             _ => panic!("Expected editing state"),
         }
@@ -497,10 +514,13 @@ mod tests {
         };
 
         machine
-            .enter_spreadsheet_visual_mode(SpreadsheetVisualMode::Line, selection)
+            .enter_spreadsheet_visual_mode(VisualMode::Line, selection)
             .expect("Enter visual mode should succeed in test");
 
-        assert!(matches!(machine.get_state(), UIState::Visual { .. }));
+        assert!(matches!(machine.get_state(), UIState::Modal {
+            kind: ModalKind::Visual,
+            ..
+        }));
 
         machine
             .exit_spreadsheet_visual_mode()

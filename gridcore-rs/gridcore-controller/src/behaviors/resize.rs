@@ -85,24 +85,22 @@ impl ResizeBehavior {
         // Check if we're in resize mode and get the target
         if let UIState::Modal {
             kind: crate::state::ModalKind::Resize,
-            data,
+            data: crate::state::ModalData::Resize { target, .. },
             ..
         } = state
         {
-            if let crate::state::ModalData::Resize { target, .. } = data {
-                let is_column_resize = matches!(target, ResizeTarget::Column { .. });
+            let is_column_resize = matches!(target, ResizeTarget::Column { .. });
 
-                // Only allow horizontal navigation for columns, vertical for rows
-                if is_column_resize == is_horizontal {
-                    let new_direction = match direction {
-                        MoveDirection::Previous => crate::state::ResizeMoveDirection::Previous,
-                        MoveDirection::Next => crate::state::ResizeMoveDirection::Next,
-                    };
+            // Only allow horizontal navigation for columns, vertical for rows
+            if is_column_resize == is_horizontal {
+                let new_direction = match direction {
+                    MoveDirection::Previous => crate::state::ResizeMoveDirection::Previous,
+                    MoveDirection::Next => crate::state::ResizeMoveDirection::Next,
+                };
 
-                    return Ok(Some(Action::MoveResizeTarget {
-                        direction: new_direction,
-                    }));
-                }
+                return Ok(Some(Action::MoveResizeTarget {
+                    direction: new_direction,
+                }));
             }
         }
 
@@ -126,18 +124,16 @@ impl ResizeBehavior {
     pub fn get_resize_info(&self, state: &UIState) -> Option<ResizeInfo> {
         if let UIState::Modal {
             kind: crate::state::ModalKind::Resize,
-            data,
+            data: crate::state::ModalData::Resize { target, sizes },
             ..
         } = state
         {
-            if let crate::state::ModalData::Resize { target, sizes } = data {
-                return Some(ResizeInfo {
-                    target: *target,
-                    current_size: sizes.current_size,
-                    original_size: sizes.original_size,
-                    delta: (sizes.current_size as i32 - sizes.original_size as i32),
-                });
-            }
+            return Some(ResizeInfo {
+                target: *target,
+                current_size: sizes.current_size,
+                original_size: sizes.original_size,
+                delta: (sizes.current_size as i32 - sizes.original_size as i32),
+            });
         }
         None
     }
@@ -277,24 +273,28 @@ mod tests {
     use gridcore_core::types::CellAddress;
 
     fn create_resize_state(target: ResizeTarget) -> UIState {
-        UIState::Resize {
-            target,
-            resize_target: target,
-            resize_index: match target {
-                ResizeTarget::Column { index } => index,
-                ResizeTarget::Row { index } => index,
+        UIState::Modal {
+            kind: crate::state::ModalKind::Resize,
+            data: crate::state::ModalData::Resize {
+                target,
+                sizes: crate::state::ResizeSizes {
+                    original_size: 100,
+                    current_size: 100,
+                    initial_position: 100.0,
+                    current_position: 100.0,
+                    resize_index: match target {
+                        ResizeTarget::Column { index } => index,
+                        ResizeTarget::Row { index } => index,
+                    },
+                },
             },
-            initial_position: 100.0,
-            current_position: 100.0,
-            current_size: 100,
-            original_size: 100,
+            cursor: CellAddress::new(0, 0),
             viewport: ViewportInfo {
                 start_row: 0,
                 start_col: 0,
                 rows: 20,
                 cols: 10,
             },
-            cursor: CellAddress::new(0, 0),
         }
     }
 

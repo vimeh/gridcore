@@ -811,29 +811,25 @@ impl SpreadsheetController {
 
         if let UIState::Modal {
             kind: ModalKind::Command,
-            data,
+            data: ModalData::Command { value },
             ..
         } = self.state_machine.get_state()
         {
-            if let ModalData::Command { value } = data {
-                if event.is_printable() {
-                    let mut new_value = value.clone();
-                    new_value.push_str(&event.key);
-                    self.dispatch_action(Action::UpdateCommandValue { value: new_value })
-                } else if event.key == "Enter" {
-                    // Execute command
-                    self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CommandExecuted {
-                            command: value.clone(),
-                        });
-                    self.dispatch_action(Action::ExitCommandMode)
-                } else if event.key == "Backspace" && !value.is_empty() {
-                    let mut new_value = value.clone();
-                    new_value.pop();
-                    self.dispatch_action(Action::UpdateCommandValue { value: new_value })
-                } else {
-                    Ok(())
-                }
+            if event.is_printable() {
+                let mut new_value = value.clone();
+                new_value.push_str(&event.key);
+                self.dispatch_action(Action::UpdateCommandValue { value: new_value })
+            } else if event.key == "Enter" {
+                // Execute command
+                self.event_dispatcher
+                    .dispatch(&SpreadsheetEvent::CommandExecuted {
+                        command: value.clone(),
+                    });
+                self.dispatch_action(Action::ExitCommandMode)
+            } else if event.key == "Backspace" && !value.is_empty() {
+                let mut new_value = value.clone();
+                new_value.pop();
+                self.dispatch_action(Action::UpdateCommandValue { value: new_value })
             } else {
                 Ok(())
             }

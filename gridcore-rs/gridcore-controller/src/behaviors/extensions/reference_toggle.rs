@@ -160,7 +160,7 @@ mod tests {
                 cols: 10,
             },
             value: formula.to_string(),
-            cursor_pos: cursor_pos,
+            cursor_pos,
             mode: EditMode::Normal,
             visual_start: None,
             visual_type: None,

@@ -3,6 +3,7 @@
 mod complex_transition_tests {
     use super::super::*;
     use gridcore_core::types::CellAddress;
+    use crate::state::{EditMode, ModalKind, ModalData, VisualMode};
 
     #[test]
     fn test_vim_workflow_navigation_to_edit_to_visual() {
@@ -42,16 +43,16 @@ mod complex_transition_tests {
 
         match machine.get_state() {
             UIState::Editing {
-                cell_mode,
+                mode,
                 visual_type,
                 visual_start,
-                cursor_position,
+                cursor_pos,
                 ..
             } => {
-                assert_eq!(*cell_mode, CellMode::Visual);
+                assert_eq!(*mode, EditMode::Visual);
                 assert_eq!(*visual_type, Some(VisualMode::Character));
                 assert_eq!(*visual_start, Some(6));
-                assert_eq!(*cursor_position, 11);
+                assert_eq!(*cursor_pos, 11);
             }
             _ => panic!("Expected editing state with visual mode"),
         }
@@ -94,7 +95,7 @@ mod complex_transition_tests {
 
         machine
             .transition(Action::EnterSpreadsheetVisualMode {
-                visual_mode: SpreadsheetVisualMode::Line,
+                visual_mode: VisualMode::Line,
                 selection: selection.clone(),
             })
             .expect("State transition should succeed in test");
@@ -209,7 +210,7 @@ mod complex_transition_tests {
         machine
             .transition(Action::EnterCommandMode)
             .expect("Transition should succeed in test");
-        assert!(matches!(machine.get_state(), UIState::Command { .. }));
+        assert!(matches!(machine.get_state(), UIState::Modal { kind: ModalKind::Command, data: ModalData::Command { .. }, .. }));
     }
 
     #[test]
@@ -229,11 +230,11 @@ mod complex_transition_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::BulkOperation {
+            UIState::Modal { kind: ModalKind::BulkOperation, data: ModalData::BulkOperation {
                 parsed_command: cmd,
                 preview_available,
                 ..
-            } => {
+            }, .. } => {
                 assert_eq!(*cmd, parsed_command);
                 assert!(!preview_available);
             }
@@ -246,9 +247,9 @@ mod complex_transition_tests {
             .expect("Transition should succeed in test");
 
         match machine.get_state() {
-            UIState::BulkOperation {
+            UIState::Modal { kind: ModalKind::BulkOperation, data: ModalData::BulkOperation {
                 preview_available, ..
-            } => {
+            }, .. } => {
                 assert!(preview_available);
             }
             _ => panic!("Expected bulk operation state"),
@@ -301,13 +302,12 @@ mod complex_transition_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Resize {
+            UIState::Modal { kind: ModalKind::Resize, data: ModalData::Resize {
                 target,
-                current_position,
-                ..
-            } => {
+                sizes,
+            }, .. } => {
                 assert_eq!(*target, ResizeTarget::Column { index: 5 });
-                assert_eq!(*current_position, 100.0);
+                assert_eq!(sizes.current_position, 100.0);
             }
             _ => panic!("Expected resize state"),
         }
@@ -318,10 +318,10 @@ mod complex_transition_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Resize {
-                current_position, ..
-            } => {
-                assert_eq!(*current_position, 150.0);
+            UIState::Modal { kind: ModalKind::Resize, data: ModalData::Resize {
+                sizes, ..
+            }, .. } => {
+                assert_eq!(sizes.current_position, 150.0);
             }
             _ => panic!("Expected resize state"),
         }
@@ -347,13 +347,13 @@ mod complex_transition_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Insert {
+            UIState::Modal { kind: ModalKind::Insert, data: ModalData::Insert {
                 insert_type,
                 position,
                 reference,
                 count,
                 ..
-            } => {
+            }, .. } => {
                 assert_eq!(*insert_type, InsertType::Row);
                 assert_eq!(*position, InsertPosition::Before);
                 assert_eq!(*reference, 10);
@@ -382,11 +382,11 @@ mod complex_transition_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Delete {
+            UIState::Modal { kind: ModalKind::Delete, data: ModalData::Delete {
                 targets,
                 delete_type,
                 ..
-            } => {
+            }, .. } => {
                 assert_eq!(*targets, vec![0, 1, 2]);
                 assert_eq!(*delete_type, DeleteType::Column);
             }
@@ -414,7 +414,7 @@ mod complex_transition_tests {
 
         machine
             .transition(Action::EnterSpreadsheetVisualMode {
-                visual_mode: SpreadsheetVisualMode::Char,
+                visual_mode: VisualMode::Character,
                 selection: initial_selection,
             })
             .expect("State transition should succeed in test");
@@ -435,7 +435,7 @@ mod complex_transition_tests {
         // Change to line mode
         machine
             .transition(Action::ChangeVisualMode {
-                new_mode: SpreadsheetVisualMode::Line,
+                new_mode: VisualMode::Line,
             })
             .expect("State transition should succeed in test");
 
@@ -452,12 +452,12 @@ mod complex_transition_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Visual {
+            UIState::Modal { kind: ModalKind::Visual, data: ModalData::Visual {
                 visual_mode,
                 selection,
                 ..
-            } => {
-                assert_eq!(*visual_mode, SpreadsheetVisualMode::Line);
+            }, .. } => {
+                assert_eq!(*visual_mode, VisualMode::Line);
                 match &selection.selection_type {
                     SelectionType::Row { rows } => {
                         assert_eq!(rows.len(), 6);
@@ -489,8 +489,8 @@ mod complex_transition_tests {
         }
 
         match machine.get_state() {
-            UIState::Command { command_value, .. } => {
-                assert_eq!(command_value, command);
+            UIState::Modal { kind: ModalKind::Command, data: ModalData::Command { value, .. }, .. } => {
+                assert_eq!(value, command);
             }
             _ => panic!("Expected command state"),
         }
@@ -512,8 +512,8 @@ mod complex_transition_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Command { command_value, .. } => {
-                assert_eq!(command_value, range_command);
+            UIState::Modal { kind: ModalKind::Command, data: ModalData::Command { value, .. }, .. } => {
+                assert_eq!(value, range_command);
             }
             _ => panic!("Expected command state"),
         }

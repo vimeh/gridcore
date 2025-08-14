@@ -41,12 +41,12 @@ fn test_controller_keyboard_handling() {
         })
         .unwrap();
 
-    // Should be in Editing mode with Insert cell mode
+    // Should be in Editing mode with Insert edit mode
     let state = controller.get_state();
     assert!(matches!(
         state,
         UIState::Editing {
-            cell_mode: gridcore_controller::state::CellMode::Insert,
+            mode: gridcore_controller::state::EditMode::Insert,
             ..
         }
     ));
@@ -90,7 +90,13 @@ fn test_command_mode_workflow() {
 
     // Enter command mode
     machine.transition(Action::EnterCommandMode).unwrap();
-    assert!(matches!(machine.get_state(), UIState::Command { .. }));
+    assert!(matches!(
+        machine.get_state(),
+        UIState::Modal {
+            kind: gridcore_controller::state::ModalKind::Command,
+            ..
+        }
+    ));
 
     // Type a command
     machine
@@ -118,12 +124,18 @@ fn test_visual_mode_selection() {
 
     machine
         .transition(Action::EnterSpreadsheetVisualMode {
-            visual_mode: gridcore_controller::state::SpreadsheetVisualMode::Char,
+            visual_mode: gridcore_controller::state::VisualMode::Character,
             selection,
         })
         .unwrap();
 
-    assert!(matches!(machine.get_state(), UIState::Visual { .. }));
+    assert!(matches!(
+        machine.get_state(),
+        UIState::Modal {
+            kind: gridcore_controller::state::ModalKind::Visual,
+            ..
+        }
+    ));
 
     // Update selection
     let new_selection = gridcore_controller::state::Selection {
@@ -159,7 +171,13 @@ fn test_resize_mode_workflow() {
         })
         .unwrap();
 
-    assert!(matches!(machine.get_state(), UIState::Resize { .. }));
+    assert!(matches!(
+        machine.get_state(),
+        UIState::Modal {
+            kind: gridcore_controller::state::ModalKind::Resize,
+            ..
+        }
+    ));
 
     // Update size
     machine
@@ -187,7 +205,13 @@ fn test_bulk_operation_workflow() {
         })
         .unwrap();
 
-    assert!(matches!(machine.get_state(), UIState::BulkOperation { .. }));
+    assert!(matches!(
+        machine.get_state(),
+        UIState::Modal {
+            kind: gridcore_controller::state::ModalKind::BulkOperation,
+            ..
+        }
+    ));
 
     // Generate preview
     machine.transition(Action::GeneratePreview).unwrap();

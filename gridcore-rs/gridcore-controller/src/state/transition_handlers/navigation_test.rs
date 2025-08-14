@@ -25,7 +25,7 @@ mod tests {
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::I),
             initial_value: Some("existing text".to_string()),
-            cursor_pos: Some(0),
+            cursor_position: Some(0),
         };
 
         // Act
@@ -75,7 +75,7 @@ mod tests {
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::A),
             initial_value: Some(text.clone()),
-            cursor_pos: Some(expected_cursor_pos),
+            cursor_position: Some(expected_cursor_pos),
         };
 
         // Act
@@ -122,7 +122,7 @@ mod tests {
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::I),
             initial_value: Some("test".to_string()),
-            cursor_pos: Some(2), // Middle of "test"
+            cursor_position: Some(2), // Middle of "test"
         };
 
         // Act
@@ -159,7 +159,7 @@ mod tests {
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::I),
             initial_value: Some(String::new()), // Empty string for Enter key
-            cursor_pos: Some(0),
+            cursor_position: Some(0),
         };
 
         // Act
@@ -205,7 +205,7 @@ mod tests {
         let action = Action::StartEditing {
             edit_mode: Some(InsertMode::I),
             initial_value: Some("test".to_string()),
-            cursor_pos: Some(0),
+            cursor_position: Some(0),
         };
 
         // Act & Assert
@@ -239,7 +239,7 @@ mod tests {
         let handler = EditingHandler;
         let action = Action::UpdateEditingValue {
             value: "Hello World".to_string(),
-            cursor_pos: 11,
+            cursor_position: 11,
         };
 
         // Act
