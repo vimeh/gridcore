@@ -106,17 +106,6 @@ impl SpreadsheetController {
         self.state_machine.get_state()
     }
 
-    // Deprecated methods for backwards compatibility
-    #[deprecated(note = "Use `state()` instead")]
-    pub fn get_state(&self) -> &UIState {
-        self.state()
-    }
-
-    #[deprecated(note = "Use `cursor()` instead")]
-    pub fn get_cursor(&self) -> CellAddress {
-        self.cursor()
-    }
-
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
         // Handle special actions that need controller logic
 
@@ -203,7 +192,7 @@ impl SpreadsheetController {
                             let enhanced_message =
                                 format!("Formula error: {}", error_type.full_display());
                             log::error!("Error in cell {}: {}", address, enhanced_message);
-                            self.emit_error(
+                            self.errors().emit(
                                 enhanced_message,
                                 crate::controller::events::ErrorSeverity::Error,
                             );
@@ -287,17 +276,6 @@ impl SpreadsheetController {
         &mut self.facade
     }
 
-    // Deprecated methods for backwards compatibility
-    #[deprecated(note = "Use `facade()` instead")]
-    pub fn get_facade(&self) -> &SpreadsheetFacade {
-        self.facade()
-    }
-
-    #[deprecated(note = "Use `facade_mut()` instead")]
-    pub fn get_facade_mut(&mut self) -> &mut SpreadsheetFacade {
-        self.facade_mut()
-    }
-
     /// Get the display value for a cell in the UI
     /// Returns the formula if the cell has one, otherwise the display value
     pub fn get_cell_display_for_ui(&self, address: &CellAddress) -> String {
@@ -331,16 +309,6 @@ impl SpreadsheetController {
         super::operations::SelectionOperations::new(self)
     }
 
-    /// Emit an error event and add to error manager
-    #[deprecated(note = "Use `errors().emit()` instead")]
-    pub fn emit_error(
-        &mut self,
-        message: String,
-        severity: crate::controller::events::ErrorSeverity,
-    ) {
-        self.errors().emit(message, severity);
-    }
-
     pub fn get_viewport_manager(&self) -> &ViewportManager {
         &self.viewport_manager
     }
@@ -361,17 +329,6 @@ impl SpreadsheetController {
     /// Get mutable access to the resize state
     pub fn resize_state_mut(&mut self) -> &mut ResizeState {
         &mut self.resize_state
-    }
-
-    // Deprecated methods for backwards compatibility
-    #[deprecated(note = "Use `resize_state()` instead")]
-    pub fn get_resize_state(&self) -> &ResizeState {
-        self.resize_state()
-    }
-
-    #[deprecated(note = "Use `resize_state_mut()` instead")]
-    pub fn get_resize_state_mut(&mut self) -> &mut ResizeState {
-        self.resize_state_mut()
     }
 
     pub fn get_current_selection_stats(&self) -> selection_stats::SelectionStats {
@@ -459,7 +416,7 @@ impl SpreadsheetController {
 
     /// Update formula bar based on current cursor position
     pub fn update_formula_bar_from_cursor(&mut self) {
-        let cursor = self.get_cursor();
+        let cursor = self.cursor();
         let value = self.get_cell_display_for_ui(&cursor);
         self.set_formula_bar_value(value);
     }
@@ -1202,7 +1159,9 @@ mod sheet_tests {
         let mut controller = SpreadsheetController::new();
 
         // Add an error
-        controller.emit_error("Test error".to_string(), ErrorSeverity::Error);
+        controller
+            .errors()
+            .emit("Test error".to_string(), ErrorSeverity::Error);
 
         // Check that error was added
         let errors = controller.get_active_errors();
@@ -1210,7 +1169,9 @@ mod sheet_tests {
         assert_eq!(errors[0].message, "Test error");
 
         // Add warning
-        controller.emit_error("Test warning".to_string(), ErrorSeverity::Warning);
+        controller
+            .errors()
+            .emit("Test warning".to_string(), ErrorSeverity::Warning);
 
         // Check both are present
         let errors = controller.get_active_errors();
@@ -1227,9 +1188,15 @@ mod sheet_tests {
         let mut controller = SpreadsheetController::new();
 
         // Add multiple errors
-        controller.emit_error("Error 1".to_string(), ErrorSeverity::Error);
-        controller.emit_error("Error 2".to_string(), ErrorSeverity::Warning);
-        controller.emit_error("Error 3".to_string(), ErrorSeverity::Info);
+        controller
+            .errors()
+            .emit("Error 1".to_string(), ErrorSeverity::Error);
+        controller
+            .errors()
+            .emit("Error 2".to_string(), ErrorSeverity::Warning);
+        controller
+            .errors()
+            .emit("Error 3".to_string(), ErrorSeverity::Info);
 
         let errors = controller.get_active_errors();
         assert_eq!(errors.len(), 3);
@@ -1261,7 +1228,9 @@ mod sheet_tests {
         });
 
         // Emit an error
-        controller.emit_error("Test error".to_string(), ErrorSeverity::Error);
+        controller
+            .errors()
+            .emit("Test error".to_string(), ErrorSeverity::Error);
 
         // Check that ErrorOccurred event was dispatched
         let e = events.lock().unwrap();
