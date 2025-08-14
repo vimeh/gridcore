@@ -503,7 +503,7 @@ impl SpreadsheetController {
     // ============= Operation Facades =============
 
     /// Cell operations facade (mutable)
-    pub fn cells(&mut self) -> super::operations::CellOperations {
+    pub fn cells(&mut self) -> super::operations::CellOperations<'_> {
         super::operations::CellOperations::new(self)
     }
 
@@ -521,12 +521,12 @@ impl SpreadsheetController {
     }
 
     /// Sheet operations facade
-    pub fn sheets_ops(&mut self) -> super::operations::SheetOperations {
+    pub fn sheets_ops(&mut self) -> super::operations::SheetOperations<'_> {
         super::operations::SheetOperations::new(self)
     }
 
     /// Error operations facade (mutable)
-    pub fn errors(&mut self) -> super::operations::ErrorOperations {
+    pub fn errors(&mut self) -> super::operations::ErrorOperations<'_> {
         super::operations::ErrorOperations::new(self)
     }
 
@@ -536,7 +536,7 @@ impl SpreadsheetController {
     }
 
     /// Selection operations facade
-    pub fn selection(&self) -> super::operations::SelectionOperations {
+    pub fn selection(&self) -> super::operations::SelectionOperations<'_> {
         super::operations::SelectionOperations::new(self)
     }
 
