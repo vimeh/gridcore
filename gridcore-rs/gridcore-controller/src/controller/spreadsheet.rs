@@ -7,15 +7,17 @@ use crate::managers::ErrorSystem;
 use crate::state::{Action, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
+use super::formula_bar::FormulaBarManager;
+
 pub struct SpreadsheetController {
-    state_machine: UIStateMachine,
-    facade: SpreadsheetFacade,
-    event_dispatcher: EventDispatcher,
-    viewport_manager: ViewportManager,
-    resize_state: ResizeState,
-    error_system: ErrorSystem,
-    config: GridConfiguration,
-    formula_bar_value: String,
+    pub(super) state_machine: UIStateMachine,
+    pub(super) facade: SpreadsheetFacade,
+    pub(super) event_dispatcher: EventDispatcher,
+    pub(super) viewport_manager: ViewportManager,
+    pub(super) resize_state: ResizeState,
+    pub(super) error_system: ErrorSystem,
+    pub(super) config: GridConfiguration,
+    pub(super) formula_bar_manager: FormulaBarManager,
 }
 
 impl SpreadsheetController {
@@ -44,7 +46,7 @@ impl SpreadsheetController {
             resize_state: ResizeState::default(),
             error_system: ErrorSystem::new(),
             config,
-            formula_bar_value: String::new(),
+            formula_bar_manager: FormulaBarManager::new(),
         };
 
         // Subscribe to state changes
@@ -67,7 +69,7 @@ impl SpreadsheetController {
             resize_state: ResizeState::default(),
             error_system: ErrorSystem::new(),
             config,
-            formula_bar_value: String::new(),
+            formula_bar_manager: FormulaBarManager::new(),
         };
 
         controller.setup_state_listener();
@@ -131,7 +133,7 @@ impl SpreadsheetController {
 
         if matches!(action, Action::SubmitFormulaBar) {
             // Submit the formula bar value to the current cell
-            let value = self.formula_bar_value.clone();
+            let value = self.formula_bar_manager.value().to_string();
             let cursor = self.cursor();
 
             // Set cell value through facade
@@ -162,7 +164,9 @@ impl SpreadsheetController {
                             Some(gridcore_core::types::CellValue::Error(_))
                         )
                     {
-                        self.set_formula_bar_value(String::new());
+                        self.formula_bar_manager.clear();
+                        let event = self.formula_bar_manager.create_update_event();
+                        self.event_dispatcher.dispatch(&event);
                     }
                 }
                 Err(e) => {
@@ -401,21 +405,27 @@ impl SpreadsheetController {
 
     /// Get the current formula bar value
     pub fn get_formula_bar_value(&self) -> &str {
-        &self.formula_bar_value
+        self.formula_bar_manager.value()
     }
 
     /// Set the formula bar value and dispatch event
     pub fn set_formula_bar_value(&mut self, value: String) {
-        self.formula_bar_value = value.clone();
-        self.event_dispatcher
-            .dispatch(&SpreadsheetEvent::FormulaBarUpdated { value });
+        let event = {
+            self.formula_bar_manager.set_value(value);
+            self.formula_bar_manager.create_update_event()
+        };
+        self.event_dispatcher.dispatch(&event);
     }
 
     /// Update formula bar based on current cursor position
     pub fn update_formula_bar_from_cursor(&mut self) {
         let cursor = self.cursor();
         let value = self.get_cell_display_for_ui(&cursor);
-        self.set_formula_bar_value(value);
+        let event = {
+            self.formula_bar_manager.set_value(value);
+            self.formula_bar_manager.create_update_event()
+        };
+        self.event_dispatcher.dispatch(&event);
     }
 
     // Sheet management methods
