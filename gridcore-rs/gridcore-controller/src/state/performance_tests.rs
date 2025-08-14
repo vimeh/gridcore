@@ -2,9 +2,9 @@
 #[allow(clippy::module_inception)]
 mod performance_tests {
     use super::super::*;
+    use crate::state::{ModalData, ModalKind, VisualMode};
     use gridcore_core::types::CellAddress;
     use std::time::Instant;
-    use crate::state::{ModalKind, ModalData, VisualMode};
 
     #[test]
     fn test_rapid_state_transitions() {
@@ -356,7 +356,14 @@ mod performance_tests {
 
         // Should still be functional
         machine.transition(Action::EnterCommandMode).unwrap();
-        assert!(matches!(machine.get_state(), UIState::Modal { kind: ModalKind::Command, data: ModalData::Command { .. }, .. }));
+        assert!(matches!(
+            machine.get_state(),
+            UIState::Modal {
+                kind: ModalKind::Command,
+                data: ModalData::Command { .. },
+                ..
+            }
+        ));
 
         println!("Memory usage remained stable after 10,000 operations");
     }

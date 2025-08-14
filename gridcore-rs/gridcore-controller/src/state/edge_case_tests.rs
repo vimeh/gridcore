@@ -2,9 +2,9 @@
 #[allow(clippy::module_inception)]
 mod edge_case_tests {
     use super::super::*;
+    use crate::state::{ModalData, ModalKind, VisualMode};
     use gridcore_core::types::CellAddress;
     use std::sync::{Arc, Mutex};
-    use crate::state::{ModalKind, ModalData, VisualMode};
 
     #[test]
     fn test_maximum_history_size() {
@@ -70,10 +70,13 @@ mod edge_case_tests {
         machine
             .transition(Action::EnterCommandMode)
             .expect("State transition should succeed in test");
-        assert!(matches!(machine.get_state(), UIState::Modal {
-            kind: ModalKind::Command,
-            ..
-        }));
+        assert!(matches!(
+            machine.get_state(),
+            UIState::Modal {
+                kind: ModalKind::Command,
+                ..
+            }
+        ));
     }
 
     #[test]
@@ -92,9 +95,7 @@ mod edge_case_tests {
 
         match machine.get_state() {
             UIState::Editing {
-                value,
-                cursor_pos,
-                ..
+                value, cursor_pos, ..
             } => {
                 assert_eq!(value.len(), 100_000);
                 assert_eq!(*cursor_pos, 50_000);
@@ -172,10 +173,13 @@ mod edge_case_tests {
         machine
             .transition(Action::EnterCommandMode)
             .expect("State transition should succeed in test");
-        assert!(matches!(machine.get_state(), UIState::Modal {
-            kind: ModalKind::Command,
-            ..
-        }));
+        assert!(matches!(
+            machine.get_state(),
+            UIState::Modal {
+                kind: ModalKind::Command,
+                ..
+            }
+        ));
     }
 
     #[test]

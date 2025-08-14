@@ -201,7 +201,8 @@ mod tests {
             kind: crate::state::ModalKind::Command,
             data: crate::state::ModalData::Command { value },
             ..
-        } = controller.get_state() {
+        } = controller.get_state()
+        {
             assert!(value.contains("wq"));
         }
     }

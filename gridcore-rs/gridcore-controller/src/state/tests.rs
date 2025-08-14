@@ -2,8 +2,8 @@
 #[allow(clippy::module_inception)]
 mod tests {
     use super::super::*;
+    use crate::state::{EditMode, ModalData, ModalKind, VisualMode};
     use gridcore_core::types::CellAddress;
-    use crate::state::{EditMode, ModalKind, ModalData, VisualMode};
 
     fn create_test_state_machine() -> UIStateMachine {
         UIStateMachine::new(None)
@@ -256,11 +256,12 @@ mod tests {
         match machine.get_state() {
             UIState::Modal {
                 kind: ModalKind::Visual,
-                data: ModalData::Visual {
-                    visual_mode,
-                    selection: sel,
-                    ..
-                },
+                data:
+                    ModalData::Visual {
+                        visual_mode,
+                        selection: sel,
+                        ..
+                    },
                 ..
             } => {
                 assert_eq!(*visual_mode, VisualMode::Block);
@@ -489,9 +490,7 @@ mod tests {
 
         match machine.get_state() {
             UIState::Editing {
-                value,
-                cursor_pos,
-                ..
+                value, cursor_pos, ..
             } => {
                 assert_eq!(value, "test");
                 assert_eq!(*cursor_pos, 2);
@@ -517,10 +516,13 @@ mod tests {
             .enter_spreadsheet_visual_mode(VisualMode::Line, selection)
             .expect("Enter visual mode should succeed in test");
 
-        assert!(matches!(machine.get_state(), UIState::Modal {
-            kind: ModalKind::Visual,
-            ..
-        }));
+        assert!(matches!(
+            machine.get_state(),
+            UIState::Modal {
+                kind: ModalKind::Visual,
+                ..
+            }
+        ));
 
         machine
             .exit_spreadsheet_visual_mode()
