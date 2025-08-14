@@ -94,6 +94,8 @@ pub fn App() -> impl IntoView {
                         // State changes may affect multiple things
                         cursor_trigger.notify();
                         selection_trigger.notify();
+                        // Also notify error trigger as errors might have been removed
+                        error_trigger.notify();
                     }
                     SpreadsheetEvent::FormulaBarUpdated { .. } => {
                         formula_trigger.notify();
