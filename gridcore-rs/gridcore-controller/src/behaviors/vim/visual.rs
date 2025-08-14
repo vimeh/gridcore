@@ -1,5 +1,5 @@
 use super::{Motion, Operator, VimBehavior, VimMode};
-use crate::state::{Action, Selection, SelectionType, VisualMode, UIState};
+use crate::state::{Action, Selection, SelectionType, UIState, VisualMode};
 use gridcore_core::{types::CellAddress, Result};
 
 /// Visual mode selection state

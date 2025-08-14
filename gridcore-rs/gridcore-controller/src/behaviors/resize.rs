@@ -83,9 +83,8 @@ impl ResizeBehavior {
         is_horizontal: bool,
     ) -> Result<Option<Action>> {
         // Check if we're in resize mode and get the target
-        if let UIState::Modal {
-            kind: crate::state::ModalKind::Resize,
-            data: crate::state::ModalData::Resize { target, .. },
+        if let UIState::Navigation {
+            modal: Some(crate::state::NavigationModal::Resize { target, .. }),
             ..
         } = state
         {
@@ -122,9 +121,8 @@ impl ResizeBehavior {
 
     /// Get current resize info for display
     pub fn get_resize_info(&self, state: &UIState) -> Option<ResizeInfo> {
-        if let UIState::Modal {
-            kind: crate::state::ModalKind::Resize,
-            data: crate::state::ModalData::Resize { target, sizes },
+        if let UIState::Navigation {
+            modal: Some(crate::state::NavigationModal::Resize { target, sizes }),
             ..
         } = state
         {
@@ -273,9 +271,18 @@ mod tests {
     use gridcore_core::types::CellAddress;
 
     fn create_resize_state(target: ResizeTarget) -> UIState {
-        UIState::Modal {
-            kind: crate::state::ModalKind::Resize,
-            data: crate::state::ModalData::Resize {
+        UIState::Navigation {
+            core: crate::state::CoreState {
+                cursor: CellAddress::new(0, 0),
+                viewport: ViewportInfo {
+                    start_row: 0,
+                    start_col: 0,
+                    rows: 20,
+                    cols: 10,
+                },
+            },
+            selection: None,
+            modal: Some(crate::state::NavigationModal::Resize {
                 target,
                 sizes: crate::state::ResizeSizes {
                     original_size: 100,
@@ -287,14 +294,7 @@ mod tests {
                         ResizeTarget::Row { index } => index,
                     },
                 },
-            },
-            cursor: CellAddress::new(0, 0),
-            viewport: ViewportInfo {
-                start_row: 0,
-                start_col: 0,
-                rows: 20,
-                cols: 10,
-            },
+            }),
         }
     }
 
