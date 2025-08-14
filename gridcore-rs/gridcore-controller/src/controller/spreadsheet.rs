@@ -7,6 +7,7 @@ use crate::managers::ErrorSystem;
 use crate::state::{Action, UIState, UIStateMachine};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
+use super::cell_editor::{CellEditResult, CellEditor};
 use super::formula_bar::FormulaBarManager;
 
 pub struct SpreadsheetController {
@@ -136,45 +137,24 @@ impl SpreadsheetController {
             let value = self.formula_bar_manager.value().to_string();
             let cursor = self.cursor();
 
-            // Set cell value through facade
-            match self.facade.set_cell_value(&cursor, &value) {
-                Ok(_) => {
-                    // Check if the cell now contains an error value
-                    if let Some(gridcore_core::types::CellValue::Error(error_type)) =
-                        self.facade.get_cell_raw_value(&cursor)
-                    {
-                        let enhanced_message =
-                            format!("Formula error: {}", error_type.full_display());
-                        self.errors().emit(
-                            enhanced_message,
-                            crate::controller::events::ErrorSeverity::Error,
-                        );
-                    }
-
-                    self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CellEditCompleted {
-                            address: cursor,
-                            value: value.clone(),
-                        });
-
-                    // Clear formula bar after successful submission
-                    if value.is_empty()
-                        || !matches!(
-                            self.facade.get_cell_raw_value(&cursor),
-                            Some(gridcore_core::types::CellValue::Error(_))
-                        )
-                    {
-                        self.formula_bar_manager.clear();
-                        let event = self.formula_bar_manager.create_update_event();
-                        self.event_dispatcher.dispatch(&event);
-                    }
-                }
-                Err(e) => {
-                    let message = ErrorSystem::format_error(&e);
-                    self.errors()
-                        .emit(message, crate::controller::events::ErrorSeverity::Error);
+            // Use CellEditor to handle submission
+            let result = CellEditor::submit_formula_bar(&mut self.facade, cursor, value)?;
+            
+            // Process events from result
+            for (event, error_info) in result.create_events() {
+                self.event_dispatcher.dispatch(&event);
+                if let Some((msg, severity)) = error_info {
+                    self.errors().emit(msg, severity);
                 }
             }
+
+            // Clear formula bar if needed
+            if let CellEditResult::Success { should_clear_formula_bar: true, .. } = result {
+                self.formula_bar_manager.clear();
+                let event = self.formula_bar_manager.create_update_event();
+                self.event_dispatcher.dispatch(&event);
+            }
+            
             return Ok(());
         }
 
@@ -183,38 +163,19 @@ impl SpreadsheetController {
             if let UIState::Editing { core, .. } = self.state_machine.get_state() {
                 let address = core.cursor;
 
-                // Update the cell value in the facade and handle errors
-                match self.facade.set_cell_value(&address, value) {
-                    Ok(_) => {
-                        // Check if the cell now contains an error value
-                        if let Some(gridcore_core::types::CellValue::Error(error_type)) =
-                            self.facade.get_cell_raw_value(&address)
-                        {
-                            let enhanced_message =
-                                format!("Formula error: {}", error_type.full_display());
-                            log::error!("Error in cell {}: {}", address, enhanced_message);
-                            self.errors().emit(
-                                enhanced_message,
-                                crate::controller::events::ErrorSeverity::Error,
-                            );
-                        }
-
-                        self.event_dispatcher
-                            .dispatch(&SpreadsheetEvent::CellEditCompleted {
-                                address,
-                                value: value.clone(),
-                            });
-
-                        // Update formula bar to show the new value
-                        self.update_formula_bar_from_cursor();
-                    }
-                    Err(e) => {
-                        let message = ErrorSystem::format_error(&e);
-                        log::error!("Parse/Set error in cell {}: {}", address, message);
-                        self.errors()
-                            .emit(message, crate::controller::events::ErrorSeverity::Error);
+                // Use CellEditor to handle submission
+                let result = CellEditor::submit_formula_bar(&mut self.facade, address, value.clone())?;
+                
+                // Process events from result
+                for (event, error_info) in result.create_events() {
+                    self.event_dispatcher.dispatch(&event);
+                    if let Some((msg, severity)) = error_info {
+                        self.errors().emit(msg, severity);
                     }
                 }
+
+                // Update formula bar to show the new value
+                self.update_formula_bar_from_cursor();
 
                 // Exit editing mode
                 return self.dispatch_action(Action::ExitToNavigation);
@@ -504,52 +465,22 @@ impl SpreadsheetController {
     }
 
     pub(super) fn complete_editing(&mut self) -> Result<()> {
-        if let UIState::Editing { core, value, .. } = self.state_machine.get_state() {
-            let address = core.cursor;
-            let cell_value = value.clone();
-
-            // Update the cell value in the facade and handle errors
-            match self.facade.set_cell_value(&address, &cell_value) {
-                Ok(_) => {
-                    // Check if the cell now contains an error value (e.g., from formula evaluation)
-                    if let Some(gridcore_core::types::CellValue::Error(error_type)) =
-                        self.facade.get_cell_raw_value(&address)
-                    {
-                        // Use the ErrorType's built-in full_display method
-                        let enhanced_message =
-                            format!("Formula error: {}", error_type.full_display());
-
-                        log::error!("Error in cell {}: {}", address, enhanced_message);
-
-                        // Emit error event for formula evaluation errors
-                        self.errors().emit(
-                            enhanced_message,
-                            crate::controller::events::ErrorSeverity::Error,
-                        );
-                    }
-
-                    self.event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CellEditCompleted {
-                            address,
-                            value: cell_value,
-                        });
-                }
-                Err(e) => {
-                    // Use ErrorFormatter to get consistent error messages
-                    let message = ErrorSystem::format_error(&e);
-                    log::error!("Parse/Set error in cell {}: {}", address, message);
-
-                    // Emit error event for setting errors
-                    self.errors()
-                        .emit(message, crate::controller::events::ErrorSeverity::Error);
-                    // Still exit editing mode even if the value couldn't be set
+        // Use CellEditor to complete editing
+        if let Some(result) = CellEditor::complete_editing(self.state_machine.get_state(), &mut self.facade) {
+            // Process events from result
+            for (event, error_info) in result.create_events() {
+                self.event_dispatcher.dispatch(&event);
+                if let Some((msg, severity)) = error_info {
+                    self.errors().emit(msg, severity);
                 }
             }
 
-            self.dispatch_action(Action::ExitToNavigation)
-        } else {
-            Ok(())
+            // Take next action if any
+            if let Some(action) = result.next_action() {
+                return self.dispatch_action(action);
+            }
         }
+        Ok(())
     }
 
     // Mouse event handling

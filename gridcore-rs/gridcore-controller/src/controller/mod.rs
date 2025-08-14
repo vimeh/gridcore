@@ -1,3 +1,4 @@
+pub mod cell_editor;
 pub mod events;
 #[cfg(test)]
 mod events_test;
