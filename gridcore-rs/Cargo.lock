@@ -776,6 +776,7 @@ dependencies = [
  "criterion",
  "gridcore-core",
  "log",
+ "once_cell",
  "regex",
  "rustc-hash",
  "serde",

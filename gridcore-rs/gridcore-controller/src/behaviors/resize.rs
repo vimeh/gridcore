@@ -1,10 +1,11 @@
+use crate::behaviors::shared::{NavigationDirection, NumberBuffer};
 use crate::state::{Action, ResizeTarget, UIState};
 use gridcore_core::Result;
 use serde::{Deserialize, Serialize};
 
 /// Handles column and row resizing operations
 pub struct ResizeBehavior {
-    number_buffer: String,
+    number_buffer: NumberBuffer,
 }
 
 /// Actions that can be performed during resize mode
@@ -27,24 +28,19 @@ pub enum MoveDirection {
 impl ResizeBehavior {
     pub fn new() -> Self {
         Self {
-            number_buffer: String::new(),
+            number_buffer: NumberBuffer::new(),
         }
     }
 
     /// Process a key press in resize mode
     pub fn handle_key(&mut self, key: &str, state: &UIState) -> Result<Option<Action>> {
-        // Accumulate number buffer for multipliers
-        if key.len() == 1 {
-            if let Some(ch) = key.chars().next() {
-                if ch.is_ascii_digit() {
-                    self.number_buffer.push_str(key);
-                    return Ok(None);
-                }
-            }
+        // Try to accumulate number buffer for multipliers
+        if self.number_buffer.try_push_key(key) {
+            return Ok(None);
         }
 
-        let multiplier = self.get_multiplier();
-        self.clear_number_buffer();
+        let multiplier = self.number_buffer.get_multiplier();
+        self.number_buffer.clear();
 
         match key {
             // Increase size
@@ -60,27 +56,27 @@ impl ResizeBehavior {
             // Auto-fit to content
             "=" => Ok(Some(Action::AutoFitResize)),
 
-            // Navigate columns/rows
-            "h" | "ArrowLeft" => self.handle_navigation(state, MoveDirection::Previous, true),
-            "l" | "ArrowRight" => self.handle_navigation(state, MoveDirection::Next, true),
-            "k" | "ArrowUp" => self.handle_navigation(state, MoveDirection::Previous, false),
-            "j" | "ArrowDown" => self.handle_navigation(state, MoveDirection::Next, false),
-
-            // Confirm resize
-            "Enter" | "\r" | "\n" => Ok(Some(Action::ConfirmResize)),
-
-            // Cancel resize
-            "Escape" => Ok(Some(Action::CancelResize)),
-
-            _ => Ok(None),
+            // Navigate columns/rows using shared direction parsing
+            _ => {
+                if let Some(direction) = NavigationDirection::from_key(key) {
+                    self.handle_navigation(state, direction)
+                } else {
+                    match key {
+                        // Confirm resize
+                        "Enter" | "\r" | "\n" => Ok(Some(Action::ConfirmResize)),
+                        // Cancel resize
+                        "Escape" => Ok(Some(Action::CancelResize)),
+                        _ => Ok(None),
+                    }
+                }
+            }
         }
     }
 
     fn handle_navigation(
         &self,
         state: &UIState,
-        direction: MoveDirection,
-        is_horizontal: bool,
+        direction: NavigationDirection,
     ) -> Result<Option<Action>> {
         // Check if we're in resize mode and get the target
         if let UIState::Navigation {
@@ -91,10 +87,21 @@ impl ResizeBehavior {
             let is_column_resize = matches!(target, ResizeTarget::Column { .. });
 
             // Only allow horizontal navigation for columns, vertical for rows
-            if is_column_resize == is_horizontal {
+            let is_valid = match direction {
+                NavigationDirection::Left | NavigationDirection::Right => is_column_resize,
+                NavigationDirection::Up | NavigationDirection::Down => !is_column_resize,
+                _ => false,
+            };
+
+            if is_valid {
                 let new_direction = match direction {
-                    MoveDirection::Previous => crate::state::ResizeMoveDirection::Previous,
-                    MoveDirection::Next => crate::state::ResizeMoveDirection::Next,
+                    NavigationDirection::Left | NavigationDirection::Up => {
+                        crate::state::ResizeMoveDirection::Previous
+                    }
+                    NavigationDirection::Right | NavigationDirection::Down => {
+                        crate::state::ResizeMoveDirection::Next
+                    }
+                    _ => return Ok(None),
                 };
 
                 return Ok(Some(Action::MoveResizeTarget {
@@ -106,17 +113,9 @@ impl ResizeBehavior {
         Ok(None)
     }
 
-    fn get_multiplier(&self) -> usize {
-        self.number_buffer.parse().unwrap_or(1).max(1)
-    }
-
-    fn clear_number_buffer(&mut self) {
-        self.number_buffer.clear();
-    }
-
     /// Reset the behavior state
     pub fn reset(&mut self) {
-        self.clear_number_buffer();
+        self.number_buffer.clear();
     }
 
     /// Get current resize info for display

@@ -1,4 +1,6 @@
 use gridcore_core::types::CellAddress;
+use once_cell::sync::Lazy;
+use std::collections::HashMap;
 
 /// Represents different types of autocomplete suggestions
 #[derive(Debug, Clone)]
@@ -25,67 +27,91 @@ impl AutocompleteSuggestion {
     }
 }
 
-/// Static list of spreadsheet functions
-const SPREADSHEET_FUNCTIONS: &[&str] = &[
-    "SUM",
-    "AVERAGE",
-    "COUNT",
-    "COUNTA",
-    "COUNTIF",
-    "MAX",
-    "MIN",
-    "IF",
-    "IFS",
-    "VLOOKUP",
-    "HLOOKUP",
-    "INDEX",
-    "MATCH",
-    "CONCATENATE",
-    "CONCAT",
-    "LEFT",
-    "RIGHT",
-    "MID",
-    "LEN",
-    "TRIM",
-    "UPPER",
-    "LOWER",
-    "PROPER",
-    "TODAY",
-    "NOW",
-    "DATE",
-    "TIME",
-    "YEAR",
-    "MONTH",
-    "DAY",
-    "HOUR",
-    "MINUTE",
-    "SECOND",
-    "WEEKDAY",
-    "ROUND",
-    "ROUNDUP",
-    "ROUNDDOWN",
-    "FLOOR",
-    "CEILING",
-    "ABS",
-    "SQRT",
-    "POWER",
-    "EXP",
-    "LOG",
-    "LOG10",
-    "PI",
-    "RAND",
-    "RANDBETWEEN",
-    "AND",
-    "OR",
-    "NOT",
-    "XOR",
-    "ISBLANK",
-    "ISERROR",
-    "ISNA",
-    "ISNUMBER",
-    "ISTEXT",
-    "ISLOGICAL",
-];
+/// Static list of spreadsheet functions and their signatures
+static FUNCTION_DATA: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+
+    // Math functions
+    m.insert("SUM", "(value1, [value2, ...])");
+    m.insert("AVERAGE", "(value1, [value2, ...])");
+    m.insert("COUNT", "(value1, [value2, ...])");
+    m.insert("COUNTA", "(value1, [value2, ...])");
+    m.insert("COUNTIF", "(range, criteria)");
+    m.insert("MAX", "(value1, [value2, ...])");
+    m.insert("MIN", "(value1, [value2, ...])");
+    m.insert("ROUND", "(number, num_digits)");
+    m.insert("ROUNDUP", "(number, num_digits)");
+    m.insert("ROUNDDOWN", "(number, num_digits)");
+    m.insert("FLOOR", "(number, significance)");
+    m.insert("CEILING", "(number, significance)");
+    m.insert("ABS", "(number)");
+    m.insert("SQRT", "(number)");
+    m.insert("POWER", "(number, power)");
+    m.insert("EXP", "(number)");
+    m.insert("LOG", "(number, [base])");
+    m.insert("LOG10", "(number)");
+    m.insert("PI", "()");
+    m.insert("RAND", "()");
+    m.insert("RANDBETWEEN", "(bottom, top)");
+
+    // Logical functions
+    m.insert("IF", "(logical_test, value_if_true, value_if_false)");
+    m.insert(
+        "IFS",
+        "(logical_test1, value_if_true1, [logical_test2, value_if_true2], ...)",
+    );
+    m.insert("AND", "(logical1, [logical2, ...])");
+    m.insert("OR", "(logical1, [logical2, ...])");
+    m.insert("NOT", "(logical)");
+    m.insert("XOR", "(logical1, [logical2, ...])");
+
+    // Lookup functions
+    m.insert(
+        "VLOOKUP",
+        "(lookup_value, table_array, col_index_num, [range_lookup])",
+    );
+    m.insert(
+        "HLOOKUP",
+        "(lookup_value, table_array, row_index_num, [range_lookup])",
+    );
+    m.insert("INDEX", "(array, row_num, [column_num])");
+    m.insert("MATCH", "(lookup_value, lookup_array, [match_type])");
+
+    // Text functions
+    m.insert("CONCATENATE", "(text1, [text2, ...])");
+    m.insert("CONCAT", "(text1, [text2, ...])");
+    m.insert("LEFT", "(text, [num_chars])");
+    m.insert("RIGHT", "(text, [num_chars])");
+    m.insert("MID", "(text, start_num, num_chars)");
+    m.insert("LEN", "(text)");
+    m.insert("TRIM", "(text)");
+    m.insert("UPPER", "(text)");
+    m.insert("LOWER", "(text)");
+    m.insert("PROPER", "(text)");
+
+    // Date/Time functions
+    m.insert("TODAY", "()");
+    m.insert("NOW", "()");
+    m.insert("DATE", "(year, month, day)");
+    m.insert("TIME", "(hour, minute, second)");
+    m.insert("YEAR", "(date)");
+    m.insert("MONTH", "(date)");
+    m.insert("DAY", "(date)");
+    m.insert("HOUR", "(time)");
+    m.insert("MINUTE", "(time)");
+    m.insert("SECOND", "(time)");
+    m.insert("WEEKDAY", "(date, [return_type])");
+
+    // Information functions
+    m.insert("ISBLANK", "(value)");
+    m.insert("ISERROR", "(value)");
+    m.insert("ISNA", "(value)");
+    m.insert("ISNUMBER", "(value)");
+    m.insert("ISTEXT", "(value)");
+    m.insert("ISLOGICAL", "(value)");
+
+    m
+});
 
 /// Get function suggestions based on a prefix
 pub fn get_function_suggestions(prefix: &str) -> Vec<String> {
@@ -94,11 +120,14 @@ pub fn get_function_suggestions(prefix: &str) -> Vec<String> {
     }
 
     let prefix_upper = prefix.to_uppercase();
-    SPREADSHEET_FUNCTIONS
-        .iter()
+    let mut results: Vec<String> = FUNCTION_DATA
+        .keys()
         .filter(|func| func.starts_with(&prefix_upper))
         .map(|s| s.to_string())
-        .collect()
+        .collect();
+
+    results.sort();
+    results
 }
 
 /// Get suggestions for the current input
@@ -118,79 +147,16 @@ pub fn get_suggestions(input: &str, _cursor_position: usize) -> Vec<Autocomplete
                 .into_iter()
                 .map(|func| AutocompleteSuggestion::Function {
                     name: func.clone(),
-                    signature: get_function_signature(&func),
+                    signature: FUNCTION_DATA
+                        .get(func.as_str())
+                        .unwrap_or(&"()")
+                        .to_string(),
                 })
                 .collect();
         }
     }
 
     Vec::new()
-}
-
-/// Get the signature for a function (parameter hints)
-pub fn get_function_signature(function: &str) -> String {
-    match function {
-        "SUM" => "(value1, [value2, ...])",
-        "AVERAGE" => "(value1, [value2, ...])",
-        "COUNT" => "(value1, [value2, ...])",
-        "COUNTA" => "(value1, [value2, ...])",
-        "COUNTIF" => "(range, criteria)",
-        "MAX" => "(value1, [value2, ...])",
-        "MIN" => "(value1, [value2, ...])",
-        "IF" => "(logical_test, value_if_true, value_if_false)",
-        "IFS" => "(logical_test1, value_if_true1, [logical_test2, value_if_true2], ...)",
-        "VLOOKUP" => "(lookup_value, table_array, col_index_num, [range_lookup])",
-        "HLOOKUP" => "(lookup_value, table_array, row_index_num, [range_lookup])",
-        "INDEX" => "(array, row_num, [column_num])",
-        "MATCH" => "(lookup_value, lookup_array, [match_type])",
-        "CONCATENATE" => "(text1, [text2, ...])",
-        "CONCAT" => "(text1, [text2, ...])",
-        "LEFT" => "(text, [num_chars])",
-        "RIGHT" => "(text, [num_chars])",
-        "MID" => "(text, start_num, num_chars)",
-        "LEN" => "(text)",
-        "TRIM" => "(text)",
-        "UPPER" => "(text)",
-        "LOWER" => "(text)",
-        "PROPER" => "(text)",
-        "TODAY" => "()",
-        "NOW" => "()",
-        "DATE" => "(year, month, day)",
-        "TIME" => "(hour, minute, second)",
-        "YEAR" => "(date)",
-        "MONTH" => "(date)",
-        "DAY" => "(date)",
-        "HOUR" => "(time)",
-        "MINUTE" => "(time)",
-        "SECOND" => "(time)",
-        "WEEKDAY" => "(date, [return_type])",
-        "ROUND" => "(number, num_digits)",
-        "ROUNDUP" => "(number, num_digits)",
-        "ROUNDDOWN" => "(number, num_digits)",
-        "FLOOR" => "(number, significance)",
-        "CEILING" => "(number, significance)",
-        "ABS" => "(number)",
-        "SQRT" => "(number)",
-        "POWER" => "(number, power)",
-        "EXP" => "(number)",
-        "LOG" => "(number, [base])",
-        "LOG10" => "(number)",
-        "PI" => "()",
-        "RAND" => "()",
-        "RANDBETWEEN" => "(bottom, top)",
-        "AND" => "(logical1, [logical2, ...])",
-        "OR" => "(logical1, [logical2, ...])",
-        "NOT" => "(logical)",
-        "XOR" => "(logical1, [logical2, ...])",
-        "ISBLANK" => "(value)",
-        "ISERROR" => "(value)",
-        "ISNA" => "(value)",
-        "ISNUMBER" => "(value)",
-        "ISTEXT" => "(value)",
-        "ISLOGICAL" => "(value)",
-        _ => "()",
-    }
-    .to_string()
 }
 
 /// Apply a suggestion to the current input
@@ -202,9 +168,6 @@ pub fn apply_suggestion(
     match suggestion {
         AutocompleteSuggestion::Function { name, .. } => {
             // Find where to insert the function
-            // For input like "=SU", we want to split on non-alphanumeric chars
-            // but '=' is at the start, so we need special handling
-
             if let Some(after_equals) = input.strip_prefix('=') {
                 // Get everything after the '='
                 // Find the last word being typed (the function prefix)
