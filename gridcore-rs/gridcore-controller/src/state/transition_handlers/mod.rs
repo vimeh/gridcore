@@ -1,5 +1,6 @@
 pub mod bulk;
 pub mod command;
+pub mod consolidated;
 pub mod editing;
 pub mod navigation;
 #[cfg(test)]
@@ -19,32 +20,30 @@ pub trait TransitionHandler: Send + Sync {
 }
 
 /// Registry that manages all transition handlers
+/// Using the new consolidated approach
 pub struct HandlerRegistry {
-    handlers: Vec<Box<dyn TransitionHandler>>,
+    handler: consolidated::StateTransitionHandler,
 }
 
 impl HandlerRegistry {
     pub fn new() -> Self {
-        let handlers: Vec<Box<dyn TransitionHandler>> = vec![
-            // Universal handler should be checked last as it handles fallback cases
-            Box::new(navigation::NavigationHandler),
-            Box::new(editing::EditingHandler),
-            Box::new(visual::VisualHandler),
-            Box::new(command::CommandHandler),
-            Box::new(resize::ResizeHandler),
-            Box::new(structural::StructuralHandler),
-            Box::new(bulk::BulkHandler),
-            Box::new(universal::UniversalHandler),
-        ];
-
-        Self { handlers }
+        Self {
+            handler: consolidated::StateTransitionHandler::new(),
+        }
     }
 
-    pub fn find_handler(&self, state: &UIState, action: &Action) -> Option<&dyn TransitionHandler> {
-        self.handlers
-            .iter()
-            .find(|handler| handler.can_handle(state, action))
-            .map(|h| h.as_ref())
+    pub fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
+        self.handler.handle(state, action)
+    }
+
+    // Legacy compatibility method
+    pub fn find_handler(
+        &self,
+        _state: &UIState,
+        _action: &Action,
+    ) -> Option<&dyn TransitionHandler> {
+        // Return None as we're using the consolidated handler directly
+        None
     }
 }
 
