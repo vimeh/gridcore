@@ -2,7 +2,6 @@ pub mod behaviors;
 pub mod controller;
 pub mod managers;
 pub mod state;
-pub mod utils;
 
 // Re-export key types
 pub use controller::SpreadsheetController;
