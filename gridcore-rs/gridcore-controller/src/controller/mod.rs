@@ -1,6 +1,7 @@
 pub mod events;
 #[cfg(test)]
 mod events_test;
+pub mod input_handler;
 pub mod operations;
 pub mod spreadsheet;
 #[cfg(test)]
