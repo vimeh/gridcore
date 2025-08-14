@@ -2,7 +2,7 @@
 #[allow(clippy::module_inception)]
 mod tests {
     use super::super::*;
-    use crate::state::{EditMode, ModalData, ModalKind, VisualMode};
+    use crate::state::{EditMode, NavigationModal, VisualMode};
     use gridcore_core::types::CellAddress;
 
     fn create_test_state_machine() -> UIStateMachine {
@@ -160,13 +160,16 @@ mod tests {
         match machine.get_state() {
             UIState::Editing {
                 mode,
-                visual_type,
-                visual_start,
+                visual_selection,
                 ..
             } => {
                 assert_eq!(*mode, EditMode::Visual);
-                assert_eq!(*visual_type, Some(VisualMode::Character));
-                assert_eq!(*visual_start, Some(3));
+                if let Some(visual) = visual_selection {
+                    assert_eq!(visual.mode, VisualMode::Character);
+                    assert_eq!(visual.start, 3);
+                } else {
+                    panic!("Expected visual selection");
+                }
             }
             _ => panic!("Expected editing state"),
         }
@@ -179,13 +182,11 @@ mod tests {
         match machine.get_state() {
             UIState::Editing {
                 mode,
-                visual_type,
-                visual_start,
+                visual_selection,
                 ..
             } => {
                 assert_eq!(*mode, EditMode::Normal);
-                assert_eq!(*visual_type, None);
-                assert_eq!(*visual_start, None);
+                assert!(visual_selection.is_none());
             }
             _ => panic!("Expected editing state"),
         }
@@ -200,9 +201,8 @@ mod tests {
         assert!(result.is_ok());
 
         match machine.get_state() {
-            UIState::Modal {
-                kind: ModalKind::Command,
-                data: ModalData::Command { value },
+            UIState::Navigation {
+                modal: Some(NavigationModal::Command { value }),
                 ..
             } => {
                 assert_eq!(value, "");
@@ -218,9 +218,8 @@ mod tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Modal {
-                kind: ModalKind::Command,
-                data: ModalData::Command { value },
+            UIState::Navigation {
+                modal: Some(NavigationModal::Command { value }),
                 ..
             } => {
                 assert_eq!(value, ":w");
@@ -254,17 +253,16 @@ mod tests {
         assert!(result.is_ok());
 
         match machine.get_state() {
-            UIState::Modal {
-                kind: ModalKind::Visual,
-                data:
-                    ModalData::Visual {
-                        visual_mode,
+            UIState::Navigation {
+                modal:
+                    Some(NavigationModal::Visual {
+                        mode,
                         selection: sel,
                         ..
-                    },
+                    }),
                 ..
             } => {
-                assert_eq!(*visual_mode, VisualMode::Block);
+                assert_eq!(*mode, VisualMode::Block);
                 assert_eq!(*sel, selection);
             }
             _ => panic!("Expected visual state"),
@@ -286,9 +284,8 @@ mod tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Modal {
-                kind: ModalKind::Visual,
-                data: ModalData::Visual { selection, .. },
+            UIState::Navigation {
+                modal: Some(NavigationModal::Visual { selection, .. }),
                 ..
             } => {
                 assert_eq!(*selection, new_selection);
@@ -438,10 +435,10 @@ mod tests {
         // Check first entry
         assert!(matches!(history[0].action, Action::EnterCommandMode));
         // Now we store diffs instead of full states, so check the diff
-        // The first diff should be a Full transition from Navigation to Command
+        // Since Navigation to Navigation+Command is same variant, it's a Partial diff
         assert!(matches!(
             history[0].diff,
-            crate::state::diff::StateDiff::Full(_)
+            crate::state::diff::StateDiff::Partial(_)
         ));
 
         // Check that timestamps are set (non-wasm)
@@ -516,10 +513,11 @@ mod tests {
             .enter_spreadsheet_visual_mode(VisualMode::Line, selection)
             .expect("Enter visual mode should succeed in test");
 
+        // Check that we're in visual mode
         assert!(matches!(
             machine.get_state(),
-            UIState::Modal {
-                kind: ModalKind::Visual,
+            UIState::Navigation {
+                modal: Some(NavigationModal::Visual { .. }),
                 ..
             }
         ));

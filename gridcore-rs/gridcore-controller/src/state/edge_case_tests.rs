@@ -2,7 +2,7 @@
 #[allow(clippy::module_inception)]
 mod edge_case_tests {
     use super::super::*;
-    use crate::state::{ModalData, ModalKind, VisualMode};
+    use crate::state::{NavigationModal, VisualMode};
     use gridcore_core::types::CellAddress;
     use std::sync::{Arc, Mutex};
 
@@ -72,8 +72,8 @@ mod edge_case_tests {
             .expect("State transition should succeed in test");
         assert!(matches!(
             machine.get_state(),
-            UIState::Modal {
-                kind: ModalKind::Command,
+            UIState::Navigation {
+                modal: Some(NavigationModal::Command { .. }),
                 ..
             }
         ));
@@ -175,8 +175,8 @@ mod edge_case_tests {
             .expect("State transition should succeed in test");
         assert!(matches!(
             machine.get_state(),
-            UIState::Modal {
-                kind: ModalKind::Command,
+            UIState::Navigation {
+                modal: Some(NavigationModal::Command { .. }),
                 ..
             }
         ));
@@ -237,9 +237,8 @@ mod edge_case_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Modal {
-                kind: ModalKind::Visual,
-                data: ModalData::Visual { selection, .. },
+            UIState::Navigation {
+                modal: Some(NavigationModal::Visual { selection, .. }),
                 ..
             } => {
                 assert_eq!(*selection, huge_selection);
@@ -345,9 +344,8 @@ mod edge_case_tests {
             .expect("State transition should succeed in test");
 
         match machine.get_state() {
-            UIState::Modal {
-                kind: ModalKind::Command,
-                data: ModalData::Command { value },
+            UIState::Navigation {
+                modal: Some(NavigationModal::Command { value }),
                 ..
             } => {
                 assert_eq!(value, special_chars);
@@ -388,7 +386,7 @@ mod edge_case_tests {
             .expect("State transition should succeed in test");
 
         // Create new machine with initial state
-        let initial_state = UIState::create_navigation_state(
+        let initial_state = UIState::new_navigation(
             CellAddress::new(0, 0),
             ViewportInfo {
                 start_row: 0,

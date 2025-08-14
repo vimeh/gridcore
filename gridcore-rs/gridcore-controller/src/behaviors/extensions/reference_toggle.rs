@@ -147,23 +147,24 @@ impl Default for ReferenceToggleExtension {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::{EditMode, ViewportInfo};
+    use crate::state::{CoreState, EditMode, ViewportInfo};
     use gridcore_core::types::CellAddress;
 
     fn create_test_state(formula: &str, cursor_pos: usize) -> UIState {
         UIState::Editing {
-            cursor: CellAddress::new(0, 0),
-            viewport: ViewportInfo {
-                start_row: 0,
-                start_col: 0,
-                rows: 10,
-                cols: 10,
-            },
+            core: CoreState::new(
+                CellAddress::new(0, 0),
+                ViewportInfo {
+                    start_row: 0,
+                    start_col: 0,
+                    rows: 10,
+                    cols: 10,
+                },
+            ),
             value: formula.to_string(),
             cursor_pos,
             mode: EditMode::Normal,
-            visual_start: None,
-            visual_type: None,
+            visual_selection: None,
             insert_variant: None,
         }
     }
@@ -209,14 +210,17 @@ mod tests {
     fn test_ignores_in_non_editing_mode() {
         let mut ext = ReferenceToggleExtension::new();
         let state = UIState::Navigation {
-            cursor: CellAddress::new(0, 0),
-            viewport: ViewportInfo {
-                start_row: 0,
-                start_col: 0,
-                rows: 10,
-                cols: 10,
-            },
+            core: CoreState::new(
+                CellAddress::new(0, 0),
+                ViewportInfo {
+                    start_row: 0,
+                    start_col: 0,
+                    rows: 10,
+                    cols: 10,
+                },
+            ),
             selection: None,
+            modal: None,
         };
         let meta = KeyMeta::new("F4");
 

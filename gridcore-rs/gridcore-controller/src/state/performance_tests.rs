@@ -2,7 +2,7 @@
 #[allow(clippy::module_inception)]
 mod performance_tests {
     use super::super::*;
-    use crate::state::{ModalData, ModalKind, VisualMode};
+    use crate::state::{NavigationModal, VisualMode};
     use gridcore_core::types::CellAddress;
     use std::time::Instant;
 
@@ -358,9 +358,8 @@ mod performance_tests {
         machine.transition(Action::EnterCommandMode).unwrap();
         assert!(matches!(
             machine.get_state(),
-            UIState::Modal {
-                kind: ModalKind::Command,
-                data: ModalData::Command { .. },
+            UIState::Navigation {
+                modal: Some(NavigationModal::Command { .. }),
                 ..
             }
         ));

@@ -5,7 +5,7 @@ use crate::controller::{
 };
 use crate::managers::{ErrorFormatter, ErrorManager};
 use crate::state::{
-    Action, EditMode, InsertMode, ModalData, ModalKind, SpreadsheetMode, UIState, UIStateMachine,
+    Action, EditMode, InsertMode, NavigationModal, SpreadsheetMode, UIState, UIStateMachine,
     VisualMode,
 };
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
@@ -172,8 +172,8 @@ impl SpreadsheetController {
 
         if let Action::SubmitCellEdit { value } = &action {
             // Update the editing value and complete editing
-            if let UIState::Editing { cursor, .. } = self.state_machine.get_state() {
-                let address = *cursor;
+            if let UIState::Editing { core, .. } = self.state_machine.get_state() {
+                let address = core.cursor;
 
                 // Update the cell value in the facade and handle errors
                 match self.facade.set_cell_value(&address, value) {
@@ -809,9 +809,8 @@ impl SpreadsheetController {
             return self.dispatch_action(Action::ExitCommandMode);
         }
 
-        if let UIState::Modal {
-            kind: ModalKind::Command,
-            data: ModalData::Command { value },
+        if let UIState::Navigation {
+            modal: Some(NavigationModal::Command { value }),
             ..
         } = self.state_machine.get_state()
         {
@@ -879,8 +878,8 @@ impl SpreadsheetController {
     }
 
     fn complete_editing(&mut self) -> Result<()> {
-        if let UIState::Editing { cursor, value, .. } = self.state_machine.get_state() {
-            let address = *cursor;
+        if let UIState::Editing { core, value, .. } = self.state_machine.get_state() {
+            let address = core.cursor;
             let cell_value = value.clone();
 
             // Update the cell value in the facade and handle errors

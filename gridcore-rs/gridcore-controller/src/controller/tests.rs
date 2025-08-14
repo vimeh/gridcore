@@ -197,9 +197,8 @@ mod tests {
             .unwrap();
 
         // Check command value
-        if let UIState::Modal {
-            kind: crate::state::ModalKind::Command,
-            data: crate::state::ModalData::Command { value },
+        if let UIState::Navigation {
+            modal: Some(crate::state::NavigationModal::Command { value }),
             ..
         } = controller.get_state()
         {
