@@ -1,5 +1,5 @@
 use super::{Operator, VimBehavior, VimMode};
-use crate::state::{create_navigation_state, Action, InsertMode, UIState, ViewportInfo};
+use crate::state::{Action, InsertMode, UIState, ViewportInfo};
 use gridcore_core::types::CellAddress;
 
 fn create_test_vim() -> VimBehavior {
@@ -14,7 +14,7 @@ fn create_test_state() -> UIState {
         rows: 20,
         cols: 10,
     };
-    create_navigation_state(cursor, viewport, None)
+    UIState::new_navigation(cursor, viewport)
 }
 
 // Navigation tests

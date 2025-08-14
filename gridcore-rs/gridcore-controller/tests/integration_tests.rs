@@ -90,13 +90,9 @@ fn test_command_mode_workflow() {
 
     // Enter command mode
     machine.transition(Action::EnterCommandMode).unwrap();
-    assert!(matches!(
-        machine.get_state(),
-        UIState::Modal {
-            kind: gridcore_controller::state::ModalKind::Command,
-            ..
-        }
-    ));
+    assert!(machine
+        .get_state()
+        .is_modal(gridcore_controller::state::ModalKind::Command));
 
     // Type a command
     machine
@@ -129,13 +125,9 @@ fn test_visual_mode_selection() {
         })
         .unwrap();
 
-    assert!(matches!(
-        machine.get_state(),
-        UIState::Modal {
-            kind: gridcore_controller::state::ModalKind::Visual,
-            ..
-        }
-    ));
+    assert!(machine
+        .get_state()
+        .is_modal(gridcore_controller::state::ModalKind::Visual));
 
     // Update selection
     let new_selection = gridcore_controller::state::Selection {
@@ -171,13 +163,9 @@ fn test_resize_mode_workflow() {
         })
         .unwrap();
 
-    assert!(matches!(
-        machine.get_state(),
-        UIState::Modal {
-            kind: gridcore_controller::state::ModalKind::Resize,
-            ..
-        }
-    ));
+    assert!(machine
+        .get_state()
+        .is_modal(gridcore_controller::state::ModalKind::Resize));
 
     // Update size
     machine
@@ -205,13 +193,9 @@ fn test_bulk_operation_workflow() {
         })
         .unwrap();
 
-    assert!(matches!(
-        machine.get_state(),
-        UIState::Modal {
-            kind: gridcore_controller::state::ModalKind::BulkOperation,
-            ..
-        }
-    ));
+    assert!(machine
+        .get_state()
+        .is_modal(gridcore_controller::state::ModalKind::BulkOperation));
 
     // Generate preview
     machine.transition(Action::GeneratePreview).unwrap();
