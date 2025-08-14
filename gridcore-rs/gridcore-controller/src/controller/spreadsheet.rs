@@ -272,6 +272,7 @@ impl SpreadsheetController {
 
     /// Get the display value for a cell in the UI
     /// Returns the formula if the cell has one, otherwise the display value
+    #[deprecated(note = "Use cells().display_value() instead")]
     pub fn get_cell_display_for_ui(&self, address: &CellAddress) -> String {
         if let Some(cell) = self.facade.get_cell(address) {
             if cell.has_formula() {
@@ -287,6 +288,7 @@ impl SpreadsheetController {
     }
 
     /// Emit an error event and add to error manager
+    #[deprecated(note = "Use errors().emit() instead")]
     pub fn emit_error(
         &mut self,
         message: String,
@@ -322,6 +324,7 @@ impl SpreadsheetController {
         &mut self.resize_state
     }
 
+    #[deprecated(note = "Use selection().stats() instead")]
     pub fn get_current_selection_stats(&self) -> selection_stats::SelectionStats {
         use crate::state::SelectionType;
 
@@ -374,16 +377,19 @@ impl SpreadsheetController {
     }
 
     /// Get active errors from the error manager
+    #[deprecated(note = "Use errors().active() instead")]
     pub fn get_active_errors(&self) -> Vec<crate::managers::ErrorEntry> {
         self.error_manager.get_active_errors()
     }
 
     /// Clear all errors
+    #[deprecated(note = "Use errors().clear_all() instead")]
     pub fn clear_all_errors(&mut self) {
         self.error_manager.clear_all();
     }
 
     /// Remove a specific error by ID
+    #[deprecated(note = "Use errors().remove() instead")]
     pub fn remove_error(&mut self, id: usize) -> bool {
         self.error_manager.remove_error(id)
     }
@@ -480,6 +486,28 @@ impl SpreadsheetController {
 
     pub fn unsubscribe_from_events(&mut self, index: usize) {
         self.event_dispatcher.unsubscribe(index)
+    }
+    
+    // ============= Operation Facades =============
+    
+    /// Cell operations facade
+    pub fn cells(&mut self) -> super::operations::CellOperations {
+        super::operations::CellOperations::new(self)
+    }
+    
+    /// Sheet operations facade
+    pub fn sheets_ops(&mut self) -> super::operations::SheetOperations {
+        super::operations::SheetOperations::new(self)
+    }
+    
+    /// Error operations facade
+    pub fn errors(&mut self) -> super::operations::ErrorOperations {
+        super::operations::ErrorOperations::new(self)
+    }
+    
+    /// Selection operations facade
+    pub fn selection(&self) -> super::operations::SelectionOperations {
+        super::operations::SelectionOperations::new(self)
     }
 
     // High-level keyboard handling
