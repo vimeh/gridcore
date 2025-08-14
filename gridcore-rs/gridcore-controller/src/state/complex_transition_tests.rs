@@ -3,8 +3,7 @@
 mod complex_transition_tests {
     use super::super::*;
     use crate::state::{
-        BulkOperationStatus, DeleteConfig, EditMode, InsertConfig, ModalKind, NavigationModal,
-        VisualMode,
+        BulkOperationStatus, DeleteConfig, EditMode, InsertConfig, NavigationModal, VisualMode,
     };
     use gridcore_core::types::CellAddress;
 

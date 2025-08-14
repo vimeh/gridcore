@@ -356,14 +356,7 @@ mod performance_tests {
 
         // Should still be functional
         machine.transition(Action::EnterCommandMode).unwrap();
-        assert!(matches!(
-            machine.get_state(),
-            UIState::Modal {
-                kind: ModalKind::Command,
-                data: ModalData::Command { .. },
-                ..
-            }
-        ));
+        assert!(machine.get_state().is_modal(ModalKind::Command));
 
         println!("Memory usage remained stable after 10,000 operations");
     }
