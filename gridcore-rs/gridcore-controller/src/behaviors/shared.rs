@@ -1,4 +1,4 @@
-/// Shared utilities for behavior implementations
+//! Shared utilities for behavior implementations
 
 /// Manages a numeric buffer for accumulating digits (for counts/multipliers)
 #[derive(Debug, Clone, Default)]
