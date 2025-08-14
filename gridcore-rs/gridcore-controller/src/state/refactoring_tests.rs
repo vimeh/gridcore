@@ -1,11 +1,10 @@
 #[cfg(test)]
 mod refactoring_tests {
-    use super::super::*;
     use crate::state::{
-        Action, BulkOperationStatus, CoreState, DeleteConfig, DeleteType, EditMode, InsertConfig,
+        Action, BulkOperationStatus, CoreState, DeleteType, EditMode,
         InsertMode, InsertPosition, InsertType, ModalKind, NavigationModal, ParsedBulkCommand,
-        ResizeSizes, ResizeTarget, Selection, SelectionType, UIState, UIStateMachine,
-        ViewportInfo, VisualMode, VisualSelection,
+        ResizeTarget, Selection, SelectionType, UIState, UIStateMachine,
+        ViewportInfo, VisualMode,
     };
     use gridcore_core::types::CellAddress;
 
