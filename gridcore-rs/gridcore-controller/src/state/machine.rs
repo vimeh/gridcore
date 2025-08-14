@@ -1,9 +1,8 @@
 use crate::state::{
     actions::Action, create_navigation_state, diff::StateDiff,
-    transition_handlers::HandlerRegistry, InsertMode, Selection, VisualMode, UIState,
-    ViewportInfo,
+    transition_handlers::HandlerRegistry, InsertMode, Selection, UIState, ViewportInfo, VisualMode,
 };
-use gridcore_core::{types::CellAddress, Result, SpreadsheetError};
+use gridcore_core::{types::CellAddress, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -96,19 +95,9 @@ impl UIStateMachine {
             action
         );
 
-        // Create handler registry and find appropriate handler
+        // Use the consolidated handler directly
         let registry = HandlerRegistry::new();
-
-        if let Some(handler) = registry.find_handler(state, action) {
-            return handler.handle(state, action);
-        }
-
-        // If no handler found, return an error
-        Err(SpreadsheetError::InvalidOperation(format!(
-            "Invalid transition from {:?} with action {:?}",
-            state.spreadsheet_mode(),
-            action
-        )))
+        registry.handle(state, action)
     }
 
     pub fn get_state(&self) -> &UIState {

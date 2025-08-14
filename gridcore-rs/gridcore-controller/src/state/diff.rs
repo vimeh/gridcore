@@ -1,7 +1,4 @@
-use super::{
-    EditMode, InsertMode, ModalData, ModalKind, Selection,
-    UIState, ViewportInfo, VisualMode,
-};
+use super::{EditMode, InsertMode, NavigationModal, Selection, UIState, ViewportInfo, VisualMode};
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
 
@@ -71,55 +68,57 @@ impl StateDiff {
         match (old_state, new_state) {
             (
                 UIState::Navigation {
-                    cursor: old_cursor,
-                    viewport: old_viewport,
+                    core: old_core,
                     selection: old_selection,
+                    modal: old_modal,
                 },
                 UIState::Navigation {
-                    cursor: new_cursor,
-                    viewport: new_viewport,
+                    core: new_core,
                     selection: new_selection,
+                    modal: new_modal,
                 },
             ) => {
-                if old_cursor != new_cursor {
-                    changes.cursor_changed = Some(*new_cursor);
+                if old_core.cursor != new_core.cursor {
+                    changes.cursor_changed = Some(new_core.cursor);
                 }
-                if old_viewport != new_viewport {
-                    changes.viewport_changed = Some(*new_viewport);
+                if old_core.viewport != new_core.viewport {
+                    changes.viewport_changed = Some(new_core.viewport);
                 }
                 if old_selection != new_selection {
                     changes.selection_changed = Some(new_selection.clone());
                 }
+                if old_modal != new_modal {
+                    // Handle modal changes if needed
+                }
             }
+            // Handle Navigation with Visual modal specially
             (
-                UIState::Modal {
-                    cursor: old_cursor,
-                    viewport: old_viewport,
-                    kind: ModalKind::Visual,
-                    data:
-                        ModalData::Visual {
-                            selection: old_selection,
-                            visual_mode: old_mode,
+                UIState::Navigation {
+                    core: old_core,
+                    modal:
+                        Some(NavigationModal::Visual {
+                            mode: old_mode,
                             anchor: old_anchor,
-                        },
+                            selection: old_selection,
+                        }),
+                    ..
                 },
-                UIState::Modal {
-                    cursor: new_cursor,
-                    viewport: new_viewport,
-                    kind: ModalKind::Visual,
-                    data:
-                        ModalData::Visual {
-                            selection: new_selection,
-                            visual_mode: new_mode,
+                UIState::Navigation {
+                    core: new_core,
+                    modal:
+                        Some(NavigationModal::Visual {
+                            mode: new_mode,
                             anchor: new_anchor,
-                        },
+                            selection: new_selection,
+                        }),
+                    ..
                 },
             ) => {
-                if old_cursor != new_cursor {
-                    changes.cursor_changed = Some(*new_cursor);
+                if old_core.cursor != new_core.cursor {
+                    changes.cursor_changed = Some(new_core.cursor);
                 }
-                if old_viewport != new_viewport {
-                    changes.viewport_changed = Some(*new_viewport);
+                if old_core.viewport != new_core.viewport {
+                    changes.viewport_changed = Some(new_core.viewport);
                 }
                 if old_selection != new_selection {
                     changes.selection_changed = Some(Some(new_selection.clone()));
@@ -133,31 +132,27 @@ impl StateDiff {
             }
             (
                 UIState::Editing {
-                    cursor: old_cursor,
-                    viewport: old_viewport,
+                    core: old_core,
                     mode: old_mode,
                     value: old_value,
                     cursor_pos: old_pos,
-                    visual_start: old_vstart,
-                    visual_type: old_vtype,
+                    visual_selection: old_visual,
                     insert_variant: old_variant,
                 },
                 UIState::Editing {
-                    cursor: new_cursor,
-                    viewport: new_viewport,
+                    core: new_core,
                     mode: new_mode,
                     value: new_value,
                     cursor_pos: new_pos,
-                    visual_start: new_vstart,
-                    visual_type: new_vtype,
+                    visual_selection: new_visual,
                     insert_variant: new_variant,
                 },
             ) => {
-                if old_cursor != new_cursor {
-                    changes.cursor_changed = Some(*new_cursor);
+                if old_core.cursor != new_core.cursor {
+                    changes.cursor_changed = Some(new_core.cursor);
                 }
-                if old_viewport != new_viewport {
-                    changes.viewport_changed = Some(*new_viewport);
+                if old_core.viewport != new_core.viewport {
+                    changes.viewport_changed = Some(new_core.viewport);
                 }
                 if old_mode != new_mode {
                     changes.edit_mode_changed = Some(*new_mode);
@@ -168,11 +163,19 @@ impl StateDiff {
                 if old_pos != new_pos {
                     changes.text_cursor_changed = Some(*new_pos);
                 }
-                if old_vstart != new_vstart {
-                    changes.visual_start_changed = Some(*new_vstart);
-                }
-                if old_vtype != new_vtype {
-                    changes.visual_type_changed = Some(*new_vtype);
+                if old_visual != new_visual {
+                    // Handle visual selection changes
+                    if let (Some(old_v), Some(new_v)) = (old_visual, new_visual) {
+                        if old_v.start != new_v.start {
+                            changes.visual_start_changed = Some(Some(new_v.start));
+                        }
+                        if old_v.mode != new_v.mode {
+                            changes.visual_type_changed = Some(Some(new_v.mode));
+                        }
+                    } else {
+                        changes.visual_start_changed = Some(new_visual.as_ref().map(|v| v.start));
+                        changes.visual_type_changed = Some(new_visual.as_ref().map(|v| v.mode));
+                    }
                 }
                 if old_variant != new_variant {
                     changes.edit_variant_changed = Some(*new_variant);
@@ -225,35 +228,31 @@ impl StateChanges {
 
         match &mut result {
             UIState::Navigation {
-                cursor,
-                viewport,
-                selection,
+                core, selection, ..
             } => {
                 if let Some(new_cursor) = self.cursor_changed {
-                    *cursor = new_cursor;
+                    core.cursor = new_cursor;
                 }
                 if let Some(new_viewport) = self.viewport_changed {
-                    *viewport = new_viewport;
+                    core.viewport = new_viewport;
                 }
                 if let Some(ref new_selection) = self.selection_changed {
                     *selection = new_selection.clone();
                 }
             }
             UIState::Editing {
-                cursor,
-                viewport,
+                core,
                 mode,
                 value,
                 cursor_pos,
-                visual_start,
-                visual_type,
+                visual_selection,
                 insert_variant,
             } => {
                 if let Some(new_cursor) = self.cursor_changed {
-                    *cursor = new_cursor;
+                    core.cursor = new_cursor;
                 }
                 if let Some(new_viewport) = self.viewport_changed {
-                    *viewport = new_viewport;
+                    core.viewport = new_viewport;
                 }
                 if let Some(new_mode) = self.edit_mode_changed {
                     *mode = new_mode;
@@ -264,11 +263,23 @@ impl StateChanges {
                 if let Some(new_pos) = self.text_cursor_changed {
                     *cursor_pos = new_pos;
                 }
+                // Handle visual selection changes
                 if let Some(new_vstart) = self.visual_start_changed {
-                    *visual_start = new_vstart;
+                    if let Some(ref mut visual) = visual_selection {
+                        visual.start = new_vstart.unwrap_or(0);
+                    } else if let Some(start) = new_vstart {
+                        *visual_selection = Some(crate::state::VisualSelection {
+                            start,
+                            mode: crate::state::VisualMode::Character,
+                        });
+                    }
                 }
                 if let Some(new_vtype) = self.visual_type_changed {
-                    *visual_type = new_vtype;
+                    if let Some(ref mut visual) = visual_selection {
+                        if let Some(mode) = new_vtype {
+                            visual.mode = mode;
+                        }
+                    }
                 }
                 if let Some(new_variant) = self.edit_variant_changed {
                     *insert_variant = new_variant;
