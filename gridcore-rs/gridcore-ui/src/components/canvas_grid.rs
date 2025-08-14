@@ -192,7 +192,7 @@ pub fn CanvasGrid(
         // Get cell value and drop the borrow immediately
         let cell_value = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let value = ctrl_borrow.get_cell_display_for_ui(&cell);
+            let value = ctrl_borrow.cell_display_value(&cell);
             if !value.is_empty() {
                 debug_log!("Cell found at {:?}: value={}", cell, value);
                 Some(value)
@@ -311,7 +311,7 @@ pub fn CanvasGrid(
                 // Get existing cell value
                 let existing_value = controller_stored.with_value(|ctrl| {
                     let ctrl_borrow = ctrl.borrow();
-                    ctrl_borrow.get_cell_display_for_ui(&cell)
+                    ctrl_borrow.cell_display_value(&cell)
                 });
 
                 // Cell position is now derived from memo, no need to calculate

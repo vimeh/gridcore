@@ -152,7 +152,7 @@ impl SpreadsheetController {
                     {
                         let enhanced_message =
                             format!("Formula error: {}", error_type.full_display());
-                        self.emit_error(
+                        self.errors().emit(
                             enhanced_message,
                             crate::controller::events::ErrorSeverity::Error,
                         );
@@ -176,7 +176,8 @@ impl SpreadsheetController {
                 }
                 Err(e) => {
                     let message = ErrorManager::format_error(&e);
-                    self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
+                    self.errors()
+                        .emit(message, crate::controller::events::ErrorSeverity::Error);
                 }
             }
             return Ok(());
@@ -197,7 +198,7 @@ impl SpreadsheetController {
                             let enhanced_message =
                                 format!("Formula error: {}", error_type.full_display());
                             log::error!("Error in cell {}: {}", address, enhanced_message);
-                            self.emit_error(
+                            self.errors().emit(
                                 enhanced_message,
                                 crate::controller::events::ErrorSeverity::Error,
                             );
@@ -215,7 +216,8 @@ impl SpreadsheetController {
                     Err(e) => {
                         let message = ErrorManager::format_error(&e);
                         log::error!("Parse/Set error in cell {}: {}", address, message);
-                        self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
+                        self.errors()
+                            .emit(message, crate::controller::events::ErrorSeverity::Error);
                     }
                 }
 
@@ -424,7 +426,7 @@ impl SpreadsheetController {
     /// Update formula bar based on current cursor position
     pub fn update_formula_bar_from_cursor(&mut self) {
         let cursor = self.cursor();
-        let value = self.get_cell_display_for_ui(&cursor);
+        let value = self.cells().display_value(&cursor);
         self.set_formula_bar_value(value);
     }
 
@@ -500,9 +502,22 @@ impl SpreadsheetController {
 
     // ============= Operation Facades =============
 
-    /// Cell operations facade
+    /// Cell operations facade (mutable)
     pub fn cells(&mut self) -> super::operations::CellOperations {
         super::operations::CellOperations::new(self)
+    }
+
+    /// Get cell display value (immutable)
+    pub fn cell_display_value(&self, address: &CellAddress) -> String {
+        if let Some(cell) = self.facade.get_cell(address) {
+            if cell.has_formula() {
+                cell.raw_value.to_string()
+            } else {
+                cell.get_display_value().to_string()
+            }
+        } else {
+            String::new()
+        }
     }
 
     /// Sheet operations facade
@@ -510,9 +525,14 @@ impl SpreadsheetController {
         super::operations::SheetOperations::new(self)
     }
 
-    /// Error operations facade
+    /// Error operations facade (mutable)
     pub fn errors(&mut self) -> super::operations::ErrorOperations {
         super::operations::ErrorOperations::new(self)
+    }
+
+    /// Get active errors (immutable)
+    pub fn active_errors(&self) -> Vec<crate::managers::ErrorEntry> {
+        self.error_manager.get_active_errors()
     }
 
     /// Selection operations facade
@@ -552,7 +572,7 @@ impl SpreadsheetController {
             // Edit mode triggers
             "i" => {
                 // Get existing cell value for insert mode
-                let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                let existing_value = self.cells().display_value(&current_cursor);
                 log::debug!(
                     "'i' key pressed, starting insert mode with existing value: '{}', cursor at 0",
                     existing_value
@@ -569,7 +589,7 @@ impl SpreadsheetController {
             }
             "a" => {
                 // Get existing cell value for append mode
-                let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                let existing_value = self.cells().display_value(&current_cursor);
                 let cursor_pos = existing_value.len();
                 log::debug!(
                     "'a' key pressed, starting append mode with existing value: '{}', cursor at {}",
@@ -701,7 +721,7 @@ impl SpreadsheetController {
                     // Vim mode commands for entering insert mode
                     "i" => {
                         // Get existing value for the current cell
-                        let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                        let existing_value = self.cells().display_value(&current_cursor);
                         log::debug!("'i' key pressed, entering insert mode at beginning");
                         self.dispatch_action(Action::StartEditing {
                             edit_mode: Some(InsertMode::I),
@@ -711,7 +731,7 @@ impl SpreadsheetController {
                     }
                     "a" => {
                         // Get existing value for the current cell
-                        let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                        let existing_value = self.cells().display_value(&current_cursor);
                         let cursor_pos = if existing_value.is_empty() { 0 } else { 1 };
                         log::debug!("'a' key pressed, entering insert mode after first char");
                         self.dispatch_action(Action::StartEditing {
@@ -722,7 +742,7 @@ impl SpreadsheetController {
                     }
                     "I" => {
                         // Get existing value for the current cell
-                        let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                        let existing_value = self.cells().display_value(&current_cursor);
                         log::debug!("'I' key pressed, entering insert mode at start of line");
                         self.dispatch_action(Action::StartEditing {
                             edit_mode: Some(InsertMode::CapitalI),
@@ -732,7 +752,7 @@ impl SpreadsheetController {
                     }
                     "A" => {
                         // Get existing value for the current cell
-                        let existing_value = self.get_cell_display_for_ui(&current_cursor);
+                        let existing_value = self.cells().display_value(&current_cursor);
                         let cursor_pos = existing_value.len();
                         log::debug!("'A' key pressed, entering insert mode at end of line");
                         self.dispatch_action(Action::StartEditing {
@@ -940,7 +960,7 @@ impl SpreadsheetController {
                         log::error!("Error in cell {}: {}", address, enhanced_message);
 
                         // Emit error event for formula evaluation errors
-                        self.emit_error(
+                        self.errors().emit(
                             enhanced_message,
                             crate::controller::events::ErrorSeverity::Error,
                         );
@@ -958,7 +978,8 @@ impl SpreadsheetController {
                     log::error!("Parse/Set error in cell {}: {}", address, message);
 
                     // Emit error event for setting errors
-                    self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
+                    self.errors()
+                        .emit(message, crate::controller::events::ErrorSeverity::Error);
                     // Still exit editing mode even if the value couldn't be set
                 }
             }

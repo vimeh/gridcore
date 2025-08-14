@@ -164,7 +164,7 @@ pub fn App() -> impl IntoView {
     // Derive selection stats from controller state
     let selection_stats = Memo::new(move |_| {
         selection_trigger.track(); // Track selection changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_current_selection_stats())
+        controller_stored.with_value(|ctrl| ctrl.borrow().selection().stats())
     });
 
     // Handle formula bar Enter key

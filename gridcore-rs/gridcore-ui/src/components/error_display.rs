@@ -36,7 +36,7 @@ pub fn ErrorDisplay(error_trigger: Trigger) -> impl IntoView {
 
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let active_errors = ctrl_borrow.get_active_errors();
+            let active_errors = ctrl_borrow.active_errors();
 
             // Convert from controller's ErrorEntry to our ErrorMessage
             active_errors
@@ -80,13 +80,13 @@ pub fn ErrorDisplay(error_trigger: Trigger) -> impl IntoView {
                         gridcore_controller::controller::events::ErrorSeverity::Info
                     }
                 };
-                ctrl_borrow.emit_error(message, sev);
+                ctrl_borrow.errors().emit(message, sev);
             });
         }),
         clear_errors: Callback::new(move |_| {
             controller_stored.with_value(|ctrl| {
                 let mut ctrl_borrow = ctrl.borrow_mut();
-                ctrl_borrow.clear_all_errors();
+                ctrl_borrow.errors().clear_all();
             });
         }),
     });
@@ -114,7 +114,7 @@ pub fn ErrorDisplay(error_trigger: Trigger) -> impl IntoView {
                                 on:click=move |_| {
                                     controller_stored.with_value(|ctrl| {
                                         let mut ctrl_borrow = ctrl.borrow_mut();
-                                        ctrl_borrow.remove_error(error_id);
+                                        ctrl_borrow.errors().remove(error_id);
                                         // Trigger state update
                                         ctrl_borrow.dispatch_event(
                                             gridcore_controller::controller::events::SpreadsheetEvent::StateChanged
