@@ -33,7 +33,7 @@ pub fn CellEditor(
                 let ctrl_borrow = ctrl.borrow();
 
                 // Get the current editing state
-                let editing_state = ctrl_borrow.get_state();
+                let editing_state = ctrl_borrow.state();
 
                 if let gridcore_controller::state::UIState::Editing {
                     value, cursor_pos, ..
@@ -65,8 +65,7 @@ pub fn CellEditor(
     let current_editing_value = Signal::derive(move || {
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            if let gridcore_controller::state::UIState::Editing { value, .. } =
-                ctrl_borrow.get_state()
+            if let gridcore_controller::state::UIState::Editing { value, .. } = ctrl_borrow.state()
             {
                 value.clone()
             } else {
@@ -160,7 +159,7 @@ pub fn CellEditor(
                                 let is_insert_mode = controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
                                     matches!(
-                                        ctrl_borrow.get_state(),
+                                        ctrl_borrow.state(),
                                         gridcore_controller::state::UIState::Editing {
                                             mode: gridcore_controller::state::EditMode::Insert,
                                             ..
@@ -224,7 +223,7 @@ pub fn CellEditor(
                                 // Check the current editing mode
                                 controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
-                                    let (is_insert_mode, is_normal_mode, is_visual_mode) = match ctrl_borrow.get_state() {
+                                    let (is_insert_mode, is_normal_mode, is_visual_mode) = match ctrl_borrow.state() {
                                         gridcore_controller::state::UIState::Editing { mode, .. } => {
                                             match mode {
                                                 gridcore_controller::state::EditMode::Insert => (true, false, false),
@@ -311,7 +310,7 @@ pub fn CellEditor(
                                 let is_normal_mode = controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
                                     matches!(
-                                        ctrl_borrow.get_state(),
+                                        ctrl_borrow.state(),
                                         gridcore_controller::state::UIState::Editing {
                                             mode: gridcore_controller::state::EditMode::Normal,
                                             ..

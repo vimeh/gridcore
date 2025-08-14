@@ -25,8 +25,8 @@ impl ResizeHandler {
         is_header: bool,
     ) -> Option<(ResizeType, usize)> {
         let controller = self.controller.borrow();
-        let viewport_manager = controller.get_viewport_manager();
-        let config = controller.get_config();
+        let viewport_manager = controller.viewport();
+        let config = controller.config();
 
         if is_header {
             // Check column header for resize
@@ -73,7 +73,7 @@ impl ResizeHandler {
 
     pub fn start_resize(&self, event: &MouseEvent, resize_type: ResizeType, index: usize) {
         let mut controller = self.controller.borrow_mut();
-        let viewport_manager = controller.get_viewport_manager();
+        let viewport_manager = controller.viewport();
 
         let start_position = match resize_type {
             ResizeType::Column => event.client_x() as f64,
@@ -91,12 +91,12 @@ impl ResizeHandler {
         let new_state = resize::start_mouse_resize(resize_type, index, start_position, start_size);
 
         // Update the controller's resize state
-        *controller.get_resize_state_mut() = new_state;
+        *controller.resize_state_mut() = new_state;
     }
 
     pub fn handle_resize(&self, event: &MouseEvent) {
         let mut controller = self.controller.borrow_mut();
-        let resize_state = controller.get_resize_state();
+        let resize_state = controller.resize_state();
 
         if !resize_state.is_resizing {
             return;
@@ -109,7 +109,7 @@ impl ResizeHandler {
         };
 
         // Get config for min/max sizes
-        let config = controller.get_config();
+        let config = controller.config();
         let (min_size, max_size) = match resize_state.resize_type {
             ResizeType::Column => (config.min_cell_width, config.max_cell_width),
             ResizeType::Row => (
@@ -124,10 +124,10 @@ impl ResizeHandler {
             resize::update_mouse_resize(resize_state, current_position, min_size, max_size)
         {
             // Update the resize state
-            controller.get_resize_state_mut().current_size = new_size;
+            controller.resize_state_mut().current_size = new_size;
 
             // Apply the resize to the viewport
-            let viewport_manager = controller.get_viewport_manager_mut();
+            let viewport_manager = controller.viewport_mut();
             match resize_type {
                 ResizeType::Column => {
                     viewport_manager.set_column_width(index, new_size);
@@ -142,13 +142,13 @@ impl ResizeHandler {
 
     pub fn end_resize(&self) {
         let mut controller = self.controller.borrow_mut();
-        let resize_state = controller.get_resize_state();
+        let resize_state = controller.resize_state();
 
         // Use pure function to end resize
         resize::end_mouse_resize(resize_state);
 
         // Reset the resize state
-        *controller.get_resize_state_mut() = Default::default();
+        *controller.resize_state_mut() = Default::default();
     }
 
     pub fn is_resizing(&self) -> bool {

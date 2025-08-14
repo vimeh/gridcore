@@ -40,7 +40,7 @@ impl BenchmarkScenario for SmoothScrollBenchmark {
 
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let mut ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Generate test data
         let data = self
@@ -110,7 +110,7 @@ impl BenchmarkScenario for SmoothScrollBenchmark {
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let mut ctrl = controller.borrow_mut();
         // Clear all cells
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         // TODO: Implement clear_sheet or clear all cells individually
         // For now, just get all cells and delete them
         let cells = facade.get_all_cells();
@@ -168,7 +168,7 @@ impl BenchmarkScenario for JumpNavigationBenchmark {
 
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Generate sparse data across large area
         let data = self.data_generator.generate_sparse_data(10000, 256, 0.01); // 1% density
@@ -234,7 +234,7 @@ impl BenchmarkScenario for JumpNavigationBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let mut ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         // TODO: Implement clear_sheet or clear all cells individually
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
@@ -284,7 +284,7 @@ impl BenchmarkScenario for LargeDatasetScrollBenchmark {
 
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Generate large dataset (sparse to avoid memory issues)
         leptos::logging::log!(
@@ -342,7 +342,7 @@ impl BenchmarkScenario for LargeDatasetScrollBenchmark {
         }
 
         // Get cell count for reference
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         metrics.cells_rendered = facade.cell_count() as u32;
 
         metrics.end_time = Self::now();
@@ -359,7 +359,7 @@ impl BenchmarkScenario for LargeDatasetScrollBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let mut ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         // TODO: Implement clear_sheet or clear all cells individually
         let cells = facade.get_all_cells();
         for (addr, _) in cells {

@@ -3,7 +3,7 @@ use crate::controller::{
     DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
     SpreadsheetEvent, ViewportManager,
 };
-use crate::managers::{ErrorFormatter, ErrorManager};
+use crate::managers::ErrorManager;
 use crate::state::{
     Action, EditMode, InsertMode, NavigationModal, SpreadsheetMode, UIState, UIStateMachine,
     VisualMode,
@@ -92,11 +92,13 @@ impl SpreadsheetController {
         // For now, we'll leave it as a placeholder
     }
 
-    pub fn get_state(&self) -> &UIState {
+    /// Get the current UI state
+    pub fn state(&self) -> &UIState {
         self.state_machine.get_state()
     }
 
-    pub fn get_cursor(&self) -> CellAddress {
+    /// Get the current cursor position
+    pub fn cursor(&self) -> CellAddress {
         *self.state_machine.get_state().cursor()
     }
 
@@ -129,7 +131,7 @@ impl SpreadsheetController {
         if matches!(action, Action::SubmitFormulaBar) {
             // Submit the formula bar value to the current cell
             let value = self.formula_bar_value.clone();
-            let cursor = self.get_cursor();
+            let cursor = self.cursor();
 
             // Set cell value through facade
             match self.facade.set_cell_value(&cursor, &value) {
@@ -163,7 +165,7 @@ impl SpreadsheetController {
                     }
                 }
                 Err(e) => {
-                    let message = ErrorFormatter::format_error(&e);
+                    let message = ErrorManager::format_error(&e);
                     self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
                 }
             }
@@ -201,7 +203,7 @@ impl SpreadsheetController {
                         self.update_formula_bar_from_cursor();
                     }
                     Err(e) => {
-                        let message = ErrorFormatter::format_error(&e);
+                        let message = ErrorManager::format_error(&e);
                         log::error!("Parse/Set error in cell {}: {}", address, message);
                         self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
                     }
@@ -258,11 +260,13 @@ impl SpreadsheetController {
         Ok(())
     }
 
-    pub fn get_facade(&self) -> &SpreadsheetFacade {
+    /// Get the spreadsheet facade for data operations
+    pub fn facade(&self) -> &SpreadsheetFacade {
         &self.facade
     }
 
-    pub fn get_facade_mut(&mut self) -> &mut SpreadsheetFacade {
+    /// Get mutable access to the spreadsheet facade
+    pub fn facade_mut(&mut self) -> &mut SpreadsheetFacade {
         &mut self.facade
     }
 
@@ -308,11 +312,13 @@ impl SpreadsheetController {
         &self.config
     }
 
-    pub fn get_resize_state(&self) -> &ResizeState {
+    /// Get the resize state
+    pub fn resize_state(&self) -> &ResizeState {
         &self.resize_state
     }
 
-    pub fn get_resize_state_mut(&mut self) -> &mut ResizeState {
+    /// Get mutable access to the resize state
+    pub fn resize_state_mut(&mut self) -> &mut ResizeState {
         &mut self.resize_state
     }
 
@@ -401,7 +407,7 @@ impl SpreadsheetController {
 
     /// Update formula bar based on current cursor position
     pub fn update_formula_bar_from_cursor(&mut self) {
-        let cursor = self.get_cursor();
+        let cursor = self.cursor();
         let value = self.get_cell_display_for_ui(&cursor);
         self.set_formula_bar_value(value);
     }
@@ -409,12 +415,12 @@ impl SpreadsheetController {
     // Sheet management methods
 
     /// Get list of all sheets
-    pub fn get_sheets(&self) -> Vec<(String, usize)> {
+    pub fn sheets(&self) -> Vec<(String, usize)> {
         self.facade.get_sheets()
     }
 
     /// Get the active sheet name
-    pub fn get_active_sheet(&self) -> String {
+    pub fn active_sheet(&self) -> String {
         self.facade.get_active_sheet()
     }
 
@@ -423,7 +429,7 @@ impl SpreadsheetController {
         self.facade.set_active_sheet(sheet_name)?;
         self.event_dispatcher
             .dispatch(&SpreadsheetEvent::SheetChanged {
-                from: self.get_active_sheet(),
+                from: self.active_sheet(),
                 to: sheet_name.to_string(),
             });
         Ok(())
@@ -909,8 +915,8 @@ impl SpreadsheetController {
                         });
                 }
                 Err(e) => {
-                    // Use ErrorFormatter to get consistent error messages
-                    let message = ErrorFormatter::format_error(&e);
+                    // Use ErrorManager to get consistent error messages
+                    let message = ErrorManager::format_error(&e);
                     log::error!("Parse/Set error in cell {}: {}", address, message);
 
                     // Emit error event for setting errors

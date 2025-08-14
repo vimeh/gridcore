@@ -54,7 +54,7 @@ impl BenchmarkScenario for CellEditBenchmark {
         let data = gen.generate_numeric_grid(50, 20, 0.0, 100.0);
 
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         for (addr, value) in data {
             let _ = facade.set_cell_value(&addr, &value);
         }
@@ -86,7 +86,7 @@ impl BenchmarkScenario for CellEditBenchmark {
             // since the edit buffer API has changed
             drop(ctrl);
             let ctrl_ref = controller.borrow();
-            let facade = ctrl_ref.get_facade();
+            let facade = ctrl_ref.facade();
 
             let value_start = Self::now();
             let _ = facade.set_cell_value(pos, value);
@@ -130,7 +130,7 @@ impl BenchmarkScenario for CellEditBenchmark {
 
         let paste_start = Self::now();
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         for (addr, value) in &paste_data {
             let _ = facade.set_cell_value(addr, value);
         }
@@ -155,7 +155,7 @@ impl BenchmarkScenario for CellEditBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -218,7 +218,7 @@ impl BenchmarkScenario for SelectionBenchmark {
         let data = gen.generate_sparse_data(1000, 100, 0.01);
 
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         for (addr, value) in data {
             let _ = facade.set_cell_value(&addr, &value);
         }
@@ -320,7 +320,7 @@ impl BenchmarkScenario for SelectionBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);

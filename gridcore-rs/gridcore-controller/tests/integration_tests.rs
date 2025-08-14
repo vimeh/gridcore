@@ -9,7 +9,7 @@ fn test_state_machine_basic_transitions() {
     let mut machine = UIStateMachine::new(None);
 
     // Start in navigation mode
-    assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+    assert!(matches!(machine.state(), UIState::Navigation { .. }));
 
     // Transition to editing
     machine
@@ -20,11 +20,11 @@ fn test_state_machine_basic_transitions() {
         })
         .unwrap();
 
-    assert!(matches!(machine.get_state(), UIState::Editing { .. }));
+    assert!(matches!(machine.state(), UIState::Editing { .. }));
 
     // Exit to navigation
     machine.transition(Action::ExitToNavigation).unwrap();
-    assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+    assert!(matches!(machine.state(), UIState::Navigation { .. }));
 }
 
 #[test]
@@ -42,7 +42,7 @@ fn test_controller_keyboard_handling() {
         .unwrap();
 
     // Should be in Editing mode with Insert edit mode
-    let state = controller.get_state();
+    let state = controller.state();
     assert!(matches!(
         state,
         UIState::Editing {
@@ -61,7 +61,7 @@ fn test_controller_mouse_handling() {
     controller.handle_mouse_event(event).unwrap();
 
     // Should update cursor position (in a real implementation)
-    let state = controller.get_state();
+    let state = controller.state();
     assert!(matches!(state, UIState::Navigation { .. }));
 }
 
@@ -70,7 +70,7 @@ fn test_vim_mode_navigation() {
     let mut machine = UIStateMachine::new(None);
 
     // Navigate with vim keys
-    let start_cursor = *machine.get_state().cursor();
+    let start_cursor = *machine.state().cursor();
 
     // Move down (j)
     machine
@@ -79,7 +79,7 @@ fn test_vim_mode_navigation() {
         })
         .unwrap();
 
-    let new_cursor = machine.get_state().cursor();
+    let new_cursor = machine.state().cursor();
     assert_eq!(new_cursor.row, start_cursor.row + 1);
     assert_eq!(new_cursor.col, start_cursor.col);
 }
@@ -91,7 +91,7 @@ fn test_command_mode_workflow() {
     // Enter command mode
     machine.transition(Action::EnterCommandMode).unwrap();
     assert!(machine
-        .get_state()
+        .state()
         .is_modal(gridcore_controller::state::ModalKind::Command));
 
     // Type a command
@@ -103,7 +103,7 @@ fn test_command_mode_workflow() {
 
     // Exit command mode
     machine.transition(Action::ExitCommandMode).unwrap();
-    assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+    assert!(matches!(machine.state(), UIState::Navigation { .. }));
 }
 
 #[test]
@@ -126,7 +126,7 @@ fn test_visual_mode_selection() {
         .unwrap();
 
     assert!(machine
-        .get_state()
+        .state()
         .is_modal(gridcore_controller::state::ModalKind::Visual));
 
     // Update selection
@@ -148,7 +148,7 @@ fn test_visual_mode_selection() {
     machine
         .transition(Action::ExitSpreadsheetVisualMode)
         .unwrap();
-    assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+    assert!(matches!(machine.state(), UIState::Navigation { .. }));
 }
 
 #[test]
@@ -164,7 +164,7 @@ fn test_resize_mode_workflow() {
         .unwrap();
 
     assert!(machine
-        .get_state()
+        .state()
         .is_modal(gridcore_controller::state::ModalKind::Resize));
 
     // Update size
@@ -174,7 +174,7 @@ fn test_resize_mode_workflow() {
 
     // Confirm resize
     machine.transition(Action::ConfirmResize).unwrap();
-    assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+    assert!(matches!(machine.state(), UIState::Navigation { .. }));
 }
 
 #[test]
@@ -194,7 +194,7 @@ fn test_bulk_operation_workflow() {
         .unwrap();
 
     assert!(machine
-        .get_state()
+        .state()
         .is_modal(gridcore_controller::state::ModalKind::BulkOperation));
 
     // Generate preview
@@ -202,7 +202,7 @@ fn test_bulk_operation_workflow() {
 
     // Execute operation
     machine.transition(Action::ExecuteBulkOperation).unwrap();
-    assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+    assert!(matches!(machine.state(), UIState::Navigation { .. }));
 }
 
 #[test]
@@ -236,16 +236,16 @@ fn test_controller_with_facade_integration() {
     let addr2 = CellAddress::new(1, 0);
 
     controller
-        .get_facade_mut()
+        .facade_mut()
         .set_cell_value(&addr1, "10")
         .unwrap();
     controller
-        .get_facade_mut()
+        .facade_mut()
         .set_cell_value(&addr2, "=A1*2")
         .unwrap();
 
     // Get cell value through controller
-    let cell = controller.get_facade().get_cell(&addr2);
+    let cell = controller.facade().get_cell(&addr2);
     if let Some(cell) = cell {
         // Formula should be evaluated
         let display_value = cell.get_display_value();

@@ -1,5 +1,6 @@
 use crate::controller::events::ErrorSeverity;
 use chrono::{DateTime, Duration, Utc};
+use gridcore_core::SpreadsheetError;
 use std::collections::VecDeque;
 
 /// An error message with metadata
@@ -122,6 +123,63 @@ impl ErrorManager {
     /// Check if there are any errors
     pub fn has_errors(&self) -> bool {
         !self.get_active_errors().is_empty()
+    }
+
+    /// Convert parse errors to Excel-style error codes with descriptions
+    pub fn format_error(error: &SpreadsheetError) -> String {
+        // Check for specific error types directly
+        if let SpreadsheetError::RefError = error {
+            return "Formula error: #REF! - Invalid reference".to_string();
+        }
+
+        let error_str = error.to_string();
+
+        // Check for specific error patterns and convert to Excel codes
+        if error_str.contains("#REF!")
+            || error_str.contains("expected")
+            || error_str.contains("found end of input")
+        {
+            "Formula error: #REF! - Invalid reference".to_string()
+        } else if error_str.contains("Unknown function") || error_str.contains("UNKNOWNFUNC") {
+            "Formula error: #NAME? - Unknown function or name".to_string()
+        } else if error_str.contains("Type mismatch")
+            || error_str.contains("cannot add")
+            || error_str.contains("cannot subtract")
+        {
+            "Formula error: #VALUE! - Type mismatch or invalid value".to_string()
+        } else if error_str.contains("Circular") || error_str.contains("circular") {
+            "Formula error: #CIRC! - Circular reference detected".to_string()
+        } else if error_str.contains("Division by zero") || error_str.contains("divide by zero") {
+            "Formula error: #DIV/0! - Division by zero".to_string()
+        } else {
+            format!("Failed to set cell value: {}", error)
+        }
+    }
+
+    /// Format a parse error based on whether it's a formula
+    pub fn format_parse_error(error: &str, is_formula: bool) -> String {
+        // Check for specific error patterns and convert to Excel codes
+        if error.contains("#REF!") {
+            "#REF! - Invalid reference".to_string()
+        } else if error.contains("Unknown function") || error.contains("UNKNOWNFUNC") {
+            "#NAME? - Unknown function or name".to_string()
+        } else if error.contains("Type mismatch")
+            || error.contains("cannot add")
+            || error.contains("cannot subtract")
+        {
+            "#VALUE! - Type mismatch or invalid value".to_string()
+        } else if error.contains("Circular") || error.contains("circular") {
+            "#CIRC! - Circular reference detected".to_string()
+        } else if error.contains("Division by zero") || error.contains("divide by zero") {
+            "#DIV/0! - Division by zero".to_string()
+        } else if error.contains("expected") || error.contains("found end of input") {
+            // Parse errors often mean invalid references
+            "#REF! - Invalid reference".to_string()
+        } else if is_formula {
+            format!("Formula error: {}", error)
+        } else {
+            format!("Error: {}", error)
+        }
     }
 }
 

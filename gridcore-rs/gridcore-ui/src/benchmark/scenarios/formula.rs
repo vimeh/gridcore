@@ -33,7 +33,7 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         // Clear any existing data
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -45,7 +45,7 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
         metrics.start_time = Self::now();
 
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Create base data
         let data_start = Self::now();
@@ -129,7 +129,7 @@ impl BenchmarkScenario for SimpleFormulaBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -170,7 +170,7 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
 
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -182,7 +182,7 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
         metrics.start_time = Self::now();
 
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Create base data grid
         let base_start = Self::now();
@@ -299,7 +299,7 @@ impl BenchmarkScenario for ComplexFormulaBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);

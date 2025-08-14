@@ -55,7 +55,7 @@ impl BenchmarkScenario for MemoryGrowthBenchmark {
 
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -82,7 +82,7 @@ impl BenchmarkScenario for MemoryGrowthBenchmark {
 
             // Add cells
             let ctrl = controller.borrow();
-            let facade = ctrl.get_facade();
+            let facade = ctrl.facade();
 
             for i in 0..self.operations_per_cycle {
                 let row = cycle * self.operations_per_cycle + i;
@@ -143,7 +143,7 @@ impl BenchmarkScenario for MemoryGrowthBenchmark {
         // Calculate average memory per cell
         drop(ctrl);
         let ctrl = controller.borrow();
-        let cell_count = ctrl.get_facade().cell_count();
+        let cell_count = ctrl.facade().cell_count();
         if cell_count > 0 {
             let bytes_per_cell = (metrics.memory_growth * 1024.0 * 1024.0) / cell_count as f64;
             metrics
@@ -166,7 +166,7 @@ impl BenchmarkScenario for MemoryGrowthBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -209,7 +209,7 @@ impl BenchmarkScenario for MemoryCleanupBenchmark {
 
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -234,7 +234,7 @@ impl BenchmarkScenario for MemoryCleanupBenchmark {
         let data = gen.generate_numeric_grid(self.data_size, 50, 0.0, 1000.0);
 
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         for (addr, value) in &data {
             let _ = facade.set_cell_value(addr, value);
         }
@@ -347,7 +347,7 @@ impl BenchmarkScenario for MemoryCleanupBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);

@@ -68,12 +68,12 @@ pub fn App() -> impl IntoView {
     // No more duplicate signals - just reactive accessors
     let active_cell = Memo::new(move |_| {
         cursor_trigger.track(); // Track cursor changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_cursor())
+        controller_stored.with_value(|ctrl| ctrl.borrow().cursor())
     });
 
     let formula_bar_value = Memo::new(move |_| {
         formula_trigger.track(); // Track formula bar changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_formula_bar_value().to_string())
+        controller_stored.with_value(|ctrl| ctrl.borrow().formula_bar_value().to_string())
     });
 
     // Set up comprehensive controller event listener
@@ -176,7 +176,7 @@ pub fn App() -> impl IntoView {
     // Create reactive memo for current mode - derives directly from controller
     let current_mode = Memo::new(move |_| {
         mode_trigger.track(); // Track mode changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_state().spreadsheet_mode())
+        controller_stored.with_value(|ctrl| ctrl.borrow().state().spreadsheet_mode())
     });
 
     // Sheet management - reactive memos deriving from controller
@@ -184,7 +184,7 @@ pub fn App() -> impl IntoView {
         sheets_trigger.track(); // Track sheet changes only
         controller_stored.with_value(|ctrl| {
             ctrl.borrow()
-                .get_sheets()
+                .sheets()
                 .into_iter()
                 .map(|(name, id)| Sheet { id, name })
                 .collect::<Vec<_>>()
@@ -200,7 +200,7 @@ pub fn App() -> impl IntoView {
     // Derive selection stats from controller state
     let selection_stats = Memo::new(move |_| {
         selection_trigger.track(); // Track selection changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_current_selection_stats())
+        controller_stored.with_value(|ctrl| ctrl.borrow().selection_stats())
     });
 
     // Handle formula bar Enter key
@@ -227,7 +227,7 @@ pub fn App() -> impl IntoView {
             controller_stored.with_value(|ctrl| {
                 {
                     let ctrl_borrow = ctrl.borrow();
-                    let facade = ctrl_borrow.get_facade();
+                    let facade = ctrl_borrow.facade();
 
                     // Initialize test data with proper error handling
                     let test_data = vec![

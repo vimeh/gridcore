@@ -211,7 +211,7 @@ mod performance_tests {
 
         // Serialize and deserialize state 100 times
         for _ in 0..100 {
-            let state = machine.get_state();
+            let state = machine.state();
             let json = serde_json::to_string(state).unwrap();
             let _: UIState = serde_json::from_str(&json).unwrap();
         }
@@ -357,7 +357,7 @@ mod performance_tests {
         // Should still be functional
         machine.transition(Action::EnterCommandMode).unwrap();
         assert!(matches!(
-            machine.get_state(),
+            machine.state(),
             UIState::Navigation {
                 modal: Some(NavigationModal::Command { .. }),
                 ..

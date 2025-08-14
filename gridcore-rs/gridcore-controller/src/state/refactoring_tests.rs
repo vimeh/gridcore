@@ -16,7 +16,7 @@ mod refactoring_tests {
         machine
             .transition(Action::UpdateCursor { cursor: new_cursor })
             .unwrap();
-        assert_eq!(machine.get_state().cursor(), &new_cursor);
+        assert_eq!(machine.state().cursor(), &new_cursor);
 
         // Enter editing mode
         machine
@@ -28,7 +28,7 @@ mod refactoring_tests {
             .unwrap();
 
         // Cursor should be preserved
-        assert_eq!(machine.get_state().cursor(), &new_cursor);
+        assert_eq!(machine.state().cursor(), &new_cursor);
 
         // Update cursor in editing
         let another_cursor = CellAddress::new(7, 12);
@@ -37,12 +37,12 @@ mod refactoring_tests {
                 cursor: another_cursor,
             })
             .unwrap();
-        assert_eq!(machine.get_state().cursor(), &another_cursor);
+        assert_eq!(machine.state().cursor(), &another_cursor);
 
         // Exit to navigation
         machine.transition(Action::ExitToNavigation).unwrap();
         // Cursor should still be preserved
-        assert_eq!(machine.get_state().cursor(), &another_cursor);
+        assert_eq!(machine.state().cursor(), &another_cursor);
     }
 
     #[test]
@@ -80,7 +80,7 @@ mod refactoring_tests {
 
         // Test Command modal
         machine.transition(Action::EnterCommandMode).unwrap();
-        assert!(machine.get_state().is_modal(ModalKind::Command));
+        assert!(machine.state().is_modal(ModalKind::Command));
 
         machine.transition(Action::ExitCommandMode).unwrap();
 
@@ -97,7 +97,7 @@ mod refactoring_tests {
                 selection,
             })
             .unwrap();
-        assert!(machine.get_state().is_modal(ModalKind::Visual));
+        assert!(machine.state().is_modal(ModalKind::Visual));
 
         machine
             .transition(Action::ExitSpreadsheetVisualMode)
@@ -110,7 +110,7 @@ mod refactoring_tests {
                 initial_position: 100.0,
             })
             .unwrap();
-        assert!(machine.get_state().is_modal(ModalKind::Resize));
+        assert!(machine.state().is_modal(ModalKind::Resize));
 
         machine.transition(Action::ConfirmResize).unwrap();
 
@@ -122,7 +122,7 @@ mod refactoring_tests {
                 reference: 5,
             })
             .unwrap();
-        assert!(machine.get_state().is_modal(ModalKind::Insert));
+        assert!(machine.state().is_modal(ModalKind::Insert));
 
         machine.transition(Action::CancelInsert).unwrap();
 
@@ -133,7 +133,7 @@ mod refactoring_tests {
                 delete_type: DeleteType::Row,
             })
             .unwrap();
-        assert!(machine.get_state().is_modal(ModalKind::Delete));
+        assert!(machine.state().is_modal(ModalKind::Delete));
 
         machine.transition(Action::CancelDelete).unwrap();
 
@@ -146,7 +146,7 @@ mod refactoring_tests {
                 affected_cells: Some(100),
             })
             .unwrap();
-        assert!(machine.get_state().is_modal(ModalKind::BulkOperation));
+        assert!(machine.state().is_modal(ModalKind::BulkOperation));
 
         machine.transition(Action::CancelBulkOperation).unwrap();
     }
@@ -172,7 +172,7 @@ mod refactoring_tests {
             })
             .unwrap();
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Editing {
                 mode,
                 visual_selection,
@@ -192,7 +192,7 @@ mod refactoring_tests {
         // Exit visual mode
         machine.transition(Action::ExitVisualMode).unwrap();
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Editing {
                 mode,
                 visual_selection,
@@ -257,7 +257,7 @@ mod refactoring_tests {
             );
 
             // Reset to navigation if needed
-            if matches!(machine.get_state(), UIState::Editing { .. }) {
+            if matches!(machine.state(), UIState::Editing { .. }) {
                 machine.transition(Action::ExitToNavigation).unwrap();
             }
         }
@@ -314,7 +314,7 @@ mod refactoring_tests {
             })
             .unwrap();
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::Command { value }),
                 ..
@@ -326,7 +326,7 @@ mod refactoring_tests {
 
         // Escape should exit modal
         machine.transition(Action::Escape).unwrap();
-        assert!(!machine.get_state().is_modal(ModalKind::Command));
+        assert!(!machine.state().is_modal(ModalKind::Command));
     }
 
     #[test]
@@ -343,7 +343,7 @@ mod refactoring_tests {
             })
             .unwrap();
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::BulkOperation { status, .. }),
                 ..
@@ -356,7 +356,7 @@ mod refactoring_tests {
         // Generate preview
         machine.transition(Action::GeneratePreview).unwrap();
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::BulkOperation { status, .. }),
                 ..
@@ -368,7 +368,7 @@ mod refactoring_tests {
 
         // Execute
         machine.transition(Action::ExecuteBulkOperation).unwrap();
-        assert!(!machine.get_state().is_modal(ModalKind::BulkOperation));
+        assert!(!machine.state().is_modal(ModalKind::BulkOperation));
     }
 
     #[test]
@@ -382,7 +382,7 @@ mod refactoring_tests {
             })
             .unwrap();
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::Resize { sizes, .. }),
                 ..
@@ -397,7 +397,7 @@ mod refactoring_tests {
             .transition(Action::UpdateResize { delta: 50.0 })
             .unwrap();
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::Resize { sizes, .. }),
                 ..
@@ -421,7 +421,7 @@ mod refactoring_tests {
             })
             .unwrap();
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Editing {
                 value,
                 cursor_pos,
@@ -445,7 +445,7 @@ mod refactoring_tests {
             })
             .unwrap();
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Editing {
                 value, cursor_pos, ..
             } => {

@@ -83,7 +83,7 @@ impl DemoScenario for BasicOperationsScenario {
 
     fn setup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Clear existing data
         // Add some initial data
@@ -126,7 +126,7 @@ impl DemoScenario for BasicOperationsScenario {
 
                 if self.step < moves.len() {
                     let (dx, dy) = moves[self.step];
-                    let current = ctrl.get_cursor();
+                    let current = ctrl.cursor();
                     let new_cursor = CellAddress::new(
                         (current.col as i32 + dx).max(0) as u32,
                         (current.row as i32 + dy).max(0) as u32,
@@ -148,7 +148,7 @@ impl DemoScenario for BasicOperationsScenario {
                 if idx < edits.len() {
                     let (addr, value) = edits[idx];
                     let _ = ctrl.dispatch_action(Action::UpdateCursor { cursor: addr });
-                    let _ = ctrl.get_facade().set_cell_value(&addr, value);
+                    let _ = ctrl.facade().set_cell_value(&addr, value);
                 }
             }
             _ => {
@@ -207,7 +207,7 @@ impl DemoScenario for FormulaEngineScenario {
 
     fn setup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Setup initial data for formula demonstrations
         let data = vec![
@@ -238,7 +238,7 @@ impl DemoScenario for FormulaEngineScenario {
         }
 
         let ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Add more complex formulas progressively
         match self.step {
@@ -331,7 +331,7 @@ impl DemoScenario for LargeDatasetScenario {
     fn setup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         if !self.data_loaded {
             let ctrl = controller.borrow_mut();
-            let facade = ctrl.get_facade();
+            let facade = ctrl.facade();
 
             // Generate and load large dataset
             leptos::logging::log!("Generating large dataset...");
@@ -429,7 +429,7 @@ impl DemoScenario for FinancialDashboardScenario {
 
     fn setup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Generate financial data
         let data = self.data_generator.generate_financial_data();
@@ -513,7 +513,7 @@ impl DemoScenario for ScientificDataScenario {
 
     fn setup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Generate scientific data
         let data = self.data_generator.generate_scientific_data();
@@ -582,7 +582,7 @@ impl DemoScenario for FillOperationsScenario {
 
     fn setup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Setup pattern data
         let data = self.data_generator.generate_text_patterns();
@@ -651,7 +651,7 @@ impl DemoScenario for PerformanceStressScenario {
 
     fn setup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Generate complex formula network
         let data = self.data_generator.generate_formula_stress_test();
@@ -722,7 +722,7 @@ impl DemoScenario for ErrorHandlingScenario {
 
     fn setup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow_mut();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
 
         // Generate error cases
         let data = self.data_generator.generate_error_cases();

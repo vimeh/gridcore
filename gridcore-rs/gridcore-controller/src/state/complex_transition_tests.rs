@@ -43,7 +43,7 @@ mod complex_transition_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Editing {
                 mode,
                 visual_selection,
@@ -70,7 +70,7 @@ mod complex_transition_tests {
             .transition(Action::Escape)
             .expect("Transition should succeed in test"); // To navigation
 
-        assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+        assert!(matches!(machine.state(), UIState::Navigation { .. }));
     }
 
     #[test]
@@ -121,7 +121,7 @@ mod complex_transition_tests {
             .transition(Action::ExitSpreadsheetVisualMode)
             .expect("State transition should succeed in test");
 
-        assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+        assert!(matches!(machine.state(), UIState::Navigation { .. }));
     }
 
     #[test]
@@ -129,9 +129,9 @@ mod complex_transition_tests {
         let mut machine = UIStateMachine::new(None);
 
         // Simulate "5j" (move down 5 lines)
-        let start = *machine.get_state().cursor();
+        let start = *machine.state().cursor();
         for _ in 0..5 {
-            let current = *machine.get_state().cursor();
+            let current = *machine.state().cursor();
             machine
                 .transition(Action::UpdateCursor {
                     cursor: CellAddress::new(current.col, current.row + 1),
@@ -139,13 +139,13 @@ mod complex_transition_tests {
                 .expect("State transition should succeed in test");
         }
 
-        let end = machine.get_state().cursor();
+        let end = machine.state().cursor();
         assert_eq!(end.row, start.row + 5);
         assert_eq!(end.col, start.col);
 
         // Simulate "3l2k" (move right 3, up 2)
         for _ in 0..3 {
-            let current = *machine.get_state().cursor();
+            let current = *machine.state().cursor();
             machine
                 .transition(Action::UpdateCursor {
                     cursor: CellAddress::new(current.col + 1, current.row),
@@ -154,7 +154,7 @@ mod complex_transition_tests {
         }
 
         for _ in 0..2 {
-            let current = *machine.get_state().cursor();
+            let current = *machine.state().cursor();
             machine
                 .transition(Action::UpdateCursor {
                     cursor: CellAddress::new(current.col, current.row.saturating_sub(1)),
@@ -162,7 +162,7 @@ mod complex_transition_tests {
                 .expect("State transition should succeed in test");
         }
 
-        let final_pos = machine.get_state().cursor();
+        let final_pos = machine.state().cursor();
         assert_eq!(final_pos.row, start.row + 3);
         assert_eq!(final_pos.col, start.col + 3);
     }
@@ -216,7 +216,7 @@ mod complex_transition_tests {
             .transition(Action::EnterCommandMode)
             .expect("Transition should succeed in test");
         assert!(matches!(
-            machine.get_state(),
+            machine.state(),
             UIState::Navigation {
                 modal: Some(NavigationModal::Command { .. }),
                 ..
@@ -240,7 +240,7 @@ mod complex_transition_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::BulkOperation { command, status }),
                 ..
@@ -256,7 +256,7 @@ mod complex_transition_tests {
             .transition(Action::GeneratePreview)
             .expect("Transition should succeed in test");
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::BulkOperation { status, .. }),
                 ..
@@ -270,7 +270,7 @@ mod complex_transition_tests {
         machine
             .transition(Action::ExecuteBulkOperation)
             .expect("Transition should succeed in test");
-        assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+        assert!(matches!(machine.state(), UIState::Navigation { .. }));
     }
 
     #[test]
@@ -297,7 +297,7 @@ mod complex_transition_tests {
             .transition(Action::CancelBulkOperation)
             .expect("Transition should succeed in test");
 
-        assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+        assert!(matches!(machine.state(), UIState::Navigation { .. }));
     }
 
     #[test]
@@ -312,7 +312,7 @@ mod complex_transition_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::Resize { target, sizes }),
                 ..
@@ -328,7 +328,7 @@ mod complex_transition_tests {
             .transition(Action::UpdateResize { delta: 50.0 })
             .expect("State transition should succeed in test");
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::Resize { sizes, .. }),
                 ..
@@ -342,7 +342,7 @@ mod complex_transition_tests {
         machine
             .transition(Action::ConfirmResize)
             .expect("Transition should succeed in test");
-        assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+        assert!(matches!(machine.state(), UIState::Navigation { .. }));
     }
 
     #[test]
@@ -358,7 +358,7 @@ mod complex_transition_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal:
                     Some(NavigationModal::Insert {
@@ -390,7 +390,7 @@ mod complex_transition_tests {
         machine
             .transition(Action::ConfirmInsert)
             .expect("Transition should succeed in test");
-        assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+        assert!(matches!(machine.state(), UIState::Navigation { .. }));
 
         // Start delete mode
         machine
@@ -400,7 +400,7 @@ mod complex_transition_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal:
                     Some(NavigationModal::Delete {
@@ -423,7 +423,7 @@ mod complex_transition_tests {
         machine
             .transition(Action::CancelDelete)
             .expect("Transition should succeed in test");
-        assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
+        assert!(matches!(machine.state(), UIState::Navigation { .. }));
     }
 
     #[test]
@@ -477,7 +477,7 @@ mod complex_transition_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal:
                     Some(NavigationModal::Visual {
@@ -518,7 +518,7 @@ mod complex_transition_tests {
                 .expect("State transition should succeed in test");
         }
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::Command { value, .. }),
                 ..
@@ -544,7 +544,7 @@ mod complex_transition_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.get_state() {
+        match machine.state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::Command { value, .. }),
                 ..

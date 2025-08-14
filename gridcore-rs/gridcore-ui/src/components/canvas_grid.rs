@@ -54,7 +54,7 @@ pub fn CanvasGrid(
 
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.get_state();
+            let state = ctrl_borrow.state();
             let is_editing = matches!(state, UIState::Editing { .. });
             leptos::logging::log!(
                 "editing_mode memo: state type = {:?}, is UIState::Editing = {}",
@@ -74,7 +74,7 @@ pub fn CanvasGrid(
                 let pos = vp_borrow.get_cell_position(&cell);
                 let (row_header_width, column_header_height) = controller_stored.with_value(|c| {
                     let borrow = c.borrow();
-                    let config = borrow.get_config();
+                    let config = borrow.config();
                     (config.row_header_width, config.column_header_height)
                 });
                 (
@@ -175,9 +175,9 @@ pub fn CanvasGrid(
                     canvas_elem,
                     &viewport_effect.borrow(),
                     current_cell,
-                    ctrl_borrow.get_facade(),
+                    ctrl_borrow.facade(),
                     device_pixel_ratio,
-                    ctrl_borrow.get_config(),
+                    ctrl_borrow.config(),
                 );
             }); // ctrl_borrow is dropped here
         }
@@ -222,7 +222,7 @@ pub fn CanvasGrid(
                 let _theme = vp_borrow.get_theme();
                 let (row_header_width, column_header_height) = controller_stored.with_value(|c| {
                     let borrow = c.borrow();
-                    let config = borrow.get_config();
+                    let config = borrow.config();
                     (config.row_header_width, config.column_header_height)
                 });
                 if x > row_header_width && y > column_header_height {
@@ -285,7 +285,7 @@ pub fn CanvasGrid(
                 let _theme = vp_borrow.get_theme();
                 let (row_header_width, column_header_height) = controller_stored.with_value(|c| {
                     let borrow = c.borrow();
-                    let config = borrow.get_config();
+                    let config = borrow.config();
                     (config.row_header_width, config.column_header_height)
                 });
                 if x > row_header_width && y > column_header_height {
@@ -350,7 +350,7 @@ pub fn CanvasGrid(
         } else {
             // Check if we're hovering over a resize handle
             let _theme = default_theme();
-            let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
+            let config = controller_stored.with_value(|c| c.borrow().config().clone());
             let is_col_header = y < config.column_header_height;
             let is_row_header = x < config.row_header_width;
 
@@ -373,7 +373,7 @@ pub fn CanvasGrid(
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
         let _theme = default_theme();
-        let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
+        let config = controller_stored.with_value(|c| c.borrow().config().clone());
         let is_col_header = y < config.column_header_height;
         let is_row_header = x < config.row_header_width;
 
@@ -448,7 +448,7 @@ pub fn CanvasGrid(
         // Check if we're already in editing mode
         let is_editing = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.get_state();
+            let state = ctrl_borrow.state();
             matches!(
                 state.spreadsheet_mode(),
                 SpreadsheetMode::Editing | SpreadsheetMode::Insert
@@ -481,7 +481,7 @@ pub fn CanvasGrid(
         // Get the current state before handling the event, including cell_mode
         let (old_mode, old_cursor, old_cell_mode) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.get_state();
+            let state = ctrl_borrow.state();
             let edit_mode = match state {
                 UIState::Editing { mode, .. } => Some(*mode),
                 _ => None,
@@ -507,7 +507,7 @@ pub fn CanvasGrid(
         // Get the updated state after handling - new borrow, including cell_mode
         let (new_mode, new_cursor, new_cell_mode) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.get_state();
+            let state = ctrl_borrow.state();
             let mode = state.spreadsheet_mode();
             let cursor = *state.cursor();
             let edit_mode = match state {
@@ -573,7 +573,7 @@ pub fn CanvasGrid(
         // Auto-scroll to keep the active cell visible if cursor moved
         // Don't auto-scroll if we're in editing mode (UIState::Editing)
         let is_editing = controller_stored
-            .with_value(|ctrl| matches!(ctrl.borrow().get_state(), UIState::Editing { .. }));
+            .with_value(|ctrl| matches!(ctrl.borrow().state(), UIState::Editing { .. }));
         if new_cursor != old_cursor && !is_editing {
             let mut vp_borrow = viewport_rc.borrow_mut();
 
@@ -585,7 +585,7 @@ pub fn CanvasGrid(
             let absolute_y = cell_pos.y + vp_borrow.get_scroll_position().y;
 
             // Check if we need to scroll
-            let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
+            let config = controller_stored.with_value(|c| c.borrow().config().clone());
             let viewport_width = vp_borrow.get_viewport_width() - config.row_header_width;
             let viewport_height = vp_borrow.get_viewport_height() - config.column_header_height;
             let scroll_pos = vp_borrow.get_scroll_position();
