@@ -1,5 +1,6 @@
-pub mod error_formatter;
-pub mod error_manager;
+pub mod error;
 
-pub use error_formatter::ErrorFormatter;
-pub use error_manager::{ErrorEntry, ErrorManager};
+// Re-export for backwards compatibility during migration
+pub use error::ErrorSystem as ErrorManager;
+pub use error::ErrorSystem as ErrorFormatter;
+pub use error::{ErrorEntry, ErrorSystem};
