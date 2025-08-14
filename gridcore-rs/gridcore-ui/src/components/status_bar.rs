@@ -36,13 +36,15 @@ pub fn StatusBar(
         // This ensures proper display of NORMAL mode within editing
         let (text, color, detail) = match &state {
             UIState::Editing {
-                mode,
-                visual_type,
-                ..
+                mode, visual_type, ..
             } => {
                 match mode {
-                    gridcore_controller::state::EditMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
-                    gridcore_controller::state::EditMode::Normal => ("NORMAL", "#ff9800", "i/a to insert"),
+                    gridcore_controller::state::EditMode::Insert => {
+                        ("INSERT", "#2196f3", "ESC to normal")
+                    }
+                    gridcore_controller::state::EditMode::Normal => {
+                        ("NORMAL", "#ff9800", "i/a to insert")
+                    }
                     gridcore_controller::state::EditMode::Visual => {
                         // Check visual type for line mode
                         match visual_type {

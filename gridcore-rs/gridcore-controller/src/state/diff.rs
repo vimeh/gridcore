@@ -1,6 +1,5 @@
 use super::{
-    EditMode, InsertMode, ModalData, ModalKind, Selection,
-    UIState, ViewportInfo, VisualMode,
+    EditMode, InsertMode, ModalData, ModalKind, Selection, UIState, ViewportInfo, VisualMode,
 };
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};

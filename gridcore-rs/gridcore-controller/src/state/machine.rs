@@ -1,7 +1,6 @@
 use crate::state::{
     actions::Action, create_navigation_state, diff::StateDiff,
-    transition_handlers::HandlerRegistry, InsertMode, Selection, VisualMode, UIState,
-    ViewportInfo,
+    transition_handlers::HandlerRegistry, InsertMode, Selection, UIState, ViewportInfo, VisualMode,
 };
 use gridcore_core::{types::CellAddress, Result, SpreadsheetError};
 use serde::{Deserialize, Serialize};

@@ -5,8 +5,8 @@ use crate::controller::{
 };
 use crate::managers::{ErrorFormatter, ErrorManager};
 use crate::state::{
-    Action, EditMode, InsertMode, ModalData, ModalKind, SpreadsheetMode, UIState,
-    UIStateMachine, VisualMode,
+    Action, EditMode, InsertMode, ModalData, ModalKind, SpreadsheetMode, UIState, UIStateMachine,
+    VisualMode,
 };
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 

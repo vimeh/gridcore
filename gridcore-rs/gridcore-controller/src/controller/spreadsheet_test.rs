@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::controller::{KeyboardEvent, SpreadsheetController};
-    use crate::state::{InsertMode, SpreadsheetMode, UIState, EditMode};
+    use crate::state::{EditMode, InsertMode, SpreadsheetMode, UIState};
     use gridcore_core::types::CellAddress;
 
     #[test]
@@ -37,10 +37,7 @@ mod tests {
                 ..
             } => {
                 assert_eq!(value, "World", "Should have existing cell value");
-                assert_eq!(
-                    *cursor_pos, 0,
-                    "Cursor should be at position 0 for 'i' key"
-                );
+                assert_eq!(*cursor_pos, 0, "Cursor should be at position 0 for 'i' key");
                 assert_eq!(
                     *insert_variant,
                     Some(InsertMode::I),
@@ -125,9 +122,7 @@ mod tests {
         let state = controller.get_state();
         match state {
             UIState::Editing {
-                value,
-                cursor_pos,
-                ..
+                value, cursor_pos, ..
             } => {
                 assert_eq!(value, "", "Should have empty value for Enter key");
                 assert_eq!(*cursor_pos, 0, "Cursor should be at position 0");
@@ -165,10 +160,7 @@ mod tests {
                 ..
             } => {
                 assert_eq!(value, "x", "Should have the typed character");
-                assert_eq!(
-                    *cursor_pos, 1,
-                    "Cursor should be after the typed character"
-                );
+                assert_eq!(*cursor_pos, 1, "Cursor should be after the typed character");
                 assert_eq!(
                     *insert_variant,
                     Some(InsertMode::I),
@@ -289,14 +281,9 @@ mod tests {
         let state = controller.get_state();
         match state {
             UIState::Editing {
-                value,
-                cursor_pos,
-                ..
+                value, cursor_pos, ..
             } => {
-                assert_eq!(
-                    value, "NewHello",
-                    "Value should be updated during typing"
-                );
+                assert_eq!(value, "NewHello", "Value should be updated during typing");
                 assert_eq!(*cursor_pos, 3, "Cursor position should be at 3");
             }
             _ => panic!("Expected Editing state"),
@@ -343,11 +330,7 @@ mod tests {
                     Some(InsertMode::I),
                     "Should be in InsertMode::I for immediate typing"
                 );
-                assert_eq!(
-                    *mode,
-                    EditMode::Insert,
-                    "Should be in Insert edit mode"
-                );
+                assert_eq!(*mode, EditMode::Insert, "Should be in Insert edit mode");
             }
             _ => panic!(
                 "Expected Editing state after pressing Enter, got {:?}",
@@ -547,20 +530,13 @@ mod tests {
                 ..
             } => {
                 assert_eq!(value, "Q", "Should have the typed character");
-                assert_eq!(
-                    *cursor_pos, 1,
-                    "Cursor should be after the typed character"
-                );
+                assert_eq!(*cursor_pos, 1, "Cursor should be after the typed character");
                 assert_eq!(
                     *insert_variant,
                     Some(InsertMode::I),
                     "Should be in InsertMode::I"
                 );
-                assert_eq!(
-                    *mode,
-                    EditMode::Insert,
-                    "Should be in Insert edit mode"
-                );
+                assert_eq!(*mode, EditMode::Insert, "Should be in Insert edit mode");
             }
             _ => panic!("Expected Editing state after typing, got {:?}", state),
         }

@@ -36,9 +36,7 @@ pub fn CellEditor(
                 let editing_state = ctrl_borrow.get_state();
 
                 if let gridcore_controller::state::UIState::Editing {
-                    value,
-                    cursor_pos,
-                    ..
+                    value, cursor_pos, ..
                 } = editing_state
                 {
                     // Focus the input and set value and cursor from controller state
