@@ -1,4 +1,4 @@
-use super::{EditMode, InsertMode, NavigationModal, Selection, UIState, ViewportInfo, VisualMode};
+use super::{EditMode, InsertMode, Selection, UIState, ViewportInfo, VisualMode};
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
 
@@ -91,45 +91,6 @@ impl StateDiff {
                     // Handle modal changes if needed
                 }
             }
-            // Handle Navigation with Visual modal specially
-            (
-                UIState::Navigation {
-                    core: old_core,
-                    modal:
-                        Some(NavigationModal::Visual {
-                            mode: old_mode,
-                            anchor: old_anchor,
-                            selection: old_selection,
-                        }),
-                    ..
-                },
-                UIState::Navigation {
-                    core: new_core,
-                    modal:
-                        Some(NavigationModal::Visual {
-                            mode: new_mode,
-                            anchor: new_anchor,
-                            selection: new_selection,
-                        }),
-                    ..
-                },
-            ) => {
-                if old_core.cursor != new_core.cursor {
-                    changes.cursor_changed = Some(new_core.cursor);
-                }
-                if old_core.viewport != new_core.viewport {
-                    changes.viewport_changed = Some(new_core.viewport);
-                }
-                if old_selection != new_selection {
-                    changes.selection_changed = Some(Some(new_selection.clone()));
-                }
-                if old_mode != new_mode {
-                    changes.visual_mode_changed = Some(*new_mode);
-                }
-                if old_anchor != new_anchor {
-                    changes.anchor_changed = Some(*new_anchor);
-                }
-            }
             (
                 UIState::Editing {
                     core: old_core,
@@ -181,9 +142,10 @@ impl StateDiff {
                     changes.edit_variant_changed = Some(*new_variant);
                 }
             }
+            // This case should be unreachable due to the discriminant check above,
+            // but we need it for exhaustiveness
             _ => {
-                // For other state types or mismatched comparisons, store full state
-                return StateDiff::Full(new_state.clone());
+                unreachable!("Different state types should have been caught by discriminant check")
             }
         }
 
@@ -284,9 +246,6 @@ impl StateChanges {
                 if let Some(new_variant) = self.edit_variant_changed {
                     *insert_variant = new_variant;
                 }
-            }
-            _ => {
-                // For other state types, no partial updates supported yet
             }
         }
 

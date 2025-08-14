@@ -26,25 +26,7 @@ impl StateTransitionHandler {
             // ============================================================
             // Editing State Transitions
             // ============================================================
-            (
-                UIState::Editing {
-                    core,
-                    value,
-                    cursor_pos,
-                    mode,
-                    visual_selection,
-                    insert_variant,
-                },
-                action,
-            ) => self.handle_editing(
-                core,
-                value.clone(),
-                *cursor_pos,
-                *mode,
-                visual_selection.clone(),
-                *insert_variant,
-                action,
-            ),
+            (UIState::Editing { .. }, action) => self.handle_editing(state, action),
         }
     }
 
@@ -188,16 +170,30 @@ impl StateTransitionHandler {
         }
     }
 
-    fn handle_editing(
-        &self,
-        core: &CoreState,
-        value: String,
-        cursor_pos: usize,
-        mode: EditMode,
-        visual_selection: Option<crate::state::VisualSelection>,
-        insert_variant: Option<crate::state::InsertMode>,
-        action: &Action,
-    ) -> Result<UIState> {
+    fn handle_editing(&self, state: &UIState, action: &Action) -> Result<UIState> {
+        // Extract editing state components
+        let (core, value, cursor_pos, mode, visual_selection, insert_variant) = match state {
+            UIState::Editing {
+                core,
+                value,
+                cursor_pos,
+                mode,
+                visual_selection,
+                insert_variant,
+            } => (
+                core,
+                value,
+                *cursor_pos,
+                *mode,
+                visual_selection,
+                *insert_variant,
+            ),
+            _ => {
+                return Err(gridcore_core::SpreadsheetError::Parse(
+                    "Invalid state for editing handler".to_string(),
+                ))
+            }
+        };
         match action {
             // Exit editing
             Action::ExitToNavigation | Action::SubmitCellEdit { .. } => Ok(UIState::Navigation {
@@ -215,7 +211,7 @@ impl StateTransitionHandler {
                     value: new_value,
                     cursor_pos: cursor_pos + 1,
                     mode,
-                    visual_selection,
+                    visual_selection: visual_selection.clone(),
                     insert_variant,
                 })
             }
@@ -243,7 +239,7 @@ impl StateTransitionHandler {
                     value: new_value,
                     cursor_pos: new_cursor_pos,
                     mode,
-                    visual_selection,
+                    visual_selection: visual_selection.clone(),
                     insert_variant,
                 })
             }
@@ -253,10 +249,10 @@ impl StateTransitionHandler {
                 let new_cursor_pos = (*cursor_position).min(value.len());
                 Ok(UIState::Editing {
                     core: core.clone(),
-                    value,
+                    value: value.clone(),
                     cursor_pos: new_cursor_pos,
                     mode,
-                    visual_selection,
+                    visual_selection: visual_selection.clone(),
                     insert_variant,
                 })
             }
@@ -264,29 +260,29 @@ impl StateTransitionHandler {
             // Enter/Exit insert mode
             Action::EnterInsertMode { mode: insert_mode } => Ok(UIState::Editing {
                 core: core.clone(),
-                value,
+                value: value.clone(),
                 cursor_pos,
                 mode: EditMode::Insert,
-                visual_selection,
+                visual_selection: visual_selection.clone(),
                 insert_variant: *insert_mode,
             }),
 
             Action::ExitInsertMode => Ok(UIState::Editing {
                 core: core.clone(),
-                value,
+                value: value.clone(),
                 cursor_pos,
                 mode: EditMode::Normal,
-                visual_selection,
+                visual_selection: visual_selection.clone(),
                 insert_variant: None,
             }),
 
             // Default: preserve current state
             _ => Ok(UIState::Editing {
                 core: core.clone(),
-                value,
+                value: value.clone(),
                 cursor_pos,
                 mode,
-                visual_selection,
+                visual_selection: visual_selection.clone(),
                 insert_variant,
             }),
         }
