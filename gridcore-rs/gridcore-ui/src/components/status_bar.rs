@@ -36,7 +36,9 @@ pub fn StatusBar(
         // This ensures proper display of NORMAL mode within editing
         let (text, color, detail) = match &state {
             UIState::Editing {
-                mode, visual_selection, ..
+                mode,
+                visual_selection,
+                ..
             } => {
                 match mode {
                     gridcore_controller::state::EditMode::Insert => {
@@ -48,7 +50,9 @@ pub fn StatusBar(
                     gridcore_controller::state::EditMode::Visual => {
                         // Check visual selection for line mode
                         match visual_selection {
-                            Some(vs) if vs.mode == VisualMode::Line => ("VISUAL LINE", "#9c27b0", "hjkl to select"),
+                            Some(vs) if vs.mode == VisualMode::Line => {
+                                ("VISUAL LINE", "#9c27b0", "hjkl to select")
+                            }
                             Some(vs) if vs.mode == VisualMode::Block => {
                                 ("VISUAL BLOCK", "#9c27b0", "hjkl to select")
                             }
