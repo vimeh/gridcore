@@ -71,7 +71,7 @@ mod edge_case_tests {
             .transition(Action::EnterCommandMode)
             .expect("State transition should succeed in test");
         assert!(matches!(
-            machine.state(),
+            machine.get_state(),
             UIState::Navigation {
                 modal: Some(NavigationModal::Command { .. }),
                 ..
@@ -93,7 +93,7 @@ mod edge_case_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.state() {
+        match machine.get_state() {
             UIState::Editing {
                 value, cursor_pos, ..
             } => {
@@ -112,7 +112,7 @@ mod edge_case_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.state() {
+        match machine.get_state() {
             UIState::Editing { value, .. } => {
                 assert_eq!(value.len(), 500_000);
             }
@@ -138,7 +138,7 @@ mod edge_case_tests {
             })
             .expect("State transition should succeed in test");
 
-        assert_eq!(machine.state().viewport(), &huge_viewport);
+        assert_eq!(machine.get_state().viewport(), &huge_viewport);
 
         // Test zero-sized viewport
         let zero_viewport = ViewportInfo {
@@ -154,7 +154,7 @@ mod edge_case_tests {
             })
             .expect("State transition should succeed in test");
 
-        assert_eq!(machine.state().viewport(), &zero_viewport);
+        assert_eq!(machine.get_state().viewport(), &zero_viewport);
     }
 
     #[test]
@@ -167,14 +167,14 @@ mod edge_case_tests {
             .transition(Action::UpdateCursor { cursor: max_cursor })
             .expect("State transition should succeed in test");
 
-        assert_eq!(machine.state().cursor(), &max_cursor);
+        assert_eq!(machine.get_state().cursor(), &max_cursor);
 
         // Ensure we can still perform other operations
         machine
             .transition(Action::EnterCommandMode)
             .expect("State transition should succeed in test");
         assert!(matches!(
-            machine.state(),
+            machine.get_state(),
             UIState::Navigation {
                 modal: Some(NavigationModal::Command { .. }),
                 ..
@@ -210,7 +210,7 @@ mod edge_case_tests {
         }
 
         // Should end in navigation mode
-        assert!(matches!(machine.state(), UIState::Navigation { .. }));
+        assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
 
         // History should be capped
         assert!(machine.get_history().len() <= 100);
@@ -236,7 +236,7 @@ mod edge_case_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.state() {
+        match machine.get_state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::Visual { selection, .. }),
                 ..
@@ -267,7 +267,7 @@ mod edge_case_tests {
         machine
             .transition(Action::ExitCommandMode)
             .expect("State transition should succeed in test");
-        assert!(matches!(machine.state(), UIState::Navigation { .. }));
+        assert!(matches!(machine.get_state(), UIState::Navigation { .. }));
     }
 
     #[test]
@@ -320,7 +320,7 @@ mod edge_case_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.state() {
+        match machine.get_state() {
             UIState::Editing { value, .. } => {
                 assert_eq!(value, special_chars);
             }
@@ -343,7 +343,7 @@ mod edge_case_tests {
             })
             .expect("State transition should succeed in test");
 
-        match machine.state() {
+        match machine.get_state() {
             UIState::Navigation {
                 modal: Some(NavigationModal::Command { value }),
                 ..
@@ -397,6 +397,6 @@ mod edge_case_tests {
         );
 
         let new_machine = UIStateMachine::new(Some(initial_state));
-        assert_eq!(new_machine.state().cursor(), &CellAddress::new(0, 0));
+        assert_eq!(new_machine.get_state().cursor(), &CellAddress::new(0, 0));
     }
 }

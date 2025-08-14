@@ -355,7 +355,7 @@ mod tests {
         controller.update_formula_bar_from_cursor();
 
         // Verify initial formula bar value
-        assert_eq!(controller.formula_bar_value(), "Hello");
+        assert_eq!(controller.get_formula_bar_value(), "Hello");
 
         // Act - Press Delete to clear cell
         let event = KeyboardEvent {
@@ -375,7 +375,7 @@ mod tests {
             "Cell should be cleared"
         );
         assert_eq!(
-            controller.formula_bar_value(),
+            controller.get_formula_bar_value(),
             "",
             "Formula bar should be updated to empty"
         );
@@ -397,7 +397,7 @@ mod tests {
         controller.update_formula_bar_from_cursor();
 
         // Verify initial formula bar value
-        assert_eq!(controller.formula_bar_value(), "World");
+        assert_eq!(controller.get_formula_bar_value(), "World");
 
         // Act - Press Backspace to clear cell
         let event = KeyboardEvent {
@@ -417,7 +417,7 @@ mod tests {
             "Cell should be cleared"
         );
         assert_eq!(
-            controller.formula_bar_value(),
+            controller.get_formula_bar_value(),
             "",
             "Formula bar should be updated to empty"
         );
@@ -446,7 +446,7 @@ mod tests {
         controller.update_formula_bar_from_cursor();
 
         // Start at A1
-        assert_eq!(controller.formula_bar_value(), "A1");
+        assert_eq!(controller.get_formula_bar_value(), "A1");
 
         // Act - Move right to B1
         let event = KeyboardEvent {
@@ -461,7 +461,7 @@ mod tests {
 
         // Assert
         assert_eq!(
-            controller.formula_bar_value(),
+            controller.get_formula_bar_value(),
             "B1",
             "Formula bar should show B1"
         );
@@ -479,7 +479,7 @@ mod tests {
 
         // Assert
         assert_eq!(
-            controller.formula_bar_value(),
+            controller.get_formula_bar_value(),
             "",
             "Formula bar should be empty for B2"
         );
@@ -497,7 +497,7 @@ mod tests {
 
         // Assert
         assert_eq!(
-            controller.formula_bar_value(),
+            controller.get_formula_bar_value(),
             "A2",
             "Formula bar should show A2"
         );
@@ -565,7 +565,7 @@ mod tests {
         );
 
         // Verify error exists
-        let errors = controller.active_errors();
+        let errors = controller.get_active_errors();
         assert_eq!(errors.len(), 1, "Should have one error");
         let error_id = errors[0].id;
 
@@ -576,7 +576,7 @@ mod tests {
         );
 
         // Verify error is gone
-        let errors = controller.active_errors();
+        let errors = controller.get_active_errors();
         assert_eq!(errors.len(), 0, "Should have no errors after dismissal");
     }
 }

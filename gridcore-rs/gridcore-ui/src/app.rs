@@ -73,7 +73,7 @@ pub fn App() -> impl IntoView {
 
     let formula_bar_value = Memo::new(move |_| {
         formula_trigger.track(); // Track formula bar changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().formula_bar_value().to_string())
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_formula_bar_value().to_string())
     });
 
     // Set up comprehensive controller event listener
@@ -89,21 +89,17 @@ pub fn App() -> impl IntoView {
                     SpreadsheetEvent::CursorMoved { .. } => {
                         cursor_trigger.notify();
                     }
-                    SpreadsheetEvent::SelectionChanged { .. }
-                    | SpreadsheetEvent::RangeSelected { .. } => {
-                        selection_trigger.notify();
-                    }
                     SpreadsheetEvent::StateChanged
-                    | SpreadsheetEvent::CommandExecuted { .. }
-                    | SpreadsheetEvent::CommandCancelled => {
+                    | SpreadsheetEvent::CommandExecuted { .. } => {
                         mode_trigger.notify();
+                        // State changes may affect multiple things
+                        cursor_trigger.notify();
+                        selection_trigger.notify();
                     }
                     SpreadsheetEvent::FormulaBarUpdated { .. } => {
                         formula_trigger.notify();
                     }
-                    SpreadsheetEvent::CellEditStarted { .. }
-                    | SpreadsheetEvent::CellEditCompleted { .. }
-                    | SpreadsheetEvent::CellEditCancelled { .. } => {
+                    SpreadsheetEvent::CellEditCompleted { .. } => {
                         // Cell editing affects both formula bar and mode
                         formula_trigger.notify();
                         mode_trigger.notify();
@@ -114,38 +110,9 @@ pub fn App() -> impl IntoView {
                     | SpreadsheetEvent::SheetChanged { .. } => {
                         sheets_trigger.notify();
                     }
-                    SpreadsheetEvent::ErrorOccurred { .. }
-                    | SpreadsheetEvent::ErrorDismissed { .. } => {
+                    SpreadsheetEvent::ErrorOccurred { .. } => {
                         error_trigger.notify();
                     }
-                    // Structural changes affect multiple aspects
-                    SpreadsheetEvent::RowsInserted { .. }
-                    | SpreadsheetEvent::RowsDeleted { .. }
-                    | SpreadsheetEvent::ColumnsInserted { .. }
-                    | SpreadsheetEvent::ColumnsDeleted { .. }
-                    | SpreadsheetEvent::ColumnResized { .. }
-                    | SpreadsheetEvent::RowResized { .. }
-                    | SpreadsheetEvent::ViewportChanged { .. } => {
-                        // These affect cursor, selection, and general display
-                        cursor_trigger.notify();
-                        selection_trigger.notify();
-                        render_trigger.notify(); // Force canvas re-render
-                    }
-                    // Copy/paste affects selection
-                    SpreadsheetEvent::CellsCopied { .. }
-                    | SpreadsheetEvent::CellsCut { .. }
-                    | SpreadsheetEvent::CellsPasted { .. } => {
-                        selection_trigger.notify();
-                    }
-                    // Undo/redo can affect any state
-                    SpreadsheetEvent::UndoPerformed | SpreadsheetEvent::RedoPerformed => {
-                        cursor_trigger.notify();
-                        selection_trigger.notify();
-                        formula_trigger.notify();
-                        mode_trigger.notify();
-                        render_trigger.notify(); // Force canvas re-render
-                    }
-                    _ => {}
                 }
 
                 // Log specific events for debugging
@@ -165,9 +132,7 @@ pub fn App() -> impl IntoView {
                     );
                 }
 
-                if let SpreadsheetEvent::ErrorDismissed { id } = event {
-                    leptos::logging::log!("Error dismissed: {}", id);
-                }
+                // ErrorDismissed event was removed in simplification
             },
         );
         controller.borrow_mut().subscribe_to_events(callback);
@@ -200,7 +165,7 @@ pub fn App() -> impl IntoView {
     // Derive selection stats from controller state
     let selection_stats = Memo::new(move |_| {
         selection_trigger.track(); // Track selection changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().selection_stats())
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_current_selection_stats())
     });
 
     // Handle formula bar Enter key

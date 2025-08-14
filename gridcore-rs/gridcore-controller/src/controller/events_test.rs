@@ -136,7 +136,7 @@ mod tests {
         let mut controller = SpreadsheetController::new();
 
         // Set some cell values
-        let facade = controller.get_facade_mut();
+        let facade = controller.facade_mut();
         facade
             .set_cell_value(&CellAddress::new(0, 0), "10")
             .unwrap();
@@ -167,11 +167,11 @@ mod tests {
 
         // Set values in some cells
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(0, 0), "Hello")
             .unwrap();
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(1, 0), "World")
             .unwrap();
 
@@ -216,17 +216,17 @@ mod tests {
 
         // Set up cells with values
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(0, 0), "10")
             .unwrap();
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(1, 0), "20")
             .unwrap();
 
         // Set a formula in C1
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(2, 0), "=A1+B1")
             .unwrap();
 

@@ -74,7 +74,7 @@ pub fn CanvasGrid(
                 let pos = vp_borrow.get_cell_position(&cell);
                 let (row_header_width, column_header_height) = controller_stored.with_value(|c| {
                     let borrow = c.borrow();
-                    let config = borrow.config();
+                    let config = borrow.get_config();
                     (config.row_header_width, config.column_header_height)
                 });
                 (
@@ -177,7 +177,7 @@ pub fn CanvasGrid(
                     current_cell,
                     ctrl_borrow.facade(),
                     device_pixel_ratio,
-                    ctrl_borrow.config(),
+                    ctrl_borrow.get_config(),
                 );
             }); // ctrl_borrow is dropped here
         }
@@ -222,7 +222,7 @@ pub fn CanvasGrid(
                 let _theme = vp_borrow.get_theme();
                 let (row_header_width, column_header_height) = controller_stored.with_value(|c| {
                     let borrow = c.borrow();
-                    let config = borrow.config();
+                    let config = borrow.get_config();
                     (config.row_header_width, config.column_header_height)
                 });
                 if x > row_header_width && y > column_header_height {
@@ -285,7 +285,7 @@ pub fn CanvasGrid(
                 let _theme = vp_borrow.get_theme();
                 let (row_header_width, column_header_height) = controller_stored.with_value(|c| {
                     let borrow = c.borrow();
-                    let config = borrow.config();
+                    let config = borrow.get_config();
                     (config.row_header_width, config.column_header_height)
                 });
                 if x > row_header_width && y > column_header_height {
@@ -350,7 +350,7 @@ pub fn CanvasGrid(
         } else {
             // Check if we're hovering over a resize handle
             let _theme = default_theme();
-            let config = controller_stored.with_value(|c| c.borrow().config().clone());
+            let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
             let is_col_header = y < config.column_header_height;
             let is_row_header = x < config.row_header_width;
 
@@ -373,7 +373,7 @@ pub fn CanvasGrid(
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
         let _theme = default_theme();
-        let config = controller_stored.with_value(|c| c.borrow().config().clone());
+        let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
         let is_col_header = y < config.column_header_height;
         let is_row_header = x < config.row_header_width;
 
@@ -585,7 +585,7 @@ pub fn CanvasGrid(
             let absolute_y = cell_pos.y + vp_borrow.get_scroll_position().y;
 
             // Check if we need to scroll
-            let config = controller_stored.with_value(|c| c.borrow().config().clone());
+            let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
             let viewport_width = vp_borrow.get_viewport_width() - config.row_header_width;
             let viewport_height = vp_borrow.get_viewport_height() - config.column_header_height;
             let scroll_pos = vp_borrow.get_scroll_position();

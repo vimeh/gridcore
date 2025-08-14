@@ -974,7 +974,7 @@ mod sheet_tests {
     #[test]
     fn test_get_sheets() {
         let controller = SpreadsheetController::new();
-        let sheets = controller.get_sheets();
+        let sheets = controller.sheets();
 
         // Should have at least one default sheet
         assert!(!sheets.is_empty());
@@ -990,7 +990,7 @@ mod sheet_tests {
         assert!(result.is_ok());
 
         // Verify sheet was added
-        let sheets = controller.get_sheets();
+        let sheets = controller.sheets();
         assert!(sheets.iter().any(|(name, _)| name == "TestSheet"));
     }
 
@@ -1007,7 +1007,7 @@ mod sheet_tests {
         assert!(result.is_ok());
 
         // Verify sheet was removed
-        let sheets = controller.get_sheets();
+        let sheets = controller.sheets();
         assert!(!sheets.iter().any(|(name, _)| name == "Sheet2"));
         assert!(sheets.iter().any(|(name, _)| name == "Sheet3"));
     }
@@ -1024,7 +1024,7 @@ mod sheet_tests {
         assert!(result.is_ok());
 
         // Verify rename
-        let sheets = controller.get_sheets();
+        let sheets = controller.sheets();
         assert!(!sheets.iter().any(|(name, _)| name == "OldName"));
         assert!(sheets.iter().any(|(name, _)| name == "NewName"));
     }
@@ -1042,7 +1042,7 @@ mod sheet_tests {
         assert!(result.is_ok());
 
         // Verify active sheet
-        let active = controller.get_active_sheet();
+        let active = controller.facade().get_active_sheet();
         assert_eq!(active, "Sheet2");
     }
 
@@ -1101,7 +1101,7 @@ mod sheet_tests {
             })
             .unwrap();
 
-        let sheets = controller.get_sheets();
+        let sheets = controller.sheets();
         assert!(sheets.iter().any(|(name, _)| name == "NewSheet"));
 
         // Test RenameSheet action
@@ -1112,7 +1112,7 @@ mod sheet_tests {
             })
             .unwrap();
 
-        let sheets = controller.get_sheets();
+        let sheets = controller.sheets();
         assert!(sheets.iter().any(|(name, _)| name == "RenamedSheet"));
 
         // Test SetActiveSheet action
@@ -1122,7 +1122,7 @@ mod sheet_tests {
             })
             .unwrap();
 
-        assert_eq!(controller.get_active_sheet(), "RenamedSheet");
+        assert_eq!(controller.facade().get_active_sheet(), "RenamedSheet");
 
         // Verify events were dispatched
         let e = events.lock().unwrap();
@@ -1136,7 +1136,7 @@ mod sheet_tests {
         let mut controller = SpreadsheetController::new();
 
         // Get initial sheets
-        let sheets = controller.get_sheets();
+        let sheets = controller.sheets();
         if sheets.len() == 1 {
             // Try to remove the last sheet - should fail
             let result = controller.remove_sheet(&sheets[0].0);

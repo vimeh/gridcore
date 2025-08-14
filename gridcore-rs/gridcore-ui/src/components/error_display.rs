@@ -115,9 +115,9 @@ pub fn ErrorDisplay(error_trigger: Trigger) -> impl IntoView {
                                     controller_stored.with_value(|ctrl| {
                                         let mut ctrl_borrow = ctrl.borrow_mut();
                                         ctrl_borrow.remove_error(error_id);
-                                        // Trigger state update by emitting a dummy event
+                                        // Trigger state update
                                         ctrl_borrow.dispatch_event(
-                                            gridcore_controller::controller::events::SpreadsheetEvent::ErrorDismissed { id: error_id }
+                                            gridcore_controller::controller::events::SpreadsheetEvent::StateChanged
                                         );
                                     });
                                 }
