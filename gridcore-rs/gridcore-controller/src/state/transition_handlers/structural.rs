@@ -1,5 +1,7 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, ModalData, ModalKind, UIState};
+use crate::state::{
+    actions::Action, create_navigation_state, DeleteConfig, InsertConfig, NavigationModal, UIState,
+};
 use gridcore_core::Result;
 
 pub struct StructuralHandler;
@@ -13,8 +15,8 @@ impl TransitionHandler for StructuralHandler {
             ))
             || (matches!(
                 state,
-                UIState::Modal {
-                    kind: ModalKind::Insert,
+                UIState::Navigation {
+                    modal: Some(NavigationModal::Insert { .. }),
                     ..
                 }
             ) && matches!(
@@ -23,8 +25,8 @@ impl TransitionHandler for StructuralHandler {
             ))
             || (matches!(
                 state,
-                UIState::Modal {
-                    kind: ModalKind::Delete,
+                UIState::Navigation {
+                    modal: Some(NavigationModal::Delete { .. }),
                     ..
                 }
             ) && matches!(action, Action::ConfirmDelete | Action::CancelDelete))
@@ -38,69 +40,47 @@ impl TransitionHandler for StructuralHandler {
                 reference,
             } => {
                 if let UIState::Navigation {
-                    cursor, viewport, ..
+                    core, selection, ..
                 } = state
                 {
-                    Ok(UIState::Modal {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        kind: ModalKind::Insert,
-                        data: ModalData::Insert {
-                            insert_type: *insert_type,
-                            position: *position,
-                            reference: *reference,
-                            count: 1,
-                            target_index: *reference,
-                        },
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: selection.clone(),
+                        modal: Some(NavigationModal::Insert {
+                            config: InsertConfig {
+                                insert_type: *insert_type,
+                                position: *position,
+                                reference: *reference,
+                                count: 1,
+                                target_index: *reference,
+                            },
+                        }),
                     })
                 } else {
                     unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateInsertCount { count } => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::Insert,
-                    data,
+                if let UIState::Navigation {
+                    core,
+                    selection,
+                    modal: Some(NavigationModal::Insert { config }),
                 } = state
                 {
-                    if let ModalData::Insert {
-                        insert_type,
-                        position,
-                        reference,
-                        target_index,
-                        ..
-                    } = data
-                    {
-                        Ok(UIState::Modal {
-                            cursor: *cursor,
-                            viewport: *viewport,
-                            kind: ModalKind::Insert,
-                            data: ModalData::Insert {
-                                insert_type: *insert_type,
-                                position: *position,
-                                reference: *reference,
-                                count: *count,
-                                target_index: *target_index,
-                            },
-                        })
-                    } else {
-                        unreachable!("StructuralHandler: Modal data mismatch")
-                    }
+                    let mut new_config = config.clone();
+                    new_config.count = *count;
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: selection.clone(),
+                        modal: Some(NavigationModal::Insert { config: new_config }),
+                    })
                 } else {
                     unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }
             }
             Action::ConfirmInsert | Action::CancelInsert => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::Insert,
-                    ..
-                } = state
-                {
-                    Ok(create_navigation_state(*cursor, *viewport, None))
+                if let UIState::Navigation { core, .. } = state {
+                    Ok(create_navigation_state(core.cursor, core.viewport, None))
                 } else {
                     unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }
@@ -110,33 +90,28 @@ impl TransitionHandler for StructuralHandler {
                 delete_type,
             } => {
                 if let UIState::Navigation {
-                    cursor, viewport, ..
+                    core, selection, ..
                 } = state
                 {
-                    Ok(UIState::Modal {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        kind: ModalKind::Delete,
-                        data: ModalData::Delete {
-                            delete_type: *delete_type,
-                            targets: targets.clone(),
-                            selection: targets.clone(),
-                            confirmation_pending: false,
-                        },
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: selection.clone(),
+                        modal: Some(NavigationModal::Delete {
+                            config: DeleteConfig {
+                                delete_type: *delete_type,
+                                targets: targets.clone(),
+                                selection: targets.clone(),
+                                confirmation_pending: false,
+                            },
+                        }),
                     })
                 } else {
                     unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }
             }
             Action::ConfirmDelete | Action::CancelDelete => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::Delete,
-                    ..
-                } = state
-                {
-                    Ok(create_navigation_state(*cursor, *viewport, None))
+                if let UIState::Navigation { core, .. } = state {
+                    Ok(create_navigation_state(core.cursor, core.viewport, None))
                 } else {
                     unreachable!("StructuralHandler::handle called with incompatible state/action")
                 }

@@ -1,16 +1,16 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, ModalData, ModalKind, UIState};
+use crate::state::{actions::Action, create_navigation_state, NavigationModal, UIState};
 use gridcore_core::Result;
 
 pub struct VisualHandler;
 
 impl TransitionHandler for VisualHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
-        // Only handle when in Modal::Visual (spreadsheet-level visual mode)
+        // Only handle when in Navigation with Visual modal
         matches!(
             state,
-            UIState::Modal {
-                kind: ModalKind::Visual,
+            UIState::Navigation {
+                modal: Some(NavigationModal::Visual { .. }),
                 ..
             }
         ) && matches!(
@@ -24,74 +24,51 @@ impl TransitionHandler for VisualHandler {
     fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
         match action {
             Action::ExitSpreadsheetVisualMode => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::Visual,
-                    ..
-                } = state
-                {
-                    Ok(create_navigation_state(*cursor, *viewport, None))
+                if let UIState::Navigation { core, .. } = state {
+                    Ok(create_navigation_state(core.cursor, core.viewport, None))
                 } else {
                     unreachable!("VisualHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateSelection { selection } => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::Visual,
-                    data,
+                if let UIState::Navigation {
+                    core,
+                    modal: Some(NavigationModal::Visual { mode, anchor, .. }),
+                    ..
                 } = state
                 {
-                    if let ModalData::Visual {
-                        visual_mode,
-                        anchor,
-                        ..
-                    } = data
-                    {
-                        Ok(UIState::Modal {
-                            cursor: *cursor,
-                            viewport: *viewport,
-                            kind: ModalKind::Visual,
-                            data: ModalData::Visual {
-                                selection: selection.clone(),
-                                visual_mode: *visual_mode,
-                                anchor: *anchor,
-                            },
-                        })
-                    } else {
-                        unreachable!("VisualHandler: Modal data mismatch")
-                    }
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: None,
+                        modal: Some(NavigationModal::Visual {
+                            mode: *mode,
+                            anchor: *anchor,
+                            selection: selection.clone(),
+                        }),
+                    })
                 } else {
                     unreachable!("VisualHandler::handle called with incompatible state/action")
                 }
             }
             Action::ChangeVisualMode { new_mode } => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::Visual,
-                    data,
+                if let UIState::Navigation {
+                    core,
+                    modal:
+                        Some(NavigationModal::Visual {
+                            anchor, selection, ..
+                        }),
+                    ..
                 } = state
                 {
-                    if let ModalData::Visual {
-                        selection, anchor, ..
-                    } = data
-                    {
-                        Ok(UIState::Modal {
-                            cursor: *cursor,
-                            viewport: *viewport,
-                            kind: ModalKind::Visual,
-                            data: ModalData::Visual {
-                                selection: selection.clone(),
-                                visual_mode: *new_mode,
-                                anchor: *anchor,
-                            },
-                        })
-                    } else {
-                        unreachable!("VisualHandler: Modal data mismatch")
-                    }
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: None,
+                        modal: Some(NavigationModal::Visual {
+                            mode: *new_mode,
+                            anchor: *anchor,
+                            selection: selection.clone(),
+                        }),
+                    })
                 } else {
                     unreachable!("VisualHandler::handle called with incompatible state/action")
                 }

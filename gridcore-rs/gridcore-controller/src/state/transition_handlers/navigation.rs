@@ -9,7 +9,7 @@ pub struct NavigationHandler;
 
 impl TransitionHandler for NavigationHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
-        matches!(state, UIState::Navigation { .. })
+        matches!(state, UIState::Navigation { modal: None, .. })
             && matches!(
                 action,
                 Action::StartEditing { .. }
@@ -25,16 +25,13 @@ impl TransitionHandler for NavigationHandler {
                 initial_value,
                 cursor_position,
             } => {
-                if let UIState::Navigation {
-                    cursor, viewport, ..
-                } = state
-                {
+                if let UIState::Navigation { core, .. } = state {
                     let mode = if edit_mode.is_some() {
                         EditMode::Insert
                     } else {
                         EditMode::Normal
                     };
-                    let mut new_state = create_editing_state(*cursor, *viewport, mode);
+                    let mut new_state = create_editing_state(core.cursor, core.viewport, mode);
 
                     if let UIState::Editing {
                         value,
@@ -61,11 +58,8 @@ impl TransitionHandler for NavigationHandler {
                 }
             }
             Action::EnterCommandMode => {
-                if let UIState::Navigation {
-                    cursor, viewport, ..
-                } = state
-                {
-                    Ok(create_command_state(*cursor, *viewport))
+                if let UIState::Navigation { core, .. } = state {
+                    Ok(create_command_state(core.cursor, core.viewport))
                 } else {
                     unreachable!("NavigationHandler::handle called with incompatible state/action")
                 }
@@ -74,15 +68,12 @@ impl TransitionHandler for NavigationHandler {
                 visual_mode,
                 selection,
             } => {
-                if let UIState::Navigation {
-                    cursor, viewport, ..
-                } = state
-                {
+                if let UIState::Navigation { core, .. } = state {
                     Ok(create_visual_state(
-                        *cursor,
-                        *viewport,
+                        core.cursor,
+                        core.viewport,
                         *visual_mode,
-                        *cursor,
+                        core.cursor,
                         selection.clone(),
                     ))
                 } else {

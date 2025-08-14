@@ -1,6 +1,6 @@
 use super::TransitionHandler;
 use crate::state::{
-    actions::Action, create_navigation_state, BulkOperationStatus, ModalData, ModalKind, UIState,
+    actions::Action, create_navigation_state, BulkOperationStatus, NavigationModal, UIState,
 };
 use gridcore_core::Result;
 
@@ -12,8 +12,8 @@ impl TransitionHandler for BulkHandler {
             && matches!(action, Action::StartBulkOperation { .. }))
             || (matches!(
                 state,
-                UIState::Modal {
-                    kind: ModalKind::BulkOperation,
+                UIState::Navigation {
+                    modal: Some(NavigationModal::BulkOperation { .. }),
                     ..
                 }
             ) && matches!(
@@ -32,85 +32,62 @@ impl TransitionHandler for BulkHandler {
                 affected_cells,
             } => {
                 if let UIState::Navigation {
-                    cursor, viewport, ..
+                    core, selection, ..
                 } = state
                 {
-                    Ok(UIState::Modal {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        kind: ModalKind::BulkOperation,
-                        data: ModalData::BulkOperation {
-                            parsed_command: parsed_command.clone(),
-                            preview_available: false,
-                            preview_visible: false,
-                            affected_cells: affected_cells.unwrap_or(0),
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: selection.clone(),
+                        modal: Some(NavigationModal::BulkOperation {
+                            command: parsed_command.clone(),
                             status: BulkOperationStatus::Preparing,
-                            error_message: None,
-                        },
+                        }),
                     })
                 } else {
                     unreachable!("BulkHandler::handle called with incompatible state/action")
                 }
             }
             Action::CompleteBulkOperation | Action::CancelBulkOperation => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::BulkOperation,
-                    ..
-                } = state
-                {
-                    Ok(create_navigation_state(*cursor, *viewport, None))
+                if let UIState::Navigation { core, .. } = state {
+                    Ok(create_navigation_state(core.cursor, core.viewport, None))
                 } else {
                     unreachable!("BulkHandler::handle called with incompatible state/action")
                 }
             }
             Action::GeneratePreview => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::BulkOperation,
-                    data,
+                if let UIState::Navigation {
+                    core,
+                    selection,
+                    modal: Some(NavigationModal::BulkOperation { command, .. }),
                 } = state
                 {
-                    if let ModalData::BulkOperation {
-                        parsed_command,
-                        affected_cells,
-                        error_message,
-                        ..
-                    } = data
-                    {
-                        Ok(UIState::Modal {
-                            cursor: *cursor,
-                            viewport: *viewport,
-                            kind: ModalKind::BulkOperation,
-                            data: ModalData::BulkOperation {
-                                parsed_command: parsed_command.clone(),
-                                preview_available: true,
-                                preview_visible: false,
-                                affected_cells: *affected_cells,
-                                status: BulkOperationStatus::Previewing,
-                                error_message: error_message.clone(),
-                            },
-                        })
-                    } else {
-                        unreachable!("BulkHandler: Modal data mismatch")
-                    }
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: selection.clone(),
+                        modal: Some(NavigationModal::BulkOperation {
+                            command: command.clone(),
+                            status: BulkOperationStatus::Previewing,
+                        }),
+                    })
                 } else {
                     unreachable!("BulkHandler::handle called with incompatible state/action")
                 }
             }
             Action::ExecuteBulkOperation => {
-                // For testing, execute completes immediately and returns to navigation
-                // In a real implementation, this would update status and handle async execution
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::BulkOperation,
-                    ..
+                if let UIState::Navigation {
+                    core,
+                    selection,
+                    modal: Some(NavigationModal::BulkOperation { command, .. }),
                 } = state
                 {
-                    Ok(create_navigation_state(*cursor, *viewport, None))
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: selection.clone(),
+                        modal: Some(NavigationModal::BulkOperation {
+                            command: command.clone(),
+                            status: BulkOperationStatus::Executing,
+                        }),
+                    })
                 } else {
                     unreachable!("BulkHandler::handle called with incompatible state/action")
                 }

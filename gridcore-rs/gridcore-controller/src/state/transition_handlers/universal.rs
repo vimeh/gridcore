@@ -22,10 +22,8 @@ impl TransitionHandler for UniversalHandler {
             Action::UpdateCursor { cursor } => {
                 let mut new_state = state.clone();
                 match &mut new_state {
-                    UIState::Navigation { cursor: c, .. }
-                    | UIState::Editing { cursor: c, .. }
-                    | UIState::Modal { cursor: c, .. } => {
-                        *c = *cursor;
+                    UIState::Navigation { core, .. } | UIState::Editing { core, .. } => {
+                        core.cursor = *cursor;
                     }
                 }
                 Ok(new_state)
@@ -33,10 +31,8 @@ impl TransitionHandler for UniversalHandler {
             Action::UpdateViewport { viewport } => {
                 let mut new_state = state.clone();
                 match &mut new_state {
-                    UIState::Navigation { viewport: v, .. }
-                    | UIState::Editing { viewport: v, .. }
-                    | UIState::Modal { viewport: v, .. } => {
-                        *v = *viewport;
+                    UIState::Navigation { core, .. } | UIState::Editing { core, .. } => {
+                        core.viewport = *viewport;
                     }
                 }
                 Ok(new_state)
@@ -54,46 +50,38 @@ impl TransitionHandler for UniversalHandler {
 
 fn handle_escape(state: &UIState) -> Result<UIState> {
     match state {
-        UIState::Editing {
-            cursor,
-            viewport,
-            mode,
-            ..
-        } => {
+        UIState::Editing { core, mode, .. } => {
             match mode {
                 EditMode::Insert | EditMode::Visual => {
                     // Exit to normal mode within editing
                     let mut new_state = state.clone();
                     if let UIState::Editing {
                         mode,
-                        visual_type,
-                        visual_start,
+                        visual_selection,
                         insert_variant,
                         ..
                     } = &mut new_state
                     {
                         *mode = EditMode::Normal;
-                        *visual_type = None;
-                        *visual_start = None;
+                        *visual_selection = None;
                         *insert_variant = None;
                     }
                     Ok(new_state)
                 }
                 EditMode::Normal => {
                     // Exit editing mode entirely
-                    Ok(create_navigation_state(*cursor, *viewport, None))
+                    Ok(create_navigation_state(core.cursor, core.viewport, None))
                 }
             }
         }
-        UIState::Modal {
-            cursor, viewport, ..
-        } => {
-            // Exit any modal state to navigation
-            Ok(create_navigation_state(*cursor, *viewport, None))
-        }
-        UIState::Navigation { .. } => {
-            // Already in navigation, nothing to do
-            Ok(state.clone())
+        UIState::Navigation { core, modal, .. } => {
+            if modal.is_some() {
+                // Exit any modal state to navigation
+                Ok(create_navigation_state(core.cursor, core.viewport, None))
+            } else {
+                // Already in navigation, nothing to do
+                Ok(state.clone())
+            }
         }
     }
 }

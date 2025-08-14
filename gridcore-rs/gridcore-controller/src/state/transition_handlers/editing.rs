@@ -1,5 +1,5 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, EditMode, UIState};
+use crate::state::{actions::Action, create_navigation_state, EditMode, UIState, VisualSelection};
 use gridcore_core::Result;
 
 pub struct EditingHandler;
@@ -22,11 +22,8 @@ impl TransitionHandler for EditingHandler {
     fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
         match action {
             Action::ExitToNavigation => {
-                if let UIState::Editing {
-                    cursor, viewport, ..
-                } = state
-                {
-                    Ok(create_navigation_state(*cursor, *viewport, None))
+                if let UIState::Editing { core, .. } = state {
+                    Ok(create_navigation_state(core.cursor, core.viewport, None))
                 } else {
                     unreachable!("EditingHandler::handle called with incompatible state/action")
                 }
@@ -36,8 +33,7 @@ impl TransitionHandler for EditingHandler {
                 anchor,
             } => {
                 if let UIState::Editing {
-                    cursor,
-                    viewport,
+                    core,
                     value,
                     cursor_pos,
                     insert_variant,
@@ -45,13 +41,14 @@ impl TransitionHandler for EditingHandler {
                 } = state
                 {
                     Ok(UIState::Editing {
-                        cursor: *cursor,
-                        viewport: *viewport,
+                        core: core.clone(),
                         mode: EditMode::Visual,
                         value: value.clone(),
                         cursor_pos: *cursor_pos,
-                        visual_start: Some(anchor.unwrap_or(*cursor_pos)),
-                        visual_type: Some(*visual_type),
+                        visual_selection: Some(VisualSelection {
+                            start: anchor.unwrap_or(*cursor_pos),
+                            mode: *visual_type,
+                        }),
                         insert_variant: *insert_variant,
                     })
                 } else {
@@ -60,24 +57,20 @@ impl TransitionHandler for EditingHandler {
             }
             Action::EnterInsertMode { mode: insert_mode } => {
                 if let UIState::Editing {
-                    cursor,
-                    viewport,
+                    core,
                     value,
                     cursor_pos,
-                    visual_start,
-                    visual_type,
+                    visual_selection,
                     mode: EditMode::Normal,
                     ..
                 } = state
                 {
                     Ok(UIState::Editing {
-                        cursor: *cursor,
-                        viewport: *viewport,
+                        core: core.clone(),
                         mode: EditMode::Insert,
                         value: value.clone(),
                         cursor_pos: *cursor_pos,
-                        visual_start: *visual_start,
-                        visual_type: *visual_type,
+                        visual_selection: visual_selection.clone(),
                         insert_variant: *insert_mode,
                     })
                 } else {
@@ -86,24 +79,20 @@ impl TransitionHandler for EditingHandler {
             }
             Action::ExitInsertMode => {
                 if let UIState::Editing {
-                    cursor,
-                    viewport,
+                    core,
                     value,
                     cursor_pos,
-                    visual_start,
-                    visual_type,
+                    visual_selection,
                     mode: EditMode::Insert,
                     ..
                 } = state
                 {
                     Ok(UIState::Editing {
-                        cursor: *cursor,
-                        viewport: *viewport,
+                        core: core.clone(),
                         mode: EditMode::Normal,
                         value: value.clone(),
                         cursor_pos: *cursor_pos,
-                        visual_start: *visual_start,
-                        visual_type: *visual_type,
+                        visual_selection: visual_selection.clone(),
                         insert_variant: None,
                     })
                 } else {
@@ -112,8 +101,7 @@ impl TransitionHandler for EditingHandler {
             }
             Action::ExitVisualMode => {
                 if let UIState::Editing {
-                    cursor,
-                    viewport,
+                    core,
                     value,
                     cursor_pos,
                     insert_variant,
@@ -122,13 +110,11 @@ impl TransitionHandler for EditingHandler {
                 } = state
                 {
                     Ok(UIState::Editing {
-                        cursor: *cursor,
-                        viewport: *viewport,
+                        core: core.clone(),
                         mode: EditMode::Normal,
                         value: value.clone(),
                         cursor_pos: *cursor_pos,
-                        visual_start: None,
-                        visual_type: None,
+                        visual_selection: None,
                         insert_variant: *insert_variant,
                     })
                 } else {
@@ -137,131 +123,26 @@ impl TransitionHandler for EditingHandler {
             }
             Action::UpdateEditingValue {
                 value: new_value,
-                cursor_position: new_cursor_position,
+                cursor_position: new_cursor,
             } => {
                 if let UIState::Editing {
-                    cursor,
-                    viewport,
+                    core,
                     mode,
-                    visual_start,
-                    visual_type,
+                    visual_selection,
                     insert_variant,
                     ..
                 } = state
                 {
                     Ok(UIState::Editing {
-                        cursor: *cursor,
-                        viewport: *viewport,
+                        core: core.clone(),
                         mode: *mode,
                         value: new_value.clone(),
-                        cursor_pos: *new_cursor_position,
-                        visual_start: *visual_start,
-                        visual_type: *visual_type,
+                        cursor_pos: *new_cursor,
+                        visual_selection: visual_selection.clone(),
                         insert_variant: *insert_variant,
                     })
                 } else {
                     unreachable!("EditingHandler::handle called with incompatible state/action")
-                }
-            }
-            Action::UpdateEditingCursor {
-                cursor_position: new_cursor_position,
-            } => {
-                if let UIState::Editing {
-                    cursor,
-                    viewport,
-                    mode,
-                    value,
-                    visual_start,
-                    visual_type,
-                    insert_variant,
-                    ..
-                } = state
-                {
-                    Ok(UIState::Editing {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        mode: *mode,
-                        value: value.clone(),
-                        cursor_pos: *new_cursor_position,
-                        visual_start: *visual_start,
-                        visual_type: *visual_type,
-                        insert_variant: *insert_variant,
-                    })
-                } else {
-                    unreachable!("EditingHandler::handle called with incompatible state/action")
-                }
-            }
-            Action::InsertCharacterAtCursor { character } => {
-                if let UIState::Editing {
-                    cursor,
-                    viewport,
-                    mode,
-                    value,
-                    cursor_pos,
-                    visual_start,
-                    visual_type,
-                    insert_variant,
-                } = state
-                {
-                    let mut new_value = value.clone();
-                    new_value.insert(*cursor_pos, *character);
-                    Ok(UIState::Editing {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        mode: *mode,
-                        value: new_value,
-                        cursor_pos: cursor_pos + 1,
-                        visual_start: *visual_start,
-                        visual_type: *visual_type,
-                        insert_variant: *insert_variant,
-                    })
-                } else {
-                    unreachable!("EditingHandler::handle called with incompatible state/action")
-                }
-            }
-            Action::DeleteCharacterAtCursor { forward } => {
-                if let UIState::Editing {
-                    cursor,
-                    viewport,
-                    mode,
-                    value,
-                    cursor_pos,
-                    visual_start,
-                    visual_type,
-                    insert_variant,
-                } = state
-                {
-                    let mut new_value = value.clone();
-                    let new_cursor_pos = if *forward {
-                        // Delete (forward)
-                        if *cursor_pos < value.len() {
-                            new_value.remove(*cursor_pos);
-                            *cursor_pos
-                        } else {
-                            *cursor_pos
-                        }
-                    } else {
-                        // Backspace (backward)
-                        if *cursor_pos > 0 {
-                            new_value.remove(cursor_pos - 1);
-                            cursor_pos - 1
-                        } else {
-                            0
-                        }
-                    };
-
-                    Ok(UIState::Editing {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        mode: *mode,
-                        value: new_value,
-                        cursor_pos: new_cursor_pos,
-                        visual_start: *visual_start,
-                        visual_type: *visual_type,
-                        insert_variant: *insert_variant,
-                    })
-                } else {
-                    Ok(state.clone())
                 }
             }
             _ => unreachable!("EditingHandler::handle called with unhandled action"),

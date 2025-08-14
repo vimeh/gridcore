@@ -1,5 +1,5 @@
 use super::TransitionHandler;
-use crate::state::{actions::Action, create_navigation_state, ModalData, ModalKind, UIState};
+use crate::state::{actions::Action, create_navigation_state, NavigationModal, UIState};
 use gridcore_core::Result;
 
 pub struct CommandHandler;
@@ -8,8 +8,8 @@ impl TransitionHandler for CommandHandler {
     fn can_handle(&self, state: &UIState, action: &Action) -> bool {
         matches!(
             state,
-            UIState::Modal {
-                kind: ModalKind::Command,
+            UIState::Navigation {
+                modal: Some(NavigationModal::Command { .. }),
                 ..
             }
         ) && matches!(
@@ -21,33 +21,23 @@ impl TransitionHandler for CommandHandler {
     fn handle(&self, state: &UIState, action: &Action) -> Result<UIState> {
         match action {
             Action::ExitCommandMode => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::Command,
-                    ..
-                } = state
-                {
-                    Ok(create_navigation_state(*cursor, *viewport, None))
+                if let UIState::Navigation { core, .. } = state {
+                    Ok(create_navigation_state(core.cursor, core.viewport, None))
                 } else {
                     unreachable!("CommandHandler::handle called with incompatible state/action")
                 }
             }
             Action::UpdateCommandValue { value } => {
-                if let UIState::Modal {
-                    cursor,
-                    viewport,
-                    kind: ModalKind::Command,
-                    ..
+                if let UIState::Navigation {
+                    core, selection, ..
                 } = state
                 {
-                    Ok(UIState::Modal {
-                        cursor: *cursor,
-                        viewport: *viewport,
-                        kind: ModalKind::Command,
-                        data: ModalData::Command {
+                    Ok(UIState::Navigation {
+                        core: core.clone(),
+                        selection: selection.clone(),
+                        modal: Some(NavigationModal::Command {
                             value: value.clone(),
-                        },
+                        }),
                     })
                 } else {
                     unreachable!("CommandHandler::handle called with incompatible state/action")

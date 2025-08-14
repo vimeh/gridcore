@@ -133,9 +133,7 @@ mod tests {
         let new_state = result.unwrap();
 
         match new_state {
-            UIState::Editing {
-                cursor_pos, ..
-            } => {
+            UIState::Editing { cursor_pos, .. } => {
                 assert_eq!(cursor_pos, 2, "Cursor position should be preserved");
             }
             _ => panic!("Expected Editing state"),
@@ -171,9 +169,7 @@ mod tests {
 
         match new_state {
             UIState::Editing {
-                value,
-                cursor_pos,
-                ..
+                value, cursor_pos, ..
             } => {
                 assert_eq!(value, "");
                 assert_eq!(cursor_pos, 0);
@@ -251,9 +247,7 @@ mod tests {
 
         match new_state {
             UIState::Editing {
-                value,
-                cursor_pos,
-                ..
+                value, cursor_pos, ..
             } => {
                 assert_eq!(value, "Hello World", "Value should be updated");
                 assert_eq!(cursor_pos, 11, "Cursor position should be updated");
