@@ -57,76 +57,7 @@ impl Default for GridConfiguration {
 }
 
 /// Manages the visible viewport of the spreadsheet
-pub trait ViewportManager: Send + Sync {
-    /// Get the current viewport information
-    fn get_viewport(&self) -> ViewportInfo;
-
-    /// Set the viewport to a specific position
-    fn set_viewport(&mut self, viewport: ViewportInfo);
-
-    /// Scroll the viewport by a delta
-    fn scroll(&mut self, delta_rows: i32, delta_cols: i32);
-
-    /// Scroll the viewport by pixel deltas
-    fn scroll_by(&mut self, delta_x: f64, delta_y: f64);
-
-    /// Scroll to make a specific cell visible
-    fn scroll_to_cell(&mut self, cell: &CellAddress, position: &str);
-
-    /// Ensure a cell is visible in the viewport
-    fn ensure_visible(&mut self, address: &CellAddress);
-
-    /// Get the total dimensions of the spreadsheet
-    fn get_dimensions(&self) -> (u32, u32);
-
-    /// Convert viewport coordinates to cell address
-    fn viewport_to_cell(&self, x: f64, y: f64) -> Option<CellAddress>;
-
-    /// Convert cell address to viewport coordinates
-    fn cell_to_viewport(&self, address: &CellAddress) -> Option<(f64, f64)>;
-
-    /// Check if a cell is currently visible
-    fn is_visible(&self, address: &CellAddress) -> bool;
-
-    /// Get the visible bounds of the viewport
-    fn get_visible_bounds(&self) -> ViewportBounds;
-
-    /// Get the position of a cell in viewport coordinates
-    fn get_cell_position(&self, address: &CellAddress) -> CellPosition;
-
-    /// Get cell at a specific position
-    fn get_cell_at_position(&self, x: f64, y: f64) -> Option<CellAddress>;
-
-    /// Column/row dimension management
-    fn get_column_width(&self, col: usize) -> f64;
-    fn set_column_width(&mut self, col: usize, width: f64);
-    fn get_row_height(&self, row: usize) -> f64;
-    fn set_row_height(&mut self, row: usize, height: f64);
-
-    /// Get the x coordinate of a column
-    fn get_column_x(&self, col: usize) -> f64;
-
-    /// Get the y coordinate of a row
-    fn get_row_y(&self, row: usize) -> f64;
-
-    /// Get scroll position
-    fn get_scroll_position(&self) -> ScrollPosition;
-
-    /// Set scroll position
-    fn set_scroll_position(&mut self, x: f64, y: f64);
-
-    /// Get viewport dimensions
-    fn get_viewport_width(&self) -> f64;
-    fn get_viewport_height(&self) -> f64;
-    fn set_viewport_size(&mut self, width: f64, height: f64);
-
-    /// Get total grid dimensions
-    fn get_total_grid_width(&self) -> f64;
-    fn get_total_grid_height(&self) -> f64;
-}
-
-/// Default implementation of ViewportManager
-pub struct DefaultViewportManager {
+pub struct ViewportManager {
     viewport: ViewportInfo,
     config: GridConfiguration,
     scroll_position: ScrollPosition,
@@ -136,7 +67,7 @@ pub struct DefaultViewportManager {
     row_heights: HashMap<usize, f64>,
 }
 
-impl DefaultViewportManager {
+impl ViewportManager {
     pub fn new(rows: u32, cols: u32) -> Self {
         let config = GridConfiguration {
             total_rows: rows as usize,
@@ -178,12 +109,12 @@ impl DefaultViewportManager {
     }
 }
 
-impl ViewportManager for DefaultViewportManager {
-    fn get_viewport(&self) -> ViewportInfo {
+impl ViewportManager {
+    pub fn get_viewport(&self) -> ViewportInfo {
         self.viewport
     }
 
-    fn set_viewport(&mut self, viewport: ViewportInfo) {
+    pub fn set_viewport(&mut self, viewport: ViewportInfo) {
         // Clamp to valid ranges
         let start_row = viewport
             .start_row
@@ -206,7 +137,7 @@ impl ViewportManager for DefaultViewportManager {
         };
     }
 
-    fn scroll(&mut self, delta_rows: i32, delta_cols: i32) {
+    pub fn scroll(&mut self, delta_rows: i32, delta_cols: i32) {
         let new_start_row = (self.viewport.start_row as i32 + delta_rows)
             .max(0)
             .min((self.config.total_rows as u32).saturating_sub(self.viewport.rows) as i32)
@@ -221,7 +152,7 @@ impl ViewportManager for DefaultViewportManager {
         self.viewport.start_col = new_start_col;
     }
 
-    fn scroll_by(&mut self, delta_x: f64, delta_y: f64) {
+    pub fn scroll_by(&mut self, delta_x: f64, delta_y: f64) {
         let new_x = (self.scroll_position.x + delta_x).max(0.0);
         let new_y = (self.scroll_position.y + delta_y).max(0.0);
 
@@ -234,7 +165,7 @@ impl ViewportManager for DefaultViewportManager {
         };
     }
 
-    fn scroll_to_cell(&mut self, cell: &CellAddress, position: &str) {
+    pub fn scroll_to_cell(&mut self, cell: &CellAddress, position: &str) {
         let cell_pos = self.get_cell_position(cell);
         let absolute_x = cell_pos.x + self.scroll_position.x;
         let absolute_y = cell_pos.y + self.scroll_position.y;
@@ -264,7 +195,7 @@ impl ViewportManager for DefaultViewportManager {
         );
     }
 
-    fn ensure_visible(&mut self, address: &CellAddress) {
+    pub fn ensure_visible(&mut self, address: &CellAddress) {
         let row = address.row;
         let col = address.col;
 
@@ -282,11 +213,11 @@ impl ViewportManager for DefaultViewportManager {
         }
     }
 
-    fn get_dimensions(&self) -> (u32, u32) {
+    pub fn get_dimensions(&self) -> (u32, u32) {
         (self.config.total_rows as u32, self.config.total_cols as u32)
     }
 
-    fn viewport_to_cell(&self, x: f64, y: f64) -> Option<CellAddress> {
+    pub fn viewport_to_cell(&self, x: f64, y: f64) -> Option<CellAddress> {
         // Account for headers
         if x < self.config.row_header_width || y < self.config.column_header_height {
             return None;
@@ -298,7 +229,7 @@ impl ViewportManager for DefaultViewportManager {
         self.get_cell_at_position(absolute_x, absolute_y)
     }
 
-    fn cell_to_viewport(&self, address: &CellAddress) -> Option<(f64, f64)> {
+    pub fn cell_to_viewport(&self, address: &CellAddress) -> Option<(f64, f64)> {
         if !self.is_visible(address) {
             return None;
         }
@@ -310,7 +241,7 @@ impl ViewportManager for DefaultViewportManager {
         ))
     }
 
-    fn is_visible(&self, address: &CellAddress) -> bool {
+    pub fn is_visible(&self, address: &CellAddress) -> bool {
         let bounds = self.get_visible_bounds();
         address.row as usize >= bounds.start_row
             && address.row as usize <= bounds.end_row
@@ -318,7 +249,7 @@ impl ViewportManager for DefaultViewportManager {
             && address.col as usize <= bounds.end_col
     }
 
-    fn get_visible_bounds(&self) -> ViewportBounds {
+    pub fn get_visible_bounds(&self) -> ViewportBounds {
         let mut start_row = None;
         let mut end_row = self.config.total_rows;
         let mut start_col = None;
@@ -362,7 +293,7 @@ impl ViewportManager for DefaultViewportManager {
         }
     }
 
-    fn get_cell_position(&self, address: &CellAddress) -> CellPosition {
+    pub fn get_cell_position(&self, address: &CellAddress) -> CellPosition {
         let mut x = 0.0;
         let mut y = 0.0;
 
@@ -382,7 +313,7 @@ impl ViewportManager for DefaultViewportManager {
         }
     }
 
-    fn get_cell_at_position(&self, x: f64, y: f64) -> Option<CellAddress> {
+    pub fn get_cell_at_position(&self, x: f64, y: f64) -> Option<CellAddress> {
         let mut current_x = 0.0;
         let mut col = None;
 
@@ -413,32 +344,32 @@ impl ViewportManager for DefaultViewportManager {
         }
     }
 
-    fn get_column_width(&self, col: usize) -> f64 {
+    pub fn get_column_width(&self, col: usize) -> f64 {
         *self
             .column_widths
             .get(&col)
             .unwrap_or(&self.config.default_cell_width)
     }
 
-    fn set_column_width(&mut self, col: usize, width: f64) {
+    pub fn set_column_width(&mut self, col: usize, width: f64) {
         let clamped_width = width
             .max(self.config.min_cell_width)
             .min(self.config.max_cell_width);
         self.column_widths.insert(col, clamped_width);
     }
 
-    fn get_row_height(&self, row: usize) -> f64 {
+    pub fn get_row_height(&self, row: usize) -> f64 {
         *self
             .row_heights
             .get(&row)
             .unwrap_or(&self.config.default_cell_height)
     }
 
-    fn set_row_height(&mut self, row: usize, height: f64) {
+    pub fn set_row_height(&mut self, row: usize, height: f64) {
         self.row_heights.insert(row, height.max(16.0));
     }
 
-    fn get_column_x(&self, col: usize) -> f64 {
+    pub fn get_column_x(&self, col: usize) -> f64 {
         let mut x = 0.0;
         for c in 0..col {
             x += self.get_column_width(c);
@@ -446,7 +377,7 @@ impl ViewportManager for DefaultViewportManager {
         x
     }
 
-    fn get_row_y(&self, row: usize) -> f64 {
+    pub fn get_row_y(&self, row: usize) -> f64 {
         let mut y = 0.0;
         for r in 0..row {
             y += self.get_row_height(r);
@@ -454,28 +385,28 @@ impl ViewportManager for DefaultViewportManager {
         y
     }
 
-    fn get_scroll_position(&self) -> ScrollPosition {
+    pub fn get_scroll_position(&self) -> ScrollPosition {
         self.scroll_position.clone()
     }
 
-    fn set_scroll_position(&mut self, x: f64, y: f64) {
+    pub fn set_scroll_position(&mut self, x: f64, y: f64) {
         self.scroll_position = ScrollPosition { x, y };
     }
 
-    fn get_viewport_width(&self) -> f64 {
+    pub fn get_viewport_width(&self) -> f64 {
         self.viewport_width
     }
 
-    fn get_viewport_height(&self) -> f64 {
+    pub fn get_viewport_height(&self) -> f64 {
         self.viewport_height
     }
 
-    fn set_viewport_size(&mut self, width: f64, height: f64) {
+    pub fn set_viewport_size(&mut self, width: f64, height: f64) {
         self.viewport_width = width;
         self.viewport_height = height;
     }
 
-    fn get_total_grid_width(&self) -> f64 {
+    pub fn get_total_grid_width(&self) -> f64 {
         let mut width = 0.0;
         for col in 0..self.config.total_cols {
             width += self.get_column_width(col);
@@ -483,7 +414,7 @@ impl ViewportManager for DefaultViewportManager {
         width
     }
 
-    fn get_total_grid_height(&self) -> f64 {
+    pub fn get_total_grid_height(&self) -> f64 {
         let mut height = 0.0;
         for row in 0..self.config.total_rows {
             height += self.get_row_height(row);
@@ -498,7 +429,7 @@ mod tests {
 
     #[test]
     fn test_viewport_manager() {
-        let mut manager = DefaultViewportManager::new(100, 50);
+        let mut manager = ViewportManager::new(100, 50);
 
         // Test initial viewport
         let viewport = manager.get_viewport();
@@ -525,7 +456,7 @@ mod tests {
 
     #[test]
     fn test_coordinate_conversion() {
-        let manager = DefaultViewportManager::new(100, 50)
+        let manager = ViewportManager::new(100, 50)
             .with_cell_dimensions(25.0, 100.0)
             .with_header_dimensions(30.0, 50.0);
 
@@ -546,7 +477,7 @@ mod tests {
 
     #[test]
     fn test_visibility() {
-        let mut manager = DefaultViewportManager::new(100, 50);
+        let mut manager = ViewportManager::new(100, 50);
         // Set viewport size so we have a proper visible area
         manager.set_viewport_size(1000.0, 500.0);
 

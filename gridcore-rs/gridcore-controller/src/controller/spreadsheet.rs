@@ -1,9 +1,9 @@
 use crate::behaviors::{resize::ResizeState, selection_stats};
 use crate::controller::{
-    DefaultViewportManager, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
-    SpreadsheetEvent, ViewportManager,
+    EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent, SpreadsheetEvent,
+    ViewportManager,
 };
-use crate::managers::{ErrorFormatter, ErrorManager};
+use crate::managers::ErrorSystem;
 use crate::state::{
     Action, EditMode, InsertMode, NavigationModal, SpreadsheetMode, UIState, UIStateMachine,
     VisualMode,
@@ -14,9 +14,9 @@ pub struct SpreadsheetController {
     state_machine: UIStateMachine,
     facade: SpreadsheetFacade,
     event_dispatcher: EventDispatcher,
-    viewport_manager: Box<dyn ViewportManager>,
+    viewport_manager: ViewportManager,
     resize_state: ResizeState,
-    error_manager: ErrorManager,
+    error_system: ErrorSystem,
     config: GridConfiguration,
     formula_bar_value: String,
 }
@@ -32,24 +32,20 @@ impl SpreadsheetController {
     }
 
     pub fn with_config(config: GridConfiguration) -> Self {
-        let viewport_manager = Box::new(
-            DefaultViewportManager::new(config.total_rows as u32, config.total_cols as u32)
-                .with_config(config.clone()),
-        );
+        let viewport_manager =
+            ViewportManager::new(config.total_rows as u32, config.total_cols as u32)
+                .with_config(config.clone());
         Self::with_viewport(viewport_manager, config)
     }
 
-    pub fn with_viewport(
-        viewport_manager: Box<dyn ViewportManager>,
-        config: GridConfiguration,
-    ) -> Self {
+    pub fn with_viewport(viewport_manager: ViewportManager, config: GridConfiguration) -> Self {
         let mut controller = Self {
             state_machine: UIStateMachine::new(None),
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
             viewport_manager,
             resize_state: ResizeState::default(),
-            error_manager: ErrorManager::new(),
+            error_system: ErrorSystem::new(),
             config,
             formula_bar_value: String::new(),
         };
@@ -70,11 +66,9 @@ impl SpreadsheetController {
             state_machine: UIStateMachine::new(Some(initial_state)),
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
-            viewport_manager: Box::new(
-                DefaultViewportManager::new(1000, 100).with_config(config.clone()),
-            ),
+            viewport_manager: ViewportManager::new(1000, 100).with_config(config.clone()),
             resize_state: ResizeState::default(),
-            error_manager: ErrorManager::new(),
+            error_system: ErrorSystem::new(),
             config,
             formula_bar_value: String::new(),
         };
@@ -163,7 +157,7 @@ impl SpreadsheetController {
                     }
                 }
                 Err(e) => {
-                    let message = ErrorFormatter::format_error(&e);
+                    let message = ErrorSystem::format_error(&e);
                     self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
                 }
             }
@@ -201,7 +195,7 @@ impl SpreadsheetController {
                         self.update_formula_bar_from_cursor();
                     }
                     Err(e) => {
-                        let message = ErrorFormatter::format_error(&e);
+                        let message = ErrorSystem::format_error(&e);
                         log::error!("Parse/Set error in cell {}: {}", address, message);
                         self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
                     }
@@ -289,19 +283,19 @@ impl SpreadsheetController {
         severity: crate::controller::events::ErrorSeverity,
     ) {
         // Add to error manager
-        self.error_manager.add_error(message.clone(), severity);
+        self.error_system.add_error(message.clone(), severity);
 
         // Dispatch event for UI updates
         self.event_dispatcher
             .dispatch(&SpreadsheetEvent::ErrorOccurred { message, severity });
     }
 
-    pub fn get_viewport_manager(&self) -> &dyn ViewportManager {
-        self.viewport_manager.as_ref()
+    pub fn get_viewport_manager(&self) -> &ViewportManager {
+        &self.viewport_manager
     }
 
-    pub fn get_viewport_manager_mut(&mut self) -> &mut dyn ViewportManager {
-        self.viewport_manager.as_mut()
+    pub fn get_viewport_manager_mut(&mut self) -> &mut ViewportManager {
+        &mut self.viewport_manager
     }
 
     pub fn get_config(&self) -> &GridConfiguration {
@@ -358,28 +352,28 @@ impl SpreadsheetController {
     }
 
     /// Get the error manager
-    pub fn get_error_manager(&self) -> &ErrorManager {
-        &self.error_manager
+    pub fn get_error_manager(&self) -> &ErrorSystem {
+        &self.error_system
     }
 
     /// Get mutable reference to error manager
-    pub fn get_error_manager_mut(&mut self) -> &mut ErrorManager {
-        &mut self.error_manager
+    pub fn get_error_manager_mut(&mut self) -> &mut ErrorSystem {
+        &mut self.error_system
     }
 
     /// Get active errors from the error manager
     pub fn get_active_errors(&self) -> Vec<crate::managers::ErrorEntry> {
-        self.error_manager.get_active_errors()
+        self.error_system.get_active_errors()
     }
 
     /// Clear all errors
     pub fn clear_all_errors(&mut self) {
-        self.error_manager.clear_all();
+        self.error_system.clear_all();
     }
 
     /// Remove a specific error by ID
     pub fn remove_error(&mut self, id: usize) -> bool {
-        self.error_manager.remove_error(id)
+        self.error_system.remove_error(id)
     }
 
     /// Dispatch an event to all listeners
@@ -910,7 +904,7 @@ impl SpreadsheetController {
                 }
                 Err(e) => {
                     // Use ErrorFormatter to get consistent error messages
-                    let message = ErrorFormatter::format_error(&e);
+                    let message = ErrorSystem::format_error(&e);
                     log::error!("Parse/Set error in cell {}: {}", address, message);
 
                     // Emit error event for setting errors
