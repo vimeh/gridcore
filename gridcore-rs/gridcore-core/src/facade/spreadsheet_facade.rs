@@ -1,17 +1,19 @@
-//! Spreadsheet facade using port interfaces
+//! Simplified spreadsheet facade
 //!
-//! This facade demonstrates clean architecture by using only port interfaces,
-//! completely decoupled from infrastructure implementations.
+//! This facade provides a clean API for spreadsheet operations,
+//! delegating to appropriate services and utilities.
 
 use crate::Result;
 use crate::domain::Cell;
+use crate::evaluator::evaluate_cell_formula;
 use crate::ports::{EventPort, RepositoryPort};
 use crate::services::{ServiceContainer, ServiceContainerBuilder};
 use crate::types::{CellAddress, CellValue};
+use crate::utils::format_cell_value;
 use crate::workbook::{Sheet, SheetManager, Workbook};
 use std::sync::{Arc, Mutex};
 
-/// Facade for spreadsheet operations using clean architecture
+/// Simplified facade for spreadsheet operations
 pub struct SpreadsheetFacade {
     container: Arc<ServiceContainer>,
     sheet_manager: Arc<Mutex<SheetManager>>,
@@ -64,46 +66,52 @@ impl SpreadsheetFacade {
         Self::with_container(container)
     }
 
-    /// Get a cell value
+    // Core cell operations
+
+    /// Get a cell by address
     pub fn get_cell(&self, address: &CellAddress) -> Option<Cell> {
-        // Get from the active sheet's repository
         let manager = self.sheet_manager.lock().unwrap();
         let active_sheet_name = self.active_sheet.lock().unwrap();
 
         if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
             sheet.cells().get(address)
         } else {
-            // Fallback to container repository
             self.container.repository()?.get(address)
         }
     }
 
-    /// Set a cell value (simplified version)
-    pub fn set_cell(&self, address: &CellAddress, value: CellValue) -> Result<()> {
+    /// Set a cell value (handles formulas and regular values)
+    pub fn set_cell_value(&self, address: &CellAddress, value: &str) -> Result<()> {
         let old_value = self.get_cell(address).map(|c| c.get_computed_value());
 
-        // Create and store the new cell in the active sheet
+        // Get the repository for the active sheet
         let manager = self.sheet_manager.lock().unwrap();
         let active_sheet_name = self.active_sheet.lock().unwrap();
 
-        if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
-            let cell = Cell::new(value.clone());
-            sheet.cells().set(address, cell)?;
-        } else if let Some(repository) = self.container.repository() {
-            // Fallback to container repository
-            let cell = Cell::new(value.clone());
-            repository.set(address, cell)?;
-        }
+        let repository = if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
+            Some(sheet.cells())
+        } else {
+            self.container.repository()
+        };
 
-        // Emit event through the event port
-        if let Some(events) = self.container.events() {
-            use crate::ports::event_port::DomainEvent;
-            let event = DomainEvent::CellChanged {
-                address: *address,
-                old_value,
-                new_value: value,
-            };
-            events.publish(event)?;
+        if let Some(repo) = repository {
+            // Use the helper to evaluate formulas
+            let cell = evaluate_cell_formula(value, repo.clone())?;
+            let new_value = cell.get_computed_value();
+
+            // Store the cell
+            repo.set(address, cell)?;
+
+            // Emit event
+            if let Some(events) = self.container.events() {
+                use crate::ports::event_port::DomainEvent;
+                let event = DomainEvent::CellChanged {
+                    address: *address,
+                    old_value,
+                    new_value,
+                };
+                events.publish(event)?;
+            }
         }
 
         Ok(())
@@ -113,12 +121,11 @@ impl SpreadsheetFacade {
     pub fn delete_cell(&self, address: &CellAddress) -> Result<()> {
         let old_cell = self.get_cell(address);
 
-        // Delete from repository
         if let Some(repository) = self.container.repository() {
             repository.delete(address)?;
         }
 
-        // Emit event through the event port
+        // Emit event
         if let Some(events) = self.container.events() {
             use crate::ports::event_port::DomainEvent;
             if let Some(cell) = old_cell {
@@ -133,6 +140,40 @@ impl SpreadsheetFacade {
         Ok(())
     }
 
+    /// Get cell value as a formatted string
+    pub fn get_cell_value(&self, address: &CellAddress) -> Option<String> {
+        self.get_cell(address)
+            .map(|cell| format_cell_value(cell.get_computed_value()))
+    }
+
+    /// Get raw cell value
+    pub fn get_cell_raw_value(&self, address: &CellAddress) -> Option<CellValue> {
+        self.get_cell(address).map(|cell| cell.get_computed_value())
+    }
+
+    /// Get all cells
+    pub fn get_all_cells(&self) -> Vec<(CellAddress, Cell)> {
+        self.container
+            .repository()
+            .map(|repo| repo.get_all().into_iter().collect())
+            .unwrap_or_default()
+    }
+
+    /// Get the number of cells
+    pub fn cell_count(&self) -> usize {
+        let manager = self.sheet_manager.lock().unwrap();
+        let active_sheet_name = self.active_sheet.lock().unwrap();
+
+        if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
+            sheet.cells().count()
+        } else {
+            self.container
+                .repository()
+                .map(|repo| repo.count())
+                .unwrap_or(0)
+        }
+    }
+
     /// Recalculate all cells
     pub fn recalculate(&self) -> Result<()> {
         if let Some(calc_service) = self.container.calculation_service() {
@@ -141,175 +182,7 @@ impl SpreadsheetFacade {
         Ok(())
     }
 
-    /// Get the number of cells
-    pub fn cell_count(&self) -> usize {
-        // Get count from the active sheet's repository
-        let manager = self.sheet_manager.lock().unwrap();
-        let active_sheet_name = self.active_sheet.lock().unwrap();
-
-        if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
-            sheet.cells().count()
-        } else {
-            // Fallback to container repository
-            self.container
-                .repository()
-                .map(|repo| repo.count())
-                .unwrap_or(0)
-        }
-    }
-
-    // Methods for command system compatibility
-
-    /// Set cell value (standard API)
-    pub fn set_cell_value(&self, address: &CellAddress, value: &str) -> Result<()> {
-        if let Some(formula_text) = value.strip_prefix('=') {
-            // It's a formula - create a cell with formula
-            let manager = self.sheet_manager.lock().unwrap();
-            let active_sheet_name = self.active_sheet.lock().unwrap();
-
-            let repository = if let Some(sheet) = manager.workbook().get_sheet(&active_sheet_name) {
-                Some(sheet.cells())
-            } else {
-                self.container.repository()
-            };
-
-            if let Some(repo) = repository {
-                let formula_string = formula_text.to_string();
-                let mut cell = Cell::with_formula(
-                    CellValue::from_string(value.to_string()),
-                    formula_string.clone(),
-                );
-
-                // Try to evaluate the formula
-                use crate::evaluator::{Evaluator, PortContext};
-                use crate::formula::FormulaParser;
-
-                // Parse the formula
-                match FormulaParser::parse(&formula_string) {
-                    Ok(expr) => {
-                        let mut context = PortContext::new(repo.clone());
-                        let mut evaluator = Evaluator::new(&mut context);
-
-                        // Evaluate and set the computed value
-                        match evaluator.evaluate(&expr) {
-                            Ok(result) => cell.set_computed_value(result),
-                            Err(e) => cell.set_error(e.to_string()),
-                        }
-                    }
-                    Err(crate::SpreadsheetError::RefError) => {
-                        // RefError - set #REF! error on the cell
-                        cell.set_error("#REF!".to_string());
-                    }
-                    Err(e) => {
-                        // Other parse errors - set error on the cell
-                        cell.set_error(e.to_string());
-                    }
-                }
-
-                repo.set(address, cell)?;
-            }
-        } else {
-            // Regular value
-            let cell_value = if let Ok(num) = value.parse::<f64>() {
-                CellValue::Number(num)
-            } else if let Ok(bool_val) = value.parse::<bool>() {
-                CellValue::Boolean(bool_val)
-            } else {
-                CellValue::from_string(value.to_string())
-            };
-            self.set_cell(address, cell_value)?;
-        }
-
-        Ok(())
-    }
-
-    /// Get raw cell value
-    pub fn get_cell_raw_value(&self, address: &CellAddress) -> Option<CellValue> {
-        self.get_cell(address).map(|cell| cell.get_computed_value())
-    }
-
-    /// Get cell value as string
-    pub fn get_cell_value(&self, address: &CellAddress) -> Option<String> {
-        self.get_cell(address).map(|cell| {
-            match cell.get_computed_value() {
-                CellValue::Number(n) => n.to_string(),
-                CellValue::String(s) => s.as_ref().clone(),
-                CellValue::Boolean(b) => b.to_string(),
-                CellValue::Error(e) => format!("#{}", e),
-                CellValue::Empty => String::new(),
-                CellValue::Array(arr) => {
-                    // Format array as comma-separated values in braces
-                    let values: Vec<String> = arr
-                        .iter()
-                        .map(|v| match v {
-                            CellValue::Number(n) => n.to_string(),
-                            CellValue::String(s) => s.as_ref().clone(),
-                            CellValue::Boolean(b) => b.to_string(),
-                            CellValue::Error(e) => format!("#{}", e),
-                            CellValue::Empty => String::new(),
-                            CellValue::Array(_) => "[nested array]".to_string(),
-                        })
-                        .collect();
-                    format!("{{{}}}", values.join(", "))
-                }
-            }
-        })
-    }
-
-    /// Set cell value without command (for command system)
-    pub fn set_cell_value_without_command(&self, address: &CellAddress, value: &str) -> Result<()> {
-        self.set_cell_value(address, value)
-    }
-
-    /// Delete cell without command (for command system)
-    pub fn delete_cell_without_command(&self, address: &CellAddress) -> Result<()> {
-        self.delete_cell(address)
-    }
-
-    /// Get all cells
-    pub fn get_all_cells(&self) -> Vec<(CellAddress, Cell)> {
-        self.container
-            .repository()
-            .map(|repo| {
-                let all = repo.get_all();
-                all.into_iter().collect()
-            })
-            .unwrap_or_default()
-    }
-
-    /// Insert row without command
-    pub fn insert_row_without_command(&self, _index: u32) -> Result<()> {
-        // TODO: Implement when we update repository port to support structural operations
-        Ok(())
-    }
-
-    /// Delete row without command
-    pub fn delete_row_without_command(&self, _index: u32) -> Result<()> {
-        // TODO: Implement when we update repository port to support structural operations
-        Ok(())
-    }
-
-    /// Insert column without command
-    pub fn insert_column_without_command(&self, _index: u32) -> Result<()> {
-        // TODO: Implement when we update repository port to support structural operations
-        Ok(())
-    }
-
-    /// Delete column without command
-    pub fn delete_column_without_command(&self, _index: u32) -> Result<()> {
-        // TODO: Implement when we update repository port to support structural operations
-        Ok(())
-    }
-}
-
-impl Default for SpreadsheetFacade {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl SpreadsheetFacade {
-    // Sheet management methods
+    // Sheet management
 
     /// Get list of all sheets
     pub fn get_sheets(&self) -> Vec<(String, usize)> {
@@ -393,6 +266,61 @@ impl SpreadsheetFacade {
         let manager = self.sheet_manager.lock().unwrap();
         manager.workbook().sheet_count()
     }
+
+    // Command system compatibility methods
+    // These are thin wrappers that just call the main methods
+
+    /// Set cell value without command (for command system)
+    pub fn set_cell_value_without_command(&self, address: &CellAddress, value: &str) -> Result<()> {
+        self.set_cell_value(address, value)
+    }
+
+    /// Delete cell without command (for command system)
+    pub fn delete_cell_without_command(&self, address: &CellAddress) -> Result<()> {
+        self.delete_cell(address)
+    }
+
+    /// Insert row without command (placeholder)
+    pub fn insert_row_without_command(&self, _index: u32) -> Result<()> {
+        // Use structural operations service when available
+        if let Some(structural_ops) = self.container.structural_operations() {
+            structural_ops.insert_rows(_index, 1)?;
+        }
+        Ok(())
+    }
+
+    /// Delete row without command (placeholder)
+    pub fn delete_row_without_command(&self, _index: u32) -> Result<()> {
+        // Use structural operations service when available
+        if let Some(structural_ops) = self.container.structural_operations() {
+            structural_ops.delete_rows(_index, 1)?;
+        }
+        Ok(())
+    }
+
+    /// Insert column without command (placeholder)
+    pub fn insert_column_without_command(&self, _index: u32) -> Result<()> {
+        // Use structural operations service when available
+        if let Some(structural_ops) = self.container.structural_operations() {
+            structural_ops.insert_columns(_index, 1)?;
+        }
+        Ok(())
+    }
+
+    /// Delete column without command (placeholder)
+    pub fn delete_column_without_command(&self, _index: u32) -> Result<()> {
+        // Use structural operations service when available
+        if let Some(structural_ops) = self.container.structural_operations() {
+            structural_ops.delete_columns(_index, 1)?;
+        }
+        Ok(())
+    }
+}
+
+impl Default for SpreadsheetFacade {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -415,33 +343,25 @@ mod tests {
 
     #[test]
     fn test_facade_get_cell() {
-        let repository = Arc::new(RepositoryAdapter::new_empty());
-        let events = Arc::new(EventAdapter::new_empty());
-
-        let facade = SpreadsheetFacade::with_ports(
-            repository as Arc<dyn RepositoryPort>,
-            events as Arc<dyn EventPort>,
-        );
-
+        let facade = SpreadsheetFacade::new();
         let address = CellAddress::new(0, 0);
         assert!(facade.get_cell(&address).is_none());
     }
 
     #[test]
-    fn test_facade_set_cell() {
-        let repository = Arc::new(RepositoryAdapter::new_empty());
-        let events = Arc::new(EventAdapter::new_empty());
+    fn test_sheet_management() {
+        let facade = SpreadsheetFacade::new();
 
-        let facade = SpreadsheetFacade::with_ports(
-            repository as Arc<dyn RepositoryPort>,
-            events as Arc<dyn EventPort>,
-        );
+        // Should start with one sheet
+        assert_eq!(facade.sheet_count(), 1);
+        assert_eq!(facade.get_active_sheet(), "Sheet1");
 
-        let address = CellAddress::new(0, 0);
-        let value = CellValue::Number(42.0);
+        // Add a new sheet
+        assert!(facade.add_sheet("Sheet2").is_ok());
+        assert_eq!(facade.sheet_count(), 2);
 
-        // This just tests that the method doesn't panic
-        // Real implementation would need mutable repository
-        assert!(facade.set_cell(&address, value).is_ok());
+        // Switch active sheet
+        assert!(facade.set_active_sheet("Sheet2").is_ok());
+        assert_eq!(facade.get_active_sheet(), "Sheet2");
     }
 }
