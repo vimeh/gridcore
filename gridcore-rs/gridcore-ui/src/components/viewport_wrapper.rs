@@ -6,12 +6,12 @@ use std::rc::Rc;
 
 /// A thin wrapper around the controller's ViewportManager for UI use
 pub struct ViewportWrapper {
-    viewport_manager: Rc<RefCell<Box<dyn ViewportManager>>>,
+    viewport_manager: Rc<RefCell<ViewportManager>>,
     theme: GridTheme,
 }
 
 impl ViewportWrapper {
-    pub fn new(viewport_manager: Rc<RefCell<Box<dyn ViewportManager>>>, theme: GridTheme) -> Self {
+    pub fn new(viewport_manager: Rc<RefCell<ViewportManager>>, theme: GridTheme) -> Self {
         Self {
             viewport_manager,
             theme,
