@@ -12,7 +12,7 @@ mod tests {
         // Set a cell value first
         let cell_addr = CellAddress::new(0, 0);
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&cell_addr, "World")
             .unwrap();
 
@@ -28,7 +28,7 @@ mod tests {
         controller.handle_keyboard_event(event).unwrap();
 
         // Assert
-        let state = controller.get_state();
+        let state = controller.state();
         match state {
             UIState::Editing {
                 value,
@@ -56,7 +56,7 @@ mod tests {
         // Set a cell value first
         let cell_addr = CellAddress::new(0, 0);
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&cell_addr, "World")
             .unwrap();
 
@@ -72,7 +72,7 @@ mod tests {
         controller.handle_keyboard_event(event).unwrap();
 
         // Assert
-        let state = controller.get_state();
+        let state = controller.state();
         match state {
             UIState::Editing {
                 value,
@@ -103,7 +103,7 @@ mod tests {
         // Set a cell value first
         let cell_addr = CellAddress::new(0, 0);
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&cell_addr, "World")
             .unwrap();
 
@@ -119,7 +119,7 @@ mod tests {
         controller.handle_keyboard_event(event).unwrap();
 
         // Assert
-        let state = controller.get_state();
+        let state = controller.state();
         match state {
             UIState::Editing {
                 value, cursor_pos, ..
@@ -151,7 +151,7 @@ mod tests {
         controller.handle_keyboard_event(event).unwrap();
 
         // Assert
-        let state = controller.get_state();
+        let state = controller.state();
         match state {
             UIState::Editing {
                 value,
@@ -175,7 +175,7 @@ mod tests {
     fn test_cursor_movement_in_navigation_mode() {
         // Arrange
         let mut controller = SpreadsheetController::new();
-        let initial_cursor = controller.get_cursor();
+        let initial_cursor = controller.cursor();
         assert_eq!(initial_cursor, CellAddress::new(0, 0));
 
         // Act - Move right
@@ -191,7 +191,7 @@ mod tests {
 
         // Assert
         assert_eq!(
-            controller.get_cursor(),
+            controller.cursor(),
             CellAddress::new(1, 0),
             "Should move right"
         );
@@ -209,7 +209,7 @@ mod tests {
 
         // Assert
         assert_eq!(
-            controller.get_cursor(),
+            controller.cursor(),
             CellAddress::new(1, 1),
             "Should move down"
         );
@@ -222,7 +222,7 @@ mod tests {
 
         // Initially in Navigation mode
         assert_eq!(
-            controller.get_state().spreadsheet_mode(),
+            controller.state().spreadsheet_mode(),
             SpreadsheetMode::Navigation
         );
 
@@ -239,7 +239,7 @@ mod tests {
 
         // Assert - Should be in Insert mode
         assert_eq!(
-            controller.get_state().spreadsheet_mode(),
+            controller.state().spreadsheet_mode(),
             SpreadsheetMode::Insert
         );
     }
@@ -254,7 +254,7 @@ mod tests {
         // Set initial cell value
         let cell_addr = CellAddress::new(0, 0);
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&cell_addr, "Hello")
             .unwrap();
 
@@ -278,7 +278,7 @@ mod tests {
             .unwrap();
 
         // Assert
-        let state = controller.get_state();
+        let state = controller.state();
         match state {
             UIState::Editing {
                 value, cursor_pos, ..
@@ -298,7 +298,7 @@ mod tests {
         // Set initial cell value
         let cell_addr = CellAddress::new(0, 0);
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&cell_addr, "Hello")
             .unwrap();
 
@@ -314,7 +314,7 @@ mod tests {
         controller.handle_keyboard_event(event).unwrap();
 
         // Assert
-        let state = controller.get_state();
+        let state = controller.state();
         match state {
             UIState::Editing {
                 value,
@@ -347,7 +347,7 @@ mod tests {
         // Set initial cell value
         let cell_addr = CellAddress::new(0, 0);
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&cell_addr, "Hello")
             .unwrap();
 
@@ -370,7 +370,7 @@ mod tests {
 
         // Assert
         assert_eq!(
-            controller.get_cell_display_for_ui(&cell_addr),
+            controller.cells().display_value(&cell_addr),
             "",
             "Cell should be cleared"
         );
@@ -389,7 +389,7 @@ mod tests {
         // Set initial cell value
         let cell_addr = CellAddress::new(0, 0);
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&cell_addr, "World")
             .unwrap();
 
@@ -412,7 +412,7 @@ mod tests {
 
         // Assert
         assert_eq!(
-            controller.get_cell_display_for_ui(&cell_addr),
+            controller.cells().display_value(&cell_addr),
             "",
             "Cell should be cleared"
         );
@@ -430,15 +430,15 @@ mod tests {
 
         // Set values in different cells
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(0, 0), "A1")
             .unwrap();
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(1, 0), "B1")
             .unwrap();
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(0, 1), "A2")
             .unwrap();
 
@@ -520,7 +520,7 @@ mod tests {
         controller.handle_keyboard_event(event).unwrap();
 
         // Assert
-        let state = controller.get_state();
+        let state = controller.state();
         match state {
             UIState::Editing {
                 value,
@@ -559,24 +559,24 @@ mod tests {
         let mut controller = SpreadsheetController::new();
 
         // Add an error
-        controller.emit_error(
+        controller.errors().emit(
             "Test error".to_string(),
             crate::controller::events::ErrorSeverity::Error,
         );
 
         // Verify error exists
-        let errors = controller.get_active_errors();
+        let errors = controller.errors().active();
         assert_eq!(errors.len(), 1, "Should have one error");
         let error_id = errors[0].id;
 
         // Remove the error
         assert!(
-            controller.remove_error(error_id),
+            controller.errors().remove(error_id),
             "Should successfully remove error"
         );
 
         // Verify error is gone
-        let errors = controller.get_active_errors();
+        let errors = controller.errors().active();
         assert_eq!(errors.len(), 0, "Should have no errors after dismissal");
     }
 }

@@ -42,7 +42,7 @@ fn test_controller_keyboard_handling() {
         .unwrap();
 
     // Should be in Editing mode with Insert edit mode
-    let state = controller.get_state();
+    let state = controller.state();
     assert!(matches!(
         state,
         UIState::Editing {
@@ -61,7 +61,7 @@ fn test_controller_mouse_handling() {
     controller.handle_mouse_event(event).unwrap();
 
     // Should update cursor position (in a real implementation)
-    let state = controller.get_state();
+    let state = controller.state();
     assert!(matches!(state, UIState::Navigation { .. }));
 }
 
@@ -236,16 +236,16 @@ fn test_controller_with_facade_integration() {
     let addr2 = CellAddress::new(1, 0);
 
     controller
-        .get_facade_mut()
+        .facade_mut()
         .set_cell_value(&addr1, "10")
         .unwrap();
     controller
-        .get_facade_mut()
+        .facade_mut()
         .set_cell_value(&addr2, "=A1*2")
         .unwrap();
 
     // Get cell value through controller
-    let cell = controller.get_facade().get_cell(&addr2);
+    let cell = controller.facade().get_cell(&addr2);
     if let Some(cell) = cell {
         // Formula should be evaluated
         let display_value = cell.get_display_value();

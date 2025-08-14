@@ -9,7 +9,7 @@ mod tests {
     #[test]
     fn test_controller_initialization() {
         let controller = SpreadsheetController::new();
-        assert!(matches!(controller.get_state(), UIState::Navigation { .. }));
+        assert!(matches!(controller.state(), UIState::Navigation { .. }));
     }
 
     #[test]
@@ -21,7 +21,7 @@ mod tests {
         controller.handle_keyboard_event(event).unwrap();
 
         // Cursor should have moved down
-        let cursor = controller.get_state().cursor();
+        let cursor = controller.state().cursor();
         assert_eq!(cursor.row, 1);
         assert_eq!(cursor.col, 0);
 
@@ -29,7 +29,7 @@ mod tests {
         let event = KeyboardEvent::new("l".to_string());
         controller.handle_keyboard_event(event).unwrap();
 
-        let cursor = controller.get_state().cursor();
+        let cursor = controller.state().cursor();
         assert_eq!(cursor.row, 1);
         assert_eq!(cursor.col, 1);
     }
@@ -47,7 +47,7 @@ mod tests {
             })
             .unwrap();
         assert_eq!(
-            controller.get_state().spreadsheet_mode(),
+            controller.state().spreadsheet_mode(),
             SpreadsheetMode::Insert // StartEditing with InsertMode creates Insert state
         );
 
@@ -55,7 +55,7 @@ mod tests {
         let event = KeyboardEvent::new("Escape".to_string());
         controller.handle_keyboard_event(event).unwrap();
         assert_eq!(
-            controller.get_state().spreadsheet_mode(),
+            controller.state().spreadsheet_mode(),
             SpreadsheetMode::Editing
         );
 
@@ -63,7 +63,7 @@ mod tests {
         let event = KeyboardEvent::new("Escape".to_string());
         controller.handle_keyboard_event(event).unwrap();
         assert_eq!(
-            controller.get_state().spreadsheet_mode(),
+            controller.state().spreadsheet_mode(),
             SpreadsheetMode::Navigation
         );
 
@@ -71,7 +71,7 @@ mod tests {
         let event = KeyboardEvent::new(":".to_string());
         controller.handle_keyboard_event(event).unwrap();
         assert_eq!(
-            controller.get_state().spreadsheet_mode(),
+            controller.state().spreadsheet_mode(),
             SpreadsheetMode::Command
         );
     }
@@ -84,7 +84,7 @@ mod tests {
         controller
             .handle_keyboard_event(KeyboardEvent::new("i".to_string()))
             .unwrap();
-        if let UIState::Editing { insert_variant, .. } = controller.get_state() {
+        if let UIState::Editing { insert_variant, .. } = controller.state() {
             assert_eq!(*insert_variant, Some(InsertMode::I));
         }
 
@@ -97,7 +97,7 @@ mod tests {
         controller
             .handle_keyboard_event(KeyboardEvent::new("a".to_string()))
             .unwrap();
-        if let UIState::Editing { insert_variant, .. } = controller.get_state() {
+        if let UIState::Editing { insert_variant, .. } = controller.state() {
             assert_eq!(*insert_variant, Some(InsertMode::A));
         }
     }
@@ -112,7 +112,7 @@ mod tests {
 
         // Should update cursor position based on click
         // In a real implementation, this would calculate the cell from coordinates
-        assert!(matches!(controller.get_state(), UIState::Navigation { .. }));
+        assert!(matches!(controller.state(), UIState::Navigation { .. }));
     }
 
     #[test]
@@ -153,12 +153,12 @@ mod tests {
         // Set a cell value through the facade
         let addr = CellAddress::new(0, 0);
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&addr, "100")
             .unwrap();
 
         // Retrieve the value
-        let cell = controller.get_facade().get_cell(&addr);
+        let cell = controller.facade().get_cell(&addr);
         assert!(cell.is_some());
         if let Some(cell) = cell {
             assert_eq!(cell.get_display_value().to_string(), "100");
@@ -170,7 +170,7 @@ mod tests {
         let controller = SpreadsheetController::new();
 
         // Get viewport info from state
-        let viewport = controller.get_state().viewport();
+        let viewport = controller.state().viewport();
 
         // Should have default viewport
         assert_eq!(viewport.start_row, 0);
@@ -200,7 +200,7 @@ mod tests {
         if let UIState::Navigation {
             modal: Some(crate::state::NavigationModal::Command { value }),
             ..
-        } = controller.get_state()
+        } = controller.state()
         {
             assert!(value.contains("wq"));
         }
@@ -217,7 +217,7 @@ mod tests {
             .unwrap();
 
         // Verify cursor was updated
-        let cursor = controller.get_state().cursor();
+        let cursor = controller.state().cursor();
         assert_eq!(cursor.col, 5);
         assert_eq!(cursor.row, 5);
     }
@@ -234,7 +234,7 @@ mod tests {
                 .unwrap();
         }
 
-        let cursor = controller.get_state().cursor();
+        let cursor = controller.state().cursor();
         assert_eq!(cursor.row, 5);
 
         // 3l - move right 3 times
@@ -244,7 +244,7 @@ mod tests {
                 .unwrap();
         }
 
-        let cursor = controller.get_state().cursor();
+        let cursor = controller.state().cursor();
         assert_eq!(cursor.col, 3);
         assert_eq!(cursor.row, 5);
     }

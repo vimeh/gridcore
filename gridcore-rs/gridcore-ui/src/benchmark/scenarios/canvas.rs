@@ -41,7 +41,7 @@ impl BenchmarkScenario for DrawCallBenchmark {
 
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -68,7 +68,7 @@ impl BenchmarkScenario for DrawCallBenchmark {
             // Load data
             let load_start = Self::now();
             let ctrl = controller.borrow();
-            let facade = ctrl.get_facade();
+            let facade = ctrl.facade();
             for (addr, value) in &data {
                 let _ = facade.set_cell_value(addr, value);
             }
@@ -166,7 +166,7 @@ impl BenchmarkScenario for DrawCallBenchmark {
             // Clear for next test
             drop(ctrl);
             let ctrl = controller.borrow();
-            let facade = ctrl.get_facade();
+            let facade = ctrl.facade();
             let cells = facade.get_all_cells();
             for (addr, _) in cells {
                 let _ = facade.delete_cell(&addr);
@@ -193,7 +193,7 @@ impl BenchmarkScenario for DrawCallBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -231,7 +231,7 @@ impl BenchmarkScenario for CanvasStateBenchmark {
         let data = gen.generate_numeric_grid(50, 20, 0.0, 100.0);
 
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         for (addr, value) in data {
             let _ = facade.set_cell_value(&addr, &value);
         }
@@ -331,7 +331,7 @@ impl BenchmarkScenario for CanvasStateBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);

@@ -68,7 +68,7 @@ pub fn App() -> impl IntoView {
     // No more duplicate signals - just reactive accessors
     let active_cell = Memo::new(move |_| {
         cursor_trigger.track(); // Track cursor changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_cursor())
+        controller_stored.with_value(|ctrl| ctrl.borrow().cursor())
     });
 
     let formula_bar_value = Memo::new(move |_| {
@@ -89,21 +89,18 @@ pub fn App() -> impl IntoView {
                     SpreadsheetEvent::CursorMoved { .. } => {
                         cursor_trigger.notify();
                     }
-                    SpreadsheetEvent::SelectionChanged { .. }
-                    | SpreadsheetEvent::RangeSelected { .. } => {
-                        selection_trigger.notify();
-                    }
-                    SpreadsheetEvent::StateChanged
-                    | SpreadsheetEvent::CommandExecuted { .. }
-                    | SpreadsheetEvent::CommandCancelled => {
+                    SpreadsheetEvent::StateChanged | SpreadsheetEvent::CommandExecuted { .. } => {
                         mode_trigger.notify();
+                        // State changes may affect multiple things
+                        cursor_trigger.notify();
+                        selection_trigger.notify();
+                        // Also notify error trigger as errors might have been removed
+                        error_trigger.notify();
                     }
                     SpreadsheetEvent::FormulaBarUpdated { .. } => {
                         formula_trigger.notify();
                     }
-                    SpreadsheetEvent::CellEditStarted { .. }
-                    | SpreadsheetEvent::CellEditCompleted { .. }
-                    | SpreadsheetEvent::CellEditCancelled { .. } => {
+                    SpreadsheetEvent::CellEditCompleted { .. } => {
                         // Cell editing affects both formula bar and mode
                         formula_trigger.notify();
                         mode_trigger.notify();
@@ -114,38 +111,9 @@ pub fn App() -> impl IntoView {
                     | SpreadsheetEvent::SheetChanged { .. } => {
                         sheets_trigger.notify();
                     }
-                    SpreadsheetEvent::ErrorOccurred { .. }
-                    | SpreadsheetEvent::ErrorDismissed { .. } => {
+                    SpreadsheetEvent::ErrorOccurred { .. } => {
                         error_trigger.notify();
                     }
-                    // Structural changes affect multiple aspects
-                    SpreadsheetEvent::RowsInserted { .. }
-                    | SpreadsheetEvent::RowsDeleted { .. }
-                    | SpreadsheetEvent::ColumnsInserted { .. }
-                    | SpreadsheetEvent::ColumnsDeleted { .. }
-                    | SpreadsheetEvent::ColumnResized { .. }
-                    | SpreadsheetEvent::RowResized { .. }
-                    | SpreadsheetEvent::ViewportChanged { .. } => {
-                        // These affect cursor, selection, and general display
-                        cursor_trigger.notify();
-                        selection_trigger.notify();
-                        render_trigger.notify(); // Force canvas re-render
-                    }
-                    // Copy/paste affects selection
-                    SpreadsheetEvent::CellsCopied { .. }
-                    | SpreadsheetEvent::CellsCut { .. }
-                    | SpreadsheetEvent::CellsPasted { .. } => {
-                        selection_trigger.notify();
-                    }
-                    // Undo/redo can affect any state
-                    SpreadsheetEvent::UndoPerformed | SpreadsheetEvent::RedoPerformed => {
-                        cursor_trigger.notify();
-                        selection_trigger.notify();
-                        formula_trigger.notify();
-                        mode_trigger.notify();
-                        render_trigger.notify(); // Force canvas re-render
-                    }
-                    _ => {}
                 }
 
                 // Log specific events for debugging
@@ -165,9 +133,7 @@ pub fn App() -> impl IntoView {
                     );
                 }
 
-                if let SpreadsheetEvent::ErrorDismissed { id } = event {
-                    leptos::logging::log!("Error dismissed: {}", id);
-                }
+                // ErrorDismissed event was removed in simplification
             },
         );
         controller.borrow_mut().subscribe_to_events(callback);
@@ -176,7 +142,7 @@ pub fn App() -> impl IntoView {
     // Create reactive memo for current mode - derives directly from controller
     let current_mode = Memo::new(move |_| {
         mode_trigger.track(); // Track mode changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_state().spreadsheet_mode())
+        controller_stored.with_value(|ctrl| ctrl.borrow().state().spreadsheet_mode())
     });
 
     // Sheet management - reactive memos deriving from controller
@@ -200,7 +166,7 @@ pub fn App() -> impl IntoView {
     // Derive selection stats from controller state
     let selection_stats = Memo::new(move |_| {
         selection_trigger.track(); // Track selection changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_current_selection_stats())
+        controller_stored.with_value(|ctrl| ctrl.borrow().selection().stats())
     });
 
     // Handle formula bar Enter key
@@ -227,7 +193,7 @@ pub fn App() -> impl IntoView {
             controller_stored.with_value(|ctrl| {
                 {
                     let ctrl_borrow = ctrl.borrow();
-                    let facade = ctrl_borrow.get_facade();
+                    let facade = ctrl_borrow.facade();
 
                     // Initialize test data with proper error handling
                     let test_data = vec![

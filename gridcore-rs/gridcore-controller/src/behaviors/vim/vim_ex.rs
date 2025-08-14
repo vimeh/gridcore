@@ -217,10 +217,10 @@ impl LegacyVimBehavior {
         for arg in &command.args {
             if let Some((key, value)) = arg.split_once('=') {
                 self._settings.insert(key.to_string(), value.to_string());
-            } else if arg.starts_with("no") {
+            } else if let Some(stripped) = arg.strip_prefix("no") {
                 // Toggle option off
                 self._settings
-                    .insert(arg[2..].to_string(), "false".to_string());
+                    .insert(stripped.to_string(), "false".to_string());
             } else {
                 // Toggle option on
                 self._settings.insert(arg.to_string(), "true".to_string());
@@ -264,7 +264,7 @@ impl LegacyVimBehavior {
                     let line = 0; // TODO: Get current line
                     (line, line)
                 }
-                CommandRange::Line(n) => (*n as u32, *n as u32),
+                CommandRange::Line(n) => (*n, *n),
                 CommandRange::LastLine => (u32::MAX, u32::MAX),
                 CommandRange::Range(start, end) => {
                     let start_line = self.resolve_range_line(start);
@@ -283,7 +283,7 @@ impl LegacyVimBehavior {
     /// Resolve a single range specifier to a line number
     fn resolve_range_line(&self, range: &CommandRange) -> u32 {
         match range {
-            CommandRange::Line(n) => *n as u32,
+            CommandRange::Line(n) => *n,
             CommandRange::CurrentLine => 0, // TODO: Get current line
             CommandRange::LastLine => u32::MAX,
             CommandRange::AllLines => 0,

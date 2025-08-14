@@ -38,7 +38,7 @@ impl BenchmarkScenario for InitialRenderBenchmark {
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         // Clear any existing data
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -65,7 +65,7 @@ impl BenchmarkScenario for InitialRenderBenchmark {
         // Load data into spreadsheet
         let load_start = Self::now();
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         for (addr, value) in &data {
             let _ = facade.set_cell_value(addr, value);
         }
@@ -119,7 +119,7 @@ impl BenchmarkScenario for InitialRenderBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -163,7 +163,7 @@ impl BenchmarkScenario for LargeGridRenderBenchmark {
 
     fn warmup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);
@@ -188,7 +188,7 @@ impl BenchmarkScenario for LargeGridRenderBenchmark {
             // Load data
             let load_start = Self::now();
             let ctrl = controller.borrow();
-            let facade = ctrl.get_facade();
+            let facade = ctrl.facade();
             for (addr, value) in &data {
                 let _ = facade.set_cell_value(addr, value);
             }
@@ -236,7 +236,7 @@ impl BenchmarkScenario for LargeGridRenderBenchmark {
             // Clear for next test
             drop(ctrl);
             let ctrl = controller.borrow();
-            let facade = ctrl.get_facade();
+            let facade = ctrl.facade();
             let cells = facade.get_all_cells();
             for (addr, _) in cells {
                 let _ = facade.delete_cell(&addr);
@@ -257,7 +257,7 @@ impl BenchmarkScenario for LargeGridRenderBenchmark {
 
     fn cleanup(&mut self, controller: Rc<RefCell<SpreadsheetController>>) {
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cells = facade.get_all_cells();
         for (addr, _) in cells {
             let _ = facade.delete_cell(&addr);

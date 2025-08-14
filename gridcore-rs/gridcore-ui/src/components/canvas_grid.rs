@@ -54,7 +54,7 @@ pub fn CanvasGrid(
 
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.get_state();
+            let state = ctrl_borrow.state();
             let is_editing = matches!(state, UIState::Editing { .. });
             leptos::logging::log!(
                 "editing_mode memo: state type = {:?}, is UIState::Editing = {}",
@@ -175,7 +175,7 @@ pub fn CanvasGrid(
                     canvas_elem,
                     &viewport_effect.borrow(),
                     current_cell,
-                    ctrl_borrow.get_facade(),
+                    ctrl_borrow.facade(),
                     device_pixel_ratio,
                     ctrl_borrow.get_config(),
                 );
@@ -448,7 +448,7 @@ pub fn CanvasGrid(
         // Check if we're already in editing mode
         let is_editing = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.get_state();
+            let state = ctrl_borrow.state();
             matches!(
                 state.spreadsheet_mode(),
                 SpreadsheetMode::Editing | SpreadsheetMode::Insert
@@ -481,7 +481,7 @@ pub fn CanvasGrid(
         // Get the current state before handling the event, including cell_mode
         let (old_mode, old_cursor, old_cell_mode) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.get_state();
+            let state = ctrl_borrow.state();
             let edit_mode = match state {
                 UIState::Editing { mode, .. } => Some(*mode),
                 _ => None,
@@ -507,7 +507,7 @@ pub fn CanvasGrid(
         // Get the updated state after handling - new borrow, including cell_mode
         let (new_mode, new_cursor, new_cell_mode) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.get_state();
+            let state = ctrl_borrow.state();
             let mode = state.spreadsheet_mode();
             let cursor = *state.cursor();
             let edit_mode = match state {
@@ -573,7 +573,7 @@ pub fn CanvasGrid(
         // Auto-scroll to keep the active cell visible if cursor moved
         // Don't auto-scroll if we're in editing mode (UIState::Editing)
         let is_editing = controller_stored
-            .with_value(|ctrl| matches!(ctrl.borrow().get_state(), UIState::Editing { .. }));
+            .with_value(|ctrl| matches!(ctrl.borrow().state(), UIState::Editing { .. }));
         if new_cursor != old_cursor && !is_editing {
             let mut vp_borrow = viewport_rc.borrow_mut();
 

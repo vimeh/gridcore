@@ -1,106 +1,37 @@
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
 
-/// Events that can occur in the spreadsheet
+/// Simplified events - reduced from 27 to 10 core event types
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SpreadsheetEvent {
-    // Navigation events
+    // Navigation & UI state
     CursorMoved {
         from: CellAddress,
         to: CellAddress,
     },
-    ViewportChanged {
-        start_row: u32,
-        start_col: u32,
-        rows: u32,
-        cols: u32,
-    },
+    StateChanged,
 
-    // Cell events
-    CellEditStarted {
-        address: CellAddress,
-    },
+    // Cell editing with unified state
     CellEditCompleted {
         address: CellAddress,
         value: String,
     },
-    CellEditCancelled {
-        address: CellAddress,
-    },
 
-    // Selection events
-    SelectionChanged {
-        selection: crate::state::Selection,
-    },
-    RangeSelected {
-        start: CellAddress,
-        end: CellAddress,
-    },
-
-    // State changes
-    StateChanged,
-
-    // Command events
-    CommandExecuted {
-        command: String,
-    },
-    CommandCancelled,
-
-    // Structural events
-    RowsInserted {
-        index: u32,
-        count: u32,
-    },
-    RowsDeleted {
-        indices: Vec<u32>,
-    },
-    ColumnsInserted {
-        index: u32,
-        count: u32,
-    },
-    ColumnsDeleted {
-        indices: Vec<u32>,
-    },
-
-    // Resize events
-    ColumnResized {
-        index: u32,
-        new_width: u32,
-    },
-    RowResized {
-        index: u32,
-        new_height: u32,
-    },
-
-    // Copy/paste events
-    CellsCopied {
-        selection: crate::state::Selection,
-    },
-    CellsCut {
-        selection: crate::state::Selection,
-    },
-    CellsPasted {
-        target: CellAddress,
-    },
-
-    // Undo/redo events
-    UndoPerformed,
-    RedoPerformed,
-
-    // File events
-    FileSaved {
-        path: String,
-    },
-    FileLoaded {
-        path: String,
-    },
-
-    // Formula bar events
+    // Formula bar
     FormulaBarUpdated {
         value: String,
     },
 
-    // Sheet events
+    // Command execution
+    CommandExecuted {
+        command: String,
+    },
+
+    // Sheet operations (consolidated)
+    SheetChanged {
+        from: String,
+        to: String,
+    },
     SheetAdded {
         name: String,
     },
@@ -111,18 +42,11 @@ pub enum SpreadsheetEvent {
         old_name: String,
         new_name: String,
     },
-    SheetChanged {
-        from: String,
-        to: String,
-    },
 
-    // Error events
+    // Error handling
     ErrorOccurred {
         message: String,
         severity: ErrorSeverity,
-    },
-    ErrorDismissed {
-        id: usize,
     },
 }
 
@@ -280,15 +204,28 @@ impl MouseEvent {
 /// Type alias for event listener functions
 type EventListener = Box<dyn Fn(&SpreadsheetEvent) + Send>;
 
-/// Event dispatcher for handling events
+/// Type alias for cell callback function
+type CellCallback = Box<dyn Fn(&CellAddress, &str)>;
+
+/// Type alias for error callback function
+type ErrorCallback = Box<dyn Fn(&str, ErrorSeverity)>;
+
+/// Simplified event dispatcher with direct callbacks for common events
 pub struct EventDispatcher {
     listeners: Vec<EventListener>,
+    // Direct callbacks for high-frequency events
+    state_callback: Option<Box<dyn Fn()>>,
+    cell_callback: Option<CellCallback>,
+    error_callback: Option<ErrorCallback>,
 }
 
 impl EventDispatcher {
     pub fn new() -> Self {
         Self {
             listeners: Vec::new(),
+            state_callback: None,
+            cell_callback: None,
+            error_callback: None,
         }
     }
 
@@ -307,13 +244,92 @@ impl EventDispatcher {
     }
 
     pub fn dispatch(&self, event: &SpreadsheetEvent) {
+        // Call direct callbacks for common events
+        match event {
+            SpreadsheetEvent::StateChanged => {
+                if let Some(ref callback) = self.state_callback {
+                    callback();
+                }
+            }
+            SpreadsheetEvent::CellEditCompleted { address, value } => {
+                if let Some(ref callback) = self.cell_callback {
+                    callback(address, value);
+                }
+            }
+            SpreadsheetEvent::ErrorOccurred { message, severity } => {
+                if let Some(ref callback) = self.error_callback {
+                    callback(message, *severity);
+                }
+            }
+            _ => {}
+        }
+
+        // Also dispatch to generic listeners
         for listener in &self.listeners {
             listener(event);
         }
     }
 
+    /// Set direct callback for state changes (avoids event allocation)
+    pub fn on_state_change<F>(&mut self, callback: F)
+    where
+        F: Fn() + 'static,
+    {
+        self.state_callback = Some(Box::new(callback));
+    }
+
+    /// Set direct callback for cell edits (avoids event allocation)
+    pub fn on_cell_edit<F>(&mut self, callback: F)
+    where
+        F: Fn(&CellAddress, &str) + 'static,
+    {
+        self.cell_callback = Some(Box::new(callback));
+    }
+
+    /// Set direct callback for errors (avoids event allocation)
+    pub fn on_error<F>(&mut self, callback: F)
+    where
+        F: Fn(&str, ErrorSeverity) + 'static,
+    {
+        self.error_callback = Some(Box::new(callback));
+    }
+
+    /// Direct notification methods for high-frequency events
+    pub fn notify_state_change(&self) {
+        if let Some(ref callback) = self.state_callback {
+            callback();
+        }
+        // Also dispatch as event for compatibility
+        self.dispatch(&SpreadsheetEvent::StateChanged);
+    }
+
+    pub fn notify_cell_edit(&self, address: &CellAddress, value: &str) {
+        if let Some(ref callback) = self.cell_callback {
+            callback(address, value);
+        }
+        // Also dispatch as event for compatibility
+        self.dispatch(&SpreadsheetEvent::CellEditCompleted {
+            address: *address,
+            value: value.to_string(),
+        });
+    }
+
+    pub fn notify_error(&self, message: &str, severity: ErrorSeverity) {
+        if let Some(ref callback) = self.error_callback {
+            callback(message, severity);
+        }
+        // Also dispatch as event for compatibility
+        self.dispatch(&SpreadsheetEvent::ErrorOccurred {
+            message: message.to_string(),
+            severity,
+        });
+    }
+
     pub fn clear(&mut self) {
         self.listeners.clear();
+        self.state_callback = None;
+        self.cell_callback = None;
+        self.error_callback = None;
     }
 }
 

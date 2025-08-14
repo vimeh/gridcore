@@ -119,10 +119,6 @@ impl UIStateMachine {
         }
     }
 
-    pub fn get_history(&self) -> Vec<HistoryEntry> {
-        self.history.iter().cloned().collect()
-    }
-
     /// Reconstruct a state from history at a given index
     pub fn reconstruct_state_at(&self, index: usize) -> Option<UIState> {
         if index >= self.history.len() {
@@ -182,6 +178,15 @@ impl UIStateMachine {
         for listener in &self.listeners {
             listener(&self.state, action);
         }
+    }
+
+    // Public access methods for DirectStateAccess
+    pub fn get_history(&self) -> &VecDeque<HistoryEntry> {
+        &self.history
+    }
+
+    pub fn add_listener(&mut self, listener: StateListener) {
+        self.listeners.push(listener);
     }
 
     // Helper methods for common transitions

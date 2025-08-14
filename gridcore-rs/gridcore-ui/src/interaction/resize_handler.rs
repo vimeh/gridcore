@@ -91,12 +91,12 @@ impl ResizeHandler {
         let new_state = resize::start_mouse_resize(resize_type, index, start_position, start_size);
 
         // Update the controller's resize state
-        *controller.get_resize_state_mut() = new_state;
+        *controller.resize_state_mut() = new_state;
     }
 
     pub fn handle_resize(&self, event: &MouseEvent) {
         let mut controller = self.controller.borrow_mut();
-        let resize_state = controller.get_resize_state();
+        let resize_state = controller.resize_state();
 
         if !resize_state.is_resizing {
             return;
@@ -124,7 +124,7 @@ impl ResizeHandler {
             resize::update_mouse_resize(resize_state, current_position, min_size, max_size)
         {
             // Update the resize state
-            controller.get_resize_state_mut().current_size = new_size;
+            controller.resize_state_mut().current_size = new_size;
 
             // Apply the resize to the viewport
             let viewport_manager = controller.get_viewport_manager_mut();
@@ -142,17 +142,17 @@ impl ResizeHandler {
 
     pub fn end_resize(&self) {
         let mut controller = self.controller.borrow_mut();
-        let resize_state = controller.get_resize_state();
+        let resize_state = controller.resize_state();
 
         // Use pure function to end resize
         resize::end_mouse_resize(resize_state);
 
         // Reset the resize state
-        *controller.get_resize_state_mut() = Default::default();
+        *controller.resize_state_mut() = Default::default();
     }
 
     pub fn is_resizing(&self) -> bool {
-        self.controller.borrow().get_resize_state().is_resizing
+        self.controller.borrow().resize_state().is_resizing
     }
 
     pub fn get_cursor_style(&self, x: f64, y: f64, is_header: bool) -> &'static str {

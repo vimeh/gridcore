@@ -1,6 +1,5 @@
 #[cfg(test)]
-#[allow(clippy::module_inception)]
-mod edge_case_tests {
+mod tests {
     use super::super::*;
     use crate::state::{NavigationModal, VisualMode};
     use gridcore_core::types::CellAddress;

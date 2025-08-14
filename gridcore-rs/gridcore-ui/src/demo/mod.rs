@@ -79,7 +79,7 @@ impl DemoController {
 
         // Initialize cell counts
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cell_count = facade.cell_count();
         let formula_count = 0; // TODO: Add formula count when available
         self.performance_monitor
@@ -110,7 +110,7 @@ impl DemoController {
 
         // Update cell counts from controller
         let ctrl = controller.borrow();
-        let facade = ctrl.get_facade();
+        let facade = ctrl.facade();
         let cell_count = facade.cell_count();
         // TODO: Add formula count when available
         let formula_count = 0;

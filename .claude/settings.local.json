@@ -40,7 +40,13 @@
       "Bash(cargo clippy:*)",
       "Bash(tokei:*)",
       "WebSearch",
-      "Bash(cargo search:*)"
+      "Bash(cargo search:*)",
+      "Bash(for file in gridcore-rs/gridcore-controller/src/controller/*.rs)",
+      "Bash(done)",
+      "Bash(for dir in gridcore-rs/gridcore-controller/src/*)",
+      "Bash(do if [ -d \"$dir\" ])",
+      "Bash(fi)",
+      "Bash(git merge-base:*)"
     ],
     "deny": []
   }

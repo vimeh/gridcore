@@ -86,12 +86,35 @@ impl SpreadsheetController {
         // For now, we'll leave it as a placeholder
     }
 
-    pub fn get_state(&self) -> &UIState {
+    /// Get the current UI state
+    pub fn state(&self) -> &UIState {
         self.state_machine.get_state()
     }
 
-    pub fn get_cursor(&self) -> CellAddress {
+    /// Get the current cursor position
+    pub fn cursor(&self) -> CellAddress {
         *self.state_machine.get_state().cursor()
+    }
+
+    /// Get direct access to the state machine
+    pub fn state_machine(&mut self) -> super::state_access::DirectStateAccess<'_> {
+        super::state_access::DirectStateAccess::new(&mut self.state_machine)
+    }
+
+    /// Get immutable direct access to state
+    pub fn state_ref(&self) -> &UIState {
+        self.state_machine.get_state()
+    }
+
+    // Deprecated methods for backwards compatibility
+    #[deprecated(note = "Use `state()` instead")]
+    pub fn get_state(&self) -> &UIState {
+        self.state()
+    }
+
+    #[deprecated(note = "Use `cursor()` instead")]
+    pub fn get_cursor(&self) -> CellAddress {
+        self.cursor()
     }
 
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
@@ -123,7 +146,7 @@ impl SpreadsheetController {
         if matches!(action, Action::SubmitFormulaBar) {
             // Submit the formula bar value to the current cell
             let value = self.formula_bar_value.clone();
-            let cursor = self.get_cursor();
+            let cursor = self.cursor();
 
             // Set cell value through facade
             match self.facade.set_cell_value(&cursor, &value) {
@@ -134,7 +157,7 @@ impl SpreadsheetController {
                     {
                         let enhanced_message =
                             format!("Formula error: {}", error_type.full_display());
-                        self.emit_error(
+                        self.errors().emit(
                             enhanced_message,
                             crate::controller::events::ErrorSeverity::Error,
                         );
@@ -158,7 +181,8 @@ impl SpreadsheetController {
                 }
                 Err(e) => {
                     let message = ErrorSystem::format_error(&e);
-                    self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
+                    self.errors()
+                        .emit(message, crate::controller::events::ErrorSeverity::Error);
                 }
             }
             return Ok(());
@@ -197,7 +221,8 @@ impl SpreadsheetController {
                     Err(e) => {
                         let message = ErrorSystem::format_error(&e);
                         log::error!("Parse/Set error in cell {}: {}", address, message);
-                        self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
+                        self.errors()
+                            .emit(message, crate::controller::events::ErrorSeverity::Error);
                     }
                 }
 
@@ -252,12 +277,25 @@ impl SpreadsheetController {
         Ok(())
     }
 
-    pub fn get_facade(&self) -> &SpreadsheetFacade {
+    /// Get the spreadsheet facade for data operations
+    pub fn facade(&self) -> &SpreadsheetFacade {
         &self.facade
     }
 
-    pub fn get_facade_mut(&mut self) -> &mut SpreadsheetFacade {
+    /// Get mutable access to the spreadsheet facade
+    pub fn facade_mut(&mut self) -> &mut SpreadsheetFacade {
         &mut self.facade
+    }
+
+    // Deprecated methods for backwards compatibility
+    #[deprecated(note = "Use `facade()` instead")]
+    pub fn get_facade(&self) -> &SpreadsheetFacade {
+        self.facade()
+    }
+
+    #[deprecated(note = "Use `facade_mut()` instead")]
+    pub fn get_facade_mut(&mut self) -> &mut SpreadsheetFacade {
+        self.facade_mut()
     }
 
     /// Get the display value for a cell in the UI
@@ -276,18 +314,31 @@ impl SpreadsheetController {
         }
     }
 
+    /// Get operation facades
+    pub fn errors(&mut self) -> super::operations::ErrorOperations<'_> {
+        super::operations::ErrorOperations::new(self)
+    }
+
+    pub fn cells(&mut self) -> super::operations::CellOperations<'_> {
+        super::operations::CellOperations::new(self)
+    }
+
+    pub fn sheets(&mut self) -> super::operations::SheetOperations<'_> {
+        super::operations::SheetOperations::new(self)
+    }
+
+    pub fn selection(&self) -> super::operations::SelectionOperations<'_> {
+        super::operations::SelectionOperations::new(self)
+    }
+
     /// Emit an error event and add to error manager
+    #[deprecated(note = "Use `errors().emit()` instead")]
     pub fn emit_error(
         &mut self,
         message: String,
         severity: crate::controller::events::ErrorSeverity,
     ) {
-        // Add to error manager
-        self.error_system.add_error(message.clone(), severity);
-
-        // Dispatch event for UI updates
-        self.event_dispatcher
-            .dispatch(&SpreadsheetEvent::ErrorOccurred { message, severity });
+        self.errors().emit(message, severity);
     }
 
     pub fn get_viewport_manager(&self) -> &ViewportManager {
@@ -302,12 +353,25 @@ impl SpreadsheetController {
         &self.config
     }
 
-    pub fn get_resize_state(&self) -> &ResizeState {
+    /// Get the resize state
+    pub fn resize_state(&self) -> &ResizeState {
         &self.resize_state
     }
 
-    pub fn get_resize_state_mut(&mut self) -> &mut ResizeState {
+    /// Get mutable access to the resize state
+    pub fn resize_state_mut(&mut self) -> &mut ResizeState {
         &mut self.resize_state
+    }
+
+    // Deprecated methods for backwards compatibility
+    #[deprecated(note = "Use `resize_state()` instead")]
+    pub fn get_resize_state(&self) -> &ResizeState {
+        self.resize_state()
+    }
+
+    #[deprecated(note = "Use `resize_state_mut()` instead")]
+    pub fn get_resize_state_mut(&mut self) -> &mut ResizeState {
+        self.resize_state_mut()
     }
 
     pub fn get_current_selection_stats(&self) -> selection_stats::SelectionStats {
@@ -890,7 +954,7 @@ impl SpreadsheetController {
                         log::error!("Error in cell {}: {}", address, enhanced_message);
 
                         // Emit error event for formula evaluation errors
-                        self.emit_error(
+                        self.errors().emit(
                             enhanced_message,
                             crate::controller::events::ErrorSeverity::Error,
                         );
@@ -908,7 +972,8 @@ impl SpreadsheetController {
                     log::error!("Parse/Set error in cell {}: {}", address, message);
 
                     // Emit error event for setting errors
-                    self.emit_error(message, crate::controller::events::ErrorSeverity::Error);
+                    self.errors()
+                        .emit(message, crate::controller::events::ErrorSeverity::Error);
                     // Still exit editing mode even if the value couldn't be set
                 }
             }

@@ -29,7 +29,7 @@ pub fn StatusBar(
         // Always get fresh state from controller
         let state = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            ctrl_borrow.get_state().clone()
+            ctrl_borrow.state().clone()
         });
 
         // First check if we're in Editing state with specific cell modes

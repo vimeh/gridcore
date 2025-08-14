@@ -7,7 +7,7 @@ mod tests {
     #[test]
     fn test_cursor_move_changes_state() {
         let mut controller = SpreadsheetController::new();
-        let start_cursor = controller.get_cursor();
+        let start_cursor = controller.cursor();
 
         // Use keyboard event to move cursor
         controller
@@ -15,7 +15,7 @@ mod tests {
             .unwrap();
 
         // Verify cursor actually moved
-        let end_cursor = controller.get_cursor();
+        let end_cursor = controller.cursor();
         assert_ne!(start_cursor, end_cursor, "Cursor should have moved");
         assert_eq!(end_cursor, CellAddress::new(1, 0), "Cursor should be at B1");
     }
@@ -26,7 +26,7 @@ mod tests {
 
         // Verify initial mode
         assert_eq!(
-            controller.get_state().spreadsheet_mode(),
+            controller.state().spreadsheet_mode(),
             SpreadsheetMode::Navigation
         );
 
@@ -40,7 +40,7 @@ mod tests {
             .unwrap();
 
         // Verify mode changed to insert (which is a type of editing mode)
-        let state = controller.get_state();
+        let state = controller.state();
         assert!(matches!(state, UIState::Editing { .. }));
     }
 
@@ -66,7 +66,7 @@ mod tests {
             .unwrap();
 
         // Verify the cell value was set
-        let facade = controller.get_facade();
+        let facade = controller.facade();
         let value = facade.get_cell_value(&cell);
         assert!(value.is_some());
         // Just verify cell was updated
@@ -94,7 +94,7 @@ mod tests {
             .unwrap();
 
         // Verify the cell shows an error
-        let facade = controller.get_facade();
+        let facade = controller.facade();
         let cell_value = facade.get_cell_raw_value(&CellAddress::new(0, 0));
         assert!(
             matches!(cell_value, Some(gridcore_core::types::CellValue::Error(_))),
@@ -110,25 +110,25 @@ mod tests {
         controller
             .handle_keyboard_event(KeyboardEvent::new("ArrowRight".to_string()))
             .unwrap();
-        assert_eq!(controller.get_cursor(), CellAddress::new(1, 0));
+        assert_eq!(controller.cursor(), CellAddress::new(1, 0));
 
         // Move down
         controller
             .handle_keyboard_event(KeyboardEvent::new("ArrowDown".to_string()))
             .unwrap();
-        assert_eq!(controller.get_cursor(), CellAddress::new(1, 1));
+        assert_eq!(controller.cursor(), CellAddress::new(1, 1));
 
         // Move left
         controller
             .handle_keyboard_event(KeyboardEvent::new("ArrowLeft".to_string()))
             .unwrap();
-        assert_eq!(controller.get_cursor(), CellAddress::new(0, 1));
+        assert_eq!(controller.cursor(), CellAddress::new(0, 1));
 
         // Move up
         controller
             .handle_keyboard_event(KeyboardEvent::new("ArrowUp".to_string()))
             .unwrap();
-        assert_eq!(controller.get_cursor(), CellAddress::new(0, 0));
+        assert_eq!(controller.cursor(), CellAddress::new(0, 0));
     }
 
     #[test]
@@ -136,7 +136,7 @@ mod tests {
         let mut controller = SpreadsheetController::new();
 
         // Set some cell values
-        let facade = controller.get_facade_mut();
+        let facade = controller.facade_mut();
         facade
             .set_cell_value(&CellAddress::new(0, 0), "10")
             .unwrap();
@@ -148,7 +148,7 @@ mod tests {
             .unwrap();
 
         // Get selection stats for current cell
-        let stats = controller.get_current_selection_stats();
+        let stats = controller.selection().stats();
         assert_eq!(stats.count, 1);
         assert_eq!(stats.sum, Some(10.0));
     }
@@ -167,11 +167,11 @@ mod tests {
 
         // Set values in some cells
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(0, 0), "Hello")
             .unwrap();
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(1, 0), "World")
             .unwrap();
 
@@ -203,7 +203,7 @@ mod tests {
             .unwrap();
 
         // Check that the formula was applied to the current cell (A1)
-        let cell_value = controller.get_facade().get_cell(&CellAddress::new(0, 0));
+        let cell_value = controller.facade().get_cell(&CellAddress::new(0, 0));
         assert!(cell_value.is_some());
         let cell = cell_value.unwrap();
         assert!(cell.has_formula());
@@ -216,17 +216,17 @@ mod tests {
 
         // Set up cells with values
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(0, 0), "10")
             .unwrap();
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(1, 0), "20")
             .unwrap();
 
         // Set a formula in C1
         controller
-            .get_facade_mut()
+            .facade_mut()
             .set_cell_value(&CellAddress::new(2, 0), "=A1+B1")
             .unwrap();
 

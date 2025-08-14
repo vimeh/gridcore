@@ -1,9 +1,11 @@
 pub mod events;
 #[cfg(test)]
 mod events_test;
+pub mod operations;
 pub mod spreadsheet;
 #[cfg(test)]
 mod spreadsheet_test;
+pub mod state_access;
 pub mod viewport;
 
 // New modular organization
@@ -17,8 +19,10 @@ mod tests;
 pub use event_handling::EventHandling;
 pub use events::{EventDispatcher, KeyboardEvent, MouseEvent, SpreadsheetEvent};
 pub use managers::ManagerAccess;
+pub use operations::{CellOperations, ErrorOperations, SelectionOperations, SheetOperations};
 pub use sheet_management::SheetManagement;
 pub use spreadsheet::SpreadsheetController;
+pub use state_access::{actions, DirectStateAccess};
 pub use viewport::{
     CellPosition, GridConfiguration, ScrollPosition, ViewportBounds, ViewportManager,
 };
