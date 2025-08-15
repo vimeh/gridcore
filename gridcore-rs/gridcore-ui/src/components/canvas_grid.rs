@@ -447,11 +447,7 @@ pub fn CanvasGrid(
         // Check if we're already in editing mode
         let is_editing = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.state();
-            matches!(
-                state.spreadsheet_mode(),
-                SpreadsheetMode::Editing | SpreadsheetMode::Insert
-            )
+            ctrl_borrow.get_mode().is_editing()
         });
 
         // If we're in editing mode, let the cell editor handle the key

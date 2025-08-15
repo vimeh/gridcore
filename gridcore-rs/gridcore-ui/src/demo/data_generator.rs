@@ -1,7 +1,6 @@
 use gridcore_core::types::CellAddress;
 use rand::prelude::*;
 use rand::SeedableRng;
-use rand::distributions::Uniform;
 
 pub struct DataGenerator {
     rng: StdRng,

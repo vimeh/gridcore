@@ -178,6 +178,7 @@ impl SpreadsheetController {
 
     /// Set the editor mode directly
     pub fn set_mode(&mut self, mode: EditorMode) {
+        log::debug!("Setting mode from {:?} to {:?}", self.mode, mode);
         self.mode = mode;
 
         // Emit state changed event
