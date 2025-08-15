@@ -38,7 +38,7 @@ impl<'a> InputHandler<'a> {
     }
 
     fn handle_navigation_key(&mut self, event: KeyboardEvent) -> Result<()> {
-        let current_cursor = *self.controller.state_machine.get_state().cursor();
+        let current_cursor = self.controller.cursor();
         log::debug!(
             "Navigation mode key: '{}', current cursor: {:?}",
             event.key,
@@ -235,7 +235,7 @@ impl<'a> InputHandler<'a> {
             return self.controller.dispatch_action(Action::Escape);
         }
 
-        let state = self.controller.state_machine.get_state().clone();
+        let state = self.controller.state();
 
         if let UIState::Editing {
             mode,
@@ -311,7 +311,7 @@ impl<'a> InputHandler<'a> {
         if let UIState::Navigation {
             modal: Some(NavigationModal::Command { value }),
             ..
-        } = self.controller.state_machine.get_state()
+        } = &self.controller.state()
         {
             if event.is_printable() {
                 let mut new_value = value.clone();
@@ -411,7 +411,7 @@ impl<'a> InputHandler<'a> {
     }
 
     fn move_cursor(&mut self, delta_col: i32, delta_row: i32) -> Result<()> {
-        let current = self.controller.state_machine.get_state().cursor();
+        let current = self.controller.cursor();
         let new_col = (current.col as i32 + delta_col).max(0) as u32;
         let new_row = (current.row as i32 + delta_row).max(0) as u32;
         let new_cursor = CellAddress::new(new_col, new_row);
@@ -455,7 +455,7 @@ impl<'a> InputHandler<'a> {
                     self.controller
                         .event_dispatcher
                         .dispatch(&SpreadsheetEvent::CursorMoved {
-                            from: *self.controller.state_machine.get_state().cursor(),
+                            from: self.controller.cursor(),
                             to: cell,
                         });
                     self.controller

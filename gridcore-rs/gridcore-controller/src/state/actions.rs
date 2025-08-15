@@ -5,86 +5,24 @@ use crate::state::{
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
 
+// Slimmed down Action enum - removed redundant actions that can be handled directly
+// Keep only actions that:
+// - Trigger complex operations (undo, redo, bulk operations)
+// - Need validation
+// - Affect multiple systems
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Action {
+    // Complex editing operations
     StartEditing {
         edit_mode: Option<InsertMode>,
         initial_value: Option<String>,
         cursor_position: Option<usize>,
     },
-    ExitToNavigation,
-    EnterInsertMode {
-        mode: Option<InsertMode>,
-    },
-    ExitInsertMode,
-    EnterVisualMode {
-        visual_type: VisualMode,
-        anchor: Option<usize>,
-    },
-    ExitVisualMode,
-    EnterSpreadsheetVisualMode {
-        visual_mode: VisualMode,
-        selection: Selection,
-    },
-    ExitSpreadsheetVisualMode,
-    UpdateSelection {
-        selection: Selection,
-    },
-    EnterCommandMode,
-    ExitCommandMode,
-    EnterResizeMode {
-        target: ResizeTarget,
-        index: u32,
-        size: u32,
-    },
-    ExitResizeMode,
-    EnterStructuralInsertMode {
-        insert_type: InsertType,
-        insert_position: InsertPosition,
-    },
-    StartInsert {
-        insert_type: InsertType,
-        position: InsertPosition,
-        reference: u32,
-    },
-    ExitStructuralInsertMode,
-    UpdateInsertCount {
-        count: u32,
-    },
-    ConfirmInsert,
-    CancelInsert,
-    StartResize {
-        target: ResizeTarget,
-        initial_position: f64,
-    },
-    UpdateResize {
-        delta: f64,
-    },
-    MoveResizeTarget {
-        direction: ResizeMoveDirection,
-    },
-    AutoFitResize,
-    ConfirmResize,
-    CancelResize,
-    EnterDeleteMode {
-        delete_type: DeleteType,
-        selection: Vec<u32>,
-    },
-    ExitDeleteMode,
-    ConfirmDelete,
-    CancelDelete,
-    StartDelete {
-        targets: Vec<u32>,
-        delete_type: DeleteType,
-    },
-    ChangeVisualMode {
-        new_mode: VisualMode,
+    SubmitCellEdit {
+        value: String,
     },
     UpdateEditingValue {
         value: String,
-        cursor_position: usize,
-    },
-    UpdateEditingCursor {
         cursor_position: usize,
     },
     InsertCharacterAtCursor {
@@ -93,16 +31,19 @@ pub enum Action {
     DeleteCharacterAtCursor {
         forward: bool, // true for delete, false for backspace
     },
-    SubmitCellEdit {
-        value: String,
-    },
+    
+    // Command mode operations
     UpdateCommandValue {
         value: String,
     },
+    
+    // Formula bar operations  
     UpdateFormulaBar {
         value: String,
     },
     SubmitFormulaBar,
+    
+    // Sheet operations
     AddSheet {
         name: String,
     },
@@ -116,16 +57,38 @@ pub enum Action {
     SetActiveSheet {
         name: String,
     },
-    UpdateResizeSize {
-        size: u32,
+    
+    // Structural operations
+    StartInsert {
+        insert_type: InsertType,
+        position: InsertPosition,
+        reference: u32,
     },
-    UpdateCursor {
-        cursor: CellAddress,
+    ConfirmInsert,
+    CancelInsert,
+    
+    StartDelete {
+        targets: Vec<u32>,
+        delete_type: DeleteType,
     },
-    UpdateViewport {
-        viewport: ViewportInfo,
+    ConfirmDelete,
+    CancelDelete,
+    
+    StartResize {
+        target: ResizeTarget,
+        initial_position: f64,
     },
-    Escape,
+    UpdateResize {
+        delta: f64,
+    },
+    MoveResizeTarget {
+        direction: ResizeMoveDirection,
+    },
+    AutoFitResize,
+    ConfirmResize,
+    CancelResize,
+    
+    // Bulk operations
     StartBulkOperation {
         parsed_command: ParsedBulkCommand,
         affected_cells: Option<u32>,
@@ -141,7 +104,43 @@ pub enum Action {
     BulkCommand {
         command: ParsedBulkCommand,
     },
+    
+    // Undo/Redo
     Undo,
     UndoLine,
     Redo,
+    
+    // General
+    Escape,
+    ExitToNavigation,
+    
+    // TEMPORARY: Keep these for VIM compatibility until fully refactored
+    UpdateCursor {
+        cursor: CellAddress,
+    },
+    UpdateSelection {
+        selection: Selection,
+    },
+    UpdateViewport {
+        viewport: ViewportInfo,
+    },
+    EnterInsertMode {
+        mode: Option<InsertMode>,
+    },
+    ExitInsertMode,
+    EnterVisualMode {
+        visual_type: VisualMode,
+        anchor: Option<usize>,
+    },
+    ExitVisualMode,
+    EnterSpreadsheetVisualMode {
+        visual_mode: VisualMode,
+        selection: Selection,
+    },
+    ExitSpreadsheetVisualMode,
+    EnterCommandMode,
+    ExitCommandMode,
+    ChangeVisualMode {
+        new_mode: VisualMode,
+    },
 }

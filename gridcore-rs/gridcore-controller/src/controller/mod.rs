@@ -5,7 +5,6 @@ mod events_test;
 pub mod formula_bar;
 pub mod input_handler;
 pub mod mode;
-pub mod operations;
 pub mod spreadsheet;
 #[cfg(test)]
 mod spreadsheet_test;
@@ -24,7 +23,6 @@ pub use event_handling::EventHandling;
 pub use events::{EventDispatcher, KeyboardEvent, MouseEvent, SpreadsheetEvent};
 pub use managers::ManagerAccess;
 pub use mode::EditorMode;
-pub use operations::{CellOperations, ErrorOperations, SelectionOperations, SheetOperations};
 pub use sheet_management::SheetManagement;
 pub use spreadsheet::SpreadsheetController;
 pub use state_access::{actions, DirectStateAccess};

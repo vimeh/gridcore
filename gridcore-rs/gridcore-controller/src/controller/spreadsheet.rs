@@ -4,14 +4,14 @@ use crate::controller::{
     ViewportManager,
 };
 use crate::managers::ErrorSystem;
-use crate::state::{Action, Selection, UIState, UIStateMachine};
+use crate::state::{Action, Selection, UIState};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
 use super::cell_editor::{CellEditResult, CellEditor};
 use super::formula_bar::FormulaBarManager;
 
 pub struct SpreadsheetController {
-    pub(super) state_machine: UIStateMachine,
+    // pub(super) state_machine: UIStateMachine, // Removed in hybrid refactor
     pub(super) facade: SpreadsheetFacade,
     pub(super) event_dispatcher: EventDispatcher,
     pub(super) viewport_manager: ViewportManager,
@@ -46,7 +46,7 @@ impl SpreadsheetController {
 
     pub fn with_viewport(viewport_manager: ViewportManager, config: GridConfiguration) -> Self {
         let mut controller = Self {
-            state_machine: UIStateMachine::new(None),
+            // state_machine: UIStateMachine::new(None), // Removed in hybrid refactor
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
             viewport_manager,
@@ -77,7 +77,7 @@ impl SpreadsheetController {
         let cursor = *initial_state.cursor();
 
         let mut controller = Self {
-            state_machine: UIStateMachine::new(Some(initial_state)),
+            // state_machine: UIStateMachine::new(Some(initial_state)), // Removed in hybrid refactor
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
             viewport_manager: ViewportManager::new(1000, 100).with_config(config.clone()),
@@ -106,13 +106,26 @@ impl SpreadsheetController {
     }
 
     /// Get the current UI state
-    pub fn state(&self) -> &UIState {
-        self.state_machine.get_state()
+    pub fn state(&self) -> UIState {
+        // Temporary: construct UIState from direct fields
+        UIState::Navigation {
+            core: crate::state::CoreState {
+                cursor: self.cursor,
+                viewport: crate::state::ViewportInfo {
+                    top_row: 0,
+                    left_col: 0,
+                    visible_rows: 50,
+                    visible_cols: 20,
+                },
+            },
+            selection: self.selection.clone(),
+            modal: None,
+        }
     }
 
     /// Get the current cursor position
     pub fn cursor(&self) -> CellAddress {
-        *self.state_machine.get_state().cursor()
+        self.cursor
     }
 
     // NEW: Direct state accessors for hybrid approach
@@ -341,22 +354,8 @@ impl SpreadsheetController {
         }
     }
 
-    /// Get operation facades
-    pub fn errors(&mut self) -> super::operations::ErrorOperations<'_> {
-        super::operations::ErrorOperations::new(self)
-    }
-
-    pub fn cells(&mut self) -> super::operations::CellOperations<'_> {
-        super::operations::CellOperations::new(self)
-    }
-
-    pub fn sheets(&mut self) -> super::operations::SheetOperations<'_> {
-        super::operations::SheetOperations::new(self)
-    }
-
-    pub fn selection(&self) -> super::operations::SelectionOperations<'_> {
-        super::operations::SelectionOperations::new(self)
-    }
+    // Operation facades have been removed in hybrid refactor
+    // Use direct methods on SpreadsheetController instead
 
     pub fn get_viewport_manager(&self) -> &ViewportManager {
         &self.viewport_manager

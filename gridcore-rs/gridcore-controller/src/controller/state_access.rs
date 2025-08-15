@@ -1,122 +1,65 @@
-use crate::state::{Action, UIState, UIStateMachine};
+use crate::state::{Action, UIState};
 use gridcore_core::Result;
 
 /// Direct state machine access module
-/// Provides simplified, direct access to the state machine without unnecessary abstractions
+/// DEPRECATED: This module is being removed as part of the hybrid refactor
+/// The UIStateMachine has been replaced with direct state fields
 pub struct DirectStateAccess<'a> {
-    state_machine: &'a mut UIStateMachine,
+    _phantom: std::marker::PhantomData<&'a ()>,
 }
 
 impl<'a> DirectStateAccess<'a> {
-    pub(super) fn new(state_machine: &'a mut UIStateMachine) -> Self {
-        Self { state_machine }
+    pub(super) fn new(_state: &'a mut ()) -> Self {
+        Self { _phantom: std::marker::PhantomData }
     }
 
     /// Get the current state directly
     pub fn current(&self) -> &UIState {
-        self.state_machine.get_state()
+        panic!("DirectStateAccess is deprecated - use controller's direct state accessors")
     }
 
     /// Execute an action directly on the state machine
-    pub fn execute(&mut self, action: Action) -> Result<()> {
-        self.state_machine.transition(action)
+    pub fn execute(&mut self, _action: Action) -> Result<()> {
+        panic!("DirectStateAccess is deprecated - use controller's direct state setters")
     }
 
     /// Batch execute multiple actions
-    pub fn execute_batch(&mut self, actions: Vec<Action>) -> Result<()> {
-        for action in actions {
-            self.state_machine.transition(action)?;
-        }
-        Ok(())
+    pub fn execute_batch(&mut self, _actions: Vec<Action>) -> Result<()> {
+        panic!("DirectStateAccess is deprecated - use controller's direct state setters")
     }
 
     /// Get state history
     pub fn history(&self) -> Vec<(Action, UIState)> {
-        self.state_machine
-            .get_history()
-            .iter()
-            .map(|entry| (entry.action.clone(), self.state_machine.get_state().clone()))
-            .collect()
+        Vec::new() // Return empty history for now
     }
 
     /// Register a direct state change listener
-    pub fn on_state_change<F>(&mut self, callback: F)
+    pub fn on_state_change<F>(&mut self, _callback: F)
     where
         F: Fn(&UIState, &Action) + Send + 'static,
     {
-        self.state_machine.add_listener(Box::new(callback));
-    }
-
-    /// Get specific state fields efficiently
-    pub fn cursor(&self) -> gridcore_core::types::CellAddress {
-        *self.current().cursor()
-    }
-
-    pub fn mode(&self) -> crate::state::SpreadsheetMode {
-        self.current().spreadsheet_mode()
-    }
-
-    pub fn selection(&self) -> Option<&crate::state::Selection> {
-        self.current().selection()
+        // No-op for now
     }
 }
 
-/// Simplified action builders for common operations
 pub mod actions {
-    use crate::state::{Action, InsertMode, VisualMode};
-    use gridcore_core::types::CellAddress;
-
-    /// Navigation actions
-    pub fn move_cursor(to: CellAddress) -> Action {
-        Action::UpdateCursor { cursor: to }
+    use crate::state::Action;
+    
+    /// Create an action directly
+    pub fn create(action: Action) -> Action {
+        action
     }
-
-    // Note: Direct movement actions don't exist in the current Action enum
-    // Movement is handled through UpdateCursor action
-    // For proper keyboard navigation, use the controller's handle_keyboard_event
-
-    /// Editing actions
-    pub fn start_edit(mode: Option<InsertMode>) -> Action {
-        Action::StartEditing {
-            edit_mode: mode,
-            initial_value: None,
-            cursor_position: None,
+    
+    /// Actions that trigger undo operations
+    pub mod undo {
+        use crate::state::Action;
+        
+        pub fn undo() -> Action {
+            Action::Undo
         }
-    }
-
-    pub fn cancel_edit() -> Action {
-        Action::ExitToNavigation
-    }
-
-    pub fn submit_edit(value: String) -> Action {
-        Action::SubmitCellEdit { value }
-    }
-
-    /// Visual mode actions
-    pub fn enter_visual(mode: VisualMode) -> Action {
-        Action::EnterVisualMode {
-            visual_type: mode,
-            anchor: None,
-        }
-    }
-
-    pub fn exit_visual() -> Action {
-        Action::ExitVisualMode
-    }
-
-    /// Sheet operations
-    pub fn add_sheet(name: String) -> Action {
-        Action::AddSheet { name }
-    }
-
-    pub fn remove_sheet(name: String) -> Action {
-        Action::RemoveSheet { name }
-    }
-
-    pub fn rename_sheet(old: String, new: String) -> Action {
-        Action::RenameSheet {
-            old_name: old,
-            new_name: new,
+        
+        pub fn redo() -> Action {
+            Action::Redo
         }
     }
 }
