@@ -23,35 +23,6 @@ fn bench_string_interning(c: &mut Criterion) {
         });
     });
 
-    // Benchmark interned strings
-    group.bench_function("cell_address_interned", |b| {
-        let addresses: Vec<CellAddress> = (0..100).map(|i| CellAddress::new(i % 26, i)).collect();
-
-        b.iter(|| {
-            let mut strings = Vec::with_capacity(100);
-            for addr in &addresses {
-                strings.push(addr.to_interned_string());
-            }
-            black_box(strings)
-        });
-    });
-
-    // Benchmark repeated access to same addresses (should benefit from interning)
-    group.bench_function("repeated_address_access", |b| {
-        let addresses: Vec<CellAddress> = (0..10).map(|i| CellAddress::new(i % 5, i % 5)).collect();
-
-        b.iter(|| {
-            let mut strings = Vec::with_capacity(100);
-            // Access same addresses multiple times
-            for _ in 0..10 {
-                for addr in &addresses {
-                    strings.push(addr.to_interned_string());
-                }
-            }
-            black_box(strings)
-        });
-    });
-
     group.finish();
 }
 
@@ -202,11 +173,11 @@ fn bench_combined_optimizations(c: &mut Criterion) {
                 let formula = format!("=SUM(A{}:D{})", i, i);
                 let _ = FormulaParser::parse(&formula);
 
-                // Collect cell addresses with interning
+                // Collect cell addresses
                 let mut addresses = Vec::with_capacity(4);
                 for col in 0..4 {
                     let addr = CellAddress::new(col, i as u32);
-                    addresses.push(addr.to_interned_string());
+                    addresses.push(addr.to_string());
                 }
 
                 // Collect values with pooling

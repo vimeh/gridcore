@@ -136,13 +136,6 @@ pub mod global {
     /// Pool for temporary cell value vectors
     pub static CELL_VALUE_VEC_POOL: Lazy<VecPool<crate::types::CellValue>> =
         Lazy::new(|| VecPool::new(100, 100));
-
-    /// Pool for temporary string vectors
-    pub static STRING_VEC_POOL: Lazy<VecPool<String>> = Lazy::new(|| VecPool::new(50, 50));
-
-    /// Pool for temporary cell address vectors
-    pub static ADDRESS_VEC_POOL: Lazy<VecPool<crate::types::CellAddress>> =
-        Lazy::new(|| VecPool::new(50, 100));
 }
 
 #[cfg(test)]
