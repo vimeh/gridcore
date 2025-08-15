@@ -1,9 +1,0 @@
-// Missing Actions to add:
-// GeneratePreview - for BulkOperation preview
-// StartDelete - for delete operations  
-// ChangeVisualMode - for changing visual mode
-
-// Also need to fix:
-// - SelectionType::Row should have `rows` field not `indices`
-// - Delete state needs `targets` field
-// - Add serde_json to dev-dependencies

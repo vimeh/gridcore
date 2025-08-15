@@ -139,7 +139,7 @@ impl SpreadsheetController {
 
             // Use CellEditor to handle submission
             let result = CellEditor::submit_formula_bar(&mut self.facade, cursor, value)?;
-            
+
             // Process events from result
             for (event, error_info) in result.create_events() {
                 self.event_dispatcher.dispatch(&event);
@@ -149,12 +149,16 @@ impl SpreadsheetController {
             }
 
             // Clear formula bar if needed
-            if let CellEditResult::Success { should_clear_formula_bar: true, .. } = result {
+            if let CellEditResult::Success {
+                should_clear_formula_bar: true,
+                ..
+            } = result
+            {
                 self.formula_bar_manager.clear();
                 let event = self.formula_bar_manager.create_update_event();
                 self.event_dispatcher.dispatch(&event);
             }
-            
+
             return Ok(());
         }
 
@@ -164,8 +168,9 @@ impl SpreadsheetController {
                 let address = core.cursor;
 
                 // Use CellEditor to handle submission
-                let result = CellEditor::submit_formula_bar(&mut self.facade, address, value.clone())?;
-                
+                let result =
+                    CellEditor::submit_formula_bar(&mut self.facade, address, value.clone())?;
+
                 // Process events from result
                 for (event, error_info) in result.create_events() {
                     self.event_dispatcher.dispatch(&event);
@@ -466,7 +471,9 @@ impl SpreadsheetController {
 
     pub(super) fn complete_editing(&mut self) -> Result<()> {
         // Use CellEditor to complete editing
-        if let Some(result) = CellEditor::complete_editing(self.state_machine.get_state(), &mut self.facade) {
+        if let Some(result) =
+            CellEditor::complete_editing(self.state_machine.get_state(), &mut self.facade)
+        {
             // Process events from result
             for (event, error_info) in result.create_events() {
                 self.event_dispatcher.dispatch(&event);

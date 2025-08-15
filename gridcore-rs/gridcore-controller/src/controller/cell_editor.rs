@@ -14,7 +14,7 @@ impl CellEditor {
         value: String,
     ) -> Result<CellEditResult> {
         let result = facade.set_cell_value(&cursor, &value);
-        
+
         match result {
             Ok(_) => {
                 // Check if the cell now contains an error value
