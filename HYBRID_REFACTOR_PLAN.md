@@ -598,30 +598,30 @@ git commit -m "docs: update documentation for hybrid architecture
 
 ### Phase 1: Testing
 
-- [ ] Write integration tests for visual mode
-- [ ] Document expected behavior
-- [ ] Commit: test foundation
+- [x] Write integration tests for visual mode
+- [x] Document expected behavior
+- [x] Commit: test foundation
 
 ### Phase 2: Add Direct State
 
-- [ ] Add direct fields to controller
-- [ ] Create EditorMode enum
-- [ ] Add accessors
-- [ ] Commit: direct state fields
+- [x] Add direct fields to controller
+- [x] Create EditorMode enum
+- [x] Add accessors
+- [x] Commit: direct state fields
 
 ### Phase 3: Input Handling
 
-- [ ] Refactor visual mode handler
-- [ ] Simplify navigation handler
-- [ ] Remove action dispatch for simple updates
-- [ ] Commit: simplified input
+- [x] Refactor visual mode handler
+- [x] Simplify navigation handler
+- [x] Remove action dispatch for simple updates
+- [x] Commit: simplified input
 
 ### Phase 4: UI Rendering
 
-- [ ] Update canvas grid to use direct state
-- [ ] Implement selection rendering
-- [ ] Test visual feedback
-- [ ] Commit: selection rendering
+- [x] Update canvas grid to use direct state
+- [x] Implement selection rendering
+- [x] Test visual feedback
+- [x] Commit: selection rendering
 
 ### Phase 5: Remove Legacy
 
