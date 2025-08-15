@@ -175,6 +175,7 @@ pub fn CanvasGrid(
                     canvas_elem,
                     &viewport_effect.borrow(),
                     current_cell,
+                    ctrl_borrow.get_selection().cloned(),  // Pass selection
                     ctrl_borrow.facade(),
                     device_pixel_ratio,
                     ctrl_borrow.get_config(),
@@ -671,6 +672,7 @@ fn render_grid(
     canvas: &HtmlCanvasElement,
     viewport: &Viewport,
     active_cell: CellAddress,
+    selection: Option<gridcore_controller::state::Selection>,
     facade: &gridcore_core::SpreadsheetFacade,
     device_pixel_ratio: f64,
     config: &gridcore_controller::controller::GridConfiguration,
@@ -824,6 +826,11 @@ fn render_grid(
         }
     }
 
+    // Render selection if present (before active cell so border appears on top)
+    if let Some(sel) = selection {
+        render_selection(&ctx, &sel, viewport, config, &bounds);
+    }
+
     // Highlight active cell
     if active_cell.row as usize <= bounds.end_row && active_cell.col as usize <= bounds.end_col {
         let pos = viewport.get_cell_position(&active_cell);
@@ -840,6 +847,87 @@ fn render_grid(
 
     // Restore context state (removes the scaling transform)
     ctx.restore();
+}
+
+fn render_selection(
+    ctx: &CanvasRenderingContext2d,
+    selection: &gridcore_controller::state::Selection,
+    viewport: &Viewport,
+    config: &gridcore_controller::controller::GridConfiguration,
+    bounds: &gridcore_controller::controller::ViewportBounds,
+) {
+    use gridcore_controller::state::SelectionType;
+    
+    // Semi-transparent blue for selection overlay
+    ctx.set_fill_style_str("rgba(0, 120, 215, 0.2)");
+    ctx.set_stroke_style_str("rgba(0, 120, 215, 0.8)");
+    ctx.set_line_width(1.0);
+    
+    match &selection.selection_type {
+        SelectionType::Range { start, end } => {
+            // Calculate the bounds of the selection
+            let min_col = start.col.min(end.col) as usize;
+            let max_col = start.col.max(end.col) as usize;
+            let min_row = start.row.min(end.row) as usize;
+            let max_row = start.row.max(end.row) as usize;
+            
+            // Only render if within visible bounds
+            if min_col <= bounds.end_col && max_col >= bounds.start_col &&
+               min_row <= bounds.end_row && max_row >= bounds.start_row {
+                
+                // Get positions for the range
+                let x1 = viewport.get_column_x(min_col) - viewport.get_scroll_position().x + config.row_header_width;
+                let x2 = viewport.get_column_x(max_col) - viewport.get_scroll_position().x + config.row_header_width 
+                    + viewport.get_column_width(max_col);
+                let y1 = viewport.get_row_y(min_row) - viewport.get_scroll_position().y + config.column_header_height;
+                let y2 = viewport.get_row_y(max_row) - viewport.get_scroll_position().y + config.column_header_height 
+                    + viewport.get_row_height(max_row);
+                
+                // Draw filled rectangle
+                ctx.fill_rect(x1, y1, x2 - x1, y2 - y1);
+                
+                // Draw border
+                ctx.stroke_rect(x1, y1, x2 - x1, y2 - y1);
+            }
+        }
+        SelectionType::Cell { address } => {
+            // Single cell selection - just highlight with selection overlay
+            if address.col as usize >= bounds.start_col && address.col as usize <= bounds.end_col &&
+               address.row as usize >= bounds.start_row && address.row as usize <= bounds.end_row {
+                let pos = viewport.get_cell_position(address);
+                let cell_x = pos.x + config.row_header_width;
+                let cell_y = pos.y + config.column_header_height;
+                ctx.fill_rect(cell_x, cell_y, pos.width, pos.height);
+                ctx.stroke_rect(cell_x, cell_y, pos.width, pos.height);
+            }
+        }
+        SelectionType::Row { rows } => {
+            // Highlight entire rows
+            for row in rows {
+                if (*row as usize) >= bounds.start_row && (*row as usize) <= bounds.end_row {
+                    let y = viewport.get_row_y(*row as usize) - viewport.get_scroll_position().y + config.column_header_height;
+                    let height = viewport.get_row_height(*row as usize);
+                    let viewport_width = (bounds.end_col - bounds.start_col + 1) as f64 * 100.0; // Approximate width
+                    ctx.fill_rect(config.row_header_width, y, viewport_width, height);
+                }
+            }
+        }
+        SelectionType::Column { columns } => {
+            // Highlight entire columns
+            for col in columns {
+                if (*col as usize) >= bounds.start_col && (*col as usize) <= bounds.end_col {
+                    let x = viewport.get_column_x(*col as usize) - viewport.get_scroll_position().x + config.row_header_width;
+                    let width = viewport.get_column_width(*col as usize);
+                    let viewport_height = (bounds.end_row - bounds.start_row + 1) as f64 * 25.0; // Approximate height
+                    ctx.fill_rect(x, config.column_header_height, width, viewport_height);
+                }
+            }
+        }
+        SelectionType::Multi { selections: _ } => {
+            // Multi-selection not implemented yet
+            // Would iterate through selections and render each
+        }
+    }
 }
 
 fn get_column_label(col: usize) -> String {
