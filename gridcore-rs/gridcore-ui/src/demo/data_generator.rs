@@ -1,6 +1,7 @@
 use gridcore_core::types::CellAddress;
 use rand::prelude::*;
 use rand::SeedableRng;
+use rand::distributions::Uniform;
 
 pub struct DataGenerator {
     rng: StdRng,
@@ -15,7 +16,7 @@ impl Default for DataGenerator {
 impl DataGenerator {
     pub fn new() -> Self {
         Self {
-            rng: StdRng::from_rng(&mut rand::rng()),
+            rng: StdRng::from_entropy(),
         }
     }
 
@@ -36,7 +37,7 @@ impl DataGenerator {
         let mut data = Vec::new();
         for row in 0..rows {
             for col in 0..cols {
-                let value = self.rng.random_range(min..=max);
+                let value = self.rng.gen_range(min..=max);
                 data.push((CellAddress::new(col, row), format!("{:.2}", value)));
             }
         }
@@ -72,7 +73,7 @@ impl DataGenerator {
 
             // Generate quarterly values
             for quarter in 1..=4 {
-                let value = self.rng.random_range(min..=max);
+                let value = self.rng.gen_range(min..=max);
                 data.push((CellAddress::new(quarter, row), format!("{:.2}", value)));
             }
 
@@ -121,7 +122,7 @@ impl DataGenerator {
             let x = trial as f64 * 0.5;
             data.push((CellAddress::new(1, row), format!("{:.2}", x)));
 
-            let y_measured = 2.5 * x + self.rng.random_range(-2.0..=2.0);
+            let y_measured = 2.5 * x + self.rng.gen_range(-2.0..=2.0);
             data.push((CellAddress::new(2, row), format!("{:.2}", y_measured)));
 
             // Predicted value formula (linear regression approximation)
@@ -167,8 +168,8 @@ impl DataGenerator {
                 }
 
                 // Mix of different data types
-                let value = match self.rng.random_range(0..4) {
-                    0 => format!("{:.2}", self.rng.random_range(0.0..1000.0)), // Numbers
+                let value = match self.rng.gen_range(0..4) {
+                    0 => format!("{:.2}", self.rng.gen_range(0.0..1000.0)), // Numbers
                     1 => format!("Text-{}", row * cols as u32 + col),          // Text
                     2 if col > 0 => {
                         // Formula referencing previous cell
@@ -196,9 +197,9 @@ impl DataGenerator {
         let total_cells = (rows as f64 * cols as f64 * density) as u32;
 
         for _ in 0..total_cells {
-            let row = self.rng.random_range(0..rows);
-            let col = self.rng.random_range(0..cols);
-            let value = self.rng.random_range(0.0..1000.0);
+            let row = self.rng.gen_range(0..rows);
+            let col = self.rng.gen_range(0..cols);
+            let value = self.rng.gen_range(0.0..1000.0);
             data.push((CellAddress::new(col, row), format!("{:.2}", value)));
         }
 
@@ -304,7 +305,7 @@ impl DataGenerator {
 
             // Sales data (higher on weekends)
             let base_sales = if day % 7 >= 5 { 1500.0 } else { 1000.0 };
-            let sales = base_sales + self.rng.random_range(-200.0..=200.0);
+            let sales = base_sales + self.rng.gen_range(-200.0..=200.0);
             data.push((CellAddress::new(2, row), format!("{:.2}", sales)));
 
             // 7-day moving average

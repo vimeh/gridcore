@@ -100,7 +100,7 @@ pub fn App() -> impl IntoView {
                     SpreadsheetEvent::FormulaBarUpdated { .. } => {
                         formula_trigger.notify();
                     }
-                    SpreadsheetEvent::CellEditCompleted { .. } => {
+                    SpreadsheetEvent::CellEditCompleted { .. } | SpreadsheetEvent::EditCanceled { .. } => {
                         // Cell editing affects both formula bar and mode
                         formula_trigger.notify();
                         mode_trigger.notify();

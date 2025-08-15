@@ -243,8 +243,8 @@ impl<'a> InputHandler<'a> {
         use super::mode::EditorMode;
         
         if event.key == "Escape" {
-            // Save the edited cell value and exit editing mode
-            self.controller.complete_editing()?;
+            // Cancel editing without saving
+            self.controller.cancel_editing()?;
             return Ok(());
         }
 
@@ -283,14 +283,9 @@ impl<'a> InputHandler<'a> {
                         Ok(())
                     }
                     "Enter" => {
-                        // Save the value and exit editing mode
-                        let cursor = self.controller.cursor();
-                        self.controller.facade_mut().set_cell_value(&cursor, &value)?;
-                        self.controller.set_mode(EditorMode::Navigation);
-                        self.controller.event_dispatcher.dispatch(&SpreadsheetEvent::CellEditCompleted {
-                            address: cursor,
-                            value: value.clone(),
-                        });
+                        // Save the value using complete_editing
+                        self.controller.complete_editing()?;
+                        // Move down after saving
                         self.move_cursor(0, 1)
                     }
                     _ => Ok(()),

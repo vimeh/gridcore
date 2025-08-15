@@ -16,6 +16,9 @@ pub enum SpreadsheetEvent {
         address: CellAddress,
         value: String,
     },
+    EditCanceled {
+        address: CellAddress,
+    },
 
     // Formula bar
     FormulaBarUpdated {

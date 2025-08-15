@@ -661,6 +661,23 @@ impl SpreadsheetController {
         Ok(())
     }
 
+    pub(super) fn cancel_editing(&mut self) -> Result<()> {
+        // Cancel editing without saving - just exit editing mode
+        if matches!(self.mode, EditorMode::Editing { .. }) {
+            // Restore formula bar to the original value
+            self.update_formula_bar_from_cursor();
+            
+            // Exit editing mode without saving
+            self.mode = EditorMode::Navigation;
+            
+            // Dispatch event to notify UI
+            self.event_dispatcher.dispatch(&SpreadsheetEvent::EditCanceled {
+                address: self.cursor,
+            });
+        }
+        Ok(())
+    }
+
     // Mouse event handling
     pub fn handle_mouse_event(&mut self, event: MouseEvent) -> Result<()> {
         super::input_handler::InputHandler::new(self).handle_mouse_event(event)
