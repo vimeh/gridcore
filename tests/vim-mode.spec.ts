@@ -34,7 +34,7 @@ test.describe("Vim Mode", () => {
 
     // Enter edit mode
     await page.keyboard.press("i");
-    
+
     // Wait for mode transition to complete
     await page.waitForTimeout(100);
 
@@ -124,15 +124,15 @@ test.describe("Vim Mode", () => {
   test("should show visual mode", async ({ page }) => {
     // Enter edit mode
     await page.keyboard.press("i");
-    
+
     // Wait for mode transition
     await page.waitForTimeout(100);
-    
+
     await page.keyboard.type("Select me");
 
     // Go to normal mode
     await page.keyboard.press("Escape");
-    
+
     // Wait for mode transition
     await page.waitForTimeout(100);
 

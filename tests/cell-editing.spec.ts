@@ -137,7 +137,10 @@ test.describe("Cell Editing", () => {
 
     // Should be in insert mode - use first() to handle duplicate elements
     await expect(
-      page.locator(".mode-indicator").filter({ hasText: "ESC to normal" }).first(),
+      page
+        .locator(".mode-indicator")
+        .filter({ hasText: "ESC to normal" })
+        .first(),
     ).toContainText("INSERT");
 
     // Type additional text - 'i' positions cursor at beginning

@@ -113,7 +113,11 @@ test.describe("Error UI Display", () => {
 
       // The remaining error should be the second one
       const remainingErrors = await getErrorMessages(page);
-      expect(remainingErrors.some((e) => e.includes("#NAME?") || e.includes("Unknown"))).toBeTruthy();
+      expect(
+        remainingErrors.some(
+          (e) => e.includes("#NAME?") || e.includes("Unknown"),
+        ),
+      ).toBeTruthy();
     });
   });
 
@@ -296,7 +300,9 @@ test.describe("Error UI Display", () => {
   });
 
   test.describe("Error Message Content", () => {
-    test.skip("should display user-friendly error messages", async ({ page }) => {
+    test.skip("should display user-friendly error messages", async ({
+      page,
+    }) => {
       // Test division by zero
       await enterFormula(page, "=1/0");
       await waitForError(page);
@@ -317,7 +323,10 @@ test.describe("Error UI Display", () => {
       errors = await getErrorMessages(page);
       expect(
         errors.some(
-          (e) => e.includes("#NAME?") || e.includes("Unknown name or function") || e.includes("NOTREAL"),
+          (e) =>
+            e.includes("#NAME?") ||
+            e.includes("Unknown name or function") ||
+            e.includes("NOTREAL"),
         ),
       ).toBeTruthy();
     });

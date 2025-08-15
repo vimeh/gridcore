@@ -86,7 +86,9 @@ test.describe("Formula Error Types", () => {
       expect(
         errors1.some(
           (e) =>
-            e.includes("#NAME?") || e.includes("Unknown name or function") || e.includes("NOTAFUNCTION"),
+            e.includes("#NAME?") ||
+            e.includes("Unknown name or function") ||
+            e.includes("NOTAFUNCTION"),
         ),
       ).toBeTruthy();
 
@@ -161,7 +163,9 @@ test.describe("Formula Error Types", () => {
       await waitForError(page);
       let errors = await getErrorMessages(page);
       expect(
-        errors.some((e) => e.includes("#CIRC!") || e.toLowerCase().includes("circular"))
+        errors.some(
+          (e) => e.includes("#CIRC!") || e.toLowerCase().includes("circular"),
+        ),
       ).toBeTruthy();
 
       // Two-cell circular reference
@@ -173,7 +177,9 @@ test.describe("Formula Error Types", () => {
       await waitForError(page);
       errors = await getErrorMessages(page);
       expect(
-        errors.some((e) => e.includes("#CIRC!") || e.toLowerCase().includes("circular"))
+        errors.some(
+          (e) => e.includes("#CIRC!") || e.toLowerCase().includes("circular"),
+        ),
       ).toBeTruthy();
 
       // Complex circular reference through multiple cells
@@ -188,7 +194,9 @@ test.describe("Formula Error Types", () => {
       await waitForError(page);
       errors = await getErrorMessages(page);
       expect(
-        errors.some((e) => e.includes("#CIRC!") || e.toLowerCase().includes("circular"))
+        errors.some(
+          (e) => e.includes("#CIRC!") || e.toLowerCase().includes("circular"),
+        ),
       ).toBeTruthy();
     });
   });

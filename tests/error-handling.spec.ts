@@ -64,8 +64,8 @@ test.describe("Error Handling", () => {
       expect(
         errorMessages.some(
           (msg) =>
-            msg.includes("#NAME?") || 
-            msg.includes("Unknown name or function") || 
+            msg.includes("#NAME?") ||
+            msg.includes("Unknown name or function") ||
             msg.includes("UNKNOWNFUNC"),
         ),
       ).toBeTruthy();
@@ -83,10 +83,10 @@ test.describe("Error Handling", () => {
       const errorMessages = await getErrorMessages(page);
       expect(
         errorMessages.some(
-          (msg) => 
-            msg.includes("#VALUE!") || 
+          (msg) =>
+            msg.includes("#VALUE!") ||
             msg.includes("Type mismatch") ||
-            msg.includes("expected number")
+            msg.includes("expected number"),
         ),
       ).toBeTruthy();
     });
@@ -108,9 +108,9 @@ test.describe("Error Handling", () => {
       await waitForError(page);
       const errorMessages = await getErrorMessages(page);
       expect(
-        errorMessages.some((msg) => 
-          msg.includes("#CIRC!") || 
-          msg.toLowerCase().includes("circular")
+        errorMessages.some(
+          (msg) =>
+            msg.includes("#CIRC!") || msg.toLowerCase().includes("circular"),
         ),
       ).toBeTruthy();
     });
@@ -166,8 +166,16 @@ test.describe("Error Handling", () => {
       // Both errors should be visible
       const errorMessages = await getErrorMessages(page);
       expect(errorMessages.length).toBeGreaterThanOrEqual(2);
-      expect(errorMessages.some((msg) => msg.includes("#DIV/0!") || msg.includes("Division by zero"))).toBeTruthy();
-      expect(errorMessages.some((msg) => msg.includes("#NAME?") || msg.includes("Unknown"))).toBeTruthy();
+      expect(
+        errorMessages.some(
+          (msg) => msg.includes("#DIV/0!") || msg.includes("Division by zero"),
+        ),
+      ).toBeTruthy();
+      expect(
+        errorMessages.some(
+          (msg) => msg.includes("#NAME?") || msg.includes("Unknown"),
+        ),
+      ).toBeTruthy();
     });
 
     test("should position errors in top-right corner", async ({ page }) => {
