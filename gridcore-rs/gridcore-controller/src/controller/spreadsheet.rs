@@ -489,10 +489,12 @@ impl SpreadsheetController {
             UIState::Navigation { modal, .. } => {
                 if let Some(modal) = modal {
                     match modal {
-                        crate::state::NavigationModal::Visual { mode, .. } => EditorMode::Visual {
-                            mode: *mode,
-                            anchor: self.cursor,
-                        },
+                        crate::state::NavigationModal::Visual { mode, anchor, .. } => {
+                            EditorMode::Visual {
+                                mode: *mode,
+                                anchor: *anchor,
+                            }
+                        }
                         crate::state::NavigationModal::Command { value } => EditorMode::Command {
                             value: value.clone(),
                         },

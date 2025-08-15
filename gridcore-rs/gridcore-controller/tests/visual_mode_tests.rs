@@ -34,7 +34,6 @@ fn test_visual_mode_entry() {
 }
 
 #[test]
-#[ignore = "Currently broken - visual mode doesn't extend selection on movement"]
 fn test_visual_mode_selection_extension() {
     let mut controller = SpreadsheetController::new();
 
@@ -107,7 +106,6 @@ fn test_visual_mode_exit() {
 }
 
 #[test]
-#[ignore = "Currently broken - visual mode doesn't extend selection on movement"]
 fn test_visual_mode_multi_directional_selection() {
     let mut controller = SpreadsheetController::new();
 
@@ -199,7 +197,6 @@ fn test_visual_line_mode() {
 }
 
 #[test]
-#[ignore = "Currently broken - visual mode doesn't extend selection on movement"]
 fn test_visual_mode_selection_in_state() {
     let mut controller = SpreadsheetController::new();
 
@@ -219,7 +216,7 @@ fn test_visual_mode_selection_in_state() {
         ..
     } = state
     {
-        // BUG: Selection doesn't extend properly
+        // Verify selection extends properly
         match &selection.selection_type {
             SelectionType::Range { start, end } => {
                 assert_eq!(start.col, 0, "Selection should start at column A");
@@ -229,7 +226,7 @@ fn test_visual_mode_selection_in_state() {
             }
             _ => {
                 panic!(
-                    "BUG: Selection should be Range but is {:?}",
+                    "Selection should be Range but is {:?}",
                     selection.selection_type
                 );
             }

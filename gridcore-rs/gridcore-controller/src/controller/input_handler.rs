@@ -1,7 +1,6 @@
 use crate::controller::{KeyboardEvent, MouseEvent, SpreadsheetEvent};
 use crate::state::{
-    Action, EditMode, InsertMode, NavigationModal, Selection, SelectionType, SpreadsheetMode,
-    UIState, VisualMode,
+    Action, EditMode, InsertMode, NavigationModal, Selection, SelectionType, UIState,
 };
 use gridcore_core::{types::CellAddress, Result};
 
@@ -17,20 +16,24 @@ impl<'a> InputHandler<'a> {
 
     /// Main keyboard event handler that delegates to mode-specific handlers
     pub fn handle_keyboard_event(&mut self, event: KeyboardEvent) -> Result<()> {
-        let mode = self.controller.state_machine.get_state().spreadsheet_mode();
+        // First sync direct state with state machine during transition
+        self.controller.sync_from_state_machine();
+
+        // Use direct mode field for routing
+        let mode = self.controller.get_mode().clone();
         log::debug!(
             "Handling keyboard event: key='{}', mode={:?}",
             event.key,
             mode
         );
 
+        use super::mode::EditorMode;
         match mode {
-            SpreadsheetMode::Navigation => self.handle_navigation_key(event),
-            SpreadsheetMode::Editing => self.handle_editing_key(event),
-            SpreadsheetMode::Insert => self.handle_insert_key(event),
-            SpreadsheetMode::Command => self.handle_command_key(event),
-            SpreadsheetMode::Visual => self.handle_visual_key(event),
-            _ => Ok(()),
+            EditorMode::Navigation => self.handle_navigation_key(event),
+            EditorMode::Editing { .. } => self.handle_editing_key(event),
+            EditorMode::Command { .. } => self.handle_command_key(event),
+            EditorMode::Visual { .. } => self.handle_visual_key(event),
+            EditorMode::Resizing => Ok(()),
         }
     }
 
@@ -83,17 +86,36 @@ impl<'a> InputHandler<'a> {
             ":" => self.controller.dispatch_action(Action::EnterCommandMode),
 
             // Visual mode
-            "v" => self
-                .controller
-                .dispatch_action(Action::EnterSpreadsheetVisualMode {
-                    visual_mode: VisualMode::Character,
-                    selection: Selection {
-                        selection_type: SelectionType::Cell {
-                            address: current_cursor,
-                        },
-                        anchor: Some(current_cursor),
+            "v" => {
+                use super::mode::EditorMode;
+                use crate::state::VisualMode;
+
+                // Enter visual mode with current cursor as anchor
+                self.controller.set_mode(EditorMode::Visual {
+                    mode: VisualMode::Character,
+                    anchor: current_cursor,
+                });
+
+                // Set initial selection to just the current cell
+                self.controller.set_selection(Some(Selection {
+                    selection_type: SelectionType::Cell {
+                        address: current_cursor,
                     },
-                }),
+                    anchor: Some(current_cursor),
+                }));
+
+                // Also update state machine for compatibility
+                self.controller
+                    .dispatch_action(Action::EnterSpreadsheetVisualMode {
+                        visual_mode: VisualMode::Character,
+                        selection: Selection {
+                            selection_type: SelectionType::Cell {
+                                address: current_cursor,
+                            },
+                            anchor: Some(current_cursor),
+                        },
+                    })
+            }
 
             // Navigation
             "ArrowUp" | "k" => {
@@ -317,10 +339,73 @@ impl<'a> InputHandler<'a> {
     }
 
     fn handle_visual_key(&mut self, event: KeyboardEvent) -> Result<()> {
+        use super::mode::EditorMode;
+
         match event.key.as_str() {
-            "Escape" => self
-                .controller
-                .dispatch_action(Action::ExitSpreadsheetVisualMode),
+            "Escape" => {
+                // Exit visual mode - clear selection and return to navigation
+                self.controller.set_mode(EditorMode::Navigation);
+                self.controller.set_selection(None);
+                // Also update state machine for compatibility
+                self.controller
+                    .dispatch_action(Action::ExitSpreadsheetVisualMode)
+            }
+
+            // Movement keys - extend selection
+            "h" | "ArrowLeft" | "j" | "ArrowDown" | "k" | "ArrowUp" | "l" | "ArrowRight" => {
+                // Calculate new cursor position
+                let current = self.controller.get_cursor();
+                let (delta_col, delta_row) = match event.key.as_str() {
+                    "h" | "ArrowLeft" => (-1, 0),
+                    "l" | "ArrowRight" => (1, 0),
+                    "k" | "ArrowUp" => (0, -1),
+                    "j" | "ArrowDown" => (0, 1),
+                    _ => (0, 0),
+                };
+
+                let new_col = (current.col as i32 + delta_col).max(0) as u32;
+                let new_row = (current.row as i32 + delta_row).max(0) as u32;
+                let new_cursor = CellAddress::new(new_col, new_row);
+
+                // Update cursor and extend selection
+                if let EditorMode::Visual { anchor, mode: _ } = self.controller.get_mode() {
+                    // Create new selection from anchor to new cursor
+                    // The selection should always maintain anchor as the start point
+                    // and the current cursor as the end point for the Range type
+                    let selection = Selection {
+                        selection_type: if *anchor == new_cursor {
+                            // Single cell selection
+                            SelectionType::Cell {
+                                address: new_cursor,
+                            }
+                        } else {
+                            // Range selection - keep anchor and cursor positions as-is
+                            // Don't reorder them with min/max - that's a rendering concern
+                            SelectionType::Range {
+                                start: *anchor,
+                                end: new_cursor,
+                            }
+                        },
+                        anchor: Some(*anchor),
+                    };
+
+                    // Update direct state
+                    self.controller.set_cursor(new_cursor);
+                    self.controller.set_selection(Some(selection.clone()));
+
+                    // Also update state machine for compatibility
+                    self.controller
+                        .dispatch_action(Action::UpdateCursor { cursor: new_cursor })?;
+                    self.controller
+                        .dispatch_action(Action::UpdateSelection { selection })
+                } else {
+                    // Just move cursor if not in visual mode (shouldn't happen)
+                    self.controller.set_cursor(new_cursor);
+                    self.controller
+                        .dispatch_action(Action::UpdateCursor { cursor: new_cursor })
+                }
+            }
+
             _ => Ok(()),
         }
     }
