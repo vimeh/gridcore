@@ -19,7 +19,7 @@ pub struct SpreadsheetController {
     pub(super) error_system: ErrorSystem,
     pub(super) config: GridConfiguration,
     pub(super) formula_bar_manager: FormulaBarManager,
-    
+
     // NEW: Direct state fields for hybrid approach
     cursor: CellAddress,
     selection: Option<Selection>,
@@ -72,7 +72,7 @@ impl SpreadsheetController {
 
     pub fn with_state(initial_state: UIState) -> Self {
         let config = GridConfiguration::default();
-        
+
         // Extract cursor from initial state
         let cursor = *initial_state.cursor();
 
@@ -114,64 +114,68 @@ impl SpreadsheetController {
     pub fn cursor(&self) -> CellAddress {
         *self.state_machine.get_state().cursor()
     }
-    
+
     // NEW: Direct state accessors for hybrid approach
-    
+
     /// Get the current cursor position (direct)
     pub fn get_cursor(&self) -> CellAddress {
         self.cursor
     }
-    
+
     /// Get the current selection
     pub fn get_selection(&self) -> Option<&Selection> {
         self.selection.as_ref()
     }
-    
+
     /// Get the current editor mode
     pub fn get_mode(&self) -> &EditorMode {
         &self.mode
     }
-    
+
     /// Get the formula bar content
     pub fn get_formula_bar(&self) -> &str {
         &self.formula_bar
     }
-    
+
     /// Set the cursor position directly
     pub fn set_cursor(&mut self, cursor: CellAddress) {
         let old = self.cursor;
         self.cursor = cursor;
-        
+
         // Emit event for cursor movement
-        self.event_dispatcher.dispatch(&SpreadsheetEvent::CursorMoved {
-            from: old,
-            to: cursor,
-        });
-        
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::CursorMoved {
+                from: old,
+                to: cursor,
+            });
+
         // Update formula bar to reflect new cell
         self.update_formula_bar_from_cursor();
     }
-    
+
     /// Set the selection directly  
     pub fn set_selection(&mut self, selection: Option<Selection>) {
         self.selection = selection;
-        
+
         // Emit state changed event for UI update
-        self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::StateChanged);
     }
-    
+
     /// Set the editor mode directly
     pub fn set_mode(&mut self, mode: EditorMode) {
         self.mode = mode;
-        
+
         // Emit state changed event
-        self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::StateChanged);
     }
-    
+
     /// Set the formula bar content directly
     pub fn set_formula_bar(&mut self, value: String) {
         self.formula_bar = value.clone();
-        self.event_dispatcher.dispatch(&SpreadsheetEvent::FormulaBarUpdated { value });
+        self.event_dispatcher
+            .dispatch(&SpreadsheetEvent::FormulaBarUpdated { value });
     }
 
     /// Get direct access to the state machine
@@ -471,37 +475,31 @@ impl SpreadsheetController {
         };
         self.event_dispatcher.dispatch(&event);
     }
-    
+
     /// Sync direct state fields with the state machine
     /// This is useful during the transition period
     pub fn sync_from_state_machine(&mut self) {
         let state = self.state_machine.get_state();
-        
+
         // Sync cursor
         self.cursor = *state.cursor();
-        
+
         // Sync mode based on state type
         self.mode = match state {
             UIState::Navigation { modal, .. } => {
                 if let Some(modal) = modal {
                     match modal {
-                        crate::state::NavigationModal::Visual { mode, .. } => {
-                            EditorMode::Visual {
-                                mode: *mode,
-                                anchor: self.cursor,
-                            }
-                        }
-                        crate::state::NavigationModal::Command { value } => {
-                            EditorMode::Command {
-                                value: value.clone(),
-                            }
-                        }
-                        crate::state::NavigationModal::Resize { .. } => {
-                            EditorMode::Resizing
-                        }
-                        crate::state::NavigationModal::Insert { .. } |
-                        crate::state::NavigationModal::Delete { .. } |
-                        crate::state::NavigationModal::BulkOperation { .. } => {
+                        crate::state::NavigationModal::Visual { mode, .. } => EditorMode::Visual {
+                            mode: *mode,
+                            anchor: self.cursor,
+                        },
+                        crate::state::NavigationModal::Command { value } => EditorMode::Command {
+                            value: value.clone(),
+                        },
+                        crate::state::NavigationModal::Resize { .. } => EditorMode::Resizing,
+                        crate::state::NavigationModal::Insert { .. }
+                        | crate::state::NavigationModal::Delete { .. }
+                        | crate::state::NavigationModal::BulkOperation { .. } => {
                             // These modals stay in navigation mode for now
                             EditorMode::Navigation
                         }
@@ -510,26 +508,33 @@ impl SpreadsheetController {
                     EditorMode::Navigation
                 }
             }
-            UIState::Editing { value, cursor_pos, mode: edit_mode, .. } => {
-                EditorMode::Editing {
-                    value: value.clone(),
-                    cursor_pos: *cursor_pos,
-                    insert_mode: if matches!(edit_mode, crate::state::EditMode::Insert) {
-                        Some(crate::state::InsertMode::I)
-                    } else {
-                        None
-                    },
-                }
-            }
+            UIState::Editing {
+                value,
+                cursor_pos,
+                mode: edit_mode,
+                ..
+            } => EditorMode::Editing {
+                value: value.clone(),
+                cursor_pos: *cursor_pos,
+                insert_mode: if matches!(edit_mode, crate::state::EditMode::Insert) {
+                    Some(crate::state::InsertMode::I)
+                } else {
+                    None
+                },
+            },
         };
-        
+
         // Sync selection based on visual mode
-        if let UIState::Navigation { modal: Some(crate::state::NavigationModal::Visual { selection, .. }), .. } = state {
+        if let UIState::Navigation {
+            modal: Some(crate::state::NavigationModal::Visual { selection, .. }),
+            ..
+        } = state
+        {
             self.selection = Some(selection.clone());
         } else {
             self.selection = None;
         }
-        
+
         // Sync formula bar
         self.formula_bar = self.formula_bar_manager.value().to_string();
     }
