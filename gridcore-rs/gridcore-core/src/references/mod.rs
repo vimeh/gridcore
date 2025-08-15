@@ -28,7 +28,7 @@ pub enum ReferenceType {
     Range(Box<Reference>, Box<Reference>),
     /// Sheet reference (e.g., Sheet1!A1)
     Sheet(String, Box<Reference>),
-    /// External reference (e.g., [Book1]Sheet1!A1)
+    /// External reference (e.g., `[Book1]Sheet1!A1`)
     External(String, Box<Reference>),
 }
 

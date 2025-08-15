@@ -100,7 +100,7 @@ impl<T> std::ops::DerefMut for PooledObject<T> {
     }
 }
 
-/// Specialized pool for Vec<T> with capacity management
+/// Specialized pool for `Vec<T>` with capacity management
 pub struct VecPool<T> {
     inner: ObjectPool<Vec<T>>,
 }

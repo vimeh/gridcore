@@ -33,7 +33,7 @@ impl CellValue {
         CellValue::Error(Arc::new(e))
     }
 
-    /// Create an Array variant from Vec<CellValue>
+    /// Create an Array variant from `Vec<CellValue>`
     pub fn from_array(arr: Vec<CellValue>) -> Self {
         CellValue::Array(Arc::new(arr))
     }
