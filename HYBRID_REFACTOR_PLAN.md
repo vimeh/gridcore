@@ -1,9 +1,11 @@
 # Hybrid State Management Refactoring Plan
 
 ## Overview
+
 Refactor from pure FSM approach to hybrid model: FSM for modes, direct fields for data state.
 
 ### Goals
+
 - Fix visual mode selection rendering
 - Simplify state access patterns
 - Reduce boilerplate and action explosion
@@ -11,12 +13,14 @@ Refactor from pure FSM approach to hybrid model: FSM for modes, direct fields fo
 - Remove legacy/dead code
 
 ### Non-Goals
+
 - Maintain backwards compatibility (clean break)
 - Preserve every FSM guarantee (pragmatism over purity)
 
 ## Architecture Changes
 
 ### Before: Everything is State
+
 ```rust
 UIState::Navigation { 
     core: CoreState { cursor, viewport },
@@ -27,6 +31,7 @@ UIState::Navigation {
 ```
 
 ### After: Modes vs Data
+
 ```rust
 struct SpreadsheetController {
     // Mode (FSM) - what the user is doing
@@ -52,7 +57,9 @@ enum EditorMode {
 ## Phase 1: Prepare and Test Current State
 
 ### 1.1 Create Integration Tests
+
 **File**: `gridcore-controller/tests/visual_mode_tests.rs`
+
 ```rust
 #[test]
 fn test_visual_mode_selection() {
@@ -73,6 +80,7 @@ fn test_visual_mode_selection() {
 ```
 
 ### 1.2 Document Current Behavior
+
 ```bash
 # Run and save current test results
 cargo test --package gridcore-controller > tests_before.txt
@@ -82,6 +90,7 @@ grep -r "pub fn" gridcore-controller/src/controller/ > api_before.txt
 ```
 
 ### Git Commit 1
+
 ```bash
 git add -A
 git commit -m "test: add integration tests for visual mode selection
@@ -94,6 +103,7 @@ git commit -m "test: add integration tests for visual mode selection
 ## Phase 2: Extract Data from State
 
 ### 2.1 Add Direct Fields to Controller
+
 **File**: `gridcore-controller/src/controller/spreadsheet.rs`
 
 ```rust
@@ -118,6 +128,7 @@ pub struct SpreadsheetController {
 ```
 
 ### 2.2 Create New Mode Enum
+
 **File**: `gridcore-controller/src/controller/mode.rs`
 
 ```rust
@@ -150,6 +161,7 @@ impl EditorMode {
 ```
 
 ### 2.3 Add Direct Accessors
+
 ```rust
 impl SpreadsheetController {
     // Simple, direct access
@@ -173,6 +185,7 @@ impl SpreadsheetController {
 ```
 
 ### Git Commit 2
+
 ```bash
 git add -A
 git commit -m "refactor: add direct state fields to controller
@@ -185,6 +198,7 @@ git commit -m "refactor: add direct state fields to controller
 ## Phase 3: Refactor Input Handling
 
 ### 3.1 Simplify Visual Mode Handler
+
 **File**: `gridcore-controller/src/controller/input_handler.rs`
 
 ```rust
@@ -215,6 +229,7 @@ fn handle_visual_key(&mut self, event: KeyboardEvent) -> Result<()> {
 ```
 
 ### 3.2 Simplify Navigation Handler
+
 ```rust
 fn handle_navigation_key(&mut self, event: KeyboardEvent) -> Result<()> {
     match event.key.as_str() {
@@ -257,6 +272,7 @@ fn move_cursor(&mut self, dx: i32, dy: i32) {
 ```
 
 ### Git Commit 3
+
 ```bash
 git add -A
 git commit -m "refactor: simplify input handling with direct state updates
@@ -269,6 +285,7 @@ git commit -m "refactor: simplify input handling with direct state updates
 ## Phase 4: Update UI Rendering
 
 ### 4.1 Update Canvas Grid Component
+
 **File**: `gridcore-ui/src/components/canvas_grid.rs`
 
 ```rust
@@ -306,6 +323,7 @@ pub fn CanvasGrid() -> impl IntoView {
 ```
 
 ### 4.2 Add Selection Rendering
+
 **File**: `gridcore-ui/src/components/canvas_grid.rs`
 
 ```rust
@@ -386,6 +404,7 @@ fn render_selection(
 ```
 
 ### Git Commit 4
+
 ```bash
 git add -A
 git commit -m "feat: add selection rendering to canvas grid
@@ -398,12 +417,15 @@ git commit -m "feat: add selection rendering to canvas grid
 ## Phase 5: Remove Legacy Code
 
 ### 5.1 Remove Old State Machine
+
 **Remove files:**
+
 - `gridcore-controller/src/state/machine.rs`
 - `gridcore-controller/src/state/transitions.rs`
 - `gridcore-controller/src/state/transition_handlers/`
 
 **Simplify**: `gridcore-controller/src/state/mod.rs`
+
 ```rust
 // Keep only essential types
 pub use spreadsheet::{Selection, SelectionType, VisualMode};
@@ -413,23 +435,28 @@ pub use actions::Action;  // Slim down to only needed actions
 ```
 
 ### 5.2 Remove Redundant Actions
+
 **File**: `gridcore-controller/src/state/actions.rs`
 
 Keep only:
+
 - Actions that trigger complex operations (undo, redo, fill)
 - Actions that need validation
 - Actions that affect multiple systems
 
 Remove:
+
 - UpdateCursor (use set_cursor directly)
 - UpdateSelection (use set_selection directly)
 - UpdateViewport (use viewport manager directly)
 - EnterSpreadsheetVisualMode (use mode setter)
 
 ### 5.3 Clean Up VIM Behavior
+
 **File**: `gridcore-controller/src/behaviors/vim/`
 
 Simplify to return simple results instead of Actions:
+
 ```rust
 pub enum VimResult {
     MoveCursor(CellAddress),
@@ -441,13 +468,16 @@ pub enum VimResult {
 ```
 
 ### 5.4 Remove Facade Pattern Indirection
+
 Remove:
+
 - `controller/operations.rs`
 - CellOperations, SheetOperations traits
 
 Move essential methods directly to SpreadsheetController.
 
 ### Git Commit 5
+
 ```bash
 git add -A
 git commit -m "refactor: remove legacy FSM code and simplify architecture
@@ -461,6 +491,7 @@ git commit -m "refactor: remove legacy FSM code and simplify architecture
 ## Phase 6: Testing and Validation
 
 ### 6.1 Update Tests
+
 ```rust
 // Before: Complex state setup
 let state = UIState::Navigation {
@@ -477,6 +508,7 @@ assert_eq!(controller.selection(), Some(&selection));
 ```
 
 ### 6.2 Test Visual Mode End-to-End
+
 ```bash
 # Run integration tests
 cargo test visual_mode --package gridcore-controller
@@ -488,6 +520,7 @@ trunk serve
 ```
 
 ### 6.3 Performance Testing
+
 ```rust
 #[bench]
 fn bench_visual_mode_selection() {
@@ -501,6 +534,7 @@ fn bench_visual_mode_selection() {
 ```
 
 ### Git Commit 6
+
 ```bash
 git add -A
 git commit -m "test: update tests for hybrid architecture
@@ -513,7 +547,9 @@ git commit -m "test: update tests for hybrid architecture
 ## Phase 7: Documentation and Cleanup
 
 ### 7.1 Update Public API Documentation
+
 **File**: `gridcore-controller/src/lib.rs`
+
 ```rust
 //! # GridCore Controller
 //! 
@@ -524,6 +560,7 @@ git commit -m "test: update tests for hybrid architecture
 ```
 
 ### 7.2 Remove Dead Code
+
 ```bash
 # Find unused code
 cargo +nightly udeps
@@ -533,12 +570,15 @@ cargo clippy --all-targets --all-features -- -W clippy::dead_code
 ```
 
 ### 7.3 Update Architecture Docs
+
 **File**: `ARCHITECTURE.md`
+
 - Document hybrid approach
 - Explain when to use modes vs direct fields
 - Show data flow from input to rendering
 
 ### Git Commit 7
+
 ```bash
 git add -A
 git commit -m "docs: update documentation for hybrid architecture
@@ -551,34 +591,40 @@ git commit -m "docs: update documentation for hybrid architecture
 ## Migration Checklist
 
 ### Pre-refactor
+
 - [ ] Create feature branch: `git checkout -b hybrid-state-refactor`
 - [ ] Run current tests and save results
 - [ ] Document current API
 
 ### Phase 1: Testing
+
 - [ ] Write integration tests for visual mode
 - [ ] Document expected behavior
 - [ ] Commit: test foundation
 
 ### Phase 2: Add Direct State
+
 - [ ] Add direct fields to controller
 - [ ] Create EditorMode enum
 - [ ] Add accessors
 - [ ] Commit: direct state fields
 
 ### Phase 3: Input Handling
+
 - [ ] Refactor visual mode handler
 - [ ] Simplify navigation handler
 - [ ] Remove action dispatch for simple updates
 - [ ] Commit: simplified input
 
 ### Phase 4: UI Rendering
+
 - [ ] Update canvas grid to use direct state
 - [ ] Implement selection rendering
 - [ ] Test visual feedback
 - [ ] Commit: selection rendering
 
 ### Phase 5: Remove Legacy
+
 - [ ] Delete old state machine files
 - [ ] Remove redundant actions
 - [ ] Simplify VIM behavior
@@ -586,6 +632,7 @@ git commit -m "docs: update documentation for hybrid architecture
 - [ ] Commit: legacy removal
 
 ### Phase 6: Testing
+
 - [ ] Update all tests
 - [ ] Run integration tests
 - [ ] Manual browser testing
@@ -593,12 +640,14 @@ git commit -m "docs: update documentation for hybrid architecture
 - [ ] Commit: test updates
 
 ### Phase 7: Documentation
+
 - [ ] Update public API docs
 - [ ] Remove dead code
 - [ ] Update architecture docs
 - [ ] Commit: documentation
 
 ### Post-refactor
+
 - [ ] Run `cargo fmt` and `cargo clippy`
 - [ ] Full test suite: `cargo test --all`
 - [ ] Manual testing of all modes
@@ -607,15 +656,16 @@ git commit -m "docs: update documentation for hybrid architecture
 ## Success Criteria
 
 1. **Visual mode works**: Can enter visual mode with 'v' and select cells with hjkl
-2. **Selection renders**: Selected cells show blue overlay
-3. **Simpler code**: Reduced lines of code, fewer files
-4. **Better performance**: Direct field access faster than state transitions
-5. **All tests pass**: No regression in functionality
-6. **Cleaner API**: Fewer public methods, clearer purpose
+1. **Selection renders**: Selected cells show blue overlay
+1. **Simpler code**: Reduced lines of code, fewer files
+1. **Better performance**: Direct field access faster than state transitions
+1. **All tests pass**: No regression in functionality
+1. **Cleaner API**: Fewer public methods, clearer purpose
 
 ## Rollback Plan
 
 If issues arise:
+
 ```bash
 # Save work in progress
 git stash
@@ -633,7 +683,7 @@ git cherry-pick <commit-hash>
 ## Timeline Estimate
 
 - Phase 1 (Testing): 1 hour
-- Phase 2 (Direct State): 2 hours  
+- Phase 2 (Direct State): 2 hours
 - Phase 3 (Input): 2 hours
 - Phase 4 (UI): 2 hours
 - Phase 5 (Legacy): 3 hours
@@ -649,3 +699,4 @@ git cherry-pick <commit-hash>
 - Keep what works (event system, facade for core)
 - Remove what doesn't (deep FSM nesting, action explosion)
 - Test continuously - each phase should keep tests green
+
