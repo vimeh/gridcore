@@ -294,14 +294,6 @@ impl<'a> InputHandler<'a> {
         }
     }
 
-    fn handle_insert_key(&mut self, event: KeyboardEvent) -> Result<()> {
-        if event.key == "Escape" {
-            return self.controller.dispatch_action(Action::Escape);
-        }
-        // In Insert mode, handle character input
-        // The UI typically handles the actual text editing
-        Ok(())
-    }
 
     fn handle_command_key(&mut self, event: KeyboardEvent) -> Result<()> {
         if event.key == "Escape" {

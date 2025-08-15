@@ -31,18 +31,18 @@ pub enum Action {
     DeleteCharacterAtCursor {
         forward: bool, // true for delete, false for backspace
     },
-    
+
     // Command mode operations
     UpdateCommandValue {
         value: String,
     },
-    
-    // Formula bar operations  
+
+    // Formula bar operations
     UpdateFormulaBar {
         value: String,
     },
     SubmitFormulaBar,
-    
+
     // Sheet operations
     AddSheet {
         name: String,
@@ -57,7 +57,7 @@ pub enum Action {
     SetActiveSheet {
         name: String,
     },
-    
+
     // Structural operations
     StartInsert {
         insert_type: InsertType,
@@ -66,14 +66,14 @@ pub enum Action {
     },
     ConfirmInsert,
     CancelInsert,
-    
+
     StartDelete {
         targets: Vec<u32>,
         delete_type: DeleteType,
     },
     ConfirmDelete,
     CancelDelete,
-    
+
     StartResize {
         target: ResizeTarget,
         initial_position: f64,
@@ -87,7 +87,7 @@ pub enum Action {
     AutoFitResize,
     ConfirmResize,
     CancelResize,
-    
+
     // Bulk operations
     StartBulkOperation {
         parsed_command: ParsedBulkCommand,
@@ -104,16 +104,16 @@ pub enum Action {
     BulkCommand {
         command: ParsedBulkCommand,
     },
-    
+
     // Undo/Redo
     Undo,
     UndoLine,
     Redo,
-    
+
     // General
     Escape,
     ExitToNavigation,
-    
+
     // TEMPORARY: Keep these for VIM compatibility until fully refactored
     UpdateCursor {
         cursor: CellAddress,

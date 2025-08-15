@@ -10,7 +10,9 @@ pub struct DirectStateAccess<'a> {
 
 impl<'a> DirectStateAccess<'a> {
     pub(super) fn new<T>(_state: &'a mut T) -> Self {
-        Self { _phantom: std::marker::PhantomData }
+        Self {
+            _phantom: std::marker::PhantomData,
+        }
     }
 
     /// Get the current state directly
@@ -44,20 +46,20 @@ impl<'a> DirectStateAccess<'a> {
 
 pub mod actions {
     use crate::state::Action;
-    
+
     /// Create an action directly
     pub fn create(action: Action) -> Action {
         action
     }
-    
+
     /// Actions that trigger undo operations
     pub mod undo {
         use crate::state::Action;
-        
+
         pub fn undo() -> Action {
             Action::Undo
         }
-        
+
         pub fn redo() -> Action {
             Action::Redo
         }

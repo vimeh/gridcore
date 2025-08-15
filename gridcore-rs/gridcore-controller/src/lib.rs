@@ -11,8 +11,6 @@ pub use state::{
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_module_imports() {
         // Basic smoke test to ensure modules compile

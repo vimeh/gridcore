@@ -3,9 +3,10 @@ use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
 
 /// Simplified editor mode tracking - what the user is doing
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub enum EditorMode {
     /// Navigation mode - moving around the spreadsheet
+    #[default]
     Navigation,
 
     /// Editing a cell's content
@@ -47,11 +48,5 @@ impl EditorMode {
 
     pub fn is_resizing(&self) -> bool {
         matches!(self, EditorMode::Resizing)
-    }
-}
-
-impl Default for EditorMode {
-    fn default() -> Self {
-        EditorMode::Navigation
     }
 }
