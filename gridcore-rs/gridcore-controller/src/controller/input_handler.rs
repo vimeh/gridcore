@@ -1,6 +1,6 @@
 use crate::controller::{KeyboardEvent, MouseEvent, SpreadsheetEvent};
 use crate::state::{
-    Action, EditMode, InsertMode, NavigationModal, Selection, SelectionType, UIState,
+    Action, InsertMode, NavigationModal, Selection, SelectionType, UIState,
 };
 use gridcore_core::{types::CellAddress, Result};
 
@@ -246,8 +246,8 @@ impl<'a> InputHandler<'a> {
         use super::mode::EditorMode;
         
         if event.key == "Escape" {
-            // Exit editing mode to navigation
-            self.controller.set_mode(EditorMode::Navigation);
+            // Save the edited cell value and exit editing mode
+            self.controller.complete_editing()?;
             return Ok(());
         }
 

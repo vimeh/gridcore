@@ -640,8 +640,10 @@ impl SpreadsheetController {
     }
 
     pub(super) fn complete_editing(&mut self) -> Result<()> {
-        // Use CellEditor to complete editing
-        if let Some(result) = CellEditor::complete_editing(&self.state(), &mut self.facade) {
+        // Use CellEditor to complete editing with new architecture
+        if let Some(result) =
+            CellEditor::complete_editing_direct(&self.mode, self.cursor, &mut self.facade)
+        {
             // Process events from result
             for (event, error_info) in result.create_events() {
                 self.event_dispatcher.dispatch(&event);
@@ -650,10 +652,11 @@ impl SpreadsheetController {
                 }
             }
 
-            // Take next action if any
-            if let Some(action) = result.next_action() {
-                return self.dispatch_action(action);
-            }
+            // Update formula bar to reflect new value
+            self.update_formula_bar_from_cursor();
+
+            // Exit editing mode
+            self.mode = EditorMode::Navigation;
         }
         Ok(())
     }

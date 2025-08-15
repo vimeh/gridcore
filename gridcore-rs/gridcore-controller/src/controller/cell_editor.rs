@@ -1,6 +1,7 @@
 use crate::controller::events::{ErrorSeverity, SpreadsheetEvent};
+use crate::controller::mode::EditorMode;
 use crate::managers::ErrorSystem;
-use crate::state::{Action, UIState};
+use crate::state::Action;
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
 /// Handles cell editing operations
@@ -43,13 +44,14 @@ impl CellEditor {
         }
     }
 
-    /// Submit cell edit from editing mode
-    pub fn submit_cell_edit(
-        state: &UIState,
+    /// Submit cell edit from editing mode using new architecture
+    pub fn submit_cell_edit_direct(
+        mode: &EditorMode,
+        cursor: CellAddress,
         facade: &mut SpreadsheetFacade,
     ) -> Option<CellEditResult> {
-        if let UIState::Editing { core, value, .. } = state {
-            let address = core.cursor;
+        if let EditorMode::Editing { value, .. } = mode {
+            let address = cursor;
             let cell_value = value.clone();
 
             let result = facade.set_cell_value(&address, &cell_value);
@@ -90,13 +92,14 @@ impl CellEditor {
         }
     }
 
-    /// Complete editing from editing mode
-    pub fn complete_editing(
-        state: &UIState,
+    /// Complete editing from editing mode using new architecture
+    pub fn complete_editing_direct(
+        mode: &EditorMode,
+        cursor: CellAddress,
         facade: &mut SpreadsheetFacade,
     ) -> Option<CellEditResult> {
-        if let UIState::Editing { core, value, .. } = state {
-            let address = core.cursor;
+        if let EditorMode::Editing { value, .. } = mode {
+            let address = cursor;
             let cell_value = value.clone();
 
             let result = facade.set_cell_value(&address, &cell_value);
