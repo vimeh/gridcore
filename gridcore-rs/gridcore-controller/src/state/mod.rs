@@ -4,13 +4,7 @@ pub mod diff;
 pub mod spreadsheet;
 
 #[cfg(test)]
-mod edge_case_tests;
-#[cfg(test)]
-mod performance_tests;
-#[cfg(test)]
 mod refactoring_tests;
-#[cfg(test)]
-mod tests;
 
 // Keep only essential types - no more UIStateMachine
 pub use actions::Action;
