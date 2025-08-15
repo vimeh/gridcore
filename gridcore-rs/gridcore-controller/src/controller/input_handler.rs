@@ -16,10 +16,7 @@ impl<'a> InputHandler<'a> {
 
     /// Main keyboard event handler that delegates to mode-specific handlers
     pub fn handle_keyboard_event(&mut self, event: KeyboardEvent) -> Result<()> {
-        // First sync direct state with state machine during transition
-        self.controller.sync_from_state_machine();
-
-        // Use direct mode field for routing
+        // Use direct mode field for routing (no longer syncing from deprecated state machine)
         let mode = self.controller.get_mode().clone();
         log::debug!(
             "Handling keyboard event: key='{}', mode={:?}",
