@@ -625,11 +625,13 @@ git commit -m "docs: update documentation for hybrid architecture
 
 ### Phase 5: Remove Legacy
 
-- [ ] Delete old state machine files
-- [ ] Remove redundant actions
-- [ ] Simplify VIM behavior
-- [ ] Remove facade indirection
-- [ ] Commit: legacy removal
+- [x] Delete old state machine files (machine.rs, transitions.rs, transition_handlers/)
+- [x] Remove redundant actions (slimmed down, kept some for compatibility)
+- [ ] Simplify VIM behavior (needs more work)
+- [x] Remove facade indirection (operations.rs removed)
+- [x] Commit: legacy removal (partial - build currently broken)
+
+**Status**: Partially complete. Major FSM files removed but needs more refactoring to fix all references.
 
 ### Phase 6: Testing
 

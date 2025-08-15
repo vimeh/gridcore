@@ -45,11 +45,11 @@ pub fn CellEditor(
                         let _ = input.focus();
 
                         // Set the value from controller state
-                        input.set_value(value);
+                        input.set_value(&value);
 
                         // Set cursor position from controller state
-                        let _ = input.set_selection_start(Some(*cursor_pos as u32));
-                        let _ = input.set_selection_end(Some(*cursor_pos as u32));
+                        let _ = input.set_selection_start(Some(cursor_pos as u32));
+                        let _ = input.set_selection_end(Some(cursor_pos as u32));
                         leptos::logging::log!(
                             "Initialized editor with value '{}' and cursor at {}",
                             value,

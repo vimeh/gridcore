@@ -58,7 +58,7 @@ pub fn CanvasGrid(
             let is_editing = matches!(state, UIState::Editing { .. });
             leptos::logging::log!(
                 "editing_mode memo: state type = {:?}, is UIState::Editing = {}",
-                std::mem::discriminant(state),
+                std::mem::discriminant(&state),
                 is_editing
             );
             is_editing
@@ -484,7 +484,7 @@ pub fn CanvasGrid(
             let ctrl_borrow = ctrl.borrow();
             let state = ctrl_borrow.state();
             let edit_mode = match state {
-                UIState::Editing { mode, .. } => Some(*mode),
+                UIState::Editing { mode, .. } => Some(mode),
                 _ => None,
             };
             (state.spreadsheet_mode(), *state.cursor(), edit_mode)
@@ -512,7 +512,7 @@ pub fn CanvasGrid(
             let mode = state.spreadsheet_mode();
             let cursor = *state.cursor();
             let edit_mode = match state {
-                UIState::Editing { mode, .. } => Some(*mode),
+                UIState::Editing { mode, .. } => Some(mode),
                 _ => None,
             };
             leptos::logging::log!(

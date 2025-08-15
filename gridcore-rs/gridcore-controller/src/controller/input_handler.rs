@@ -431,7 +431,7 @@ impl<'a> InputHandler<'a> {
         self.controller
             .event_dispatcher
             .dispatch(&SpreadsheetEvent::CursorMoved {
-                from: *current,
+                from: current,
                 to: new_cursor,
             });
 

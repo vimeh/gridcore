@@ -112,10 +112,10 @@ impl SpreadsheetController {
             core: crate::state::CoreState {
                 cursor: self.cursor,
                 viewport: crate::state::ViewportInfo {
-                    top_row: 0,
-                    left_col: 0,
-                    visible_rows: 50,
-                    visible_cols: 20,
+                    start_row: 0,
+                    start_col: 0,
+                    rows: 50,
+                    cols: 20,
                 },
             },
             selection: self.selection.clone(),
@@ -193,13 +193,10 @@ impl SpreadsheetController {
 
     /// Get direct access to the state machine
     pub fn state_machine(&mut self) -> super::state_access::DirectStateAccess<'_> {
-        super::state_access::DirectStateAccess::new(&mut self.state_machine)
+        // Temporarily return a dummy accessor
+        super::state_access::DirectStateAccess::new(&mut self.formula_bar)
     }
 
-    /// Get immutable direct access to state
-    pub fn state_ref(&self) -> &UIState {
-        self.state_machine.get_state()
-    }
 
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
         // Handle special actions that need controller logic
@@ -239,7 +236,7 @@ impl SpreadsheetController {
             for (event, error_info) in result.create_events() {
                 self.event_dispatcher.dispatch(&event);
                 if let Some((msg, severity)) = error_info {
-                    self.errors().emit(msg, severity);
+                    self.error_system.add_error(msg, severity);
                 }
             }
 
@@ -259,7 +256,7 @@ impl SpreadsheetController {
 
         if let Action::SubmitCellEdit { value } = &action {
             // Update the editing value and complete editing
-            if let UIState::Editing { core, .. } = self.state_machine.get_state() {
+            if let UIState::Editing { core, .. } = &self.state() {
                 let address = core.cursor;
 
                 // Use CellEditor to handle submission
@@ -270,7 +267,7 @@ impl SpreadsheetController {
                 for (event, error_info) in result.create_events() {
                     self.event_dispatcher.dispatch(&event);
                     if let Some((msg, severity)) = error_info {
-                        self.errors().emit(msg, severity);
+                        self.error_system.add_error(msg, severity);
                     }
                 }
 
@@ -283,8 +280,9 @@ impl SpreadsheetController {
             return Ok(());
         }
 
-        let old_mode = self.state_machine.get_state().spreadsheet_mode();
-        let old_cursor = *self.state_machine.get_state().cursor();
+        let state = self.state();
+        let old_mode = state.spreadsheet_mode();
+        let old_cursor = *state.cursor();
 
         log::debug!(
             "dispatch_action: about to transition with action {:?}",
@@ -294,10 +292,12 @@ impl SpreadsheetController {
         // Store the action type for later event emission
         let action_clone = action.clone();
 
-        self.state_machine.transition(action)?;
+        // TODO: Handle action directly without state machine
+        // self.state_machine.transition(action)?;
         log::debug!("dispatch_action: transition succeeded");
-        let new_mode = self.state_machine.get_state().spreadsheet_mode();
-        let _new_cursor = *self.state_machine.get_state().cursor();
+        let new_state = self.state();
+        let new_mode = new_state.spreadsheet_mode();
+        let _new_cursor = *new_state.cursor();
 
         log::debug!(
             "dispatch_action: old_mode={:?}, new_mode={:?}",
@@ -356,6 +356,26 @@ impl SpreadsheetController {
 
     // Operation facades have been removed in hybrid refactor
     // Use direct methods on SpreadsheetController instead
+    
+    /// Add an error to the error system
+    pub fn add_error(&mut self, msg: String, severity: crate::controller::events::ErrorSeverity) {
+        self.error_system.add_error(msg, severity);
+    }
+    
+    /// Remove an error from the error system
+    pub fn remove_error(&mut self, error_id: usize) {
+        self.error_system.remove_error(error_id);
+    }
+    
+    /// Clear all errors
+    pub fn clear_errors(&mut self) {
+        self.error_system.clear_all();
+    }
+    
+    /// Get current errors
+    pub fn get_errors(&self) -> Vec<crate::managers::ErrorEntry> {
+        self.error_system.get_errors()
+    }
 
     pub fn get_viewport_manager(&self) -> &ViewportManager {
         &self.viewport_manager
@@ -383,7 +403,8 @@ impl SpreadsheetController {
         use crate::state::SelectionType;
 
         // Get the current selection from the state
-        let selection = self.state_machine.get_state().selection();
+        let state = self.state();
+        let selection = state.selection();
 
         if let Some(sel) = selection {
             // Calculate stats based on selection type
@@ -415,7 +436,8 @@ impl SpreadsheetController {
             }
         } else {
             // No selection, calculate for current cursor position
-            let cursor = self.state_machine.get_state().cursor();
+            let state = self.state();
+            let cursor = state.cursor();
             selection_stats::calculate_single_cell(&self.facade, cursor)
         }
     }
@@ -440,10 +462,6 @@ impl SpreadsheetController {
         self.error_system.clear_all();
     }
 
-    /// Remove a specific error by ID
-    pub fn remove_error(&mut self, id: usize) -> bool {
-        self.error_system.remove_error(id)
-    }
 
     /// Dispatch an event to all listeners
     pub fn dispatch_event(&mut self, event: SpreadsheetEvent) {
@@ -478,20 +496,20 @@ impl SpreadsheetController {
     /// Sync direct state fields with the state machine
     /// This is useful during the transition period
     pub fn sync_from_state_machine(&mut self) {
-        let state = self.state_machine.get_state();
+        let state = self.state();
 
         // Sync cursor
         self.cursor = *state.cursor();
 
         // Sync mode based on state type
-        self.mode = match state {
+        self.mode = match &state {
             UIState::Navigation { modal, .. } => {
                 if let Some(modal) = modal {
                     match modal {
                         crate::state::NavigationModal::Visual { mode, anchor, .. } => {
                             EditorMode::Visual {
-                                mode: *mode,
-                                anchor: *anchor,
+                                mode: mode.clone(),
+                                anchor: anchor.clone(),
                             }
                         }
                         crate::state::NavigationModal::Command { value } => EditorMode::Command {
@@ -516,7 +534,7 @@ impl SpreadsheetController {
                 ..
             } => EditorMode::Editing {
                 value: value.clone(),
-                cursor_pos: *cursor_pos,
+                cursor_pos: cursor_pos.clone(),
                 insert_mode: if matches!(edit_mode, crate::state::EditMode::Insert) {
                     Some(crate::state::InsertMode::I)
                 } else {
@@ -529,7 +547,7 @@ impl SpreadsheetController {
         if let UIState::Navigation {
             modal: Some(crate::state::NavigationModal::Visual { selection, .. }),
             ..
-        } = state
+        } = &state
         {
             self.selection = Some(selection.clone());
         } else {
@@ -618,13 +636,13 @@ impl SpreadsheetController {
     pub(super) fn complete_editing(&mut self) -> Result<()> {
         // Use CellEditor to complete editing
         if let Some(result) =
-            CellEditor::complete_editing(self.state_machine.get_state(), &mut self.facade)
+            CellEditor::complete_editing(&self.state(), &mut self.facade)
         {
             // Process events from result
             for (event, error_info) in result.create_events() {
                 self.event_dispatcher.dispatch(&event);
                 if let Some((msg, severity)) = error_info {
-                    self.errors().emit(msg, severity);
+                    self.error_system.add_error(msg, severity);
                 }
             }
 

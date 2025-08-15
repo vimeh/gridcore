@@ -9,7 +9,7 @@ pub struct DirectStateAccess<'a> {
 }
 
 impl<'a> DirectStateAccess<'a> {
-    pub(super) fn new(_state: &'a mut ()) -> Self {
+    pub(super) fn new<T>(_state: &'a mut T) -> Self {
         Self { _phantom: std::marker::PhantomData }
     }
 
