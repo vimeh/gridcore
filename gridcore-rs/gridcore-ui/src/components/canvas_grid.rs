@@ -1,5 +1,5 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{Action, InsertMode, SpreadsheetMode, UIState};
+use gridcore_controller::state::{Action, InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::{Canvas, Div};
 use leptos::prelude::*;
@@ -46,19 +46,17 @@ pub fn CanvasGrid(
     let viewport_stored = StoredValue::<_, LocalStorage>::new_local(viewport_rc.clone());
     let (canvas_dimensions, set_canvas_dimensions) = signal((0.0, 0.0));
 
-    // Derive editing_mode from controller state
-    // Check for UIState::Editing directly to avoid confusion with UIState::Insert (structural ops)
+    // Derive editing_mode from controller mode using the new architecture
     let editing_mode = Memo::new(move |_| {
         // Track mode trigger to ensure memo updates when editing mode changes
         mode_trigger.track();
 
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.state();
-            let is_editing = matches!(state, UIState::Editing { .. });
+            let is_editing = ctrl_borrow.get_mode().is_editing();
             leptos::logging::log!(
-                "editing_mode memo: state type = {:?}, is UIState::Editing = {}",
-                std::mem::discriminant(&state),
+                "editing_mode memo: mode = {:?}, is_editing = {}",
+                ctrl_borrow.get_mode(),
                 is_editing
             );
             is_editing
@@ -479,15 +477,12 @@ pub fn CanvasGrid(
         let controller_event = gridcore_controller::controller::KeyboardEvent::new(key.clone())
             .with_modifiers(shift_pressed, ctrl_pressed, alt_pressed, meta_pressed);
 
-        // Get the current state before handling the event, including cell_mode
-        let (old_mode, old_cursor, old_cell_mode) = controller_stored.with_value(|ctrl| {
+        // Get the current state before handling the event
+        let (old_cursor, was_editing) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.state();
-            let edit_mode = match state {
-                UIState::Editing { mode, .. } => Some(mode),
-                _ => None,
-            };
-            (state.spreadsheet_mode(), *state.cursor(), edit_mode)
+            let cursor = ctrl_borrow.cursor();
+            let is_editing = ctrl_borrow.get_mode().is_editing();
+            (cursor, is_editing)
         });
 
         // Forward the event to the controller and drop the borrow immediately
@@ -505,23 +500,19 @@ pub fn CanvasGrid(
             return; // Exit early on error
         }
 
-        // Get the updated state after handling - new borrow, including cell_mode
-        let (new_mode, new_cursor, new_cell_mode) = controller_stored.with_value(|ctrl| {
+        // Get the updated state after handling
+        let (new_is_editing, new_cursor) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            let state = ctrl_borrow.state();
-            let mode = state.spreadsheet_mode();
-            let cursor = *state.cursor();
-            let edit_mode = match state {
-                UIState::Editing { mode, .. } => Some(mode),
-                _ => None,
-            };
+            let mode = ctrl_borrow.get_mode();
+            let cursor = ctrl_borrow.cursor();
+            let is_editing = mode.is_editing();
             leptos::logging::log!(
-                "Controller state after event: mode={:?}, cursor={:?}, edit_mode={:?}",
+                "Controller state after event: mode={:?}, cursor={:?}, is_editing={}",
                 mode,
                 cursor,
-                edit_mode
+                is_editing
             );
-            (mode, cursor, edit_mode)
+            (is_editing, cursor)
         });
 
         leptos::logging::log!(
@@ -532,21 +523,11 @@ pub fn CanvasGrid(
         );
 
         // Update UI state based on controller state
-        // Check for both mode changes and cell_mode changes within Editing state
-        let mode_changed = new_mode != old_mode;
-        let cell_mode_changed = new_cell_mode != old_cell_mode;
+        // Check for mode changes
+        let mode_changed = new_is_editing != was_editing;
 
-        if mode_changed || cell_mode_changed {
-            if mode_changed {
-                leptos::logging::log!("Mode changed from {:?} to {:?}", old_mode, new_mode);
-            }
-            if cell_mode_changed {
-                leptos::logging::log!(
-                    "Cell mode changed from {:?} to {:?}",
-                    old_cell_mode,
-                    new_cell_mode
-                );
-            }
+        if mode_changed {
+            leptos::logging::log!("Mode changed: was_editing={}, is_editing={}", was_editing, new_is_editing);
             // State version now updated via controller events
         }
         // Mode changes are already handled by controller state machine
@@ -572,9 +553,9 @@ pub fn CanvasGrid(
         // Formula bar is now updated via controller events
 
         // Auto-scroll to keep the active cell visible if cursor moved
-        // Don't auto-scroll if we're in editing mode (UIState::Editing)
+        // Don't auto-scroll if we're in editing mode
         let is_editing = controller_stored
-            .with_value(|ctrl| matches!(ctrl.borrow().state(), UIState::Editing { .. }));
+            .with_value(|ctrl| ctrl.borrow().get_mode().is_editing());
         if new_cursor != old_cursor && !is_editing {
             let mut vp_borrow = viewport_rc.borrow_mut();
 

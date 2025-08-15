@@ -53,11 +53,13 @@ impl<'a> InputHandler<'a> {
                     "'i' key pressed, starting insert mode with existing value: '{}', cursor at 0",
                     existing_value
                 );
-                self.controller.dispatch_action(Action::StartEditing {
-                    edit_mode: Some(InsertMode::I),
-                    initial_value: Some(existing_value),
-                    cursor_position: Some(0),
-                })
+                use super::mode::EditorMode;
+                self.controller.set_mode(EditorMode::Editing {
+                    value: existing_value,
+                    cursor_pos: 0,
+                    insert_mode: Some(InsertMode::I),
+                });
+                Ok(())
             }
             "a" => {
                 let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
@@ -67,19 +69,23 @@ impl<'a> InputHandler<'a> {
                     existing_value,
                     cursor_pos
                 );
-                self.controller.dispatch_action(Action::StartEditing {
-                    edit_mode: Some(InsertMode::A),
-                    initial_value: Some(existing_value),
-                    cursor_position: Some(cursor_pos),
-                })
+                use super::mode::EditorMode;
+                self.controller.set_mode(EditorMode::Editing {
+                    value: existing_value,
+                    cursor_pos,
+                    insert_mode: Some(InsertMode::A),
+                });
+                Ok(())
             }
             "Enter" => {
                 log::debug!("Enter key pressed, starting edit in Insert mode with empty value");
-                self.controller.dispatch_action(Action::StartEditing {
-                    edit_mode: Some(InsertMode::I),
-                    initial_value: Some(String::new()),
-                    cursor_position: Some(0),
-                })
+                use super::mode::EditorMode;
+                self.controller.set_mode(EditorMode::Editing {
+                    value: String::new(),
+                    cursor_pos: 0,
+                    insert_mode: Some(InsertMode::I),
+                });
+                Ok(())
             }
 
             // Command mode
@@ -148,32 +154,38 @@ impl<'a> InputHandler<'a> {
             "I" => {
                 let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
                 log::debug!("'I' key pressed, entering insert mode at start of line");
-                self.controller.dispatch_action(Action::StartEditing {
-                    edit_mode: Some(InsertMode::CapitalI),
-                    initial_value: Some(existing_value),
-                    cursor_position: Some(0),
-                })
+                use super::mode::EditorMode;
+                self.controller.set_mode(EditorMode::Editing {
+                    value: existing_value,
+                    cursor_pos: 0,
+                    insert_mode: Some(InsertMode::CapitalI),
+                });
+                Ok(())
             }
             "A" => {
                 let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
                 let cursor_pos = existing_value.len();
                 log::debug!("'A' key pressed, entering insert mode at end of line");
-                self.controller.dispatch_action(Action::StartEditing {
-                    edit_mode: Some(InsertMode::CapitalA),
-                    initial_value: Some(existing_value),
-                    cursor_position: Some(cursor_pos),
-                })
+                use super::mode::EditorMode;
+                self.controller.set_mode(EditorMode::Editing {
+                    value: existing_value,
+                    cursor_pos,
+                    insert_mode: Some(InsertMode::CapitalA),
+                });
+                Ok(())
             }
 
             _ => {
                 // Check if this is a single printable character that should start editing
                 if event.key.len() == 1 && !event.ctrl && !event.alt && !event.meta {
                     log::debug!("Starting edit mode with typed character: '{}'", event.key);
-                    self.controller.dispatch_action(Action::StartEditing {
-                        edit_mode: Some(InsertMode::I),
-                        initial_value: Some(event.key.clone()),
-                        cursor_position: Some(1),
-                    })
+                    use super::mode::EditorMode;
+                    self.controller.set_mode(EditorMode::Editing {
+                        value: event.key.clone(),
+                        cursor_pos: 1,
+                        insert_mode: Some(InsertMode::I),
+                    });
+                    Ok(())
                 } else {
                     log::debug!("Unhandled navigation key: '{}'", event.key);
                     Ok(())
@@ -231,63 +243,61 @@ impl<'a> InputHandler<'a> {
     }
 
     fn handle_editing_key(&mut self, event: KeyboardEvent) -> Result<()> {
+        use super::mode::EditorMode;
+        
         if event.key == "Escape" {
-            return self.controller.dispatch_action(Action::Escape);
+            // Exit editing mode to navigation
+            self.controller.set_mode(EditorMode::Navigation);
+            return Ok(());
         }
 
-        let state = self.controller.state();
-
-        if let UIState::Editing {
-            mode,
+        // Get the current mode using the new architecture
+        if let EditorMode::Editing {
             value,
             cursor_pos,
-            ..
-        } = state
+            insert_mode,
+        } = self.controller.get_mode().clone()
         {
-            match mode {
-                EditMode::Normal => match event.key.as_str() {
-                    "i" => self.controller.dispatch_action(Action::EnterInsertMode {
-                        mode: Some(InsertMode::I),
-                    }),
-                    "a" => self.controller.dispatch_action(Action::EnterInsertMode {
-                        mode: Some(InsertMode::A),
-                    }),
-                    "Escape" => self.controller.dispatch_action(Action::ExitToNavigation),
-                    _ => Ok(()),
-                },
-                EditMode::Insert => {
-                    if event.is_printable() {
+            // For now, we'll handle all editing as insert mode
+            // (The vim-style normal/insert distinction can be added later if needed)
+            if event.is_printable() {
+                let mut new_value = value.clone();
+                let pos = cursor_pos;
+                new_value.insert_str(pos, &event.key);
+                self.controller.set_mode(EditorMode::Editing {
+                    value: new_value,
+                    cursor_pos: pos + event.key.len(),
+                    insert_mode,
+                });
+                Ok(())
+            } else {
+                match event.key.as_str() {
+                    "Backspace" => {
                         let mut new_value = value.clone();
                         let pos = cursor_pos;
-                        new_value.insert_str(pos, &event.key);
-                        self.controller.dispatch_action(Action::UpdateEditingValue {
-                            value: new_value,
-                            cursor_position: pos + 1,
-                        })
-                    } else {
-                        match event.key.as_str() {
-                            "Backspace" => {
-                                let mut new_value = value.clone();
-                                let pos = cursor_pos;
-                                if pos > 0 {
-                                    new_value.remove(pos - 1);
-                                    self.controller.dispatch_action(Action::UpdateEditingValue {
-                                        value: new_value,
-                                        cursor_position: pos - 1,
-                                    })
-                                } else {
-                                    Ok(())
-                                }
-                            }
-                            "Enter" => {
-                                self.controller.complete_editing()?;
-                                self.move_cursor(0, 1)
-                            }
-                            _ => Ok(()),
+                        if pos > 0 {
+                            new_value.remove(pos - 1);
+                            self.controller.set_mode(EditorMode::Editing {
+                                value: new_value,
+                                cursor_pos: pos - 1,
+                                insert_mode,
+                            });
                         }
+                        Ok(())
                     }
+                    "Enter" => {
+                        // Save the value and exit editing mode
+                        let cursor = self.controller.cursor();
+                        self.controller.facade_mut().set_cell_value(&cursor, &value)?;
+                        self.controller.set_mode(EditorMode::Navigation);
+                        self.controller.event_dispatcher.dispatch(&SpreadsheetEvent::CellEditCompleted {
+                            address: cursor,
+                            value: value.clone(),
+                        });
+                        self.move_cursor(0, 1)
+                    }
+                    _ => Ok(()),
                 }
-                EditMode::Visual => Ok(()),
             }
         } else {
             Ok(())
@@ -456,11 +466,14 @@ impl<'a> InputHandler<'a> {
                 crate::controller::events::MouseEventType::DoubleClick => {
                     self.controller
                         .dispatch_action(Action::UpdateCursor { cursor: cell })?;
-                    self.controller.dispatch_action(Action::StartEditing {
-                        edit_mode: Some(InsertMode::I),
-                        initial_value: None,
-                        cursor_position: None,
-                    })
+                    let existing_value = self.controller.get_cell_display_for_ui(&cell);
+                    use super::mode::EditorMode;
+                    self.controller.set_mode(EditorMode::Editing {
+                        value: existing_value,
+                        cursor_pos: 0,
+                        insert_mode: Some(InsertMode::I),
+                    });
+                    Ok(())
                 }
                 _ => Ok(()),
             }

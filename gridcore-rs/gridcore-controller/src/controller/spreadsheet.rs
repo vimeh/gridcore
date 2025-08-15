@@ -107,7 +107,8 @@ impl SpreadsheetController {
 
     /// Get the current UI state
     pub fn state(&self) -> UIState {
-        // Temporary: construct UIState from direct fields
+        // Deprecated - use get_mode() instead
+        // This is only kept for parts of the code that haven't been updated yet
         UIState::Navigation {
             core: crate::state::CoreState {
                 cursor: self.cursor,

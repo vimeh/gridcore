@@ -570,7 +570,7 @@ pub fn App() -> impl IntoView {
                     active_sheet=active_sheet
                 />
                 <StatusBar
-                    current_mode=current_mode
+                    _current_mode=current_mode
                     selection_stats=selection_stats
                     selection_trigger=selection_trigger
                 />

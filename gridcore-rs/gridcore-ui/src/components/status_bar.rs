@@ -1,13 +1,13 @@
 use gridcore_controller::behaviors::selection_stats::SelectionStats;
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{SpreadsheetMode, UIState, VisualMode};
+use gridcore_controller::state::{SpreadsheetMode, VisualMode};
 use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 #[component]
 pub fn StatusBar(
-    current_mode: Memo<SpreadsheetMode>,
+    _current_mode: Memo<SpreadsheetMode>,
     selection_stats: Memo<SelectionStats>,
     selection_trigger: Trigger,
 ) -> impl IntoView {
@@ -22,57 +22,34 @@ pub fn StatusBar(
     // Create a reactive signal that updates when current_mode or selection changes
     // This ensures the UI updates when mode changes
     let mode_display = move || {
-        // Read both signals to ensure reactivity - this creates the reactive dependencies
-        let signal_mode = current_mode.get();
-        selection_trigger.track(); // Track selection changes
+        // Track selection changes for reactivity
+        selection_trigger.track();
 
-        // Always get fresh state from controller
-        let state = controller_stored.with_value(|ctrl| {
+        // Get the current mode using the new architecture
+        let (text, color, detail) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            ctrl_borrow.state().clone()
-        });
-
-        // First check if we're in Editing state with specific cell modes
-        // This ensures proper display of NORMAL mode within editing
-        let (text, color, detail) = match &state {
-            UIState::Editing {
-                mode,
-                visual_selection,
-                ..
-            } => {
-                match mode {
-                    gridcore_controller::state::EditMode::Insert => {
-                        ("INSERT", "#2196f3", "ESC to normal")
-                    }
-                    gridcore_controller::state::EditMode::Normal => {
-                        ("NORMAL", "#ff9800", "i/a to insert")
-                    }
-                    gridcore_controller::state::EditMode::Visual => {
-                        // Check visual selection for line mode
-                        match visual_selection {
-                            Some(vs) if vs.mode == VisualMode::Line => {
-                                ("VISUAL LINE", "#9c27b0", "hjkl to select")
-                            }
-                            Some(vs) if vs.mode == VisualMode::Block => {
-                                ("VISUAL BLOCK", "#9c27b0", "hjkl to select")
-                            }
-                            _ => ("VISUAL", "#9c27b0", "hjkl to select"),
-                        }
+            use gridcore_controller::controller::mode::EditorMode;
+            
+            match ctrl_borrow.get_mode() {
+                EditorMode::Navigation => ("NAVIGATION", "#4caf50", "hjkl to move"),
+                EditorMode::Editing { insert_mode, .. } => {
+                    if insert_mode.is_some() {
+                        ("INSERT", "#2196f3", "ESC to exit")
+                    } else {
+                        ("EDIT", "#ff9800", "Type to edit")
                     }
                 }
+                EditorMode::Command { .. } => ("COMMAND", "#f44336", "Enter to execute"),
+                EditorMode::Visual { mode, .. } => {
+                    match mode {
+                        VisualMode::Line => ("VISUAL LINE", "#9c27b0", "hjkl to select"),
+                        VisualMode::Block => ("VISUAL BLOCK", "#9c27b0", "hjkl to select"),
+                        _ => ("VISUAL", "#9c27b0", "hjkl to select"),
+                    }
+                }
+                EditorMode::Resizing => ("RESIZE", "#795548", "Drag to resize"),
             }
-            // Fall back to SpreadsheetMode-based display for other states
-            _ => match signal_mode {
-                SpreadsheetMode::Navigation => ("NAVIGATION", "#4caf50", "hjkl to move"),
-                SpreadsheetMode::Visual => ("VISUAL", "#9c27b0", "hjkl to select"),
-                SpreadsheetMode::Editing => ("NORMAL", "#ff9800", "i/a to insert"), // Should not reach here typically
-                SpreadsheetMode::Command => ("COMMAND", "#f44336", "Enter to execute"),
-                SpreadsheetMode::Resize => ("RESIZE", "#795548", ""),
-                SpreadsheetMode::Insert => ("INSERT", "#2196f3", "ESC to normal"),
-                SpreadsheetMode::Delete => ("DELETE", "#e91e63", ""),
-                SpreadsheetMode::BulkOperation => ("BULK", "#607d8b", ""),
-            },
-        };
+        });
         (text, color, detail)
     };
 
