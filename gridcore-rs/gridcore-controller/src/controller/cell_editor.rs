@@ -28,11 +28,11 @@ impl CellEditor {
                         error_message: enhanced_message,
                     })
                 } else {
-                    let should_clear = value.is_empty();
+                    // Always clear formula bar after successful submission
                     Ok(CellEditResult::Success {
                         address: cursor,
                         value,
-                        should_clear_formula_bar: should_clear,
+                        should_clear_formula_bar: true,
                     })
                 }
             }
