@@ -270,3 +270,62 @@ export async function cellHasErrorValue(
   const formulaValue = await getCurrentCellValue(page);
   return formulaValue.includes(expectedError);
 }
+
+/**
+ * Wait for the grid to be fully loaded and ready
+ */
+export async function waitForGrid(page: Page, timeout = 5000): Promise<void> {
+  // Wait for the grid wrapper to be visible
+  await page.waitForSelector(selectors.gridWrapper, {
+    state: "visible",
+    timeout,
+  });
+  
+  // Wait for canvas to be ready
+  await page.waitForSelector('canvas', {
+    state: "visible",
+    timeout,
+  });
+  
+  // Give a bit more time for initial render
+  await page.waitForTimeout(200);
+}
+
+/**
+ * Get a selector for a specific cell (used for testing cell content)
+ * Note: This is for canvas-based grid, so we can't directly select cells
+ */
+export function getCellSelector(col: number, row: number): string {
+  // For canvas-based grid, we don't have individual cell selectors
+  // This is kept for API compatibility
+  return `cell-${col}-${row}`;
+}
+
+/**
+ * Press a key with optional modifiers
+ */
+export async function pressKey(
+  page: Page,
+  key: string,
+  modifiers?: {
+    shift?: boolean;
+    ctrl?: boolean;
+    alt?: boolean;
+    meta?: boolean;
+  }
+): Promise<void> {
+  const keys: string[] = [];
+  
+  if (modifiers?.shift) keys.push('Shift');
+  if (modifiers?.ctrl) keys.push('Control');
+  if (modifiers?.alt) keys.push('Alt');
+  if (modifiers?.meta) keys.push('Meta');
+  
+  keys.push(key);
+  
+  if (keys.length > 1) {
+    await page.keyboard.press(keys.join('+'));
+  } else {
+    await page.keyboard.press(key);
+  }
+}
