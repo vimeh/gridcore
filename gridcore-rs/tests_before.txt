@@ -1,0 +1,229 @@
+   Compiling gridcore-controller v0.1.0 (/Users/vinay/v/code/gridcore/worktrees/visual-select-grid/gridcore-rs/gridcore-controller)
+    Finished `test` profile [optimized + debuginfo] target(s) in 0.23s
+     Running unittests src/lib.rs (target/debug/deps/gridcore_controller-c003aa7d54a7fba5)
+
+running 187 tests
+test behaviors::autocomplete::tests::test_no_suggestions_for_non_formula ... ok
+test behaviors::resize::tests::test_auto_fit ... ok
+test behaviors::autocomplete::tests::test_apply_function_suggestion ... ok
+test behaviors::resize::tests::test_column_navigation ... ok
+test behaviors::resize::tests::test_confirm_cancel ... ok
+test behaviors::resize::tests::test_number_multiplier ... ok
+test behaviors::autocomplete::tests::test_function_suggestions ... ok
+test behaviors::autocomplete::tests::test_get_suggestions_for_formula ... ok
+test behaviors::resize::tests::test_resize_delta ... ok
+test behaviors::resize::tests::test_row_navigation ... ok
+test behaviors::selection_stats::tests::test_empty_range ... ok
+test behaviors::selection_stats::tests::test_range_stats ... ok
+test behaviors::shared::tests::test_navigation_direction ... ok
+test behaviors::selection_stats::tests::test_single_cell_stats ... ok
+test behaviors::shared::tests::test_number_buffer ... ok
+test behaviors::shared::tests::test_try_push_key ... ok
+test behaviors::vim::ex_parser::tests::test_all_lines_range ... ok
+test behaviors::vim::ex_parser::tests::test_command_with_flags ... ok
+test behaviors::vim::ex_parser::tests::test_complex_range ... ok
+test behaviors::vim::ex_parser::tests::test_copy_command ... ok
+test behaviors::vim::ex_parser::tests::test_current_line_range ... ok
+test behaviors::vim::ex_parser::tests::test_delete_with_range ... ok
+test behaviors::vim::ex_parser::tests::test_empty_substitute_replacement ... ok
+test behaviors::vim::ex_parser::tests::test_join_command ... ok
+test behaviors::vim::ex_parser::tests::test_last_line_range ... ok
+test behaviors::vim::ex_parser::tests::test_move_command ... ok
+test behaviors::vim::ex_parser::tests::test_numeric_range ... ok
+test behaviors::vim::ex_parser::tests::test_quit ... ok
+test behaviors::vim::ex_parser::tests::test_relative_range_backward ... ok
+test behaviors::vim::ex_parser::tests::test_relative_range_forward ... ok
+test behaviors::vim::ex_parser::tests::test_search_backward ... ok
+test behaviors::vim::ex_parser::tests::test_search_forward ... ok
+test behaviors::vim::ex_parser::tests::test_set_command ... ok
+test behaviors::vim::ex_parser::tests::test_set_with_value ... ok
+test behaviors::vim::ex_parser::tests::test_shell_command ... ok
+test behaviors::vim::ex_parser::tests::test_simple_write ... ok
+test behaviors::vim::ex_parser::tests::test_substitute_command ... ok
+test behaviors::vim::ex_parser::tests::test_substitute_with_range ... ok
+test behaviors::vim::ex_parser::tests::test_write_quit ... ok
+test behaviors::vim::ex_parser::tests::test_write_with_filename ... ok
+test behaviors::vim::ex_parser::tests::test_yank_command ... ok
+test behaviors::vim::motion::tests::test_basic_motions ... ok
+test behaviors::vim::motion::tests::test_boundary_conditions ... ok
+test behaviors::vim::motion::tests::test_viewport_adjustment ... ok
+test behaviors::vim::operator::tests::test_address_to_string ... ok
+test behaviors::vim::operator::tests::test_col_to_letter ... ok
+test behaviors::vim::vim_parser::tests::test_change_line ... ok
+test behaviors::vim::vim_parser::tests::test_document_end ... ok
+test behaviors::vim::vim_parser::tests::test_document_start ... ok
+test behaviors::vim::vim_parser::tests::test_double_operator ... ok
+test behaviors::vim::vim_parser::tests::test_indent_operator ... ok
+test behaviors::vim::vim_parser::tests::test_line_motions ... ok
+test behaviors::vim::vim_parser::tests::test_operator_only ... ok
+test behaviors::vim::vim_parser::tests::test_operator_with_document_start ... ok
+test behaviors::vim::vim_parser::tests::test_operator_with_motion ... ok
+test behaviors::vim::vim_parser::tests::test_operator_with_word ... ok
+test behaviors::vim::vim_parser::tests::test_outdent_operator ... ok
+test behaviors::vim::vim_parser::tests::test_paragraph_motion ... ok
+test behaviors::vim::vim_parser::tests::test_simple_motion ... ok
+test behaviors::vim::vim_parser::tests::test_word_motions ... ok
+test behaviors::vim::vim_parser::tests::test_yank_line ... ok
+test behaviors::vim::visual::tests::test_visual_line_selection ... ok
+test behaviors::vim::visual::tests::test_visual_selection_range ... ok
+test controller::column_label_tests::test_column_labels ... ok
+test controller::column_label_tests::test_parse_column_labels ... ok
+test controller::events::tests::test_event_dispatcher ... ok
+test controller::events::tests::test_keyboard_event ... ok
+test controller::events_test::tests::test_cursor_move_changes_state ... ok
+test controller::events_test::tests::test_cursor_movement_updates_state ... ok
+test controller::events_test::tests::test_event_dispatching_on_cell_edit ... ok
+test controller::events_test::tests::test_event_dispatching_on_mode_change ... ok
+test controller::events_test::tests::test_error_event_on_invalid_formula ... ok
+test controller::events_test::tests::test_formula_bar_clears_after_submission ... ok
+test controller::events_test::tests::test_formula_bar_actions ... ok
+test controller::events_test::tests::test_formula_bar_initialization ... ok
+test controller::events_test::tests::test_formula_bar_update_on_cursor_move ... ok
+test controller::events_test::tests::test_formula_bar_shows_formula_not_value ... ok
+test controller::events_test::tests::test_selection_stats_update ... ok
+test controller::spreadsheet::sheet_tests::test_add_sheet ... ok
+test controller::spreadsheet::sheet_tests::test_error_manager_integration ... ok
+test controller::spreadsheet::sheet_tests::test_error_events ... ok
+test controller::spreadsheet::sheet_tests::test_error_removal ... ok
+test controller::spreadsheet::sheet_tests::test_get_sheets ... ok
+test controller::spreadsheet::sheet_tests::test_remove_last_sheet_fails ... ok
+test controller::spreadsheet::sheet_tests::test_remove_sheet ... ok
+test controller::spreadsheet::sheet_tests::test_set_active_sheet ... ok
+test controller::spreadsheet::sheet_tests::test_sheet_actions ... ok
+test controller::spreadsheet::sheet_tests::test_rename_sheet ... ok
+test controller::spreadsheet::sheet_tests::test_sheet_events ... ok
+test controller::spreadsheet::sheet_tests::test_sheet_count ... ok
+test controller::spreadsheet_test::tests::test_a_key_starts_append_mode_with_cursor_at_end ... ok
+test controller::spreadsheet_test::tests::test_backspace_key_clears_cell_and_updates_formula_bar ... ok
+test controller::spreadsheet_test::tests::test_cursor_movement_in_navigation_mode ... ok
+test controller::spreadsheet_test::tests::test_direct_typing_starts_editing ... ok
+test controller::spreadsheet_test::tests::test_delete_key_clears_cell_and_updates_formula_bar ... ok
+test controller::spreadsheet_test::tests::test_enter_key_starts_editing_in_insert_mode ... ok
+test controller::spreadsheet_test::tests::test_enter_key_starts_editing_with_empty_value ... ok
+test controller::spreadsheet_test::tests::test_error_dismissal_removes_error ... ok
+test controller::spreadsheet_test::tests::test_i_key_starts_insert_mode_with_cursor_at_zero ... ok
+test controller::spreadsheet_test::tests::test_invalid_cell_reference_generates_ref_error ... ok
+test controller::spreadsheet_test::tests::test_mode_transitions ... ok
+test controller::spreadsheet_test::tests::test_navigation_updates_formula_bar ... ok
+test controller::spreadsheet_test::tests::test_typing_starts_editing_in_insert_mode ... ok
+test controller::spreadsheet_test::tests::test_update_editing_value_during_typing ... ok
+test controller::tests::tests::test_action_dispatch ... ok
+test controller::tests::tests::test_command_mode_input ... ok
+test controller::tests::tests::test_controller_initialization ... ok
+test controller::tests::tests::test_complex_keyboard_sequence ... ok
+test controller::tests::tests::test_event_subscription ... ok
+test controller::tests::tests::test_facade_integration ... ok
+test controller::tests::tests::test_editing_mode_variants ... ok
+test controller::tests::tests::test_keyboard_navigation ... ok
+test controller::tests::tests::test_mode_transitions ... ok
+test controller::tests::tests::test_modifiers_handling ... ok
+test controller::tests::tests::test_mouse_click_handling ... ok
+test controller::tests::tests::test_viewport_management ... ok
+test controller::viewport::tests::test_coordinate_conversion ... ok
+test controller::viewport::tests::test_viewport_manager ... ok
+test controller::viewport::tests::test_visibility ... ok
+test managers::error::tests::test_add_error ... ok
+test managers::error::tests::test_auto_dismiss_timing ... ok
+test managers::error::tests::test_cleanup_expired ... ok
+test managers::error::tests::test_clear_all ... ok
+test managers::error::tests::test_format_circular_error ... ok
+test managers::error::tests::test_format_div_zero_error ... ok
+test managers::error::tests::test_format_generic_formula_error ... ok
+test managers::error::tests::test_format_generic_non_formula_error ... ok
+test managers::error::tests::test_format_name_error ... ok
+test managers::error::tests::test_format_ref_error ... ok
+test managers::error::tests::test_format_value_error ... ok
+test managers::error::tests::test_max_capacity ... ok
+test managers::error::tests::test_remove_error ... ok
+test managers::error::tests::test_severity_auto_dismiss ... ok
+test state::complex_transition_tests::complex_transition_tests::test_bulk_operation_workflow ... ok
+test state::complex_transition_tests::complex_transition_tests::test_command_mode_with_complex_commands ... ok
+test state::complex_transition_tests::complex_transition_tests::test_complex_visual_selection_expansion ... ok
+test state::complex_transition_tests::complex_transition_tests::test_insert_delete_workflow ... ok
+test state::complex_transition_tests::complex_transition_tests::test_interrupted_bulk_operation ... ok
+test state::complex_transition_tests::complex_transition_tests::test_multi_step_vim_commands ... ok
+test state::complex_transition_tests::complex_transition_tests::test_nested_mode_transitions ... ok
+test state::complex_transition_tests::complex_transition_tests::test_resize_mode_workflow ... ok
+test state::complex_transition_tests::complex_transition_tests::test_undo_redo_with_state_transitions ... ok
+test state::complex_transition_tests::complex_transition_tests::test_vim_workflow_navigation_to_edit_to_visual ... ok
+test state::edge_case_tests::tests::test_cursor_at_max_coordinates ... ok
+test state::edge_case_tests::tests::test_empty_command_execution ... ok
+test state::edge_case_tests::tests::test_invalid_state_recovery ... ok
+test state::edge_case_tests::tests::test_maximum_history_size ... ok
+test state::edge_case_tests::tests::test_listener_removal_during_notification ... ok
+test state::edge_case_tests::tests::test_rapid_mode_switching ... ok
+test state::edge_case_tests::tests::test_selection_with_extreme_ranges ... ok
+test state::edge_case_tests::tests::test_concurrent_state_transitions ... ok
+test state::edge_case_tests::tests::test_state_machine_reset ... ok
+test state::edge_case_tests::tests::test_special_characters_in_values ... ok
+test state::edge_case_tests::tests::test_viewport_boundary_conditions ... ok
+test state::performance_tests::performance_tests::test_large_selection_operations ... ok
+test state::performance_tests::performance_tests::test_rapid_state_transitions ... ok
+test state::performance_tests::performance_tests::test_history_with_thousands_of_entries ... ok
+test state::performance_tests::performance_tests::test_event_listener_performance ... ok
+test state::refactoring_tests::tests::test_bulk_operation_status_transitions ... ok
+test state::performance_tests::performance_tests::test_viewport_scrolling_performance ... ok
+test state::performance_tests::performance_tests::test_memory_usage_stability ... ok
+test state::refactoring_tests::tests::test_consolidated_handler_coverage ... ok
+test state::edge_case_tests::tests::test_memory_limits_for_editing_values ... ok
+test state::refactoring_tests::tests::test_core_state_shared_between_modes ... ok
+test state::refactoring_tests::tests::test_editing_mode_state_preservation ... ok
+test state::refactoring_tests::tests::test_invalid_action_rejection ... ok
+test state::refactoring_tests::tests::test_modal_consolidation_in_navigation ... ok
+test state::refactoring_tests::tests::test_two_variant_state_structure ... ok
+test state::refactoring_tests::tests::test_resize_modal_updates ... ok
+test state::tests::tests::test_command_mode ... ok
+test state::refactoring_tests::tests::test_visual_selection_in_editing_state ... ok
+test state::tests::tests::test_editing_mode_transitions ... ok
+test state::refactoring_tests::tests::test_modal_state_transitions ... ok
+test state::tests::tests::test_escape_handling ... ok
+test state::tests::tests::test_helper_methods ... ok
+test state::tests::tests::test_history_tracking ... ok
+test state::tests::tests::test_initial_state ... ok
+test state::tests::tests::test_listener_notifications ... ok
+test state::tests::tests::test_invalid_transitions ... ok
+test state::tests::tests::test_navigation_to_editing ... ok
+test state::tests::tests::test_navigation_to_editing_with_insert_mode ... ok
+test state::tests::tests::test_update_cursor_and_viewport ... ok
+test state::tests::tests::test_visual_mode_transitions ... ok
+test state::tests::tests::test_spreadsheet_visual_mode ... ok
+test tests::test_module_imports ... ok
+test state::performance_tests::performance_tests::test_complex_state_serialization_performance ... ok
+test state::performance_tests::performance_tests::test_command_parsing_performance ... ok
+
+test result: ok. 187 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/integration_tests.rs (target/debug/deps/integration_tests-2914bc08c821c820)
+
+running 10 tests
+test test_command_mode_workflow ... ok
+test test_bulk_operation_workflow ... ok
+test test_state_machine_basic_transitions ... ok
+test test_undo_redo_history ... ok
+test test_resize_mode_workflow ... ok
+test test_vim_mode_navigation ... ok
+test test_visual_mode_selection ... ok
+test test_controller_mouse_handling ... ok
+test test_controller_keyboard_handling ... ok
+test test_controller_with_facade_integration ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/visual_mode_tests.rs (target/debug/deps/visual_mode_tests-06e24ce0cbe0e37f)
+
+running 6 tests
+test test_visual_line_mode ... ignored, Visual line mode test - depends on visual mode working properly
+test test_visual_mode_multi_directional_selection ... ignored, Currently broken - visual mode doesn't extend selection on movement
+test test_visual_mode_selection_extension ... ignored, Currently broken - visual mode doesn't extend selection on movement
+test test_visual_mode_selection_in_state ... ignored, Currently broken - visual mode doesn't extend selection on movement
+test test_visual_mode_exit ... ok
+test test_visual_mode_entry ... ok
+
+test result: ok. 2 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests gridcore_controller
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
