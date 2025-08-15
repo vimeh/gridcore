@@ -197,7 +197,6 @@ impl SpreadsheetController {
         super::state_access::DirectStateAccess::new(&mut self.formula_bar)
     }
 
-
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
         // Handle special actions that need controller logic
 
@@ -356,25 +355,32 @@ impl SpreadsheetController {
 
     // Operation facades have been removed in hybrid refactor
     // Use direct methods on SpreadsheetController instead
-    
+
     /// Add an error to the error system
     pub fn add_error(&mut self, msg: String, severity: crate::controller::events::ErrorSeverity) {
-        self.error_system.add_error(msg, severity);
+        self.error_system.add_error(msg.clone(), severity);
+        // Emit event for the error
+        self.event_dispatcher.notify_error(&msg, severity);
     }
-    
+
     /// Remove an error from the error system
     pub fn remove_error(&mut self, error_id: usize) {
         self.error_system.remove_error(error_id);
     }
-    
+
     /// Clear all errors
     pub fn clear_errors(&mut self) {
         self.error_system.clear_all();
     }
-    
+
     /// Get current errors
     pub fn get_errors(&self) -> Vec<crate::managers::ErrorEntry> {
         self.error_system.get_errors()
+    }
+
+    /// Get mutable reference to error system (mainly for tests)
+    pub fn errors(&mut self) -> &mut ErrorSystem {
+        &mut self.error_system
     }
 
     pub fn get_viewport_manager(&self) -> &ViewportManager {
@@ -462,7 +468,6 @@ impl SpreadsheetController {
         self.error_system.clear_all();
     }
 
-
     /// Dispatch an event to all listeners
     pub fn dispatch_event(&mut self, event: SpreadsheetEvent) {
         self.event_dispatcher.dispatch(&event);
@@ -508,8 +513,8 @@ impl SpreadsheetController {
                     match modal {
                         crate::state::NavigationModal::Visual { mode, anchor, .. } => {
                             EditorMode::Visual {
-                                mode: mode.clone(),
-                                anchor: anchor.clone(),
+                                mode: *mode,
+                                anchor: *anchor,
                             }
                         }
                         crate::state::NavigationModal::Command { value } => EditorMode::Command {
@@ -534,7 +539,7 @@ impl SpreadsheetController {
                 ..
             } => EditorMode::Editing {
                 value: value.clone(),
-                cursor_pos: cursor_pos.clone(),
+                cursor_pos: *cursor_pos,
                 insert_mode: if matches!(edit_mode, crate::state::EditMode::Insert) {
                     Some(crate::state::InsertMode::I)
                 } else {
@@ -635,9 +640,7 @@ impl SpreadsheetController {
 
     pub(super) fn complete_editing(&mut self) -> Result<()> {
         // Use CellEditor to complete editing
-        if let Some(result) =
-            CellEditor::complete_editing(&self.state(), &mut self.facade)
-        {
+        if let Some(result) = CellEditor::complete_editing(&self.state(), &mut self.facade) {
             // Process events from result
             for (event, error_info) in result.create_events() {
                 self.event_dispatcher.dispatch(&event);
@@ -852,26 +855,32 @@ mod sheet_tests {
         // Add an error
         controller
             .errors()
-            .emit("Test error".to_string(), ErrorSeverity::Error);
+            .add_error("Test error".to_string(), ErrorSeverity::Error);
 
         // Check that error was added
-        let errors = controller.get_active_errors();
-        assert_eq!(errors.len(), 1);
-        assert_eq!(errors[0].message, "Test error");
+        {
+            let errors = controller.errors().get_active_errors();
+            assert_eq!(errors.len(), 1);
+            assert_eq!(errors[0].message, "Test error");
+        }
 
         // Add warning
         controller
             .errors()
-            .emit("Test warning".to_string(), ErrorSeverity::Warning);
+            .add_error("Test warning".to_string(), ErrorSeverity::Warning);
 
         // Check both are present
-        let errors = controller.get_active_errors();
-        assert_eq!(errors.len(), 2);
+        {
+            let errors = controller.errors().get_active_errors();
+            assert_eq!(errors.len(), 2);
+        }
 
         // Clear all errors
-        controller.clear_all_errors();
-        let errors = controller.get_active_errors();
-        assert_eq!(errors.len(), 0);
+        controller.clear_errors();
+        {
+            let errors = controller.errors().get_active_errors();
+            assert_eq!(errors.len(), 0);
+        }
     }
 
     #[test]
@@ -881,29 +890,33 @@ mod sheet_tests {
         // Add multiple errors
         controller
             .errors()
-            .emit("Error 1".to_string(), ErrorSeverity::Error);
+            .add_error("Error 1".to_string(), ErrorSeverity::Error);
         controller
             .errors()
-            .emit("Error 2".to_string(), ErrorSeverity::Warning);
+            .add_error("Error 2".to_string(), ErrorSeverity::Warning);
         controller
             .errors()
-            .emit("Error 3".to_string(), ErrorSeverity::Info);
+            .add_error("Error 3".to_string(), ErrorSeverity::Info);
 
-        let errors = controller.get_active_errors();
-        assert_eq!(errors.len(), 3);
+        let error_id = {
+            let errors = controller.errors().get_active_errors();
+            assert_eq!(errors.len(), 3);
+            errors[1].id
+        };
 
         // Remove middle error
-        let error_id = errors[1].id;
-        assert!(controller.remove_error(error_id));
+        assert!(controller.errors().remove_error(error_id));
 
         // Check that only 2 remain
-        let errors = controller.get_active_errors();
-        assert_eq!(errors.len(), 2);
-        assert_eq!(errors[0].message, "Error 1");
-        assert_eq!(errors[1].message, "Error 3");
+        {
+            let errors = controller.errors().get_active_errors();
+            assert_eq!(errors.len(), 2);
+            assert_eq!(errors[0].message, "Error 1");
+            assert_eq!(errors[1].message, "Error 3");
+        }
 
         // Try to remove non-existent error
-        assert!(!controller.remove_error(999));
+        assert!(!controller.errors().remove_error(999));
     }
 
     #[test]
@@ -918,10 +931,8 @@ mod sheet_tests {
             e.push(format!("{:?}", event));
         });
 
-        // Emit an error
-        controller
-            .errors()
-            .emit("Test error".to_string(), ErrorSeverity::Error);
+        // Emit an error using the controller's method which emits events
+        controller.add_error("Test error".to_string(), ErrorSeverity::Error);
 
         // Check that ErrorOccurred event was dispatched
         let e = events.lock().unwrap();
