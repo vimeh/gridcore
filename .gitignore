@@ -25,3 +25,6 @@ packages/ui-core/dist/wasm/
 
 repomix-output.xml
 *.png
+
+# benchmark results
+output.txt

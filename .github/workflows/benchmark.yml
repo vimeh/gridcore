@@ -33,11 +33,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Install cargo-criterion
+        run: |
+          cargo install cargo-criterion --locked || true
+
       - name: Run benchmarks
         working-directory: "gridcore-rs"
         run: |
-          # Run benchmarks with cargo-criterion and generate JSON output
-          cargo bench -- --output-format bencher | tee output.txt
+          cargo criterion --output-format bencher | tee output.txt
 
       - name: Download previous benchmark data
         uses: actions/cache@v4
@@ -49,7 +52,7 @@ jobs:
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: "cargo"
-          output-file-path: "gridcore/output.txt"
+          output-file-path: "gridcore-rs/output.txt"
           external-data-json-path: ./cache/benchmark-data.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
           fail-on-alert: true
