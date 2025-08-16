@@ -456,10 +456,10 @@ fn test_repeat_find() {
     // First find a character
     vim.process_key("f", &context).unwrap();
     vim.process_key("x", &context).unwrap();
-    
+
     // Test ; - repeat find in same direction
     vim.process_key(";", &context).unwrap();
-    
+
     // Test , - repeat find in opposite direction
     vim.process_key(",", &context).unwrap();
 }
@@ -473,15 +473,15 @@ fn test_set_and_jump_to_mark() {
     // Set mark 'a' at current position
     vim.process_key("m", &context).unwrap();
     vim.process_key("a", &context).unwrap();
-    
+
     // Move somewhere else
     vim.process_key("j", &context).unwrap();
     vim.process_key("l", &context).unwrap();
-    
+
     // Jump back to mark 'a'
     vim.process_key("'", &context).unwrap();
     vim.process_key("a", &context).unwrap();
-    
+
     // Verify we're back at the marked position
     assert!(vim.get_mark('a').is_some());
 }
@@ -495,12 +495,12 @@ fn test_search_forward() {
     // Enter search mode
     vim.process_key("/", &context).unwrap();
     assert!(matches!(vim.mode(), VimMode::Command));
-    
+
     // Type search pattern
     vim.process_key("f", &context).unwrap();
     vim.process_key("o", &context).unwrap();
     vim.process_key("o", &context).unwrap();
-    
+
     // Execute search
     vim.process_key("Enter", &context).unwrap();
     assert!(matches!(vim.mode(), VimMode::Normal));
@@ -515,12 +515,12 @@ fn test_search_backward() {
     // Enter reverse search mode
     vim.process_key("?", &context).unwrap();
     assert!(matches!(vim.mode(), VimMode::Command));
-    
+
     // Type search pattern
     vim.process_key("b", &context).unwrap();
     vim.process_key("a", &context).unwrap();
     vim.process_key("r", &context).unwrap();
-    
+
     // Execute search
     vim.process_key("Enter", &context).unwrap();
     assert!(matches!(vim.mode(), VimMode::Normal));
@@ -538,10 +538,10 @@ fn test_next_and_previous_match() {
     vim.process_key("s", &context).unwrap();
     vim.process_key("t", &context).unwrap();
     vim.process_key("Enter", &context).unwrap();
-    
+
     // Test n - next match
     vim.process_key("n", &context).unwrap();
-    
+
     // Test N - previous match
     vim.process_key("N", &context).unwrap();
 }
@@ -583,7 +583,7 @@ fn test_zero_as_motion_not_count() {
     } else {
         panic!("Expected cursor to move to line start");
     }
-    
+
     // But 10j should work (0 is part of count)
     vim.process_key("1", &context).unwrap();
     vim.process_key("0", &context).unwrap();
@@ -621,7 +621,7 @@ fn test_invalid_keys() {
     // Invalid keys should return None or be ignored
     let result = vim.process_key("@", &context).unwrap();
     assert!(matches!(result, VimResult::None));
-    
+
     let _result = vim.process_key("#", &context).unwrap();
     // # is actually search backward for word under cursor
     // but without implementation, should be handled gracefully
@@ -636,7 +636,7 @@ fn test_operator_cancellation() {
     // Enter operator pending mode
     vim.process_key("d", &context).unwrap();
     assert!(matches!(vim.mode(), VimMode::OperatorPending(_)));
-    
+
     // Escape should cancel and return to normal mode
     vim.process_key("Escape", &context).unwrap();
     assert!(matches!(vim.mode(), VimMode::Normal));
@@ -662,7 +662,7 @@ fn test_operator_with_paragraph_motion() {
     // Test d{ - delete to previous paragraph
     let result = vim.parse_and_execute("d{", &context);
     assert!(result.is_ok());
-    
+
     // Test y} - yank to next paragraph
     let result = vim.parse_and_execute("y}", &context);
     assert!(result.is_ok());
@@ -682,7 +682,7 @@ fn test_double_operators_with_count() {
     } else {
         panic!("Expected delete action for 3dd");
     }
-    
+
     // Test 5yy - yank 5 lines
     vim.process_key("5", &context).unwrap();
     vim.process_key("y", &context).unwrap();
@@ -699,7 +699,7 @@ fn test_visual_block_mode() {
     // Note: This would typically be Ctrl-V, but we'll use a placeholder
     vim.process_key("v", &context).unwrap();
     assert!(matches!(vim.mode(), VimMode::Visual(VisualMode::Character)));
-    
+
     // Visual block mode would be:
     // vim.process_key("Ctrl-v", &context).unwrap();
     // assert!(matches!(vim.mode(), VimMode::Visual(VisualMode::Block)));

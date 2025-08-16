@@ -93,7 +93,10 @@ fn test_visual_mode_exit() {
     // Should be back in navigation mode
     let mode = controller.get_mode();
     assert!(matches!(mode, EditorMode::Navigation));
-    assert!(controller.get_selection().is_none(), "Selection should be cleared after exit");
+    assert!(
+        controller.get_selection().is_none(),
+        "Selection should be cleared after exit"
+    );
 }
 
 #[test]
