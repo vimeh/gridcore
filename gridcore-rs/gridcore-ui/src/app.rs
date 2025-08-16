@@ -2,6 +2,7 @@ use crate::components::error_display::ErrorDisplay;
 use crate::components::grid_container::GridContainer;
 use crate::components::status_bar::StatusBar;
 use crate::components::tab_bar::{Sheet, TabBar};
+use crate::context::AppState;
 use crate::reactive::ReactiveState;
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_core::types::CellAddress;
@@ -28,7 +29,6 @@ pub fn App() -> impl IntoView {
     // Create the SpreadsheetController
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
     let controller_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
-    provide_context(controller_stored);
 
     // Demo feature state
     #[cfg(feature = "demo")]
@@ -39,8 +39,13 @@ pub fn App() -> impl IntoView {
 
     // Create reactive state that tracks controller changes
     let reactive_state = ReactiveState::new(controller.clone());
-    provide_context(reactive_state.generation);
-    provide_context(reactive_state.render_generation);
+
+    // Provide unified app state through context
+    provide_context(AppState {
+        controller: controller_stored,
+        state_generation: reactive_state.generation,
+        render_generation: reactive_state.render_generation,
+    });
 
     // Create derived signals that automatically track state changes
     let active_cell = Signal::derive(move || {

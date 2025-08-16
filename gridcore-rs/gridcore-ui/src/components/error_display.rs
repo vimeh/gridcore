@@ -1,7 +1,5 @@
-use gridcore_controller::controller::SpreadsheetController;
+use crate::context::{use_controller, use_state_generation};
 use leptos::prelude::*;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ErrorSeverity {
@@ -26,10 +24,8 @@ pub struct ErrorContext {
 #[component]
 pub fn ErrorDisplay() -> impl IntoView {
     // Get controller and reactive state from context
-    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
-        use_context().expect("SpreadsheetController not found in context");
-    let state_generation: RwSignal<u32> =
-        use_context().expect("State generation not found in context");
+    let controller_stored = use_controller();
+    let state_generation = use_state_generation();
 
     // Derive errors from controller's ErrorManager
     let errors = Signal::derive(move || {

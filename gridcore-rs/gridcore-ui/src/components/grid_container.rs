@@ -1,4 +1,4 @@
-use gridcore_controller::controller::SpreadsheetController;
+use crate::context::{use_app_state, use_reactive_signals};
 use leptos::html::Div;
 use leptos::prelude::*;
 use std::cell::RefCell;
@@ -15,14 +15,11 @@ use crate::rendering::default_theme;
 
 #[component]
 pub fn GridContainer() -> impl IntoView {
-    // Get controller and reactive state from context
-    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
-        use_context().expect("SpreadsheetController not found in context");
+    // Get app state from context
+    let app_state = use_app_state();
+    let controller_stored = app_state.controller;
     let controller_rc = controller_stored.get_value();
-    let state_generation: RwSignal<u32> =
-        use_context().expect("Reactive state not found in context");
-    let render_generation: RwSignal<u32> =
-        use_context().expect("Render generation not found in context");
+    let (state_generation, render_generation) = use_reactive_signals();
 
     // Node refs
     let wrapper_ref = NodeRef::<Div>::new();
@@ -205,12 +202,10 @@ pub fn GridContainer() -> impl IntoView {
             style="width: 100%; height: 100%; outline: none; position: relative; overflow: hidden;"
         >
             <GridEventHandler
-                controller_stored=controller_stored
                 viewport_stored=viewport_stored
                 resize_handler=resize_handler
             >
                 <GridCanvas
-                    controller_stored=controller_stored
                     viewport_stored=viewport_stored
                 />
                 <CellEditor

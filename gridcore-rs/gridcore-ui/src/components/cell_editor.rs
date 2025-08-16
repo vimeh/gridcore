@@ -1,11 +1,9 @@
 // use crate::components::error_display::use_error_context; // TODO: Re-enable when full keyboard support is restored
-use gridcore_controller::controller::SpreadsheetController;
+use crate::context::use_controller;
 use gridcore_controller::state::{actions::Action, InsertMode, SpreadsheetMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Textarea;
 use leptos::prelude::*;
-use std::cell::RefCell;
-use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use web_sys::KeyboardEvent;
 
@@ -18,8 +16,7 @@ pub fn CellEditor(
     _render_trigger: Trigger,
 ) -> impl IntoView {
     // Get controller from context
-    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
-        use_context().expect("SpreadsheetController not found in context");
+    let controller_stored = use_controller();
 
     let input_ref = NodeRef::<Textarea>::new();
     let (suggestions, set_suggestions) = signal::<Vec<String>>(Vec::new());

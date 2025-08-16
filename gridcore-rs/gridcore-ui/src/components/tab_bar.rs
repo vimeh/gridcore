@@ -1,9 +1,7 @@
-use gridcore_controller::controller::SpreadsheetController;
+use crate::context::use_controller;
 use gridcore_controller::state::Action;
 use leptos::either::Either;
 use leptos::prelude::*;
-use std::cell::RefCell;
-use std::rc::Rc;
 use web_sys::MouseEvent;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -21,8 +19,7 @@ pub fn TabBar(sheets: Memo<Vec<Sheet>>, active_sheet: Memo<usize>) -> impl IntoV
     let (edit_name, set_edit_name) = signal(String::new());
 
     // Get controller from context
-    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
-        use_context().expect("SpreadsheetController not found in context");
+    let controller_stored = use_controller();
     let controller = controller_stored.get_value();
 
     // Add new sheet

@@ -1,16 +1,12 @@
-use gridcore_controller::controller::SpreadsheetController;
+use crate::context::{use_controller, use_state_generation};
 use gridcore_controller::state::VisualMode;
 use leptos::prelude::*;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 #[component]
 pub fn StatusBar() -> impl IntoView {
     // Get controller and reactive state from context
-    let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
-        use_context().expect("SpreadsheetController not found in context");
-    let state_generation: RwSignal<u32> =
-        use_context().expect("State generation not found in context");
+    let controller_stored = use_controller();
+    let state_generation = use_state_generation();
 
     // Create a reactive signal that updates when current_mode or selection changes
     // This ensures the UI updates when mode changes

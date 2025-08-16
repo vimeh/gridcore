@@ -1,4 +1,4 @@
-use gridcore_controller::controller::SpreadsheetController;
+use crate::context::{use_controller, use_render_generation};
 use gridcore_controller::state::Action;
 use leptos::prelude::*;
 use std::cell::RefCell;
@@ -11,11 +11,12 @@ use crate::interaction::resize_handler::ResizeHandler;
 
 #[component]
 pub fn GridEventHandler(
-    controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage>,
     viewport_stored: StoredValue<Rc<RefCell<Viewport>>, LocalStorage>,
     resize_handler: ResizeHandler,
     children: Children,
 ) -> impl IntoView {
+    // Get controller from context
+    let controller_stored = use_controller();
     let (resize_hover_state, set_resize_hover_state) = signal("cell");
 
     // Handle mouse click
@@ -165,9 +166,8 @@ pub fn GridEventHandler(
         if scroll_x != 0.0 || scroll_y != 0.0 {
             viewport_stored.with_value(|vp| vp.borrow_mut().scroll_by(scroll_x, scroll_y));
             // Manual render update for scroll
-            if let Some(render_gen) = use_context::<RwSignal<u32>>() {
-                render_gen.update(|g| *g += 1);
-            }
+            let render_gen = use_render_generation();
+            render_gen.update(|g| *g += 1);
         }
     };
 

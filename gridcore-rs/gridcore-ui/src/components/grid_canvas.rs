@@ -1,4 +1,4 @@
-use gridcore_controller::controller::SpreadsheetController;
+use crate::context::{use_controller, use_reactive_signals};
 use leptos::html::Canvas;
 use leptos::prelude::*;
 use std::cell::RefCell;
@@ -9,9 +9,11 @@ use crate::rendering::{default_theme, CanvasRenderer, RenderParams};
 
 #[component]
 pub fn GridCanvas(
-    controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage>,
     viewport_stored: StoredValue<Rc<RefCell<Viewport>>, LocalStorage>,
 ) -> impl IntoView {
+    // Get controller and reactive signals from context
+    let controller_stored = use_controller();
+    let (state_generation, render_generation) = use_reactive_signals();
     let canvas_ref = NodeRef::<Canvas>::new();
     let (canvas_dimensions, set_canvas_dimensions) = signal((0.0, 0.0));
 
@@ -21,12 +23,6 @@ pub fn GridCanvas(
 
     let theme = default_theme();
     let renderer = CanvasRenderer::new(theme);
-
-    // Get render generation from context
-    let render_generation: RwSignal<u32> =
-        use_context().expect("Render generation not found in context");
-    let state_generation: RwSignal<u32> =
-        use_context().expect("State generation not found in context");
 
     // Set up canvas rendering effect - only for DOM updates
     Effect::new(move |_| {
