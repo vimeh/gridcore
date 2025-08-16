@@ -1,7 +1,5 @@
 use crate::controller::{KeyboardEvent, MouseEvent, SpreadsheetEvent};
-use crate::state::{
-    Action, InsertMode, NavigationModal, Selection, SelectionType, UIState,
-};
+use crate::state::{Action, InsertMode, NavigationModal, Selection, SelectionType, UIState};
 use gridcore_core::{types::CellAddress, Result};
 
 /// Handles all input events for the spreadsheet controller
@@ -27,7 +25,9 @@ impl<'a> InputHandler<'a> {
         use super::mode::EditorMode;
         match mode {
             EditorMode::Navigation => self.handle_navigation_key(event),
-            EditorMode::Editing { .. } => self.handle_editing_key(event),
+            EditorMode::Editing { .. } | EditorMode::CellEditing { .. } => {
+                self.handle_editing_key(event)
+            }
             EditorMode::Command { .. } => self.handle_command_key(event),
             EditorMode::Visual { .. } => self.handle_visual_key(event),
             EditorMode::Resizing => Ok(()),
@@ -50,11 +50,12 @@ impl<'a> InputHandler<'a> {
                     "'i' key pressed, starting insert mode with existing value: '{}', cursor at 0",
                     existing_value
                 );
-                use super::mode::EditorMode;
-                self.controller.set_mode(EditorMode::Editing {
+                use super::mode::{CellEditMode, EditorMode};
+                self.controller.set_mode(EditorMode::CellEditing {
                     value: existing_value,
                     cursor_pos: 0,
-                    insert_mode: Some(InsertMode::I),
+                    mode: CellEditMode::Insert(InsertMode::I),
+                    visual_anchor: None,
                 });
                 Ok(())
             }
@@ -66,21 +67,23 @@ impl<'a> InputHandler<'a> {
                     existing_value,
                     cursor_pos
                 );
-                use super::mode::EditorMode;
-                self.controller.set_mode(EditorMode::Editing {
+                use super::mode::{CellEditMode, EditorMode};
+                self.controller.set_mode(EditorMode::CellEditing {
                     value: existing_value,
                     cursor_pos,
-                    insert_mode: Some(InsertMode::A),
+                    mode: CellEditMode::Insert(InsertMode::A),
+                    visual_anchor: None,
                 });
                 Ok(())
             }
             "Enter" => {
                 log::debug!("Enter key pressed, starting edit in Insert mode with empty value");
-                use super::mode::EditorMode;
-                self.controller.set_mode(EditorMode::Editing {
+                use super::mode::{CellEditMode, EditorMode};
+                self.controller.set_mode(EditorMode::CellEditing {
                     value: String::new(),
                     cursor_pos: 0,
-                    insert_mode: Some(InsertMode::I), // Start in INSERT mode for Enter key
+                    mode: CellEditMode::Insert(InsertMode::I), // Start in INSERT mode for Enter key
+                    visual_anchor: None,
                 });
                 Ok(())
             }
@@ -151,11 +154,12 @@ impl<'a> InputHandler<'a> {
             "I" => {
                 let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
                 log::debug!("'I' key pressed, entering insert mode at start of line");
-                use super::mode::EditorMode;
-                self.controller.set_mode(EditorMode::Editing {
+                use super::mode::{CellEditMode, EditorMode};
+                self.controller.set_mode(EditorMode::CellEditing {
                     value: existing_value,
                     cursor_pos: 0,
-                    insert_mode: Some(InsertMode::CapitalI),
+                    mode: CellEditMode::Insert(InsertMode::CapitalI),
+                    visual_anchor: None,
                 });
                 Ok(())
             }
@@ -163,11 +167,12 @@ impl<'a> InputHandler<'a> {
                 let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
                 let cursor_pos = existing_value.len();
                 log::debug!("'A' key pressed, entering insert mode at end of line");
-                use super::mode::EditorMode;
-                self.controller.set_mode(EditorMode::Editing {
+                use super::mode::{CellEditMode, EditorMode};
+                self.controller.set_mode(EditorMode::CellEditing {
                     value: existing_value,
                     cursor_pos,
-                    insert_mode: Some(InsertMode::CapitalA),
+                    mode: CellEditMode::Insert(InsertMode::CapitalA),
+                    visual_anchor: None,
                 });
                 Ok(())
             }
@@ -176,11 +181,12 @@ impl<'a> InputHandler<'a> {
                 // Check if this is a single printable character that should start editing
                 if event.key.len() == 1 && !event.ctrl && !event.alt && !event.meta {
                     log::debug!("Starting edit mode with typed character: '{}'", event.key);
-                    use super::mode::EditorMode;
-                    self.controller.set_mode(EditorMode::Editing {
+                    use super::mode::{CellEditMode, EditorMode};
+                    self.controller.set_mode(EditorMode::CellEditing {
                         value: event.key.clone(),
                         cursor_pos: 1,
-                        insert_mode: Some(InsertMode::I),
+                        mode: CellEditMode::Insert(InsertMode::I),
+                        visual_anchor: None,
                     });
                     Ok(())
                 } else {
@@ -213,7 +219,7 @@ impl<'a> InputHandler<'a> {
                 return Ok(());
             }
         };
-        
+
         // Use direct set_cursor following hybrid architecture
         self.controller.set_cursor(new_cursor);
         self.controller.update_formula_bar_from_cursor();
@@ -238,11 +244,15 @@ impl<'a> InputHandler<'a> {
 
     fn handle_editing_key(&mut self, event: KeyboardEvent) -> Result<()> {
         use super::mode::EditorMode;
-        
+
         // Only handle Escape here for cancel - let cell_editor handle everything else
         if event.key == "Escape" {
             // Check if we're in insert mode first
-            if let EditorMode::Editing { insert_mode: Some(_), .. } = self.controller.get_mode() {
+            if let EditorMode::Editing {
+                insert_mode: Some(_),
+                ..
+            } = self.controller.get_mode()
+            {
                 // Let cell editor handle Escape in insert mode
                 return Ok(());
             }
@@ -250,11 +260,10 @@ impl<'a> InputHandler<'a> {
             self.controller.cancel_editing()?;
             return Ok(());
         }
-        
+
         // Let the cell editor component handle all other keys
         Ok(())
     }
-
 
     fn handle_command_key(&mut self, event: KeyboardEvent) -> Result<()> {
         if event.key == "Escape" {
@@ -401,11 +410,12 @@ impl<'a> InputHandler<'a> {
                 crate::controller::events::MouseEventType::DoubleClick => {
                     self.controller.set_cursor(cell);
                     let existing_value = self.controller.get_cell_display_for_ui(&cell);
-                    use super::mode::EditorMode;
-                    self.controller.set_mode(EditorMode::Editing {
+                    use super::mode::{CellEditMode, EditorMode};
+                    self.controller.set_mode(EditorMode::CellEditing {
                         value: existing_value,
                         cursor_pos: 0,
-                        insert_mode: Some(InsertMode::I),
+                        mode: CellEditMode::Insert(InsertMode::I),
+                        visual_anchor: None,
                     });
                     self.controller.update_formula_bar_from_cursor();
                     Ok(())

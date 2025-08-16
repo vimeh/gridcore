@@ -2,6 +2,14 @@ use crate::state::{InsertMode, VisualMode};
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
 
+/// Mode for cell-level text editing (vim modes within a cell)
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum CellEditMode {
+    Normal,
+    Insert(InsertMode),
+    Visual(VisualMode),
+}
+
 /// Simplified editor mode tracking - what the user is doing
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub enum EditorMode {
@@ -19,10 +27,18 @@ pub enum EditorMode {
     /// Command mode for Vim-style commands
     Command { value: String },
 
-    /// Visual selection mode
+    /// Visual selection mode for grid-level selection
     Visual {
         mode: VisualMode,
         anchor: CellAddress,
+    },
+
+    /// Cell editing with vim modes - tracks text editing state
+    CellEditing {
+        value: String,
+        cursor_pos: usize,
+        mode: CellEditMode,
+        visual_anchor: Option<usize>, // For text visual mode
     },
 
     /// Resizing columns or rows
@@ -31,7 +47,14 @@ pub enum EditorMode {
 
 impl EditorMode {
     pub fn is_editing(&self) -> bool {
-        matches!(self, EditorMode::Editing { .. })
+        matches!(
+            self,
+            EditorMode::Editing { .. } | EditorMode::CellEditing { .. }
+        )
+    }
+
+    pub fn is_cell_editing(&self) -> bool {
+        matches!(self, EditorMode::CellEditing { .. })
     }
 
     pub fn is_visual(&self) -> bool {

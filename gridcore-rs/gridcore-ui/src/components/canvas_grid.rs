@@ -300,12 +300,8 @@ pub fn CanvasGrid(
 
             // Now update active cell and start editing
             if let Some(cell) = new_cell {
-                // Update cursor through controller action
-                let _ = controller_for_dblclick
-                    .borrow_mut()
-                    .dispatch_action(Action::UpdateCursor { cursor: cell });
-
-                // State version now updated via controller events
+                // Update cursor through controller
+                controller_for_dblclick.borrow_mut().set_cursor(cell);
 
                 // Get existing cell value
                 let existing_value = controller_stored.with_value(|ctrl| {
@@ -313,24 +309,20 @@ pub fn CanvasGrid(
                     ctrl_borrow.get_cell_display_for_ui(&cell)
                 });
 
-                // Cell position is now derived from memo, no need to calculate
+                // Start editing with CellEditing mode (insert at cursor)
+                controller_stored.with_value(|ctrl| {
+                    let mut ctrl_mut = ctrl.borrow_mut();
+                    use gridcore_controller::controller::mode::{CellEditMode, EditorMode};
+                    ctrl_mut.set_mode(EditorMode::CellEditing {
+                        value: existing_value,
+                        cursor_pos: 0,
+                        mode: CellEditMode::Insert(InsertMode::I),
+                        visual_anchor: None,
+                    });
+                });
 
-                // Start editing with 'a' mode (cursor at end)
-                let cursor_pos = existing_value.len();
-                let action = Action::StartEditing {
-                    edit_mode: Some(InsertMode::A),
-                    initial_value: Some(existing_value),
-                    cursor_position: Some(cursor_pos),
-                };
-
-                if let Err(e) =
-                    controller_stored.with_value(|c| c.borrow_mut().dispatch_action(action))
-                {
-                    debug_log!("Error starting edit on double-click: {:?}", e);
-                } else {
-                    // Canvas_grid's effect will handle setting editing_mode based on controller state
-                    // Controller will handle mode transition
-                }
+                // Notify mode change
+                mode_trigger.notify();
             }
         }
     };
@@ -523,7 +515,11 @@ pub fn CanvasGrid(
         let mode_changed = new_is_editing != was_editing;
 
         if mode_changed {
-            leptos::logging::log!("Mode changed: was_editing={}, is_editing={}", was_editing, new_is_editing);
+            leptos::logging::log!(
+                "Mode changed: was_editing={}, is_editing={}",
+                was_editing,
+                new_is_editing
+            );
             // State version now updated via controller events
         }
         // Mode changes are already handled by controller state machine
@@ -550,8 +546,7 @@ pub fn CanvasGrid(
 
         // Auto-scroll to keep the active cell visible if cursor moved
         // Don't auto-scroll if we're in editing mode
-        let is_editing = controller_stored
-            .with_value(|ctrl| ctrl.borrow().get_mode().is_editing());
+        let is_editing = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().is_editing());
         if new_cursor != old_cursor && !is_editing {
             let mut vp_borrow = viewport_rc.borrow_mut();
 

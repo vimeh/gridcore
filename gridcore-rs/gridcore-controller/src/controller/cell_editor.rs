@@ -50,9 +50,15 @@ impl CellEditor {
         cursor: CellAddress,
         facade: &mut SpreadsheetFacade,
     ) -> Option<CellEditResult> {
-        if let EditorMode::Editing { value, .. } = mode {
+        let editing_value = match mode {
+            EditorMode::Editing { value, .. } | EditorMode::CellEditing { value, .. } => {
+                Some(value.clone())
+            }
+            _ => None,
+        };
+
+        if let Some(cell_value) = editing_value {
             let address = cursor;
-            let cell_value = value.clone();
 
             let result = facade.set_cell_value(&address, &cell_value);
 
@@ -98,11 +104,21 @@ impl CellEditor {
         cursor: CellAddress,
         facade: &mut SpreadsheetFacade,
     ) -> Option<CellEditResult> {
-        if let EditorMode::Editing { value, .. } = mode {
+        let editing_value = match mode {
+            EditorMode::Editing { value, .. } | EditorMode::CellEditing { value, .. } => {
+                Some(value.clone())
+            }
+            _ => None,
+        };
+
+        if let Some(cell_value) = editing_value {
             let address = cursor;
-            let cell_value = value.clone();
-            
-            log::debug!("complete_editing_direct: Setting cell {:?} to value: '{}'", address, cell_value);
+
+            log::debug!(
+                "complete_editing_direct: Setting cell {:?} to value: '{}'",
+                address,
+                cell_value
+            );
 
             let result = facade.set_cell_value(&address, &cell_value);
 

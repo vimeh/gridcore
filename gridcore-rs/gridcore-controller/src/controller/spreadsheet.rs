@@ -1,10 +1,10 @@
 use crate::behaviors::{resize::ResizeState, selection_stats};
 use crate::controller::{
-    EditorMode, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent, SpreadsheetEvent,
-    ViewportManager,
+    mode::CellEditMode, EditorMode, EventDispatcher, GridConfiguration, KeyboardEvent, MouseEvent,
+    SpreadsheetEvent, ViewportManager,
 };
 use crate::managers::ErrorSystem;
-use crate::state::{Action, Selection, UIState};
+use crate::state::{Action, InsertMode, Selection, UIState};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
 use super::cell_editor::{CellEditResult, CellEditor};
@@ -256,21 +256,41 @@ impl SpreadsheetController {
         }
 
         // Handle UpdateEditingValue action - update editing mode with new value
-        if let Action::UpdateEditingValue { value, cursor_position } = &action {
+        if let Action::UpdateEditingValue {
+            value,
+            cursor_position,
+        } = &action
+        {
             // Update the editing mode with new value and cursor position
-            if let EditorMode::Editing { insert_mode, .. } = &self.mode {
-                let insert_mode = insert_mode.clone();
-                self.mode = EditorMode::Editing {
-                    value: value.clone(),
-                    cursor_pos: *cursor_position,
-                    insert_mode,
-                };
-                // Update formula bar to match
-                self.formula_bar = value.clone();
-                self.event_dispatcher.dispatch(&SpreadsheetEvent::FormulaBarUpdated { 
-                    value: value.clone() 
-                });
+            match &self.mode {
+                EditorMode::Editing { insert_mode, .. } => {
+                    let insert_mode = *insert_mode;
+                    self.mode = EditorMode::Editing {
+                        value: value.clone(),
+                        cursor_pos: *cursor_position,
+                        insert_mode,
+                    };
+                }
+                EditorMode::CellEditing {
+                    mode,
+                    visual_anchor,
+                    ..
+                } => {
+                    self.mode = EditorMode::CellEditing {
+                        value: value.clone(),
+                        cursor_pos: *cursor_position,
+                        mode: mode.clone(),
+                        visual_anchor: *visual_anchor,
+                    };
+                }
+                _ => {}
             }
+            // Update formula bar to match
+            self.formula_bar = value.clone();
+            self.event_dispatcher
+                .dispatch(&SpreadsheetEvent::FormulaBarUpdated {
+                    value: value.clone(),
+                });
             return Ok(());
         }
 
@@ -278,10 +298,11 @@ impl SpreadsheetController {
             // Use the new direct mode access instead of deprecated state()
             if let EditorMode::Editing { .. } = &self.mode {
                 let address = self.cursor;
-                
+
                 // Use CellEditor to handle submission
-                let result = CellEditor::submit_formula_bar(&mut self.facade, address, value.clone())?;
-                
+                let result =
+                    CellEditor::submit_formula_bar(&mut self.facade, address, value.clone())?;
+
                 // Process events from result
                 for (event, error_info) in result.create_events() {
                     self.event_dispatcher.dispatch(&event);
@@ -289,86 +310,172 @@ impl SpreadsheetController {
                         self.error_system.add_error(msg, severity);
                     }
                 }
-                
+
                 // Update formula bar to show the new value
                 self.update_formula_bar_from_cursor();
-                
+
                 // Exit editing mode directly
                 self.mode = EditorMode::Navigation;
-                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+                self.event_dispatcher
+                    .dispatch(&SpreadsheetEvent::StateChanged);
             }
             return Ok(());
         }
-        
+
         // Handle ExitInsertMode action
         if matches!(action, Action::ExitInsertMode) {
             // Exit insert mode to normal editing mode
-            if let EditorMode::Editing { value, cursor_pos, .. } = &self.mode {
-                self.mode = EditorMode::Editing {
-                    value: value.clone(),
-                    cursor_pos: *cursor_pos,
-                    insert_mode: None, // Clear insert mode
-                };
-                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+            match &self.mode {
+                EditorMode::Editing {
+                    value, cursor_pos, ..
+                } => {
+                    // Old path - transition to Normal mode in cell editing
+                    self.mode = EditorMode::CellEditing {
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
+                        mode: CellEditMode::Normal,
+                        visual_anchor: None,
+                    };
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::StateChanged);
+                }
+                EditorMode::CellEditing {
+                    value,
+                    cursor_pos,
+                    visual_anchor,
+                    mode: CellEditMode::Insert(_),
+                } => {
+                    // Exit from Insert to Normal
+                    self.mode = EditorMode::CellEditing {
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
+                        mode: CellEditMode::Normal,
+                        visual_anchor: *visual_anchor,
+                    };
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::StateChanged);
+                }
+                _ => {}
             }
             return Ok(());
         }
-        
+
         // Handle ExitToNavigation action
         if matches!(action, Action::ExitToNavigation) {
             // Exit to navigation mode without saving
             self.mode = EditorMode::Navigation;
-            self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+            self.event_dispatcher
+                .dispatch(&SpreadsheetEvent::StateChanged);
             return Ok(());
         }
 
         // Handle EnterInsertMode action
         if let Action::EnterInsertMode { mode } = &action {
             // Enter insert mode from normal editing mode
-            if let EditorMode::Editing { value, cursor_pos, .. } = &self.mode {
-                self.mode = EditorMode::Editing {
-                    value: value.clone(),
-                    cursor_pos: *cursor_pos,
-                    insert_mode: mode.clone(),
-                };
-                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+            match &self.mode {
+                EditorMode::Editing {
+                    value, cursor_pos, ..
+                } => {
+                    // Transition to CellEditing with Insert mode
+                    self.mode = EditorMode::CellEditing {
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
+                        mode: CellEditMode::Insert(mode.unwrap_or(InsertMode::I)),
+                        visual_anchor: None,
+                    };
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::StateChanged);
+                }
+                EditorMode::CellEditing {
+                    value,
+                    cursor_pos,
+                    visual_anchor,
+                    mode: CellEditMode::Normal,
+                } => {
+                    // From Normal to Insert
+                    self.mode = EditorMode::CellEditing {
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
+                        mode: CellEditMode::Insert(mode.unwrap_or(InsertMode::I)),
+                        visual_anchor: *visual_anchor,
+                    };
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::StateChanged);
+                }
+                _ => {}
             }
             return Ok(());
         }
 
         // Handle EnterVisualMode action
-        if let Action::EnterVisualMode { visual_type, anchor } = &action {
+        if let Action::EnterVisualMode {
+            visual_type,
+            anchor,
+        } = &action
+        {
             // Enter visual mode from editing mode
-            if let EditorMode::Editing { value, .. } = &self.mode {
-                // Save the current editing value first
-                self.formula_bar = value.clone();
-                
-                // Get the anchor position (default to current cursor position in text)
-                let anchor_pos = anchor.unwrap_or(0);
-                
-                // For cell editing, visual mode is within the text, not cells
-                // So we stay in editing mode but with visual selection
-                // However, according to the architecture, we have a Visual mode at the editor level
-                self.mode = EditorMode::Visual {
-                    mode: visual_type.clone(),
-                    anchor: CellAddress::new(anchor_pos as u32, 0), // Using anchor as position within text
-                };
-                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+            match &self.mode {
+                EditorMode::Editing {
+                    value, cursor_pos, ..
+                } => {
+                    // Transition to CellEditing with Visual mode
+                    self.mode = EditorMode::CellEditing {
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
+                        mode: CellEditMode::Visual(*visual_type),
+                        visual_anchor: Some(anchor.unwrap_or(*cursor_pos)),
+                    };
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::StateChanged);
+                }
+                EditorMode::CellEditing {
+                    value,
+                    cursor_pos,
+                    mode: CellEditMode::Normal,
+                    ..
+                } => {
+                    // From Normal to Visual
+                    self.mode = EditorMode::CellEditing {
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
+                        mode: CellEditMode::Visual(*visual_type),
+                        visual_anchor: Some(anchor.unwrap_or(*cursor_pos)),
+                    };
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::StateChanged);
+                }
+                _ => {}
             }
             return Ok(());
         }
 
-        // Handle ExitVisualMode action  
+        // Handle ExitVisualMode action
         if matches!(action, Action::ExitVisualMode) {
             // Exit visual mode back to normal editing mode
-            if let EditorMode::Visual { .. } = &self.mode {
-                // Go back to normal editing mode with the current formula bar value
-                self.mode = EditorMode::Editing {
-                    value: self.formula_bar.clone(),
-                    cursor_pos: 0,
-                    insert_mode: None,
-                };
-                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+            match &self.mode {
+                EditorMode::Visual { .. } => {
+                    // Grid-level visual mode - go back to navigation
+                    self.mode = EditorMode::Navigation;
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::StateChanged);
+                }
+                EditorMode::CellEditing {
+                    value,
+                    cursor_pos,
+                    mode: CellEditMode::Visual(_),
+                    ..
+                } => {
+                    // Text-level visual mode - go back to normal
+                    self.mode = EditorMode::CellEditing {
+                        value: value.clone(),
+                        cursor_pos: *cursor_pos,
+                        mode: CellEditMode::Normal,
+                        visual_anchor: None,
+                    };
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::StateChanged);
+                }
+                _ => {}
             }
             return Ok(());
         }
@@ -376,10 +483,7 @@ impl SpreadsheetController {
         // Get old state for comparison
         let old_mode = self.get_mode().clone();
 
-        log::debug!(
-            "dispatch_action: about to handle action {:?}",
-            action
-        );
+        log::debug!("dispatch_action: about to handle action {:?}", action);
 
         // Handle action directly without state machine
         match &action {
@@ -573,7 +677,11 @@ impl SpreadsheetController {
     pub fn update_formula_bar_from_cursor(&mut self) {
         let cursor = self.cursor();
         let value = self.get_cell_display_for_ui(&cursor);
-        log::debug!("update_formula_bar_from_cursor: cursor={:?}, value={}", cursor, value);
+        log::debug!(
+            "update_formula_bar_from_cursor: cursor={:?}, value={}",
+            cursor,
+            value
+        );
         let event = {
             self.formula_bar_manager.set_value(value);
             self.formula_bar_manager.create_update_event()
@@ -723,13 +831,13 @@ impl SpreadsheetController {
 
     pub fn complete_editing(&mut self) -> Result<()> {
         log::debug!("complete_editing called, current mode: {:?}", self.mode);
-        
+
         // Use CellEditor to complete editing with new architecture
         if let Some(result) =
             CellEditor::complete_editing_direct(&self.mode, self.cursor, &mut self.facade)
         {
             log::debug!("CellEditor returned a result for editing completion");
-            
+
             // Process events from result
             for (event, error_info) in result.create_events() {
                 self.event_dispatcher.dispatch(&event);
@@ -743,7 +851,7 @@ impl SpreadsheetController {
 
             // Exit editing mode
             self.mode = EditorMode::Navigation;
-            
+
             log::debug!("Editing completed, mode now: {:?}", self.mode);
         } else {
             log::debug!("CellEditor returned None - not in editing mode?");
@@ -753,17 +861,25 @@ impl SpreadsheetController {
 
     pub fn cancel_editing(&mut self) -> Result<()> {
         // Cancel editing without saving - just exit editing mode
-        if matches!(self.mode, EditorMode::Editing { .. }) {
+        if matches!(
+            self.mode,
+            EditorMode::Editing { .. } | EditorMode::CellEditing { .. }
+        ) {
             // Restore formula bar to the original value
             self.update_formula_bar_from_cursor();
-            
+
             // Exit editing mode without saving
             self.mode = EditorMode::Navigation;
-            
+
             // Dispatch event to notify UI
-            self.event_dispatcher.dispatch(&SpreadsheetEvent::EditCanceled {
-                address: self.cursor,
-            });
+            self.event_dispatcher
+                .dispatch(&SpreadsheetEvent::EditCanceled {
+                    address: self.cursor,
+                });
+
+            // Also dispatch StateChanged to update the UI mode indicator
+            self.event_dispatcher
+                .dispatch(&SpreadsheetEvent::StateChanged);
         }
         Ok(())
     }

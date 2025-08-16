@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod controller_tests {
     // Tests in this file are disabled because they rely on UIStateMachine
     // TODO: Rewrite tests using the new hybrid state approach
 

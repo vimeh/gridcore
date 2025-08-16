@@ -28,8 +28,8 @@ pub fn StatusBar(
         // Get the current mode using the new architecture
         let (text, color, detail) = controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            use gridcore_controller::controller::mode::EditorMode;
-            
+            use gridcore_controller::controller::mode::{CellEditMode, EditorMode};
+
             match ctrl_borrow.get_mode() {
                 EditorMode::Navigation => ("NAVIGATION", "#4caf50", "hjkl to move"),
                 EditorMode::Editing { insert_mode, .. } => {
@@ -39,14 +39,20 @@ pub fn StatusBar(
                         ("NORMAL", "#ff9800", "i/a to insert")
                     }
                 }
-                EditorMode::Command { .. } => ("COMMAND", "#f44336", "Enter to execute"),
-                EditorMode::Visual { mode, .. } => {
-                    match mode {
-                        VisualMode::Line => ("VISUAL LINE", "#9c27b0", "hjkl to select"),
-                        VisualMode::Block => ("VISUAL BLOCK", "#9c27b0", "hjkl to select"),
-                        _ => ("VISUAL", "#9c27b0", "hjkl to select"),
+                EditorMode::CellEditing { mode, .. } => match mode {
+                    CellEditMode::Normal => ("NORMAL", "#ff9800", "i/a to insert"),
+                    CellEditMode::Insert(_) => ("INSERT", "#2196f3", "ESC to normal"),
+                    CellEditMode::Visual(VisualMode::Line) => {
+                        ("VISUAL LINE", "#9c27b0", "hjkl to select")
                     }
-                }
+                    CellEditMode::Visual(_) => ("VISUAL", "#9c27b0", "hjkl to select"),
+                },
+                EditorMode::Command { .. } => ("COMMAND", "#f44336", "Enter to execute"),
+                EditorMode::Visual { mode, .. } => match mode {
+                    VisualMode::Line => ("VISUAL LINE", "#9c27b0", "hjkl to select"),
+                    VisualMode::Block => ("VISUAL BLOCK", "#9c27b0", "hjkl to select"),
+                    _ => ("VISUAL", "#9c27b0", "hjkl to select"),
+                },
                 EditorMode::Resizing => ("RESIZE", "#795548", "Drag to resize"),
             }
         });

@@ -169,7 +169,7 @@ impl DataGenerator {
                 // Mix of different data types
                 let value = match self.rng.gen_range(0..4) {
                     0 => format!("{:.2}", self.rng.gen_range(0.0..1000.0)), // Numbers
-                    1 => format!("Text-{}", row * cols as u32 + col),          // Text
+                    1 => format!("Text-{}", row * cols as u32 + col),       // Text
                     2 if col > 0 => {
                         // Formula referencing previous cell
                         let prev_col = CellAddress::column_number_to_label(col - 1);

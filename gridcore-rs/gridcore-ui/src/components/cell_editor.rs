@@ -33,27 +33,36 @@ pub fn CellEditor(
                 let ctrl_borrow = ctrl.borrow();
 
                 // Get the current editing state from the new mode
-                if let gridcore_controller::controller::mode::EditorMode::Editing {
-                    value, cursor_pos, ..
-                } = ctrl_borrow.get_mode()
-                {
-                    // Focus the input and set value and cursor from controller state
-                    if let Some(input) = input_ref.get() {
-                        // Focus immediately
-                        let _ = input.focus();
-
-                        // Set the value from controller state
-                        input.set_value(value);
-
-                        // Set cursor position from controller state
-                        let _ = input.set_selection_start(Some(*cursor_pos as u32));
-                        let _ = input.set_selection_end(Some(*cursor_pos as u32));
-                        leptos::logging::log!(
-                            "Initialized editor with value '{}' and cursor at {}",
-                            value,
-                            cursor_pos
-                        );
+                match ctrl_borrow.get_mode() {
+                    gridcore_controller::controller::mode::EditorMode::Editing {
+                        value,
+                        cursor_pos,
+                        ..
                     }
+                    | gridcore_controller::controller::mode::EditorMode::CellEditing {
+                        value,
+                        cursor_pos,
+                        ..
+                    } => {
+                        // Focus the input and set value and cursor from controller state
+                        if let Some(input) = input_ref.get() {
+                            // Focus immediately
+                            let _ = input.focus();
+
+                            // Set the value from controller state
+                            input.set_value(value);
+
+                            // Set cursor position from controller state
+                            let _ = input.set_selection_start(Some(*cursor_pos as u32));
+                            let _ = input.set_selection_end(Some(*cursor_pos as u32));
+                            leptos::logging::log!(
+                                "Initialized editor with value '{}' and cursor at {}",
+                                value,
+                                cursor_pos
+                            );
+                        }
+                    }
+                    _ => {}
                 }
             })
         }
@@ -64,14 +73,15 @@ pub fn CellEditor(
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             match ctrl_borrow.get_mode() {
-                gridcore_controller::controller::mode::EditorMode::Editing { value, .. } => {
-                    value.clone()
-                }
+                gridcore_controller::controller::mode::EditorMode::Editing { value, .. }
+                | gridcore_controller::controller::mode::EditorMode::CellEditing {
+                    value, ..
+                } => value.clone(),
                 gridcore_controller::controller::mode::EditorMode::Visual { .. } => {
                     // In visual mode, use the formula bar value
                     ctrl_borrow.get_formula_bar().to_string()
                 }
-                _ => String::new()
+                _ => String::new(),
             }
         })
     });
@@ -160,11 +170,15 @@ pub fn CellEditor(
                                 // Check if we're in INSERT mode
                                 let is_insert_mode = controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
-                                    use gridcore_controller::controller::mode::EditorMode;
+                                    use gridcore_controller::controller::mode::{CellEditMode, EditorMode};
                                     matches!(
                                         ctrl_borrow.get_mode(),
                                         EditorMode::Editing {
                                             insert_mode: Some(_),
+                                            ..
+                                        }
+                                        | EditorMode::CellEditing {
+                                            mode: CellEditMode::Insert(_),
                                             ..
                                         }
                                     )
@@ -209,12 +223,12 @@ pub fn CellEditor(
                                     } else {
                                         current_editing_value.get()
                                     };
-                                    
+
                                     // Submit the cell edit and exit editing mode
                                     controller_stored.with_value(|ctrl| {
                                         let mut ctrl_mut = ctrl.borrow_mut();
                                         use gridcore_controller::controller::mode::EditorMode;
-                                        
+
                                         // First update the editing value to ensure it's current
                                         if let EditorMode::Editing { insert_mode, .. } = ctrl_mut.get_mode().clone() {
                                             ctrl_mut.set_mode(EditorMode::Editing {
@@ -223,7 +237,7 @@ pub fn CellEditor(
                                                 insert_mode,
                                             });
                                         }
-                                        
+
                                         // Now complete the editing
                                         if let Err(e) = ctrl_mut.complete_editing() {
                                             leptos::logging::log!("Error completing edit: {:?}", e);
@@ -237,11 +251,14 @@ pub fn CellEditor(
                                 // Check the current editing mode
                                 controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
-                                    use gridcore_controller::controller::mode::EditorMode;
+                                    use gridcore_controller::controller::mode::{CellEditMode, EditorMode};
                                     let (is_insert_mode, is_normal_mode, is_visual_mode) = match ctrl_borrow.get_mode() {
-                                        EditorMode::Editing { insert_mode: Some(_), .. } => (true, false, false),
-                                        EditorMode::Editing { insert_mode: None, .. } => (false, true, false),
-                                        EditorMode::Visual { .. } => (false, false, true),
+                                        EditorMode::Editing { insert_mode: Some(_), .. }
+                                        | EditorMode::CellEditing { mode: CellEditMode::Insert(_), .. } => (true, false, false),
+                                        EditorMode::Editing { insert_mode: None, .. }
+                                        | EditorMode::CellEditing { mode: CellEditMode::Normal, .. } => (false, true, false),
+                                        EditorMode::Visual { .. }
+                                        | EditorMode::CellEditing { mode: CellEditMode::Visual(_), .. } => (false, false, true),
                                         _ => (false, false, false),
                                     };
 
@@ -270,32 +287,43 @@ pub fn CellEditor(
                                         // State version now updated via controller events
                                         // Mode logging removed - mode is now derived from state
                                     } else if is_normal_mode {
-                                        // In Normal mode - Escape saves and exits (vim-like behavior for tests)
+                                        // In Normal mode - Escape saves and exits
                                         drop(ctrl_borrow);
                                         let mut ctrl_mut = ctrl.borrow_mut();
-                                        
+
                                         // Get the current value before completing
                                         let value = if let Some(input) = input_ref.get() {
                                             input.value()
                                         } else {
                                             current_editing_value.get()
                                         };
-                                        
+
                                         // Update the editing value to ensure it's current
                                         use gridcore_controller::controller::mode::EditorMode;
-                                        if let EditorMode::Editing { insert_mode, .. } = ctrl_mut.get_mode().clone() {
-                                            ctrl_mut.set_mode(EditorMode::Editing {
-                                                value: value.clone(),
-                                                cursor_pos: value.len(),
-                                                insert_mode,
-                                            });
+                                        match ctrl_mut.get_mode().clone() {
+                                            EditorMode::CellEditing { mode, visual_anchor, .. } => {
+                                                ctrl_mut.set_mode(EditorMode::CellEditing {
+                                                    value: value.clone(),
+                                                    cursor_pos: value.len(),
+                                                    mode,
+                                                    visual_anchor,
+                                                });
+                                            }
+                                            EditorMode::Editing { insert_mode, .. } => {
+                                                ctrl_mut.set_mode(EditorMode::Editing {
+                                                    value: value.clone(),
+                                                    cursor_pos: value.len(),
+                                                    insert_mode,
+                                                });
+                                            }
+                                            _ => {}
                                         }
-                                        
+
                                         // Complete editing (save)
                                         if let Err(e) = ctrl_mut.complete_editing() {
                                             leptos::logging::log!("Error completing edit: {:?}", e);
                                         }
-                                        
+
                                         // Return focus to grid container
                                         if let Some(window) = web_sys::window() {
                                             if let Some(document) = window.document() {
@@ -330,11 +358,15 @@ pub fn CellEditor(
                                 // Check if we're in Normal mode within editing
                                 let is_normal_mode = controller_stored.with_value(|ctrl| {
                                     let ctrl_borrow = ctrl.borrow();
-                                    use gridcore_controller::controller::mode::EditorMode;
+                                    use gridcore_controller::controller::mode::{CellEditMode, EditorMode};
                                     matches!(
                                         ctrl_borrow.get_mode(),
                                         EditorMode::Editing {
                                             insert_mode: None,
+                                            ..
+                                        }
+                                        | EditorMode::CellEditing {
+                                            mode: CellEditMode::Normal,
                                             ..
                                         }
                                     )
