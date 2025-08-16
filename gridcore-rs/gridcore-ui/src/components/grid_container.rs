@@ -42,11 +42,6 @@ pub fn GridContainer() -> impl IntoView {
         controller_stored.with_value(|ctrl| ctrl.borrow().cursor())
     });
 
-    let current_mode = Memo::new(move |_| {
-        state_generation.get(); // Track changes
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().to_spreadsheet_mode())
-    });
-
     // Derive editing mode
     let editing_mode = Memo::new(move |_| {
         state_generation.get(); // Track changes
@@ -212,8 +207,6 @@ pub fn GridContainer() -> impl IntoView {
                     active_cell=active_cell
                     editing_mode=editing_mode
                     cell_position=cell_position
-                    _current_mode=current_mode
-                    _render_trigger=Trigger::new()
                 />
             </GridEventHandler>
         </div>

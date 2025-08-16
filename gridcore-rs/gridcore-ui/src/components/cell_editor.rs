@@ -1,6 +1,6 @@
 // use crate::components::error_display::use_error_context; // TODO: Re-enable when full keyboard support is restored
 use crate::context::use_controller;
-use gridcore_controller::state::{actions::Action, InsertMode, SpreadsheetMode};
+use gridcore_controller::state::{actions::Action, InsertMode};
 use gridcore_core::types::CellAddress;
 use leptos::html::Textarea;
 use leptos::prelude::*;
@@ -12,8 +12,6 @@ pub fn CellEditor(
     active_cell: Memo<CellAddress>,
     editing_mode: Memo<bool>,
     cell_position: Memo<(f64, f64, f64, f64)>, // x, y, width, height
-    _current_mode: Memo<SpreadsheetMode>,
-    _render_trigger: Trigger,
 ) -> impl IntoView {
     // Get controller from context
     let controller_stored = use_controller();
