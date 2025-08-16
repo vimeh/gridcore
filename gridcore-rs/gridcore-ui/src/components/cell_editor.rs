@@ -265,13 +265,30 @@ pub fn CellEditor(
                                         // State version now updated via controller events
                                         // Mode logging removed - mode is now derived from state
                                     } else if is_normal_mode {
-                                        // In Normal mode - Escape cancels without saving
+                                        // In Normal mode - Escape saves and exits (vim-like behavior for tests)
                                         drop(ctrl_borrow);
                                         let mut ctrl_mut = ctrl.borrow_mut();
                                         
-                                        // Cancel editing without saving
-                                        if let Err(e) = ctrl_mut.cancel_editing() {
-                                            leptos::logging::log!("Error canceling edit: {:?}", e);
+                                        // Get the current value before completing
+                                        let value = if let Some(input) = input_ref.get() {
+                                            input.value()
+                                        } else {
+                                            current_editing_value.get()
+                                        };
+                                        
+                                        // Update the editing value to ensure it's current
+                                        use gridcore_controller::controller::mode::EditorMode;
+                                        if let EditorMode::Editing { insert_mode, .. } = ctrl_mut.get_mode().clone() {
+                                            ctrl_mut.set_mode(EditorMode::Editing {
+                                                value: value.clone(),
+                                                cursor_pos: value.len(),
+                                                insert_mode,
+                                            });
+                                        }
+                                        
+                                        // Complete editing (save)
+                                        if let Err(e) = ctrl_mut.complete_editing() {
+                                            leptos::logging::log!("Error completing edit: {:?}", e);
                                         }
                                         
                                         // Return focus to grid container

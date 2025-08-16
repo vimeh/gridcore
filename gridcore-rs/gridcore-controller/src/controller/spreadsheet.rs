@@ -334,8 +334,18 @@ impl SpreadsheetController {
         // Store the action type for later event emission
         let action_clone = action.clone();
 
-        // TODO: Handle action directly without state machine
-        // self.state_machine.transition(action)?;
+        // Handle action directly without state machine
+        match &action {
+            Action::UpdateCursor { cursor } => {
+                self.set_cursor(*cursor);
+            }
+            Action::UpdateSelection { selection } => {
+                self.set_selection(Some(selection.clone()));
+            }
+            _ => {
+                // Other actions already handled above or not needed
+            }
+        }
         log::debug!("dispatch_action: transition succeeded");
         let new_state = self.state();
         let new_mode = new_state.spreadsheet_mode();
@@ -534,6 +544,7 @@ impl SpreadsheetController {
     pub fn update_formula_bar_from_cursor(&mut self) {
         let cursor = self.cursor();
         let value = self.get_cell_display_for_ui(&cursor);
+        log::debug!("update_formula_bar_from_cursor: cursor={:?}, value={}", cursor, value);
         let event = {
             self.formula_bar_manager.set_value(value);
             self.formula_bar_manager.create_update_event()

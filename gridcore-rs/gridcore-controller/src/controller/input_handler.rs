@@ -75,12 +75,12 @@ impl<'a> InputHandler<'a> {
                 Ok(())
             }
             "Enter" => {
-                log::debug!("Enter key pressed, starting edit in Normal mode with empty value");
+                log::debug!("Enter key pressed, starting edit in Insert mode with empty value");
                 use super::mode::EditorMode;
                 self.controller.set_mode(EditorMode::Editing {
                     value: String::new(),
                     cursor_pos: 0,
-                    insert_mode: None, // Start in NORMAL mode, not INSERT
+                    insert_mode: Some(InsertMode::I), // Start in INSERT mode for Enter key
                 });
                 Ok(())
             }
