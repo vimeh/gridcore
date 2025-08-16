@@ -23,6 +23,7 @@ pub struct VimBehaviorImpl {
     last_command: Option<VimCommand>,
     // search_pattern: Option<String>,
     pending_operator: Option<Operator>,
+    current_command: VimCommand,
 }
 
 impl VimBehaviorImpl {
@@ -34,11 +35,12 @@ impl VimBehaviorImpl {
             register_buffer: None,
             registers: FxHashMap::default(),
             marks: FxHashMap::default(),
-            last_find_char: None,
+            // last_find_char: None,
             visual_anchor: None,
             last_command: None,
-            search_pattern: None,
+            // search_pattern: None,
             pending_operator: None,
+            current_command: VimCommand::default(),
         }
     }
 
@@ -190,6 +192,9 @@ impl VimBehaviorImpl {
                     command.register = Some(reg);
                 }
 
+                // Store in current command for operator use
+                self.current_command = command.clone();
+
                 // Clear buffers
                 self.command_buffer.clear();
                 self.count_buffer.clear();
@@ -216,6 +221,9 @@ impl VimBehaviorImpl {
                         if let Some(reg) = self.register_buffer {
                             command.register = Some(reg);
                         }
+
+                        // Store in current command for operator use
+                        self.current_command = command.clone();
 
                         // Clear buffers
                         self.command_buffer.clear();
@@ -538,8 +546,8 @@ impl VimBehavior for VimBehaviorImpl {
                 Ok(VimResult::Action(Action::EnterInsertMode { mode: None }))
             }
             Operator::Yank => {
-                // Copy to register
-                let register = context.register.unwrap_or('0');
+                // Copy to register - use command's register if specified, otherwise default
+                let register = self.current_command.register.unwrap_or('0');
                 self.registers.insert(register, String::new()); // Placeholder
                 Ok(VimResult::None)
             }

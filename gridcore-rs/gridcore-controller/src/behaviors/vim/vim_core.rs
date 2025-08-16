@@ -168,6 +168,12 @@ impl VimCommand {
     }
 }
 
+impl Default for VimCommand {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Ex command (colon commands)
 #[derive(Debug, Clone)]
 pub struct ExCommand {
