@@ -1,6 +1,4 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::SpreadsheetMode;
-use gridcore_core::types::CellAddress;
 use leptos::html::Div;
 use leptos::prelude::*;
 use std::cell::RefCell;
@@ -16,16 +14,15 @@ use crate::interaction::resize_handler::ResizeHandler;
 use crate::rendering::default_theme;
 
 #[component]
-pub fn GridContainer(
-    active_cell: Memo<CellAddress>,
-    current_mode: Memo<SpreadsheetMode>,
-    render_trigger: Trigger,
-    mode_trigger: Trigger,
-) -> impl IntoView {
-    // Get controller from context
+pub fn GridContainer() -> impl IntoView {
+    // Get controller and reactive state from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
     let controller_rc = controller_stored.get_value();
+    let state_generation: RwSignal<u32> =
+        use_context().expect("Reactive state not found in context");
+    let render_generation: RwSignal<u32> =
+        use_context().expect("Render generation not found in context");
 
     // Node refs
     let wrapper_ref = NodeRef::<Div>::new();
@@ -42,20 +39,21 @@ pub fn GridContainer(
     // Create resize handler
     let resize_handler = ResizeHandler::new(controller_rc.clone());
 
+    // Derive reactive values from controller state
+    let active_cell = Memo::new(move |_| {
+        state_generation.get(); // Track changes
+        controller_stored.with_value(|ctrl| ctrl.borrow().cursor())
+    });
+
+    let current_mode = Memo::new(move |_| {
+        state_generation.get(); // Track changes
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().to_spreadsheet_mode())
+    });
+
     // Derive editing mode
     let editing_mode = Memo::new(move |_| {
-        mode_trigger.track();
-        controller_stored.with_value(|ctrl| {
-            let ctrl_borrow = ctrl.borrow();
-            let mode = ctrl_borrow.get_mode();
-            let is_editing = mode.is_editing();
-            leptos::logging::log!(
-                "GridContainer: checking editing mode - mode={:?}, is_editing={}",
-                mode,
-                is_editing
-            );
-            is_editing
-        })
+        state_generation.get(); // Track changes
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().is_editing())
     });
 
     // Derive cell position for editor
@@ -90,14 +88,14 @@ pub fn GridContainer(
             let _ = element.focus();
             debug_log!("Grid container auto-focused on mount");
 
-            // Trigger initial render
-            render_trigger.notify();
+            // Trigger initial render by updating generation
+            render_generation.update(|g| *g += 1);
 
             // Use requestAnimationFrame for layout completion
             let window = web_sys::window().expect("window should exist");
-            let render_trigger_clone = render_trigger;
+            let render_gen_clone = render_generation;
             let closure = wasm_bindgen::closure::Closure::once(move || {
-                render_trigger_clone.notify();
+                render_gen_clone.update(|g| *g += 1);
             });
             window
                 .request_animation_frame(closure.as_ref().unchecked_ref())
@@ -106,19 +104,7 @@ pub fn GridContainer(
         }
     });
 
-    // Update formula bar when cell changes
-    Effect::new(move |_| {
-        let cell = active_cell.get();
-        debug_log!("Formula bar update: active_cell = {:?}", cell);
-
-        controller_stored.with_value(|ctrl| {
-            let ctrl_borrow = ctrl.borrow();
-            let value = ctrl_borrow.get_cell_display_for_ui(&cell);
-            if !value.is_empty() {
-                debug_log!("Cell found at {:?}: value={}", cell, value);
-            }
-        });
-    });
+    // No need for formula bar effect - it's handled by derived signals in app.rs
 
     // Handle keyboard events
     let on_keydown = move |ev: web_sys::KeyboardEvent| {
@@ -150,7 +136,7 @@ pub fn GridContainer(
             .with_modifiers(shift_pressed, ctrl_pressed, alt_pressed, meta_pressed);
 
         let old_cursor = controller_stored.with_value(|ctrl| ctrl.borrow().cursor());
-        let old_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
+        let _old_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
 
         let result = controller_stored
             .with_value(|ctrl| ctrl.borrow_mut().handle_keyboard_event(controller_event));
@@ -161,18 +147,9 @@ pub fn GridContainer(
         }
 
         let new_cursor = controller_stored.with_value(|ctrl| ctrl.borrow().cursor());
-        let new_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
+        let _new_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
 
-        // Notify mode trigger if mode changed
-        if !old_mode.eq(&new_mode) {
-            leptos::logging::log!(
-                "Mode changed from {:?} to {:?}, notifying trigger",
-                old_mode,
-                new_mode
-            );
-            mode_trigger.notify();
-            render_trigger.notify();
-        }
+        // State change will be picked up by reactive state automatically
 
         // Auto-scroll if cursor moved
         let is_editing = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().is_editing());
@@ -214,7 +191,7 @@ pub fn GridContainer(
                 needs_scroll
             });
             if needs_scroll {
-                render_trigger.notify();
+                render_generation.update(|g| *g += 1);
             }
         }
     };
@@ -231,21 +208,17 @@ pub fn GridContainer(
                 controller_stored=controller_stored
                 viewport_stored=viewport_stored
                 resize_handler=resize_handler
-                render_trigger=render_trigger
-                mode_trigger=mode_trigger
             >
                 <GridCanvas
                     controller_stored=controller_stored
                     viewport_stored=viewport_stored
-                    active_cell=active_cell
-                    render_trigger=render_trigger
                 />
                 <CellEditor
                     active_cell=active_cell
                     editing_mode=editing_mode
                     cell_position=cell_position
                     _current_mode=current_mode
-                    _render_trigger=render_trigger
+                    _render_trigger=Trigger::new()
                 />
             </GridEventHandler>
         </div>

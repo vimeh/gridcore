@@ -1,32 +1,25 @@
-use gridcore_controller::behaviors::selection_stats::SelectionStats;
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{SpreadsheetMode, VisualMode};
+use gridcore_controller::state::VisualMode;
 use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 #[component]
-pub fn StatusBar(
-    _current_mode: Memo<SpreadsheetMode>,
-    selection_stats: Memo<SelectionStats>,
-    selection_trigger: Trigger,
-) -> impl IntoView {
-    // Get controller from context
+pub fn StatusBar() -> impl IntoView {
+    // Get controller and reactive state from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
-    let controller = controller_stored.with_value(|c| c.clone());
-
-    // Store controller in LocalStorage for non-Send access
-    let controller_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
+    let state_generation: RwSignal<u32> =
+        use_context().expect("State generation not found in context");
 
     // Create a reactive signal that updates when current_mode or selection changes
     // This ensures the UI updates when mode changes
     let mode_display = move || {
-        // Track selection changes for reactivity
-        selection_trigger.track();
+        // Track state changes for reactivity
+        state_generation.get();
 
         // Get the current mode using the new architecture
-        let (text, color, detail) = controller_stored.with_value(|ctrl| {
+        controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
             use gridcore_controller::controller::mode::{CellEditMode, EditorMode};
 
@@ -55,9 +48,14 @@ pub fn StatusBar(
                 },
                 EditorMode::Resizing => ("RESIZE", "#795548", "Drag to resize"),
             }
-        });
-        (text, color, detail)
+        })
     };
+
+    // Derive selection statistics
+    let selection_stats = Signal::derive(move || {
+        state_generation.get(); // Track changes
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_current_selection_stats())
+    });
 
     // Format selection statistics
     let stats_display = move || {

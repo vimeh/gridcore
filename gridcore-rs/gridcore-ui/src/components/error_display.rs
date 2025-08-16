@@ -24,15 +24,17 @@ pub struct ErrorContext {
 }
 
 #[component]
-pub fn ErrorDisplay(error_trigger: Trigger) -> impl IntoView {
-    // Get controller from context
+pub fn ErrorDisplay() -> impl IntoView {
+    // Get controller and reactive state from context
     let controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage> =
         use_context().expect("SpreadsheetController not found in context");
+    let state_generation: RwSignal<u32> =
+        use_context().expect("State generation not found in context");
 
     // Derive errors from controller's ErrorManager
-    let errors = Memo::new(move |_| {
-        // Track error trigger to update when errors change
-        error_trigger.track();
+    let errors = Signal::derive(move || {
+        // Track state changes to update when errors change
+        state_generation.get();
 
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();

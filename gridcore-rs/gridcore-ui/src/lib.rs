@@ -2,6 +2,7 @@ pub mod app;
 pub mod components;
 pub mod debug;
 pub mod interaction;
+pub mod reactive;
 pub mod rendering;
 pub mod utils;
 

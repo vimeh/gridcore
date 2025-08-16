@@ -1,5 +1,4 @@
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_core::types::CellAddress;
 use leptos::html::Canvas;
 use leptos::prelude::*;
 use std::cell::RefCell;
@@ -12,8 +11,6 @@ use crate::rendering::{default_theme, CanvasRenderer, RenderParams};
 pub fn GridCanvas(
     controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage>,
     viewport_stored: StoredValue<Rc<RefCell<Viewport>>, LocalStorage>,
-    active_cell: Memo<CellAddress>,
-    render_trigger: Trigger,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<Canvas>::new();
     let (canvas_dimensions, set_canvas_dimensions) = signal((0.0, 0.0));
@@ -25,10 +22,16 @@ pub fn GridCanvas(
     let theme = default_theme();
     let renderer = CanvasRenderer::new(theme);
 
-    // Set up canvas rendering
+    // Get render generation from context
+    let render_generation: RwSignal<u32> =
+        use_context().expect("Render generation not found in context");
+    let state_generation: RwSignal<u32> =
+        use_context().expect("State generation not found in context");
+
+    // Set up canvas rendering effect - only for DOM updates
     Effect::new(move |_| {
-        let _current_cell = active_cell.get();
-        render_trigger.track();
+        render_generation.get(); // Track render changes
+        state_generation.get(); // Also track state changes
 
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
@@ -54,7 +57,7 @@ pub fn GridCanvas(
             controller_stored.with_value(|ctrl| {
                 viewport_stored.with_value(|vp| {
                     let ctrl_borrow = ctrl.borrow();
-                    let active_cell = active_cell.get();
+                    let active_cell = ctrl_borrow.cursor();
                     let selection = ctrl_borrow.get_selection().cloned();
                     let facade = ctrl_borrow.facade();
                     let config = ctrl_borrow.get_config();

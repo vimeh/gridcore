@@ -14,8 +14,6 @@ pub fn GridEventHandler(
     controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage>,
     viewport_stored: StoredValue<Rc<RefCell<Viewport>>, LocalStorage>,
     resize_handler: ResizeHandler,
-    render_trigger: Trigger,
-    mode_trigger: Trigger,
     children: Children,
 ) -> impl IntoView {
     let (resize_hover_state, set_resize_hover_state) = signal("cell");
@@ -87,7 +85,7 @@ pub fn GridEventHandler(
                     });
                 });
 
-                mode_trigger.notify();
+                // State change will be picked up automatically
             }
         }
     };
@@ -100,7 +98,7 @@ pub fn GridEventHandler(
 
         if resize_handler_move.is_resizing() {
             resize_handler_move.handle_resize(&ev);
-            render_trigger.notify();
+            // Render will update automatically via state changes
         } else {
             let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
             let is_col_header = y < config.column_header_height;
@@ -145,7 +143,7 @@ pub fn GridEventHandler(
     let on_mouse_up = move |_ev: MouseEvent| {
         if resize_handler_up.is_resizing() {
             resize_handler_up.end_resize();
-            render_trigger.notify();
+            // Render will update automatically via state changes
         }
     };
 
@@ -166,7 +164,10 @@ pub fn GridEventHandler(
 
         if scroll_x != 0.0 || scroll_y != 0.0 {
             viewport_stored.with_value(|vp| vp.borrow_mut().scroll_by(scroll_x, scroll_y));
-            render_trigger.notify();
+            // Manual render update for scroll
+            if let Some(render_gen) = use_context::<RwSignal<u32>>() {
+                render_gen.update(|g| *g += 1);
+            }
         }
     };
 

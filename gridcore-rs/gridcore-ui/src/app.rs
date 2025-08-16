@@ -2,6 +2,7 @@ use crate::components::error_display::ErrorDisplay;
 use crate::components::grid_container::GridContainer;
 use crate::components::status_bar::StatusBar;
 use crate::components::tab_bar::{Sheet, TabBar};
+use crate::reactive::ReactiveState;
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_core::types::CellAddress;
 use leptos::prelude::*;
@@ -36,77 +37,31 @@ pub fn App() -> impl IntoView {
     // We'll initialize test data after ErrorDisplay is available
     let init_data = RwSignal::new(false);
 
-    // Fine-grained reactive triggers for different state aspects
-    let cursor_trigger = Trigger::new();
-    let mode_trigger = Trigger::new();
-    let formula_trigger = Trigger::new();
-    let selection_trigger = Trigger::new();
-    let sheets_trigger = Trigger::new();
-    let error_trigger = Trigger::new();
-    let render_trigger = Trigger::new();
+    // Create reactive state that tracks controller changes
+    let reactive_state = ReactiveState::new(controller.clone());
+    provide_context(reactive_state.generation);
+    provide_context(reactive_state.render_generation);
 
-    // Create reactive memos that derive state directly from controller
-    let active_cell = Memo::new(move |_| {
-        cursor_trigger.track();
+    // Create derived signals that automatically track state changes
+    let active_cell = Signal::derive(move || {
+        reactive_state.generation.get(); // Track changes
         controller_stored.with_value(|ctrl| ctrl.borrow().cursor())
     });
 
-    let formula_bar_value = Memo::new(move |_| {
-        formula_trigger.track();
+    let formula_bar_value = Signal::derive(move || {
+        reactive_state.generation.get(); // Track changes
         controller_stored.with_value(|ctrl| ctrl.borrow().get_formula_bar_value().to_string())
     });
 
-    // Set up comprehensive controller event listener
-    {
-        let callback = Box::new(
-            move |event: &gridcore_controller::controller::events::SpreadsheetEvent| {
-                use gridcore_controller::controller::events::SpreadsheetEvent;
+    // The reactive state already subscribes to events, no need for separate listener
 
-                leptos::logging::log!("Controller event received: {:?}", event);
-
-                // Notify specific triggers based on event type for fine-grained reactivity
-                match event {
-                    SpreadsheetEvent::CursorMoved { .. } => {
-                        cursor_trigger.notify();
-                        render_trigger.notify();
-                    }
-                    SpreadsheetEvent::StateChanged | SpreadsheetEvent::CommandExecuted { .. } => {
-                        mode_trigger.notify();
-                        cursor_trigger.notify();
-                        selection_trigger.notify();
-                        error_trigger.notify();
-                        render_trigger.notify();
-                    }
-                    SpreadsheetEvent::FormulaBarUpdated { .. } => {
-                        formula_trigger.notify();
-                    }
-                    SpreadsheetEvent::CellEditCompleted { .. }
-                    | SpreadsheetEvent::EditCanceled { .. } => {
-                        formula_trigger.notify();
-                        mode_trigger.notify();
-                    }
-                    SpreadsheetEvent::SheetAdded { .. }
-                    | SpreadsheetEvent::SheetRemoved { .. }
-                    | SpreadsheetEvent::SheetRenamed { .. }
-                    | SpreadsheetEvent::SheetChanged { .. } => {
-                        sheets_trigger.notify();
-                    }
-                    SpreadsheetEvent::ErrorOccurred { .. } => {
-                        error_trigger.notify();
-                    }
-                }
-            },
-        );
-        controller.borrow_mut().subscribe_to_events(callback);
-    }
-
-    let current_mode = Memo::new(move |_| {
-        mode_trigger.track();
+    let _current_mode = Signal::derive(move || {
+        reactive_state.generation.get(); // Track changes
         controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().to_spreadsheet_mode())
     });
 
     let sheets = Memo::new(move |_| {
-        sheets_trigger.track();
+        reactive_state.generation.get(); // Track changes
         controller_stored.with_value(|ctrl| {
             ctrl.borrow()
                 .get_sheets()
@@ -117,13 +72,8 @@ pub fn App() -> impl IntoView {
     });
 
     let active_sheet = Memo::new(move |_| {
-        sheets_trigger.track();
+        reactive_state.generation.get(); // Track changes
         0usize
-    });
-
-    let selection_stats = Memo::new(move |_| {
-        selection_trigger.track();
-        controller_stored.with_value(|ctrl| ctrl.borrow().get_current_selection_stats())
     });
 
     // Handle formula bar Enter key
@@ -231,12 +181,7 @@ pub fn App() -> impl IntoView {
             </div>
 
             <div class="main-content">
-                <GridContainer
-                    active_cell=active_cell
-                    current_mode=current_mode
-                    render_trigger=render_trigger
-                    mode_trigger=mode_trigger
-                />
+                <GridContainer />
             </div>
 
             <div class="bottom-toolbar">
@@ -244,11 +189,7 @@ pub fn App() -> impl IntoView {
                     sheets=sheets
                     active_sheet=active_sheet
                 />
-                <StatusBar
-                    _current_mode=current_mode
-                    selection_stats=selection_stats
-                    selection_trigger=selection_trigger
-                />
+                <StatusBar />
 
                 // Demo overlay components (only when demo feature is enabled)
                 {
@@ -276,7 +217,7 @@ pub fn App() -> impl IntoView {
             }
 
             // Add error display overlay
-            <ErrorDisplay error_trigger=error_trigger />
+            <ErrorDisplay />
         </div>
     }
 }
