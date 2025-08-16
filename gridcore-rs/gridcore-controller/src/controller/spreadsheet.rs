@@ -255,15 +255,33 @@ impl SpreadsheetController {
             return Ok(());
         }
 
+        // Handle UpdateEditingValue action - update editing mode with new value
+        if let Action::UpdateEditingValue { value, cursor_position } = &action {
+            // Update the editing mode with new value and cursor position
+            if let EditorMode::Editing { insert_mode, .. } = &self.mode {
+                let insert_mode = insert_mode.clone();
+                self.mode = EditorMode::Editing {
+                    value: value.clone(),
+                    cursor_pos: *cursor_position,
+                    insert_mode,
+                };
+                // Update formula bar to match
+                self.formula_bar = value.clone();
+                self.event_dispatcher.dispatch(&SpreadsheetEvent::FormulaBarUpdated { 
+                    value: value.clone() 
+                });
+            }
+            return Ok(());
+        }
+
         if let Action::SubmitCellEdit { value } = &action {
-            // Update the editing value and complete editing
-            if let UIState::Editing { core, .. } = &self.state() {
-                let address = core.cursor;
-
+            // Use the new direct mode access instead of deprecated state()
+            if let EditorMode::Editing { .. } = &self.mode {
+                let address = self.cursor;
+                
                 // Use CellEditor to handle submission
-                let result =
-                    CellEditor::submit_formula_bar(&mut self.facade, address, value.clone())?;
-
+                let result = CellEditor::submit_formula_bar(&mut self.facade, address, value.clone())?;
+                
                 // Process events from result
                 for (event, error_info) in result.create_events() {
                     self.event_dispatcher.dispatch(&event);
@@ -271,13 +289,36 @@ impl SpreadsheetController {
                         self.error_system.add_error(msg, severity);
                     }
                 }
-
+                
                 // Update formula bar to show the new value
                 self.update_formula_bar_from_cursor();
-
-                // Exit editing mode
-                return self.dispatch_action(Action::ExitToNavigation);
+                
+                // Exit editing mode directly
+                self.mode = EditorMode::Navigation;
+                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
             }
+            return Ok(());
+        }
+        
+        // Handle ExitInsertMode action
+        if matches!(action, Action::ExitInsertMode) {
+            // Exit insert mode to normal editing mode
+            if let EditorMode::Editing { value, cursor_pos, .. } = &self.mode {
+                self.mode = EditorMode::Editing {
+                    value: value.clone(),
+                    cursor_pos: *cursor_pos,
+                    insert_mode: None, // Clear insert mode
+                };
+                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+            }
+            return Ok(());
+        }
+        
+        // Handle ExitToNavigation action
+        if matches!(action, Action::ExitToNavigation) {
+            // Exit to navigation mode without saving
+            self.mode = EditorMode::Navigation;
+            self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
             return Ok(());
         }
 
@@ -640,7 +681,7 @@ impl SpreadsheetController {
         super::input_handler::InputHandler::new(self).handle_keyboard_event(event)
     }
 
-    pub(super) fn complete_editing(&mut self) -> Result<()> {
+    pub fn complete_editing(&mut self) -> Result<()> {
         log::debug!("complete_editing called, current mode: {:?}", self.mode);
         
         // Use CellEditor to complete editing with new architecture
@@ -670,7 +711,7 @@ impl SpreadsheetController {
         Ok(())
     }
 
-    pub(super) fn cancel_editing(&mut self) -> Result<()> {
+    pub fn cancel_editing(&mut self) -> Result<()> {
         // Cancel editing without saving - just exit editing mode
         if matches!(self.mode, EditorMode::Editing { .. }) {
             // Restore formula bar to the original value

@@ -75,12 +75,12 @@ impl<'a> InputHandler<'a> {
                 Ok(())
             }
             "Enter" => {
-                log::debug!("Enter key pressed, starting edit in Insert mode with empty value");
+                log::debug!("Enter key pressed, starting edit in Normal mode with empty value");
                 use super::mode::EditorMode;
                 self.controller.set_mode(EditorMode::Editing {
                     value: String::new(),
                     cursor_pos: 0,
-                    insert_mode: Some(InsertMode::I),
+                    insert_mode: None, // Start in NORMAL mode, not INSERT
                 });
                 Ok(())
             }
@@ -242,58 +242,20 @@ impl<'a> InputHandler<'a> {
     fn handle_editing_key(&mut self, event: KeyboardEvent) -> Result<()> {
         use super::mode::EditorMode;
         
+        // Only handle Escape here for cancel - let cell_editor handle everything else
         if event.key == "Escape" {
-            // Cancel editing without saving
+            // Check if we're in insert mode first
+            if let EditorMode::Editing { insert_mode: Some(_), .. } = self.controller.get_mode() {
+                // Let cell editor handle Escape in insert mode
+                return Ok(());
+            }
+            // In normal editing mode, Escape cancels
             self.controller.cancel_editing()?;
             return Ok(());
         }
-
-        // Get the current mode using the new architecture
-        if let EditorMode::Editing {
-            value,
-            cursor_pos,
-            insert_mode,
-        } = self.controller.get_mode().clone()
-        {
-            // For now, we'll handle all editing as insert mode
-            // (The vim-style normal/insert distinction can be added later if needed)
-            if event.is_printable() {
-                let mut new_value = value.clone();
-                let pos = cursor_pos;
-                new_value.insert_str(pos, &event.key);
-                self.controller.set_mode(EditorMode::Editing {
-                    value: new_value,
-                    cursor_pos: pos + event.key.len(),
-                    insert_mode,
-                });
-                Ok(())
-            } else {
-                match event.key.as_str() {
-                    "Backspace" => {
-                        let mut new_value = value.clone();
-                        let pos = cursor_pos;
-                        if pos > 0 {
-                            new_value.remove(pos - 1);
-                            self.controller.set_mode(EditorMode::Editing {
-                                value: new_value,
-                                cursor_pos: pos - 1,
-                                insert_mode,
-                            });
-                        }
-                        Ok(())
-                    }
-                    "Enter" => {
-                        // Save the value using complete_editing
-                        self.controller.complete_editing()?;
-                        // Move down after saving
-                        self.move_cursor(0, 1)
-                    }
-                    _ => Ok(()),
-                }
-            }
-        } else {
-            Ok(())
-        }
+        
+        // Let the cell editor component handle all other keys
+        Ok(())
     }
 
 

@@ -200,20 +200,31 @@ pub fn CellEditor(
                                     }
                                 } else {
                                     // Not in INSERT mode - Enter saves and exits
-                                    let value = current_editing_value.get();
-
-                                    // Use the new SubmitCellEdit action to handle all submission logic
+                                    let value = if let Some(input) = input_ref.get() {
+                                        input.value()
+                                    } else {
+                                        current_editing_value.get()
+                                    };
+                                    
+                                    // Submit the cell edit and exit editing mode
                                     controller_stored.with_value(|ctrl| {
                                         let mut ctrl_mut = ctrl.borrow_mut();
-                                        if let Err(e) = ctrl_mut.dispatch_action(Action::SubmitCellEdit {
-                                            value: value.clone(),
-                                        }) {
-                                            leptos::logging::log!("Error submitting cell edit: {:?}", e);
+                                        use gridcore_controller::controller::mode::EditorMode;
+                                        
+                                        // First update the editing value to ensure it's current
+                                        if let EditorMode::Editing { insert_mode, .. } = ctrl_mut.get_mode().clone() {
+                                            ctrl_mut.set_mode(EditorMode::Editing {
+                                                value: value.clone(),
+                                                cursor_pos: value.len(),
+                                                insert_mode,
+                                            });
+                                        }
+                                        
+                                        // Now complete the editing
+                                        if let Err(e) = ctrl_mut.complete_editing() {
+                                            leptos::logging::log!("Error completing edit: {:?}", e);
                                         }
                                     });
-
-                                    // Don't set editing_mode here - canvas_grid manages it based on controller state
-                                    // Formula bar is now updated via controller events
                                 }
                             }
                             "Escape" => {
@@ -254,22 +265,15 @@ pub fn CellEditor(
                                         // State version now updated via controller events
                                         // Mode logging removed - mode is now derived from state
                                     } else if is_normal_mode {
-                                        // In Normal mode - save and exit
-                                        let value = current_editing_value.get();
-
-                                        // Use the consolidated submission action
+                                        // In Normal mode - Escape cancels without saving
                                         drop(ctrl_borrow);
                                         let mut ctrl_mut = ctrl.borrow_mut();
-                                        if let Err(e) = ctrl_mut.dispatch_action(Action::SubmitCellEdit {
-                                            value: value.clone(),
-                                        }) {
-                                            leptos::logging::log!("Error submitting cell edit: {:?}", e);
+                                        
+                                        // Cancel editing without saving
+                                        if let Err(e) = ctrl_mut.cancel_editing() {
+                                            leptos::logging::log!("Error canceling edit: {:?}", e);
                                         }
-
-                                        // Don't set editing_mode here - canvas_grid manages it based on controller state
-                                        // Formula bar is now updated via controller events
-                                        // Controller will handle mode transition to Navigation
-
+                                        
                                         // Return focus to grid container
                                         if let Some(window) = web_sys::window() {
                                             if let Some(document) = window.document() {
