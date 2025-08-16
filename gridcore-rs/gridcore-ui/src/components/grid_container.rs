@@ -81,17 +81,10 @@ pub fn GridContainer(
     // Auto-focus on mount
     Effect::new(move |_| {
         if let Some(wrapper) = wrapper_ref.get() {
-            // Try to focus the grid-event-handler instead
+            // Focus the grid container itself for proper navigation mode focus
             let element: &web_sys::HtmlDivElement = wrapper.as_ref();
-            if let Ok(Some(event_handler)) = element.query_selector(".grid-event-handler") {
-                if let Ok(html_element) = event_handler.dyn_into::<web_sys::HtmlElement>() {
-                    let _ = html_element.focus();
-                    debug_log!("Grid event handler auto-focused on mount");
-                }
-            } else {
-                let _ = element.focus();
-                debug_log!("Grid container auto-focused on mount");
-            }
+            let _ = element.focus();
+            debug_log!("Grid container auto-focused on mount");
 
             // Trigger initial render
             render_trigger.notify();
@@ -123,11 +116,107 @@ pub fn GridContainer(
         });
     });
 
+    // Handle keyboard events
+    let on_keydown = move |ev: web_sys::KeyboardEvent| {
+        let key = ev.key();
+        let shift_pressed = ev.shift_key();
+        let ctrl_pressed = ev.ctrl_key();
+        let alt_pressed = ev.alt_key();
+        let meta_pressed = ev.meta_key();
+
+        let is_editing = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().is_editing());
+
+        if is_editing {
+            return;
+        }
+
+        // Prevent default for navigation and editing keys
+        match key.as_str() {
+            "Tab" | "Enter" | "Escape" | "Delete" | "Backspace" | "ArrowUp" | "ArrowDown"
+            | "ArrowLeft" | "ArrowRight" => {
+                ev.prevent_default();
+            }
+            _ if key.len() == 1 => {
+                ev.prevent_default();
+            }
+            _ => {}
+        }
+
+        let controller_event = gridcore_controller::controller::KeyboardEvent::new(key.clone())
+            .with_modifiers(shift_pressed, ctrl_pressed, alt_pressed, meta_pressed);
+
+        let old_cursor = controller_stored.with_value(|ctrl| ctrl.borrow().cursor());
+        let old_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
+        
+        let result = controller_stored
+            .with_value(|ctrl| ctrl.borrow_mut().handle_keyboard_event(controller_event));
+
+        if let Err(e) = result {
+            leptos::logging::log!("Error handling keyboard event: {:?}", e);
+            return;
+        }
+
+        let new_cursor = controller_stored.with_value(|ctrl| ctrl.borrow().cursor());
+        let new_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
+        
+        // Notify mode trigger if mode changed
+        if !old_mode.eq(&new_mode) {
+            leptos::logging::log!("Mode changed from {:?} to {:?}, notifying trigger", old_mode, new_mode);
+            mode_trigger.notify();
+            render_trigger.notify();
+        }
+
+        // Auto-scroll if cursor moved
+        let is_editing = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().is_editing());
+        if new_cursor != old_cursor && !is_editing {
+            let needs_scroll = viewport_stored.with_value(|vp| {
+                let mut vp_borrow = vp.borrow_mut();
+                let cell_pos = vp_borrow.get_cell_position(&new_cursor);
+                let absolute_x = cell_pos.x + vp_borrow.get_scroll_position().x;
+                let absolute_y = cell_pos.y + vp_borrow.get_scroll_position().y;
+
+                let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
+                let viewport_width = vp_borrow.get_viewport_width() - config.row_header_width;
+                let viewport_height = vp_borrow.get_viewport_height() - config.column_header_height;
+                let scroll_pos = vp_borrow.get_scroll_position();
+
+                let mut needs_scroll = false;
+                let mut new_scroll_x = scroll_pos.x;
+                let mut new_scroll_y = scroll_pos.y;
+
+                if absolute_x < scroll_pos.x {
+                    new_scroll_x = absolute_x;
+                    needs_scroll = true;
+                } else if absolute_x + cell_pos.width > scroll_pos.x + viewport_width {
+                    new_scroll_x = absolute_x + cell_pos.width - viewport_width;
+                    needs_scroll = true;
+                }
+
+                if absolute_y < scroll_pos.y {
+                    new_scroll_y = absolute_y;
+                    needs_scroll = true;
+                } else if absolute_y + cell_pos.height > scroll_pos.y + viewport_height {
+                    new_scroll_y = absolute_y + cell_pos.height - viewport_height;
+                    needs_scroll = true;
+                }
+
+                if needs_scroll {
+                    vp_borrow.set_scroll_position(new_scroll_x.max(0.0), new_scroll_y.max(0.0));
+                }
+                needs_scroll
+            });
+            if needs_scroll {
+                render_trigger.notify();
+            }
+        }
+    };
+
     view! {
         <div
             class="grid-container"
             node_ref=wrapper_ref
             tabindex="0"
+            on:keydown=on_keydown
             style="width: 100%; height: 100%; outline: none; position: relative; overflow: hidden;"
         >
             <GridEventHandler
