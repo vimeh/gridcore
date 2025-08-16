@@ -41,49 +41,10 @@ jobs:
         run: |
           cd gridcore-rs
           cargo bench --all --no-fail-fast -- --save-baseline current
-          
+
           # Generate JSON output for benchmark-action
           cargo criterion --message-format=json > ../benchmark-results.json || true
-          
-          # If cargo-criterion doesn't work, use criterion's own output
-          if [ ! -s ../benchmark-results.json ]; then
-            echo "Creating benchmark results from criterion output..."
-            # Parse criterion results into JSON format
-            cat > parse_results.py << 'EOF'
-import json
-import os
-import re
-from pathlib import Path
 
-results = []
-criterion_dir = Path('target/criterion')
-
-if criterion_dir.exists():
-    for bench_dir in criterion_dir.glob('*'):
-        if bench_dir.is_dir() and not bench_dir.name.startswith('.'):
-            estimates_file = bench_dir / 'base' / 'estimates.json'
-            if estimates_file.exists():
-                with open(estimates_file) as f:
-                    data = json.load(f)
-                    # Convert to format expected by benchmark-action
-                    results.append({
-                        'name': bench_dir.name,
-                        'unit': 'ns/iter',
-                        'value': data.get('mean', {}).get('point_estimate', 0) * 1e9 if 'mean' in data else 0
-                    })
-
-output = {
-    'results': results
-}
-
-with open('../benchmark-results.json', 'w') as f:
-    json.dump(output, f, indent=2)
-print(f'Generated benchmark results with {len(results)} benchmarks')
-EOF
-            python3 parse_results.py || echo "[]" > ../benchmark-results.json
-            rm -f parse_results.py
-          fi
-          
           # Verify the file was created
           ls -la ../benchmark-results.json
 
@@ -113,4 +74,3 @@ EOF
             benchmark-results.json
             gridcore-rs/target/criterion/
           retention-days: 30
-
