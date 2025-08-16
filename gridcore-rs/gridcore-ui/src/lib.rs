@@ -1,11 +1,15 @@
 pub mod app;
-pub mod benchmark;
 pub mod components;
 pub mod debug;
-pub mod demo;
 pub mod interaction;
 pub mod rendering;
 pub mod utils;
+
+// Re-export demo components when demo feature is enabled
+#[cfg(feature = "demo")]
+pub use gridcore_demo::components::{DemoProgressBar, PerformanceOverlay};
+#[cfg(feature = "demo")]
+pub use gridcore_demo::{demo, DemoConfig, DemoController, DemoMode};
 
 use app::App;
 use leptos::prelude::*;

@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 [dependencies]
 gridcore-core = { path = "../gridcore-core" }
 gridcore-controller = { path = "../gridcore-controller" }
+gridcore-demo = { path = "../gridcore-demo", optional = true }
 leptos = { version = "0.8", features = ["csr"] }
 wasm-logger = "0.2"
 web-sys = { version = "0.3", features = [
@@ -49,3 +50,4 @@ optional = true
 [features]
 default = []
 debug = ["console_error_panic_hook"]
+demo = ["gridcore-demo"]

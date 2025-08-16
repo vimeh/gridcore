@@ -18,6 +18,7 @@ use crate::benchmark::{
 use gridcore_controller::controller::SpreadsheetController;
 use std::cell::RefCell;
 use std::rc::Rc;
+#[cfg(feature = "web")]
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -164,7 +165,7 @@ impl DemoController {
         &mut self,
         controller: Rc<RefCell<SpreadsheetController>>,
     ) -> Result<String, String> {
-        leptos::logging::log!("Starting quick benchmark...");
+        crate::log_info!("Starting quick benchmark...");
 
         // Create benchmark runner
         let mut runner =
@@ -191,17 +192,18 @@ impl DemoController {
             report.summary.total_memory_growth
         );
 
-        leptos::logging::log!("{}", summary);
+        crate::log_info!("{}", summary);
 
         // Also log any warnings
         for warning in &report.warnings {
-            leptos::logging::warn!("⚠️ {}", warning);
+            crate::log_warn!("⚠️ {}", warning);
         }
 
         Ok(summary)
     }
 
     /// Run full benchmark suite
+    #[cfg(feature = "web")]
     pub fn run_full_benchmark(
         &mut self,
         controller: Rc<RefCell<SpreadsheetController>>,
@@ -211,7 +213,7 @@ impl DemoController {
 
         // Run benchmarks asynchronously
         spawn_local(async move {
-            leptos::logging::log!("Starting full benchmark suite...");
+            crate::log_info!("Starting full benchmark suite...");
 
             // Create benchmark runner with standard config
             let mut runner =
@@ -243,7 +245,7 @@ impl DemoController {
             // Run benchmarks
             let report = runner.run_all();
 
-            leptos::logging::log!(
+            crate::log_info!(
                 "Benchmark suite complete: {} scenarios, {} successful",
                 report.summary.total_scenarios,
                 report.summary.successful_runs
@@ -252,6 +254,16 @@ impl DemoController {
             // Call the callback with results
             callback(report);
         });
+    }
+    
+    /// Run full benchmark suite (non-web version)
+    #[cfg(not(feature = "web"))]
+    pub fn run_full_benchmark(
+        &mut self,
+        _controller: Rc<RefCell<SpreadsheetController>>,
+        _callback: impl Fn(BenchmarkReport) + 'static,
+    ) {
+        println!("Full benchmark suite is only available in web mode");
     }
 
     /// Get available benchmark scenarios
