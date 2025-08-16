@@ -186,7 +186,7 @@ pub fn App() -> impl IntoView {
                         />
                         " Debug Mode"
                     </label>
-                    
+
                     // Demo toolbar (only when demo feature is enabled)
                     {
                         #[cfg(feature = "demo")]
@@ -249,7 +249,7 @@ pub fn App() -> impl IntoView {
                     selection_stats=selection_stats
                     selection_trigger=selection_trigger
                 />
-                
+
                 // Demo overlay components (only when demo feature is enabled)
                 {
                     #[cfg(feature = "demo")]
@@ -296,8 +296,10 @@ struct DemoState {
     benchmark_running: RwSignal<bool>,
     benchmark_results: RwSignal<String>,
     show_benchmark_results: RwSignal<bool>,
-    demo_interval_handle: StoredValue<Option<leptos::leptos_dom::helpers::IntervalHandle>, LocalStorage>,
-    fps_interval_handle: StoredValue<Option<leptos::leptos_dom::helpers::IntervalHandle>, LocalStorage>,
+    demo_interval_handle:
+        StoredValue<Option<leptos::leptos_dom::helpers::IntervalHandle>, LocalStorage>,
+    fps_interval_handle:
+        StoredValue<Option<leptos::leptos_dom::helpers::IntervalHandle>, LocalStorage>,
 }
 
 #[cfg(feature = "demo")]
@@ -327,7 +329,7 @@ fn create_demo_toolbar(
     let demo_state_for_benchmark = demo_state.clone();
     let demo_state_for_benchmark_text = demo_state.clone();
     let demo_state_for_benchmark_disabled = demo_state.clone();
-    
+
     view! {
         <>
             <label style="margin-left: 10px;">
@@ -341,7 +343,7 @@ fn create_demo_toolbar(
                 />
                 " Demo Mode"
             </label>
-            
+
             // Demo controls shown when demo mode is active
             <Show
                 when=move || demo_state.demo_mode.get()
@@ -351,7 +353,7 @@ fn create_demo_toolbar(
                     let demo_state_inner = demo_state.clone();
                     let demo_state_toggle = demo_state.clone();
                     let demo_state_perf = demo_state.clone();
-                    
+
                     view! {
                         <div style="display: inline-block; margin-left: 20px;">
                             // Demo scenario selector and controls
@@ -370,7 +372,7 @@ fn create_demo_toolbar(
                                 <option value="Performance Stress Test">"Performance Stress Test"</option>
                                 <option value="Error Handling">"Error Handling"</option>
                             </select>
-                            
+
                             // Start/Stop button
                             <button
                                 style="margin-left: 10px;"
@@ -380,7 +382,7 @@ fn create_demo_toolbar(
                             >
                                 {move || if demo_state.demo_running.get() { "Stop" } else { "Start" }}
                             </button>
-                            
+
                             // Performance toggle
                             <button
                                 style="margin-left: 5px;"
@@ -394,7 +396,7 @@ fn create_demo_toolbar(
                     }
                 }
             </Show>
-            
+
             // Benchmark controls
             <div style="display: inline-block; margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
                 <button
@@ -463,15 +465,15 @@ fn handle_demo_toggle(
     controller_stored: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage>,
 ) {
     let scenario = demo_state.demo_scenario.get();
-    
+
     demo_state.demo_controller.with_value(|demo| {
         let mut demo = demo.borrow_mut();
-        
+
         if demo_state.demo_running.get() {
             // Stop the demo
             demo.stop_demo();
             demo_state.demo_running.set(false);
-            
+
             // Clear intervals
             demo_state.demo_interval_handle.update_value(|handle| {
                 if let Some(h) = handle.take() {
@@ -493,7 +495,7 @@ fn handle_demo_toggle(
                         demo_state.demo_total_steps.set(demo.get_total_steps());
                         let metrics = demo.get_performance_metrics();
                         demo_state.demo_metrics.set(metrics);
-                        
+
                         // Set up demo runner interval
                         // Note: In a real implementation, you'd set up the intervals here
                     }
@@ -513,22 +515,24 @@ fn run_quick_benchmark(
 ) {
     demo_state.benchmark_running.set(true);
     demo_state.show_benchmark_results.set(false);
-    
+
     demo_state.demo_controller.with_value(|demo| {
         controller_stored.with_value(|ctrl| {
             let mut demo = demo.borrow_mut();
-            
+
             match demo.run_quick_benchmark(ctrl.clone()) {
                 Ok(results) => {
                     demo_state.benchmark_results.set(results);
                     demo_state.show_benchmark_results.set(true);
                 }
                 Err(e) => {
-                    demo_state.benchmark_results.set(format!("Benchmark failed: {}", e));
+                    demo_state
+                        .benchmark_results
+                        .set(format!("Benchmark failed: {}", e));
                     demo_state.show_benchmark_results.set(true);
                 }
             }
-            
+
             demo_state.benchmark_running.set(false);
         });
     });

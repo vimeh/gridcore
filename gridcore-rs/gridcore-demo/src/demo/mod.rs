@@ -255,7 +255,7 @@ impl DemoController {
             callback(report);
         });
     }
-    
+
     /// Run full benchmark suite (non-web version)
     #[cfg(not(feature = "web"))]
     pub fn run_full_benchmark(

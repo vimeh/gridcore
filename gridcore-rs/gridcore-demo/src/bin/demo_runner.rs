@@ -19,27 +19,27 @@ struct Cli {
 enum Commands {
     /// List available demo scenarios
     List,
-    
+
     /// Run a demo scenario
     Run {
         /// Name of the scenario to run
         scenario: String,
-        
+
         /// Number of steps to execute (0 for all)
         #[arg(short, long, default_value = "0")]
         steps: usize,
-        
+
         /// Enable performance monitoring
         #[arg(short, long)]
         perf: bool,
     },
-    
+
     /// Run benchmarks
     Benchmark {
         /// Run quick benchmark only
         #[arg(short, long)]
         quick: bool,
-        
+
         /// Output format (json, text, csv)
         #[arg(short, long, default_value = "text")]
         format: String,
@@ -48,7 +48,7 @@ enum Commands {
 
 fn main() {
     let cli = Cli::parse();
-    
+
     match cli.command {
         Commands::List => {
             println!("Available Demo Scenarios:");
@@ -62,11 +62,15 @@ fn main() {
                 println!("  - {}", benchmark);
             }
         }
-        
-        Commands::Run { scenario, steps, perf } => {
+
+        Commands::Run {
+            scenario,
+            steps,
+            perf,
+        } => {
             run_demo(&scenario, steps, perf);
         }
-        
+
         Commands::Benchmark { quick, format } => {
             run_benchmark(quick, &format);
         }
@@ -75,44 +79,41 @@ fn main() {
 
 fn run_demo(scenario: &str, max_steps: usize, enable_perf: bool) {
     println!("Starting demo: {}", scenario);
-    
+
     // Create controller and demo controller
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
     let mut demo_controller = DemoController::new();
-    
+
     // Start the demo
     match demo_controller.start_demo(scenario, controller.clone()) {
         Ok(_) => {
             println!("Demo started successfully");
-            
+
             if enable_perf {
                 println!("Performance monitoring enabled");
             }
-            
+
             // Run demo steps
             let mut step_count = 0;
             while demo_controller.is_running() {
                 if max_steps > 0 && step_count >= max_steps {
                     break;
                 }
-                
+
                 demo_controller.step_forward(controller.clone());
                 step_count += 1;
-                
+
                 if enable_perf && step_count % 10 == 0 {
                     let metrics = demo_controller.get_performance_metrics();
                     println!(
                         "Step {}: FPS={:.1}, Cells={}, Operations/s={:.1}",
-                        step_count,
-                        metrics.fps,
-                        metrics.cell_count,
-                        metrics.operations_per_second
+                        step_count, metrics.fps, metrics.cell_count, metrics.operations_per_second
                     );
                 }
             }
-            
+
             println!("Demo completed after {} steps", step_count);
-            
+
             if enable_perf {
                 let final_metrics = demo_controller.get_performance_metrics();
                 println!("\nFinal Performance Metrics:");
@@ -130,12 +131,15 @@ fn run_demo(scenario: &str, max_steps: usize, enable_perf: bool) {
 }
 
 fn run_benchmark(quick: bool, format: &str) {
-    println!("Running {} benchmark...", if quick { "quick" } else { "full" });
-    
+    println!(
+        "Running {} benchmark...",
+        if quick { "quick" } else { "full" }
+    );
+
     // Create controller and demo controller
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
     let mut demo_controller = DemoController::new();
-    
+
     if quick {
         match demo_controller.run_quick_benchmark(controller) {
             Ok(results) => {
