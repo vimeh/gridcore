@@ -13,7 +13,8 @@
       "Bash(cargo check:*)",
       "Bash(git add:*)",
       "WebFetch(domain:github.com)",
-      "Bash(cargo tree:*)"
+      "Bash(cargo tree:*)",
+      "Bash(cargo fmt:*)"
     ],
     "deny": []
   }
