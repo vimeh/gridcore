@@ -31,7 +31,7 @@ pub enum EditorMode {
 
 impl EditorMode {
     pub fn is_editing(&self) -> bool {
-        matches!(self, EditorMode::Editing { .. })
+        matches!(self, EditorMode::Editing { .. } | EditorMode::Visual { .. })
     }
 
     pub fn is_visual(&self) -> bool {

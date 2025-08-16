@@ -322,6 +322,57 @@ impl SpreadsheetController {
             return Ok(());
         }
 
+        // Handle EnterInsertMode action
+        if let Action::EnterInsertMode { mode } = &action {
+            // Enter insert mode from normal editing mode
+            if let EditorMode::Editing { value, cursor_pos, .. } = &self.mode {
+                self.mode = EditorMode::Editing {
+                    value: value.clone(),
+                    cursor_pos: *cursor_pos,
+                    insert_mode: mode.clone(),
+                };
+                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+            }
+            return Ok(());
+        }
+
+        // Handle EnterVisualMode action
+        if let Action::EnterVisualMode { visual_type, anchor } = &action {
+            // Enter visual mode from editing mode
+            if let EditorMode::Editing { value, .. } = &self.mode {
+                // Save the current editing value first
+                self.formula_bar = value.clone();
+                
+                // Get the anchor position (default to current cursor position in text)
+                let anchor_pos = anchor.unwrap_or(0);
+                
+                // For cell editing, visual mode is within the text, not cells
+                // So we stay in editing mode but with visual selection
+                // However, according to the architecture, we have a Visual mode at the editor level
+                self.mode = EditorMode::Visual {
+                    mode: visual_type.clone(),
+                    anchor: CellAddress::new(anchor_pos as u32, 0), // Using anchor as position within text
+                };
+                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+            }
+            return Ok(());
+        }
+
+        // Handle ExitVisualMode action  
+        if matches!(action, Action::ExitVisualMode) {
+            // Exit visual mode back to normal editing mode
+            if let EditorMode::Visual { .. } = &self.mode {
+                // Go back to normal editing mode with the current formula bar value
+                self.mode = EditorMode::Editing {
+                    value: self.formula_bar.clone(),
+                    cursor_pos: 0,
+                    insert_mode: None,
+                };
+                self.event_dispatcher.dispatch(&SpreadsheetEvent::StateChanged);
+            }
+            return Ok(());
+        }
+
         // Get old state for comparison
         let old_mode = self.get_mode().clone();
 

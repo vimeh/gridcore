@@ -36,7 +36,7 @@ pub fn StatusBar(
                     if insert_mode.is_some() {
                         ("INSERT", "#2196f3", "ESC to normal")
                     } else {
-                        ("NORMAL", "#ff9800", "i for insert")
+                        ("NORMAL", "#ff9800", "i/a to insert")
                     }
                 }
                 EditorMode::Command { .. } => ("COMMAND", "#f44336", "Enter to execute"),

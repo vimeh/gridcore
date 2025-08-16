@@ -63,11 +63,15 @@ pub fn CellEditor(
     let current_editing_value = Signal::derive(move || {
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            if let gridcore_controller::controller::mode::EditorMode::Editing { value, .. } = ctrl_borrow.get_mode()
-            {
-                value.clone()
-            } else {
-                String::new()
+            match ctrl_borrow.get_mode() {
+                gridcore_controller::controller::mode::EditorMode::Editing { value, .. } => {
+                    value.clone()
+                }
+                gridcore_controller::controller::mode::EditorMode::Visual { .. } => {
+                    // In visual mode, use the formula bar value
+                    ctrl_borrow.get_formula_bar().to_string()
+                }
+                _ => String::new()
             }
         })
     });
@@ -237,6 +241,7 @@ pub fn CellEditor(
                                     let (is_insert_mode, is_normal_mode, is_visual_mode) = match ctrl_borrow.get_mode() {
                                         EditorMode::Editing { insert_mode: Some(_), .. } => (true, false, false),
                                         EditorMode::Editing { insert_mode: None, .. } => (false, true, false),
+                                        EditorMode::Visual { .. } => (false, false, true),
                                         _ => (false, false, false),
                                     };
 
