@@ -15,40 +15,87 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          bun-version: latest
+          components: rustfmt, clippy
 
-      - name: Cache dependencies
+      - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            gridcore-rs/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-cargo-
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Install cargo-criterion
+        run: |
+          cargo install cargo-criterion --locked || true
 
       - name: Run benchmarks
         run: |
-          cd packages/core
-          bun run bench:json
+          cd gridcore-rs
+          cargo bench --all --no-fail-fast -- --save-baseline current
+          
+          # Generate JSON output for benchmark-action
+          cargo criterion --message-format=json > ../benchmark-results.json || true
+          
+          # If cargo-criterion doesn't work, use criterion's own output
+          if [ ! -s ../benchmark-results.json ]; then
+            echo "Creating benchmark results from criterion output..."
+            # Parse criterion results into JSON format
+            python3 -c "
+import json
+import os
+import re
+from pathlib import Path
+
+results = []
+criterion_dir = Path('target/criterion')
+
+if criterion_dir.exists():
+    for bench_dir in criterion_dir.glob('*'):
+        if bench_dir.is_dir() and not bench_dir.name.startswith('.'):
+            estimates_file = bench_dir / 'base' / 'estimates.json'
+            if estimates_file.exists():
+                with open(estimates_file) as f:
+                    data = json.load(f)
+                    # Convert to format expected by benchmark-action
+                    results.append({
+                        'name': bench_dir.name,
+                        'unit': 'ns/iter',
+                        'value': data.get('mean', {}).get('point_estimate', 0) * 1e9 if 'mean' in data else 0
+                    })
+
+output = {
+    'results': results
+}
+
+with open('../benchmark-results.json', 'w') as f:
+    json.dump(output, f, indent=2)
+print(f'Generated benchmark results with {len(results)} benchmarks')
+            " || echo "[]" > ../benchmark-results.json
+          fi
+          
           # Verify the file was created
-          ls -la benchmark-results.json
+          ls -la ../benchmark-results.json
 
       - name: Download previous benchmark data
         uses: actions/cache@v4
         with:
           path: ./cache
-          key: ${{ runner.os }}-benchmark
+          key: ${{ runner.os }}-rust-benchmark
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          tool: "customBiggerIsBetter"
-          output-file-path: packages/core/benchmark-results.json
+          tool: "customSmallerIsBetter"
+          output-file-path: benchmark-results.json
           external-data-json-path: ./cache/benchmark-data.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
           fail-on-alert: true
@@ -60,6 +107,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-results
-          path: packages/core/benchmark-results.json
+          path: |
+            benchmark-results.json
+            gridcore-rs/target/criterion/
           retention-days: 30
 
