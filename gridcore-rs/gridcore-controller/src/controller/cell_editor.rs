@@ -44,6 +44,15 @@ impl CellEditor {
         }
     }
 
+    /// Complete editing from any editing mode using new architecture
+    pub fn complete_editing_direct(
+        mode: &EditorMode,
+        cursor: CellAddress,
+        facade: &mut SpreadsheetFacade,
+    ) -> Option<CellEditResult> {
+        Self::submit_cell_edit_direct(mode, cursor, facade)
+    }
+
     /// Submit cell edit from editing mode using new architecture
     pub fn submit_cell_edit_direct(
         mode: &EditorMode,
@@ -59,66 +68,6 @@ impl CellEditor {
 
         if let Some(cell_value) = editing_value {
             let address = cursor;
-
-            let result = facade.set_cell_value(&address, &cell_value);
-
-            match result {
-                Ok(_) => {
-                    // Check if the cell now contains an error value
-                    if let Some(gridcore_core::types::CellValue::Error(error_type)) =
-                        facade.get_cell_raw_value(&address)
-                    {
-                        let enhanced_message =
-                            format!("Formula error: {}", error_type.full_display());
-                        log::error!("Error in cell {}: {}", address, enhanced_message);
-                        Some(CellEditResult::SuccessWithError {
-                            address,
-                            value: cell_value,
-                            error_message: enhanced_message,
-                        })
-                    } else {
-                        Some(CellEditResult::Success {
-                            address,
-                            value: cell_value,
-                            should_clear_formula_bar: false,
-                        })
-                    }
-                }
-                Err(e) => {
-                    let message = ErrorSystem::format_error(&e);
-                    log::error!("Parse/Set error in cell {}: {}", address, message);
-                    Some(CellEditResult::Failed {
-                        address,
-                        error: message,
-                    })
-                }
-            }
-        } else {
-            None
-        }
-    }
-
-    /// Complete editing from editing mode using new architecture
-    pub fn complete_editing_direct(
-        mode: &EditorMode,
-        cursor: CellAddress,
-        facade: &mut SpreadsheetFacade,
-    ) -> Option<CellEditResult> {
-        let editing_value = match mode {
-            EditorMode::Editing { value, .. } | EditorMode::CellEditing { value, .. } => {
-                Some(value.clone())
-            }
-            _ => None,
-        };
-
-        if let Some(cell_value) = editing_value {
-            let address = cursor;
-
-            log::debug!(
-                "complete_editing_direct: Setting cell {:?} to value: '{}'",
-                address,
-                cell_value
-            );
 
             let result = facade.set_cell_value(&address, &cell_value);
 

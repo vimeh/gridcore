@@ -179,6 +179,19 @@ impl SpreadsheetController {
     /// Set the editor mode directly
     pub fn set_mode(&mut self, mode: EditorMode) {
         log::debug!("Setting mode from {:?} to {:?}", self.mode, mode);
+
+        // When entering visual mode, set up initial selection
+        if let EditorMode::Visual { anchor, .. } = &mode {
+            use crate::state::{Selection, SelectionType};
+            self.selection = Some(Selection {
+                selection_type: SelectionType::Cell { address: *anchor },
+                anchor: Some(*anchor),
+            });
+        } else if !matches!(mode, EditorMode::Visual { .. }) {
+            // Clear selection when exiting visual mode
+            self.selection = None;
+        }
+
         self.mode = mode;
 
         // Emit state changed event
@@ -488,11 +501,39 @@ impl SpreadsheetController {
         // Handle action directly without state machine
         match &action {
             Action::UpdateCursor { cursor } => {
+                // If in visual mode, exit it when clicking to move cursor
+                if matches!(self.mode, EditorMode::Visual { .. }) {
+                    self.set_mode(EditorMode::Navigation);
+                }
                 // set_cursor already emits CursorMoved event
                 self.set_cursor(*cursor);
             }
             Action::UpdateSelection { selection } => {
                 self.set_selection(Some(selection.clone()));
+            }
+            Action::EnterCommandMode => {
+                // Enter command mode with empty value
+                self.mode = EditorMode::Command {
+                    value: String::new(),
+                };
+                self.event_dispatcher
+                    .dispatch(&SpreadsheetEvent::StateChanged);
+            }
+            Action::ExitCommandMode => {
+                // Exit command mode back to navigation
+                self.mode = EditorMode::Navigation;
+                self.event_dispatcher
+                    .dispatch(&SpreadsheetEvent::StateChanged);
+            }
+            Action::UpdateCommandValue { value } => {
+                // Update the command value
+                if matches!(self.mode, EditorMode::Command { .. }) {
+                    self.mode = EditorMode::Command {
+                        value: value.clone(),
+                    };
+                    self.event_dispatcher
+                        .dispatch(&SpreadsheetEvent::StateChanged);
+                }
             }
             _ => {
                 // Other actions already handled above or not needed

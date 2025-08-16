@@ -1,5 +1,5 @@
 use crate::controller::{KeyboardEvent, MouseEvent, SpreadsheetEvent};
-use crate::state::{Action, InsertMode, NavigationModal, Selection, SelectionType, UIState};
+use crate::state::{Action, InsertMode, Selection, SelectionType};
 use gridcore_core::{types::CellAddress, Result};
 
 /// Handles all input events for the spreadsheet controller
@@ -243,38 +243,115 @@ impl<'a> InputHandler<'a> {
     }
 
     fn handle_editing_key(&mut self, event: KeyboardEvent) -> Result<()> {
-        use super::mode::EditorMode;
+        use super::mode::{CellEditMode, EditorMode};
 
-        // Only handle Escape here for cancel - let cell_editor handle everything else
-        if event.key == "Escape" {
-            // Check if we're in insert mode first
-            if let EditorMode::Editing {
-                insert_mode: Some(_),
-                ..
-            } = self.controller.get_mode()
-            {
-                // Let cell editor handle Escape in insert mode
-                return Ok(());
+        // Handle keys based on the current editing mode
+        match self.controller.get_mode().clone() {
+            EditorMode::CellEditing {
+                value,
+                cursor_pos,
+                mode,
+                visual_anchor,
+            } => {
+                match mode {
+                    CellEditMode::Insert(_) => {
+                        // Handle typing in insert mode
+                        if event.key == "Escape" {
+                            // Exit to normal mode
+                            self.controller.set_mode(EditorMode::CellEditing {
+                                value,
+                                cursor_pos,
+                                mode: CellEditMode::Normal,
+                                visual_anchor,
+                            });
+                        } else if event.key.len() == 1 {
+                            // Type character
+                            let mut new_value = value.clone();
+                            new_value.insert(cursor_pos, event.key.chars().next().unwrap());
+                            self.controller.set_mode(EditorMode::CellEditing {
+                                value: new_value,
+                                cursor_pos: cursor_pos + 1,
+                                mode,
+                                visual_anchor,
+                            });
+                        } else if event.key == "Enter" {
+                            // Submit the edit
+                            self.controller.complete_editing()?;
+                        }
+                    }
+                    CellEditMode::Normal => {
+                        // Handle normal mode keys
+                        if event.key == "Escape" {
+                            // Exit to navigation
+                            self.controller.cancel_editing()?;
+                        } else if event.key == "i" {
+                            // Enter insert mode
+                            self.controller.set_mode(EditorMode::CellEditing {
+                                value,
+                                cursor_pos,
+                                mode: CellEditMode::Insert(InsertMode::I),
+                                visual_anchor,
+                            });
+                        }
+                    }
+                    CellEditMode::Visual(_) => {
+                        // Handle visual mode keys (not implemented yet)
+                        if event.key == "Escape" {
+                            // Exit to normal mode
+                            self.controller.set_mode(EditorMode::CellEditing {
+                                value,
+                                cursor_pos,
+                                mode: CellEditMode::Normal,
+                                visual_anchor: None,
+                            });
+                        }
+                    }
+                }
+                Ok(())
             }
-            // In normal editing mode, Escape cancels
-            self.controller.cancel_editing()?;
-            return Ok(());
+            EditorMode::Editing {
+                value,
+                cursor_pos,
+                insert_mode,
+            } => {
+                // Legacy editing mode handling
+                if event.key == "Escape" {
+                    if insert_mode.is_some() {
+                        // Exit to normal mode (convert to CellEditing)
+                        self.controller.set_mode(EditorMode::CellEditing {
+                            value,
+                            cursor_pos,
+                            mode: CellEditMode::Normal,
+                            visual_anchor: None,
+                        });
+                    } else {
+                        // Cancel editing
+                        self.controller.cancel_editing()?;
+                    }
+                } else if event.key.len() == 1 && insert_mode.is_some() {
+                    // Type character
+                    let mut new_value = value.clone();
+                    new_value.insert(cursor_pos, event.key.chars().next().unwrap());
+                    self.controller.set_mode(EditorMode::Editing {
+                        value: new_value,
+                        cursor_pos: cursor_pos + 1,
+                        insert_mode,
+                    });
+                }
+                Ok(())
+            }
+            _ => Ok(()),
         }
-
-        // Let the cell editor component handle all other keys
-        Ok(())
     }
 
     fn handle_command_key(&mut self, event: KeyboardEvent) -> Result<()> {
+        use super::mode::EditorMode;
+
         if event.key == "Escape" {
             return self.controller.dispatch_action(Action::ExitCommandMode);
         }
 
-        if let UIState::Navigation {
-            modal: Some(NavigationModal::Command { value }),
-            ..
-        } = &self.controller.state()
-        {
+        if let EditorMode::Command { value } = self.controller.get_mode() {
             if event.is_printable() {
                 let mut new_value = value.clone();
                 new_value.push_str(&event.key);
@@ -402,6 +479,11 @@ impl<'a> InputHandler<'a> {
         {
             match event.event_type {
                 crate::controller::events::MouseEventType::Click => {
+                    // If in visual mode, exit it when clicking
+                    use super::mode::EditorMode;
+                    if matches!(self.controller.get_mode(), EditorMode::Visual { .. }) {
+                        self.controller.set_mode(EditorMode::Navigation);
+                    }
                     // Use direct set_cursor which emits the event
                     self.controller.set_cursor(cell);
                     self.controller.update_formula_bar_from_cursor();
