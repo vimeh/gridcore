@@ -44,15 +44,6 @@ impl CellEditor {
         }
     }
 
-    /// Complete editing from any editing mode using new architecture
-    pub fn complete_editing_direct(
-        mode: &EditorMode,
-        cursor: CellAddress,
-        facade: &mut SpreadsheetFacade,
-    ) -> Option<CellEditResult> {
-        Self::submit_cell_edit_direct(mode, cursor, facade)
-    }
-
     /// Submit cell edit from editing mode using new architecture
     pub fn submit_cell_edit_direct(
         mode: &EditorMode,

@@ -875,7 +875,7 @@ impl SpreadsheetController {
 
         // Use CellEditor to complete editing with new architecture
         if let Some(result) =
-            CellEditor::complete_editing_direct(&self.mode, self.cursor, &mut self.facade)
+            CellEditor::submit_cell_edit_direct(&self.mode, self.cursor, &mut self.facade)
         {
             log::debug!("CellEditor returned a result for editing completion");
 
