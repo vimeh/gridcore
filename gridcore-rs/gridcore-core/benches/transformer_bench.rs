@@ -106,7 +106,7 @@ fn bench_batch_transformations(c: &mut Criterion) {
     c.benchmark_group("batch_transformations")
         .bench_function("100_formulas", |b| {
             let formulas: Vec<Expr> = (0..100)
-                .map(|i| FormulaParser::parse(&format!("A{} + B{}", i, i)).unwrap())
+                .map(|i| FormulaParser::parse(&format!("A{} + B{}", i + 1, i + 1)).unwrap())
                 .collect();
 
             b.iter(|| {
@@ -117,7 +117,7 @@ fn bench_batch_transformations(c: &mut Criterion) {
         })
         .bench_function("1000_formulas", |b| {
             let formulas: Vec<Expr> = (0..1000)
-                .map(|i| FormulaParser::parse(&format!("A{} + B{}", i % 100, i % 100)).unwrap())
+                .map(|i| FormulaParser::parse(&format!("A{} + B{}", (i % 100) + 1, (i % 100) + 1)).unwrap())
                 .collect();
 
             b.iter(|| {
