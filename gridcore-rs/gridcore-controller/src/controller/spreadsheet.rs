@@ -106,6 +106,10 @@ impl SpreadsheetController {
     }
 
     /// Get the current UI state
+    #[deprecated(
+        note = "Use get_mode() instead to access the current editor mode",
+        since = "0.1.0"
+    )]
     pub fn state(&self) -> UIState {
         // Deprecated - use get_mode() instead
         // This is only kept for parts of the code that haven't been updated yet
