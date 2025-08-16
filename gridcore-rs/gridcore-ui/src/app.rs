@@ -1,5 +1,5 @@
-use crate::components::canvas_grid::CanvasGrid;
 use crate::components::error_display::ErrorDisplay;
+use crate::components::grid_container::GridContainer;
 use crate::components::performance_overlay::{DemoProgressBar, PerformanceOverlay};
 use crate::components::status_bar::StatusBar;
 use crate::components::tab_bar::{Sheet, TabBar};
@@ -561,7 +561,7 @@ pub fn App() -> impl IntoView {
             </div>
 
             <div class="main-content">
-                <CanvasGrid
+                <GridContainer
                     active_cell=active_cell
                     current_mode=current_mode
                     render_trigger=render_trigger

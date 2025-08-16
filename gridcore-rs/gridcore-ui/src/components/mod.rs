@@ -1,6 +1,9 @@
 pub mod canvas_grid;
 pub mod cell_editor;
 pub mod error_display;
+pub mod grid_canvas;
+pub mod grid_container;
+pub mod grid_event_handler;
 pub mod performance_overlay;
 pub mod status_bar;
 pub mod tab_bar;
