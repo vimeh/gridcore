@@ -88,6 +88,8 @@ pub fn App() -> impl IntoView {
                 match event {
                     SpreadsheetEvent::CursorMoved { .. } => {
                         cursor_trigger.notify();
+                        // Also trigger render to update selection in visual mode
+                        render_trigger.notify();
                     }
                     SpreadsheetEvent::StateChanged | SpreadsheetEvent::CommandExecuted { .. } => {
                         mode_trigger.notify();
@@ -96,6 +98,8 @@ pub fn App() -> impl IntoView {
                         selection_trigger.notify();
                         // Also notify error trigger as errors might have been removed
                         error_trigger.notify();
+                        // Trigger render for visual selection changes
+                        render_trigger.notify();
                     }
                     SpreadsheetEvent::FormulaBarUpdated { .. } => {
                         formula_trigger.notify();
