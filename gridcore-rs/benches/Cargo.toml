@@ -1,0 +1,45 @@
+[package]
+name = "gridcore-benchmarks"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gridcore-core = { path = "../gridcore-core" }
+criterion = "0.7"
+smallvec = "1.15.1"
+rustc-hash = "2.1.1"
+
+[[bench]]
+name = "transformer_bench"
+harness = false
+path = "src/transformer_bench.rs"
+
+[[bench]]
+name = "structural_ops_bench"
+harness = false
+path = "src/structural_ops_bench.rs"
+
+[[bench]]
+name = "undo_redo_benchmark"
+harness = false
+path = "src/undo_redo_benchmark.rs"
+
+[[bench]]
+name = "fill_bench"
+harness = false
+path = "src/fill_bench.rs"
+
+[[bench]]
+name = "memory_bench"
+harness = false
+path = "src/memory_bench.rs"
+
+[[bench]]
+name = "memory_bench_simple"
+harness = false
+path = "src/memory_bench_simple.rs"
+
+[[bench]]
+name = "optimization_bench"
+harness = false
+path = "src/optimization_bench.rs"

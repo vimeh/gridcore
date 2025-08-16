@@ -4,6 +4,7 @@ members = [
   "gridcore-controller",
   "gridcore-ui",
   "gridcore-demo",
+  "benches",
 ]
 resolver = "2"
 

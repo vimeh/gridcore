@@ -856,6 +856,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gridcore-benchmarks"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "gridcore-core",
+ "rustc-hash",
+ "smallvec",
+]
+
+[[package]]
 name = "gridcore-controller"
 version = "0.1.0"
 dependencies = [
