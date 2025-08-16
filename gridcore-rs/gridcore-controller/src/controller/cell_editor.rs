@@ -101,6 +101,8 @@ impl CellEditor {
         if let EditorMode::Editing { value, .. } = mode {
             let address = cursor;
             let cell_value = value.clone();
+            
+            log::debug!("complete_editing_direct: Setting cell {:?} to value: '{}'", address, cell_value);
 
             let result = facade.set_cell_value(&address, &cell_value);
 

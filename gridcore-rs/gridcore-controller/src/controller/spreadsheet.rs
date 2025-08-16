@@ -641,10 +641,14 @@ impl SpreadsheetController {
     }
 
     pub(super) fn complete_editing(&mut self) -> Result<()> {
+        log::debug!("complete_editing called, current mode: {:?}", self.mode);
+        
         // Use CellEditor to complete editing with new architecture
         if let Some(result) =
             CellEditor::complete_editing_direct(&self.mode, self.cursor, &mut self.facade)
         {
+            log::debug!("CellEditor returned a result for editing completion");
+            
             // Process events from result
             for (event, error_info) in result.create_events() {
                 self.event_dispatcher.dispatch(&event);
@@ -658,6 +662,10 @@ impl SpreadsheetController {
 
             // Exit editing mode
             self.mode = EditorMode::Navigation;
+            
+            log::debug!("Editing completed, mode now: {:?}", self.mode);
+        } else {
+            log::debug!("CellEditor returned None - not in editing mode?");
         }
         Ok(())
     }
