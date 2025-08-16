@@ -6,7 +6,7 @@ use crate::{Result, SpreadsheetError};
 pub fn apply_unary(op: &UnaryOperator, value: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = value {
-        return Ok(CellValue::Error(e.clone()));
+        return Ok(CellValue::Error(e));
     }
 
     match op {
@@ -54,10 +54,10 @@ pub fn apply_binary(op: &BinaryOperator, left: CellValue, right: CellValue) -> R
 fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = left {
-        return Ok(CellValue::Error(e.clone()));
+        return Ok(CellValue::Error(e));
     }
     if let CellValue::Error(e) = right {
-        return Ok(CellValue::Error(e.clone()));
+        return Ok(CellValue::Error(e));
     }
 
     // Try numeric addition first
@@ -81,10 +81,10 @@ fn add_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = left {
-        return Ok(CellValue::Error(e.clone()));
+        return Ok(CellValue::Error(e));
     }
     if let CellValue::Error(e) = right {
-        return Ok(CellValue::Error(e.clone()));
+        return Ok(CellValue::Error(e));
     }
 
     let l = match coerce_to_number(&left) {
@@ -114,10 +114,10 @@ fn subtract_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = left {
-        return Ok(CellValue::Error(e.clone()));
+        return Ok(CellValue::Error(e));
     }
     if let CellValue::Error(e) = right {
-        return Ok(CellValue::Error(e.clone()));
+        return Ok(CellValue::Error(e));
     }
 
     let l = match coerce_to_number(&left) {
@@ -146,11 +146,11 @@ fn multiply_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 /// Divide two values
 fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for errors first
-    if let CellValue::Error(e) = &left {
-        return Ok(CellValue::Error(e.clone()));
+    if matches!(left, CellValue::Error(_)) {
+        return Ok(left);
     }
-    if let CellValue::Error(e) = &right {
-        return Ok(CellValue::Error(e.clone()));
+    if matches!(right, CellValue::Error(_)) {
+        return Ok(right.clone());
     }
 
     // Handle array division - check for zeros and errors in the array
@@ -214,10 +214,10 @@ fn divide_values(left: CellValue, right: CellValue) -> Result<CellValue> {
 fn power_values(left: CellValue, right: CellValue) -> Result<CellValue> {
     // Check for errors first and propagate them
     if let CellValue::Error(e) = left {
-        return Ok(CellValue::Error(e.clone()));
+        return Ok(CellValue::Error(e));
     }
     if let CellValue::Error(e) = right {
-        return Ok(CellValue::Error(e.clone()));
+        return Ok(CellValue::Error(e));
     }
 
     let l = match coerce_to_number(&left) {

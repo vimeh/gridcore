@@ -60,9 +60,9 @@ impl FunctionLibrary {
 
                 for arg in args {
                     // Check for errors first and propagate them
-                    if let CellValue::Error(e) = arg {
+                    if let CellValue::Error(e) = arg.clone() {
                         has_error = true;
-                        error_value = Some(e.clone());
+                        error_value = Some(e);
                         break;
                     }
 
@@ -119,8 +119,8 @@ impl FunctionLibrary {
                 let mut all_numbers = Vec::new();
                 for arg in args {
                     // Check for errors first and propagate them
-                    if let CellValue::Error(e) = arg {
-                        return Ok(CellValue::Error(e.clone()));
+                    if let CellValue::Error(e) = arg.clone() {
+                        return Ok(CellValue::Error(e));
                     }
 
                     // Try to extract numbers, catching any errors
@@ -176,8 +176,8 @@ impl FunctionLibrary {
                 let mut all_numbers = Vec::new();
                 for arg in args {
                     // Check for errors first and propagate them
-                    if let CellValue::Error(e) = arg {
-                        return Ok(CellValue::Error(e.clone()));
+                    if let CellValue::Error(e) = arg.clone() {
+                        return Ok(CellValue::Error(e));
                     }
 
                     // Try to extract numbers, catching any errors
@@ -234,8 +234,8 @@ impl FunctionLibrary {
                 let mut all_numbers = Vec::new();
                 for arg in args {
                     // Check for errors first and propagate them
-                    if let CellValue::Error(e) = arg {
-                        return Ok(CellValue::Error(e.clone()));
+                    if let CellValue::Error(e) = arg.clone() {
+                        return Ok(CellValue::Error(e));
                     }
 
                     // Try to extract numbers, catching any errors
@@ -292,8 +292,8 @@ impl FunctionLibrary {
                 let mut count = 0;
                 for arg in args {
                     // Check for errors first and propagate them
-                    if let CellValue::Error(e) = arg {
-                        return Ok(CellValue::Error(e.clone()));
+                    if let CellValue::Error(e) = arg.clone() {
+                        return Ok(CellValue::Error(e));
                     }
 
                     // Try to extract numbers, catching any errors
@@ -381,8 +381,8 @@ impl FunctionLibrary {
                 }
 
                 // Check for error values first
-                if let CellValue::Error(e) = &args[0] {
-                    return Ok(CellValue::Error(e.clone()));
+                if let CellValue::Error(e) = args[0].clone() {
+                    return Ok(CellValue::Error(e));
                 }
 
                 let number = coerce_to_number(&args[0])?;
