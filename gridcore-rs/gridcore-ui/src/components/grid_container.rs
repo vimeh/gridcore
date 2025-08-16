@@ -49,7 +49,11 @@ pub fn GridContainer(
             let ctrl_borrow = ctrl.borrow();
             let mode = ctrl_borrow.get_mode();
             let is_editing = mode.is_editing();
-            leptos::logging::log!("GridContainer: checking editing mode - mode={:?}, is_editing={}", mode, is_editing);
+            leptos::logging::log!(
+                "GridContainer: checking editing mode - mode={:?}, is_editing={}",
+                mode,
+                is_editing
+            );
             is_editing
         })
     });
@@ -147,7 +151,7 @@ pub fn GridContainer(
 
         let old_cursor = controller_stored.with_value(|ctrl| ctrl.borrow().cursor());
         let old_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
-        
+
         let result = controller_stored
             .with_value(|ctrl| ctrl.borrow_mut().handle_keyboard_event(controller_event));
 
@@ -158,10 +162,14 @@ pub fn GridContainer(
 
         let new_cursor = controller_stored.with_value(|ctrl| ctrl.borrow().cursor());
         let new_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
-        
+
         // Notify mode trigger if mode changed
         if !old_mode.eq(&new_mode) {
-            leptos::logging::log!("Mode changed from {:?} to {:?}, notifying trigger", old_mode, new_mode);
+            leptos::logging::log!(
+                "Mode changed from {:?} to {:?}, notifying trigger",
+                old_mode,
+                new_mode
+            );
             mode_trigger.notify();
             render_trigger.notify();
         }

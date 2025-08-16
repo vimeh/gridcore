@@ -34,7 +34,7 @@ pub fn GridEventHandler(
                 }
             }
         }
-        
+
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
 
@@ -169,7 +169,6 @@ pub fn GridEventHandler(
             render_trigger.notify();
         }
     };
-
 
     view! {
         <div
