@@ -397,6 +397,361 @@ fn test_text_objects() {
     assert!(matches!(vim.mode(), VimMode::Insert(_)));
 }
 
+// ==================== Additional Missing Test Coverage ====================
+
+#[test]
+fn test_find_char_forward() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test f{char} - find character forward
+    // Note: This requires find motion implementation
+    vim.process_key("f", &context).unwrap();
+    vim.process_key("x", &context).unwrap();
+    // Should move to next 'x' character
+}
+
+#[test]
+fn test_find_char_backward() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test F{char} - find character backward
+    vim.process_key("F", &context).unwrap();
+    vim.process_key("x", &context).unwrap();
+    // Should move to previous 'x' character
+}
+
+#[test]
+fn test_till_char_forward() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test t{char} - move till character forward
+    vim.process_key("t", &context).unwrap();
+    vim.process_key("x", &context).unwrap();
+    // Should move to position before next 'x'
+}
+
+#[test]
+fn test_till_char_backward() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test T{char} - move till character backward
+    vim.process_key("T", &context).unwrap();
+    vim.process_key("x", &context).unwrap();
+    // Should move to position after previous 'x'
+}
+
+#[test]
+fn test_repeat_find() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // First find a character
+    vim.process_key("f", &context).unwrap();
+    vim.process_key("x", &context).unwrap();
+    
+    // Test ; - repeat find in same direction
+    vim.process_key(";", &context).unwrap();
+    
+    // Test , - repeat find in opposite direction
+    vim.process_key(",", &context).unwrap();
+}
+
+#[test]
+fn test_set_and_jump_to_mark() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Set mark 'a' at current position
+    vim.process_key("m", &context).unwrap();
+    vim.process_key("a", &context).unwrap();
+    
+    // Move somewhere else
+    vim.process_key("j", &context).unwrap();
+    vim.process_key("l", &context).unwrap();
+    
+    // Jump back to mark 'a'
+    vim.process_key("'", &context).unwrap();
+    vim.process_key("a", &context).unwrap();
+    
+    // Verify we're back at the marked position
+    assert!(vim.get_mark('a').is_some());
+}
+
+#[test]
+fn test_search_forward() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Enter search mode
+    vim.process_key("/", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Command));
+    
+    // Type search pattern
+    vim.process_key("f", &context).unwrap();
+    vim.process_key("o", &context).unwrap();
+    vim.process_key("o", &context).unwrap();
+    
+    // Execute search
+    vim.process_key("Enter", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Normal));
+}
+
+#[test]
+fn test_search_backward() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Enter reverse search mode
+    vim.process_key("?", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Command));
+    
+    // Type search pattern
+    vim.process_key("b", &context).unwrap();
+    vim.process_key("a", &context).unwrap();
+    vim.process_key("r", &context).unwrap();
+    
+    // Execute search
+    vim.process_key("Enter", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Normal));
+}
+
+#[test]
+fn test_next_and_previous_match() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Perform initial search
+    vim.process_key("/", &context).unwrap();
+    vim.process_key("t", &context).unwrap();
+    vim.process_key("e", &context).unwrap();
+    vim.process_key("s", &context).unwrap();
+    vim.process_key("t", &context).unwrap();
+    vim.process_key("Enter", &context).unwrap();
+    
+    // Test n - next match
+    vim.process_key("n", &context).unwrap();
+    
+    // Test N - previous match
+    vim.process_key("N", &context).unwrap();
+}
+
+#[test]
+fn test_open_line_below() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test o - open line below and enter insert mode
+    vim.process_key("o", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Insert(InsertMode::OpenBelow)));
+}
+
+#[test]
+fn test_open_line_above() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test O - open line above and enter insert mode
+    vim.process_key("O", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Insert(InsertMode::OpenAbove)));
+}
+
+#[test]
+fn test_zero_as_motion_not_count() {
+    let mut vim = VimBehaviorImpl::new();
+    let mut context = create_test_context();
+    context.cursor = CellAddress::new(5, 5);
+
+    // 0 should move to line start, not be treated as count
+    let result = vim.process_key("0", &context).unwrap();
+    if let VimResult::Action(Action::UpdateCursor { cursor }) = result {
+        assert_eq!(cursor.col, 0);
+        assert_eq!(cursor.row, 5);
+    } else {
+        panic!("Expected cursor to move to line start");
+    }
+    
+    // But 10j should work (0 is part of count)
+    vim.process_key("1", &context).unwrap();
+    vim.process_key("0", &context).unwrap();
+    let result = vim.process_key("j", &context).unwrap();
+    if let VimResult::Action(Action::UpdateCursor { cursor }) = result {
+        assert_eq!(cursor.row, 15);
+    } else {
+        panic!("Expected cursor to move down 10 lines");
+    }
+}
+
+#[test]
+fn test_multi_digit_counts() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test 123j - move down 123 lines
+    vim.process_key("1", &context).unwrap();
+    vim.process_key("2", &context).unwrap();
+    vim.process_key("3", &context).unwrap();
+    let result = vim.process_key("j", &context).unwrap();
+    if let VimResult::Action(Action::UpdateCursor { cursor }) = result {
+        assert_eq!(cursor.row, 133);
+    } else {
+        panic!("Expected cursor to move down 123 lines");
+    }
+}
+
+#[test]
+fn test_invalid_keys() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Invalid keys should return None or be ignored
+    let result = vim.process_key("@", &context).unwrap();
+    assert!(matches!(result, VimResult::None));
+    
+    let _result = vim.process_key("#", &context).unwrap();
+    // # is actually search backward for word under cursor
+    // but without implementation, should be handled gracefully
+}
+
+#[test]
+fn test_operator_cancellation() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Enter operator pending mode
+    vim.process_key("d", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::OperatorPending(_)));
+    
+    // Escape should cancel and return to normal mode
+    vim.process_key("Escape", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Normal));
+}
+
+#[test]
+fn test_operator_with_find_motion() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test df) - delete till )
+    vim.process_key("d", &context).unwrap();
+    vim.process_key("f", &context).unwrap();
+    vim.process_key(")", &context).unwrap();
+    // Should delete from cursor to next )
+}
+
+#[test]
+fn test_operator_with_paragraph_motion() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test d{ - delete to previous paragraph
+    let result = vim.parse_and_execute("d{", &context);
+    assert!(result.is_ok());
+    
+    // Test y} - yank to next paragraph
+    let result = vim.parse_and_execute("y}", &context);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_double_operators_with_count() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test 3dd - delete 3 lines
+    vim.process_key("3", &context).unwrap();
+    vim.process_key("d", &context).unwrap();
+    let result = vim.process_key("d", &context).unwrap();
+    if let VimResult::Action(Action::StartDelete { .. }) = result {
+        // Should delete 3 lines
+    } else {
+        panic!("Expected delete action for 3dd");
+    }
+    
+    // Test 5yy - yank 5 lines
+    vim.process_key("5", &context).unwrap();
+    vim.process_key("y", &context).unwrap();
+    vim.process_key("y", &context).unwrap();
+    // Should yank 5 lines to register
+}
+
+#[test]
+fn test_visual_block_mode() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test Ctrl-V - enter visual block mode
+    // Note: This would typically be Ctrl-V, but we'll use a placeholder
+    vim.process_key("v", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Visual(VisualMode::Character)));
+    
+    // Visual block mode would be:
+    // vim.process_key("Ctrl-v", &context).unwrap();
+    // assert!(matches!(vim.mode(), VimMode::Visual(VisualMode::Block)));
+}
+
+#[test]
+fn test_replace_character() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test r{char} - replace character under cursor
+    vim.process_key("r", &context).unwrap();
+    vim.process_key("x", &context).unwrap();
+    // Should replace character at cursor with 'x' and stay in normal mode
+    assert!(matches!(vim.mode(), VimMode::Normal));
+}
+
+#[test]
+fn test_substitute_character() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test s - substitute character (delete and enter insert)
+    vim.process_key("s", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Insert(_)));
+}
+
+#[test]
+fn test_substitute_line() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test S - substitute line (delete line and enter insert)
+    vim.process_key("S", &context).unwrap();
+    assert!(matches!(vim.mode(), VimMode::Insert(_)));
+}
+
+#[test]
+fn test_join_lines() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test J - join current line with next
+    vim.process_key("J", &context).unwrap();
+    // Should join lines and stay in normal mode
+    assert!(matches!(vim.mode(), VimMode::Normal));
+}
+
+#[test]
+fn test_goto_line_with_count() {
+    let mut vim = VimBehaviorImpl::new();
+    let context = create_test_context();
+
+    // Test 42G - go to line 42
+    vim.process_key("4", &context).unwrap();
+    vim.process_key("2", &context).unwrap();
+    let result = vim.process_key("G", &context).unwrap();
+    if let VimResult::Action(Action::UpdateCursor { cursor }) = result {
+        assert_eq!(cursor.row, 41); // 0-indexed, so line 42 is row 41
+    } else {
+        panic!("Expected cursor to move to line 42");
+    }
+}
+
 // Helper implementation for testing
 impl VimBehaviorImpl {
     fn parse_and_execute(

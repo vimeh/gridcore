@@ -1,4 +1,4 @@
-use crate::state::{InsertMode, VisualMode};
+use crate::state::{InsertMode, SpreadsheetMode, VisualMode};
 use gridcore_core::types::CellAddress;
 use serde::{Deserialize, Serialize};
 
@@ -71,5 +71,16 @@ impl EditorMode {
 
     pub fn is_resizing(&self) -> bool {
         matches!(self, EditorMode::Resizing)
+    }
+
+    /// Convert to SpreadsheetMode for UI display
+    pub fn to_spreadsheet_mode(&self) -> SpreadsheetMode {
+        match self {
+            EditorMode::Navigation => SpreadsheetMode::Navigation,
+            EditorMode::Editing { .. } | EditorMode::CellEditing { .. } => SpreadsheetMode::Editing,
+            EditorMode::Command { .. } => SpreadsheetMode::Command,
+            EditorMode::Visual { .. } => SpreadsheetMode::Visual,
+            EditorMode::Resizing => SpreadsheetMode::Resize,
+        }
     }
 }

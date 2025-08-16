@@ -105,29 +105,6 @@ impl SpreadsheetController {
         // For now, we'll leave it as a placeholder
     }
 
-    /// Get the current UI state
-    #[deprecated(
-        note = "Use get_mode() instead to access the current editor mode",
-        since = "0.1.0"
-    )]
-    pub fn state(&self) -> UIState {
-        // Deprecated - use get_mode() instead
-        // This is only kept for parts of the code that haven't been updated yet
-        UIState::Navigation {
-            core: crate::state::CoreState {
-                cursor: self.cursor,
-                viewport: crate::state::ViewportInfo {
-                    start_row: 0,
-                    start_col: 0,
-                    rows: 50,
-                    cols: 20,
-                },
-            },
-            selection: self.selection.clone(),
-            modal: None,
-        }
-    }
-
     /// Get the current cursor position
     pub fn cursor(&self) -> CellAddress {
         self.cursor
@@ -633,9 +610,8 @@ impl SpreadsheetController {
     pub fn get_current_selection_stats(&self) -> selection_stats::SelectionStats {
         use crate::state::SelectionType;
 
-        // Get the current selection from the state
-        let state = self.state();
-        let selection = state.selection();
+        // Get the current selection directly
+        let selection = self.get_selection();
 
         if let Some(sel) = selection {
             // Calculate stats based on selection type
@@ -667,9 +643,8 @@ impl SpreadsheetController {
             }
         } else {
             // No selection, calculate for current cursor position
-            let state = self.state();
-            let cursor = state.cursor();
-            selection_stats::calculate_single_cell(&self.facade, cursor)
+            let cursor = self.get_cursor();
+            selection_stats::calculate_single_cell(&self.facade, &cursor)
         }
     }
 
@@ -731,66 +706,8 @@ impl SpreadsheetController {
     /// Sync direct state fields with the state machine
     /// This is useful during the transition period
     pub fn sync_from_state_machine(&mut self) {
-        let state = self.state();
-
-        // Sync cursor
-        self.cursor = *state.cursor();
-
-        // Sync mode based on state type
-        self.mode = match &state {
-            UIState::Navigation { modal, .. } => {
-                if let Some(modal) = modal {
-                    match modal {
-                        crate::state::NavigationModal::Visual { mode, anchor, .. } => {
-                            EditorMode::Visual {
-                                mode: *mode,
-                                anchor: *anchor,
-                            }
-                        }
-                        crate::state::NavigationModal::Command { value } => EditorMode::Command {
-                            value: value.clone(),
-                        },
-                        crate::state::NavigationModal::Resize { .. } => EditorMode::Resizing,
-                        crate::state::NavigationModal::Insert { .. }
-                        | crate::state::NavigationModal::Delete { .. }
-                        | crate::state::NavigationModal::BulkOperation { .. } => {
-                            // These modals stay in navigation mode for now
-                            EditorMode::Navigation
-                        }
-                    }
-                } else {
-                    EditorMode::Navigation
-                }
-            }
-            UIState::Editing {
-                value,
-                cursor_pos,
-                mode: edit_mode,
-                ..
-            } => EditorMode::Editing {
-                value: value.clone(),
-                cursor_pos: *cursor_pos,
-                insert_mode: if matches!(edit_mode, crate::state::EditMode::Insert) {
-                    Some(crate::state::InsertMode::I)
-                } else {
-                    None
-                },
-            },
-        };
-
-        // Sync selection based on visual mode
-        if let UIState::Navigation {
-            modal: Some(crate::state::NavigationModal::Visual { selection, .. }),
-            ..
-        } = &state
-        {
-            self.selection = Some(selection.clone());
-        } else {
-            self.selection = None;
-        }
-
-        // Sync formula bar
-        self.formula_bar = self.formula_bar_manager.value().to_string();
+        // This method is no longer needed as we don't use state machine anymore
+        // Keeping empty for compatibility
     }
 
     // Sheet management methods

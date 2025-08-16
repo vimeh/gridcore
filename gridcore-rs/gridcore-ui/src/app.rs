@@ -147,7 +147,7 @@ pub fn App() -> impl IntoView {
     // Create reactive memo for current mode - derives directly from controller
     let current_mode = Memo::new(move |_| {
         mode_trigger.track(); // Track mode changes only
-        controller_stored.with_value(|ctrl| ctrl.borrow().state().spreadsheet_mode())
+        controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().to_spreadsheet_mode())
     });
 
     // Sheet management - reactive memos deriving from controller

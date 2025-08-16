@@ -1,7 +1,7 @@
 use gridcore_controller::controller::events::{MouseButton, MouseEventType};
 use gridcore_controller::controller::MouseEvent;
 use gridcore_controller::controller::SpreadsheetController;
-use gridcore_controller::state::{Action, UIState};
+use gridcore_controller::state::Action;
 
 #[test]
 #[ignore] // UIStateMachine has been removed in hybrid refactor
@@ -28,12 +28,12 @@ fn test_controller_keyboard_handling() {
         .unwrap();
 
     // Should be in Editing mode with Insert edit mode
-    let state = controller.state();
-    match state {
-        UIState::Editing { mode, .. } => {
-            assert_eq!(mode, gridcore_controller::state::EditMode::Insert);
+    let mode = controller.get_mode();
+    match mode {
+        gridcore_controller::controller::mode::EditorMode::Editing { insert_mode, .. } => {
+            assert!(insert_mode.is_some());
         }
-        _ => panic!("Expected Editing state"),
+        _ => panic!("Expected Editing mode"),
     }
 }
 
