@@ -34,9 +34,9 @@ pub fn StatusBar(
                 EditorMode::Navigation => ("NAVIGATION", "#4caf50", "hjkl to move"),
                 EditorMode::Editing { insert_mode, .. } => {
                     if insert_mode.is_some() {
-                        ("INSERT", "#2196f3", "ESC to exit")
+                        ("INSERT", "#2196f3", "ESC to normal")
                     } else {
-                        ("EDIT", "#ff9800", "Type to edit")
+                        ("NORMAL", "#ff9800", "i for insert")
                     }
                 }
                 EditorMode::Command { .. } => ("COMMAND", "#f44336", "Enter to execute"),

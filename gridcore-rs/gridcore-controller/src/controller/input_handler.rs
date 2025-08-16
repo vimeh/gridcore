@@ -192,35 +192,32 @@ impl<'a> InputHandler<'a> {
     }
 
     fn handle_tab_navigation(&mut self, shift: bool, current_cursor: CellAddress) -> Result<()> {
-        if shift {
+        let new_cursor = if shift {
             // Shift+Tab moves left, then wraps to previous row
             if current_cursor.col > 0 {
-                self.controller.dispatch_action(Action::UpdateCursor {
-                    cursor: CellAddress::new(current_cursor.col - 1, current_cursor.row),
-                })
+                CellAddress::new(current_cursor.col - 1, current_cursor.row)
             } else if current_cursor.row > 0 {
                 // Wrap to end of previous row (assuming max 256 columns)
-                self.controller.dispatch_action(Action::UpdateCursor {
-                    cursor: CellAddress::new(255, current_cursor.row - 1),
-                })
+                CellAddress::new(255, current_cursor.row - 1)
             } else {
-                Ok(())
+                return Ok(());
             }
         } else {
             // Tab moves right, then wraps to next row
             if current_cursor.col < 255 {
-                self.controller.dispatch_action(Action::UpdateCursor {
-                    cursor: CellAddress::new(current_cursor.col + 1, current_cursor.row),
-                })
+                CellAddress::new(current_cursor.col + 1, current_cursor.row)
             } else if current_cursor.row < 9999 {
                 // Wrap to start of next row
-                self.controller.dispatch_action(Action::UpdateCursor {
-                    cursor: CellAddress::new(0, current_cursor.row + 1),
-                })
+                CellAddress::new(0, current_cursor.row + 1)
             } else {
-                Ok(())
+                return Ok(());
             }
-        }
+        };
+        
+        // Use direct set_cursor following hybrid architecture
+        self.controller.set_cursor(new_cursor);
+        self.controller.update_formula_bar_from_cursor();
+        Ok(())
     }
 
     fn handle_delete_cell(&mut self, current_cursor: CellAddress) -> Result<()> {
@@ -345,20 +342,14 @@ impl<'a> InputHandler<'a> {
                         anchor: Some(*anchor),
                     };
 
-                    // Update direct state
+                    // Update direct state (no action dispatch needed)
                     self.controller.set_cursor(new_cursor);
-                    self.controller.set_selection(Some(selection.clone()));
-
-                    // Also update state machine for compatibility
-                    self.controller
-                        .dispatch_action(Action::UpdateCursor { cursor: new_cursor })?;
-                    self.controller
-                        .dispatch_action(Action::UpdateSelection { selection })
+                    self.controller.set_selection(Some(selection));
+                    Ok(())
                 } else {
                     // Just move cursor if not in visual mode (shouldn't happen)
                     self.controller.set_cursor(new_cursor);
-                    self.controller
-                        .dispatch_action(Action::UpdateCursor { cursor: new_cursor })
+                    Ok(())
                 }
             }
 
@@ -384,15 +375,9 @@ impl<'a> InputHandler<'a> {
 
         self.controller.viewport_manager.ensure_visible(&new_cursor);
 
-        self.controller
-            .event_dispatcher
-            .dispatch(&SpreadsheetEvent::CursorMoved {
-                from: current,
-                to: new_cursor,
-            });
-
-        self.controller
-            .dispatch_action(Action::UpdateCursor { cursor: new_cursor })?;
+        // Use direct set_cursor which emits the CursorMoved event
+        // This follows the hybrid architecture plan - no action dispatch needed
+        self.controller.set_cursor(new_cursor);
 
         self.controller.update_formula_bar_from_cursor();
 
@@ -408,18 +393,13 @@ impl<'a> InputHandler<'a> {
         {
             match event.event_type {
                 crate::controller::events::MouseEventType::Click => {
-                    self.controller
-                        .event_dispatcher
-                        .dispatch(&SpreadsheetEvent::CursorMoved {
-                            from: self.controller.cursor(),
-                            to: cell,
-                        });
-                    self.controller
-                        .dispatch_action(Action::UpdateCursor { cursor: cell })
+                    // Use direct set_cursor which emits the event
+                    self.controller.set_cursor(cell);
+                    self.controller.update_formula_bar_from_cursor();
+                    Ok(())
                 }
                 crate::controller::events::MouseEventType::DoubleClick => {
-                    self.controller
-                        .dispatch_action(Action::UpdateCursor { cursor: cell })?;
+                    self.controller.set_cursor(cell);
                     let existing_value = self.controller.get_cell_display_for_ui(&cell);
                     use super::mode::EditorMode;
                     self.controller.set_mode(EditorMode::Editing {
@@ -427,6 +407,7 @@ impl<'a> InputHandler<'a> {
                         cursor_pos: 0,
                         insert_mode: Some(InsertMode::I),
                     });
+                    self.controller.update_formula_bar_from_cursor();
                     Ok(())
                 }
                 _ => Ok(()),

@@ -322,21 +322,18 @@ impl SpreadsheetController {
             return Ok(());
         }
 
-        let state = self.state();
-        let old_mode = state.spreadsheet_mode();
-        let old_cursor = *state.cursor();
+        // Get old state for comparison
+        let old_mode = self.get_mode().clone();
 
         log::debug!(
-            "dispatch_action: about to transition with action {:?}",
+            "dispatch_action: about to handle action {:?}",
             action
         );
-
-        // Store the action type for later event emission
-        let action_clone = action.clone();
 
         // Handle action directly without state machine
         match &action {
             Action::UpdateCursor { cursor } => {
+                // set_cursor already emits CursorMoved event
                 self.set_cursor(*cursor);
             }
             Action::UpdateSelection { selection } => {
@@ -346,30 +343,11 @@ impl SpreadsheetController {
                 // Other actions already handled above or not needed
             }
         }
-        log::debug!("dispatch_action: transition succeeded");
-        let new_state = self.state();
-        let new_mode = new_state.spreadsheet_mode();
-        let _new_cursor = *new_state.cursor();
+        log::debug!("dispatch_action: action handled");
 
-        log::debug!(
-            "dispatch_action: old_mode={:?}, new_mode={:?}",
-            old_mode,
-            new_mode
-        );
-
-        // Emit CursorMoved event if the cursor changed
-        if let Action::UpdateCursor { cursor } = action_clone {
-            if old_cursor != cursor {
-                self.event_dispatcher
-                    .dispatch(&SpreadsheetEvent::CursorMoved {
-                        from: old_cursor,
-                        to: cursor,
-                    });
-                log::debug!("dispatch_action: CursorMoved event dispatched");
-            }
-        }
-
-        if old_mode != new_mode {
+        // Check if mode changed
+        let new_mode = self.get_mode();
+        if old_mode != *new_mode {
             log::debug!("dispatch_action: mode changed, dispatching event");
             self.event_dispatcher
                 .dispatch(&SpreadsheetEvent::StateChanged);
