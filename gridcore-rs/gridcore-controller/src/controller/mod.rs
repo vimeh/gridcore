@@ -4,7 +4,6 @@ pub mod formula_bar;
 pub mod input_handler;
 pub mod mode;
 pub mod spreadsheet;
-pub mod state_access;
 pub mod viewport;
 
 // New modular organization
@@ -21,7 +20,6 @@ pub use managers::ManagerAccess;
 pub use mode::EditorMode;
 pub use sheet_management::SheetManagement;
 pub use spreadsheet::SpreadsheetController;
-pub use state_access::{actions, DirectStateAccess};
 pub use viewport::{
     CellPosition, GridConfiguration, ScrollPosition, ViewportBounds, ViewportManager,
 };

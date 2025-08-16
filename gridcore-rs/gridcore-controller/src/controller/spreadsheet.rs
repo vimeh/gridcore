@@ -206,12 +206,6 @@ impl SpreadsheetController {
             .dispatch(&SpreadsheetEvent::FormulaBarUpdated { value });
     }
 
-    /// Get direct access to the state machine
-    pub fn state_machine(&mut self) -> super::state_access::DirectStateAccess<'_> {
-        // Temporarily return a dummy accessor
-        super::state_access::DirectStateAccess::new(&mut self.formula_bar)
-    }
-
     pub fn dispatch_action(&mut self, action: Action) -> Result<()> {
         // Handle special actions that need controller logic
 
