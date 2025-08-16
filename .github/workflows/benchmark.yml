@@ -40,10 +40,11 @@ jobs:
       - name: Run benchmarks
         run: |
           cd gridcore-rs
-          cargo bench --all --no-fail-fast -- --save-baseline current
+          # Run benchmarks with cargo-criterion
+          cargo criterion --all
 
           # Generate JSON output for benchmark-action
-          cargo criterion --message-format=json > ../benchmark-results.json || true
+          cargo criterion --all --message-format=json > ../benchmark-results.json || true
 
           # Verify the file was created
           ls -la ../benchmark-results.json
