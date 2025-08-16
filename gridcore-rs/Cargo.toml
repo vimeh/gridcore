@@ -41,8 +41,8 @@ panic = "abort"
 # Specialized profile for WASM builds with maximum size optimization
 [profile.wasm-release]
 inherits = "release"
-opt-level = "z"     # Optimize for size
-lto = true          # Enable Link Time Optimization
-codegen-units = 1   # Single codegen unit for better optimization
-strip = true        # Strip symbols
-panic = "abort"     # Smaller panic handler
+opt-level = "z"      # Optimize for size
+lto = true           # Enable Link Time Optimization
+codegen-units = 1    # Single codegen unit for better optimization
+strip = true         # Strip symbols
+panic = "abort"      # Smaller panic handler
