@@ -47,7 +47,10 @@ pub fn GridContainer(
         mode_trigger.track();
         controller_stored.with_value(|ctrl| {
             let ctrl_borrow = ctrl.borrow();
-            ctrl_borrow.get_mode().is_editing()
+            let mode = ctrl_borrow.get_mode();
+            let is_editing = mode.is_editing();
+            leptos::logging::log!("GridContainer: checking editing mode - mode={:?}, is_editing={}", mode, is_editing);
+            is_editing
         })
     });
 
@@ -78,9 +81,17 @@ pub fn GridContainer(
     // Auto-focus on mount
     Effect::new(move |_| {
         if let Some(wrapper) = wrapper_ref.get() {
+            // Try to focus the grid-event-handler instead
             let element: &web_sys::HtmlDivElement = wrapper.as_ref();
-            let _ = element.focus();
-            debug_log!("Grid container auto-focused on mount");
+            if let Ok(Some(event_handler)) = element.query_selector(".grid-event-handler") {
+                if let Ok(html_element) = event_handler.dyn_into::<web_sys::HtmlElement>() {
+                    let _ = html_element.focus();
+                    debug_log!("Grid event handler auto-focused on mount");
+                }
+            } else {
+                let _ = element.focus();
+                debug_log!("Grid container auto-focused on mount");
+            }
 
             // Trigger initial render
             render_trigger.notify();

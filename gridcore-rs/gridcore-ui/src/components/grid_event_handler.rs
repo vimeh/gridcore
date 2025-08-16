@@ -3,6 +3,7 @@ use gridcore_controller::state::Action;
 use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+use wasm_bindgen::JsCast;
 use web_sys::{KeyboardEvent, MouseEvent, WheelEvent};
 
 use crate::components::viewport::Viewport;
@@ -21,6 +22,13 @@ pub fn GridEventHandler(
 
     // Handle mouse click
     let on_click = move |ev: MouseEvent| {
+        // Focus the element when clicked
+        if let Some(target) = ev.current_target() {
+            if let Ok(element) = target.dyn_into::<web_sys::HtmlElement>() {
+                let _ = element.focus();
+            }
+        }
+        
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
 
@@ -187,6 +195,8 @@ pub fn GridEventHandler(
 
         let old_cursor = controller_stored.with_value(|ctrl| ctrl.borrow().cursor());
 
+        let old_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
+        
         let result = controller_stored
             .with_value(|ctrl| ctrl.borrow_mut().handle_keyboard_event(controller_event));
 
@@ -196,6 +206,14 @@ pub fn GridEventHandler(
         }
 
         let new_cursor = controller_stored.with_value(|ctrl| ctrl.borrow().cursor());
+        let new_mode = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().clone());
+        
+        // Notify mode trigger if mode changed
+        if !old_mode.eq(&new_mode) {
+            leptos::logging::log!("Mode changed from {:?} to {:?}, notifying trigger", old_mode, new_mode);
+            mode_trigger.notify();
+            render_trigger.notify();  // Also notify render trigger when mode changes
+        }
 
         // Auto-scroll if cursor moved
         let is_editing = controller_stored.with_value(|ctrl| ctrl.borrow().get_mode().is_editing());
@@ -245,6 +263,7 @@ pub fn GridEventHandler(
     view! {
         <div
             class="grid-event-handler"
+            tabindex="-1"
             on:click=on_click
             on:dblclick=on_dblclick
             on:mousedown=on_mouse_down
@@ -252,7 +271,7 @@ pub fn GridEventHandler(
             on:mouseup=on_mouse_up
             on:wheel=on_wheel
             on:keydown=on_keydown
-            style=move || format!("cursor: {};", resize_hover_state.get())
+            style=move || format!("cursor: {}; width: 100%; height: 100%; outline: none;", resize_hover_state.get())
         >
             {children()}
         </div>
