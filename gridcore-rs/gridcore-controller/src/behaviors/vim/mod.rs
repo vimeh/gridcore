@@ -3,6 +3,7 @@ pub mod ex_parser;
 pub mod vim_commands;
 pub mod vim_core;
 pub mod vim_ex;
+pub mod vim_impl;
 pub mod vim_parser;
 
 // Legacy modules (to be refactored)

@@ -1,7 +1,7 @@
 //! Vim command parser using chumsky parser combinators
 //! Provides type-safe parsing of vim normal mode commands
 
-use super::vim_core::{Direction, Motion, Operator, OperatorTarget, VimCommand};
+use super::vim_core::{Direction, Motion, Operator, OperatorTarget, TextObject, VimCommand};
 use chumsky::prelude::*;
 use gridcore_core::{Result, SpreadsheetError};
 
@@ -31,7 +31,7 @@ impl VimParser {
     fn command_parser<'a>(
     ) -> impl Parser<'a, &'a str, VimCommand, extra::Err<Rich<'a, char>>> + Clone {
         recursive(|_cmd| {
-            // Simple parsers for now - can be expanded later
+            // For now, keep it simple - we'll handle counts and registers in the implementation
 
             // Double operators (dd, yy, cc, >>, <<)
             let double_ops = choice((
@@ -110,6 +110,64 @@ impl VimParser {
                 just('~').to(Operator::ToggleCase),
             ));
 
+            // Text objects - split into smaller groups to avoid chumsky limits
+            let text_object_word = choice((
+                just("iw").to(TextObject::InnerWord),
+                just("aw").to(TextObject::Word),
+                just("iW").to(TextObject::InnerBigWord),
+                just("aW").to(TextObject::BigWord),
+                just("is").to(TextObject::InnerSentence),
+                just("as").to(TextObject::Sentence),
+                just("ip").to(TextObject::InnerParagraph),
+                just("ap").to(TextObject::Paragraph),
+            ));
+
+            let text_object_parens = choice((
+                just("i(").to(TextObject::InnerBlock('(', ')')),
+                just("a(").to(TextObject::Block('(', ')')),
+                just("i)").to(TextObject::InnerBlock('(', ')')),
+                just("a)").to(TextObject::Block('(', ')')),
+                just("i[").to(TextObject::InnerBlock('[', ']')),
+                just("a[").to(TextObject::Block('[', ']')),
+                just("i]").to(TextObject::InnerBlock('[', ']')),
+                just("a]").to(TextObject::Block('[', ']')),
+            ));
+
+            let text_object_braces = choice((
+                just("i{").to(TextObject::InnerBlock('{', '}')),
+                just("a{").to(TextObject::Block('{', '}')),
+                just("i}").to(TextObject::InnerBlock('{', '}')),
+                just("a}").to(TextObject::Block('{', '}')),
+                just("i<").to(TextObject::InnerBlock('<', '>')),
+                just("a<").to(TextObject::Block('<', '>')),
+                just("i>").to(TextObject::InnerBlock('<', '>')),
+                just("a>").to(TextObject::Block('<', '>')),
+            ));
+
+            let text_object_quotes = choice((
+                just("i\"").to(TextObject::InnerQuote('"')),
+                just("a\"").to(TextObject::Quote('"')),
+                just("i'").to(TextObject::InnerQuote('\'')),
+                just("a'").to(TextObject::Quote('\'')),
+                just("i`").to(TextObject::InnerQuote('`')),
+                just("a`").to(TextObject::Quote('`')),
+            ));
+
+            let text_object = choice((
+                text_object_word,
+                text_object_parens,
+                text_object_braces,
+                text_object_quotes,
+            ));
+
+            // Operator + text object
+            let op_text_obj = operator.then(text_object).map(|(op, obj)| VimCommand {
+                count: None,
+                register: None,
+                operator: Some(op),
+                target: Some(OperatorTarget::TextObject(obj)),
+            });
+
             // Operator + motion combinations
             let op_motion = operator
                 .then(simple_motion.clone())
@@ -131,7 +189,7 @@ impl VimParser {
                 });
 
             // Just motions
-            let just_motion = simple_motion.clone().map(|mot| VimCommand {
+            let just_motion = simple_motion.map(|mot| VimCommand {
                 count: None,
                 register: None,
                 operator: None,
@@ -157,6 +215,7 @@ impl VimParser {
             // Combine all parsers
             choice((
                 double_ops,
+                op_text_obj,
                 op_two_char,
                 op_motion,
                 just_two_char,
@@ -327,5 +386,35 @@ mod tests {
         let cmd = VimParser::parse_command("<<").unwrap();
         assert_eq!(cmd.operator, Some(Operator::Outdent));
         assert_eq!(cmd.target, Some(OperatorTarget::CurrentLine));
+    }
+
+    #[test]
+    fn test_text_object_word() {
+        let cmd = VimParser::parse_command("diw").unwrap();
+        assert_eq!(cmd.operator, Some(Operator::Delete));
+        assert_eq!(
+            cmd.target,
+            Some(OperatorTarget::TextObject(TextObject::InnerWord))
+        );
+    }
+
+    #[test]
+    fn test_text_object_block() {
+        let cmd = VimParser::parse_command("ci{").unwrap();
+        assert_eq!(cmd.operator, Some(Operator::Change));
+        assert_eq!(
+            cmd.target,
+            Some(OperatorTarget::TextObject(TextObject::InnerBlock('{', '}')))
+        );
+    }
+
+    #[test]
+    fn test_text_object_quote() {
+        let cmd = VimParser::parse_command("ya\"").unwrap();
+        assert_eq!(cmd.operator, Some(Operator::Yank));
+        assert_eq!(
+            cmd.target,
+            Some(OperatorTarget::TextObject(TextObject::Quote('"')))
+        );
     }
 }
