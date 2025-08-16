@@ -49,7 +49,7 @@ jobs:
           if [ ! -s ../benchmark-results.json ]; then
             echo "Creating benchmark results from criterion output..."
             # Parse criterion results into JSON format
-            python3 -c "
+            cat > parse_results.py << 'EOF'
 import json
 import os
 import re
@@ -79,7 +79,9 @@ output = {
 with open('../benchmark-results.json', 'w') as f:
     json.dump(output, f, indent=2)
 print(f'Generated benchmark results with {len(results)} benchmarks')
-            " || echo "[]" > ../benchmark-results.json
+EOF
+            python3 parse_results.py || echo "[]" > ../benchmark-results.json
+            rm -f parse_results.py
           fi
           
           # Verify the file was created
