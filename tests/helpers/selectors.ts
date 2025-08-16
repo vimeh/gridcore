@@ -21,7 +21,7 @@ export const selectors = {
   // Grid elements
   grid: "canvas", // was .grid-container
   gridCanvas: "canvas", // Specific canvas element
-  gridWrapper: ".canvas-grid-wrapper", // The focusable wrapper around canvas
+  gridWrapper: ".grid-container", // The focusable wrapper element (changed from .canvas-grid-wrapper)
 
   // Status bar
   statusBar: ".status-bar",

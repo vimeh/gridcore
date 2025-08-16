@@ -67,7 +67,7 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
 
     // Now we're back in navigation mode at A1 with "Hello World"
     // Make sure the grid is focused
-    await page.locator(".canvas-grid-wrapper").focus();
+    await page.locator(".grid-container").focus();
     await page.waitForTimeout(100);
   });
 
