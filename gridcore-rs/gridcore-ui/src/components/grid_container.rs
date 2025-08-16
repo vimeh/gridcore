@@ -1,17 +1,13 @@
-use crate::context::{use_app_state, use_reactive_signals};
+use crate::context::{use_app_state, use_reactive_signals, use_viewport};
 use leptos::html::Div;
 use leptos::prelude::*;
-use std::cell::RefCell;
-use std::rc::Rc;
 use wasm_bindgen::JsCast;
 
 use crate::components::cell_editor::CellEditor;
 use crate::components::grid_canvas::GridCanvas;
 use crate::components::grid_event_handler::GridEventHandler;
-use crate::components::viewport::Viewport;
 use crate::debug_log;
 use crate::interaction::resize_handler::ResizeHandler;
-use crate::rendering::default_theme;
 
 #[component]
 pub fn GridContainer() -> impl IntoView {
@@ -20,18 +16,10 @@ pub fn GridContainer() -> impl IntoView {
     let controller_stored = app_state.controller;
     let controller_rc = controller_stored.get_value();
     let (state_generation, render_generation) = use_reactive_signals();
+    let viewport_stored = use_viewport();
 
     // Node refs
     let wrapper_ref = NodeRef::<Div>::new();
-    let theme = default_theme();
-
-    // Create viewport
-    let viewport_rc = Rc::new(RefCell::new(Viewport::new(
-        theme.clone(),
-        controller_rc.clone(),
-    )));
-    let viewport_stored =
-        StoredValue::<Rc<RefCell<Viewport>>, LocalStorage>::new_local(viewport_rc.clone());
 
     // Create resize handler
     let resize_handler = ResizeHandler::new(controller_rc.clone());
@@ -197,12 +185,9 @@ pub fn GridContainer() -> impl IntoView {
             style="width: 100%; height: 100%; outline: none; position: relative; overflow: hidden;"
         >
             <GridEventHandler
-                viewport_stored=viewport_stored
                 resize_handler=resize_handler
             >
-                <GridCanvas
-                    viewport_stored=viewport_stored
-                />
+                <GridCanvas />
                 <CellEditor
                     active_cell=active_cell
                     editing_mode=editing_mode

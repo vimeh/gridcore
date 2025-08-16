@@ -1,3 +1,4 @@
+use crate::components::viewport::Viewport;
 use gridcore_controller::controller::SpreadsheetController;
 use leptos::prelude::*;
 use std::cell::RefCell;
@@ -9,10 +10,14 @@ use std::rc::Rc;
 pub struct AppState {
     /// The spreadsheet controller wrapped in StoredValue for stable reference
     pub controller: StoredValue<Rc<RefCell<SpreadsheetController>>, LocalStorage>,
+    /// The viewport wrapped in StoredValue for stable reference
+    pub viewport: StoredValue<Rc<RefCell<Viewport>>, LocalStorage>,
     /// Signal that increments when controller state changes
     pub state_generation: RwSignal<u32>,
     /// Signal that increments when render is needed
     pub render_generation: RwSignal<u32>,
+    /// Device pixel ratio for high-DPI displays
+    pub device_pixel_ratio: Signal<f64>,
 }
 
 /// Get the app state from context.
@@ -42,4 +47,15 @@ pub fn use_state_generation() -> RwSignal<u32> {
 /// Get just the render generation signal from context.
 pub fn use_render_generation() -> RwSignal<u32> {
     use_app_state().render_generation
+}
+
+/// Get the viewport from context.
+/// This is a convenience function that extracts the viewport from AppState.
+pub fn use_viewport() -> StoredValue<Rc<RefCell<Viewport>>, LocalStorage> {
+    use_app_state().viewport
+}
+
+/// Get the device pixel ratio from context.
+pub fn use_device_pixel_ratio() -> Signal<f64> {
+    use_app_state().device_pixel_ratio
 }

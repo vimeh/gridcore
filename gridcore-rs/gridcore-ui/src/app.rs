@@ -2,8 +2,10 @@ use crate::components::error_display::ErrorDisplay;
 use crate::components::grid_container::GridContainer;
 use crate::components::status_bar::StatusBar;
 use crate::components::tab_bar::{Sheet, TabBar};
+use crate::components::viewport::Viewport;
 use crate::context::AppState;
 use crate::reactive::ReactiveState;
+use crate::rendering::default_theme;
 use gridcore_controller::controller::SpreadsheetController;
 use gridcore_core::types::CellAddress;
 use leptos::prelude::*;
@@ -30,6 +32,17 @@ pub fn App() -> impl IntoView {
     let controller = Rc::new(RefCell::new(SpreadsheetController::new()));
     let controller_stored = StoredValue::<_, LocalStorage>::new_local(controller.clone());
 
+    // Create viewport
+    let theme = default_theme();
+    let viewport = Rc::new(RefCell::new(Viewport::new(theme, controller.clone())));
+    let viewport_stored = StoredValue::<_, LocalStorage>::new_local(viewport.clone());
+
+    // Get device pixel ratio
+    let device_pixel_ratio = web_sys::window()
+        .map(|w| w.device_pixel_ratio())
+        .unwrap_or(1.0);
+    let device_pixel_ratio_signal = Signal::from(device_pixel_ratio);
+
     // Demo feature state
     #[cfg(feature = "demo")]
     let demo_state = create_demo_state();
@@ -43,8 +56,10 @@ pub fn App() -> impl IntoView {
     // Provide unified app state through context
     provide_context(AppState {
         controller: controller_stored,
+        viewport: viewport_stored,
         state_generation: reactive_state.generation,
         render_generation: reactive_state.render_generation,
+        device_pixel_ratio: device_pixel_ratio_signal,
     });
 
     // Create derived signals that automatically track state changes

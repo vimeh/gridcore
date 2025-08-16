@@ -1,22 +1,19 @@
-use crate::context::{use_controller, use_render_generation};
+use crate::context::{use_controller, use_render_generation, use_viewport};
 use gridcore_controller::state::Action;
 use leptos::prelude::*;
-use std::cell::RefCell;
-use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use web_sys::{MouseEvent, WheelEvent};
 
-use crate::components::viewport::Viewport;
 use crate::interaction::resize_handler::ResizeHandler;
 
 #[component]
 pub fn GridEventHandler(
-    viewport_stored: StoredValue<Rc<RefCell<Viewport>>, LocalStorage>,
     resize_handler: ResizeHandler,
     children: Children,
 ) -> impl IntoView {
-    // Get controller from context
+    // Get controller and viewport from context
     let controller_stored = use_controller();
+    let viewport_stored = use_viewport();
     let (resize_hover_state, set_resize_hover_state) = signal("cell");
 
     // Handle mouse click

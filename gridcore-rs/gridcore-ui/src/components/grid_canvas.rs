@@ -1,25 +1,18 @@
-use crate::context::{use_controller, use_reactive_signals};
+use crate::context::{use_controller, use_device_pixel_ratio, use_reactive_signals, use_viewport};
 use leptos::html::Canvas;
 use leptos::prelude::*;
-use std::cell::RefCell;
-use std::rc::Rc;
 
-use crate::components::viewport::Viewport;
 use crate::rendering::{default_theme, CanvasRenderer, RenderParams};
 
 #[component]
-pub fn GridCanvas(
-    viewport_stored: StoredValue<Rc<RefCell<Viewport>>, LocalStorage>,
-) -> impl IntoView {
-    // Get controller and reactive signals from context
+pub fn GridCanvas() -> impl IntoView {
+    // Get controller, viewport and reactive signals from context
     let controller_stored = use_controller();
+    let viewport_stored = use_viewport();
     let (state_generation, render_generation) = use_reactive_signals();
+    let device_pixel_ratio_signal = use_device_pixel_ratio();
     let canvas_ref = NodeRef::<Canvas>::new();
     let (canvas_dimensions, set_canvas_dimensions) = signal((0.0, 0.0));
-
-    let device_pixel_ratio = web_sys::window()
-        .map(|w| w.device_pixel_ratio())
-        .unwrap_or(1.0);
 
     let theme = default_theme();
     let renderer = CanvasRenderer::new(theme);
@@ -28,6 +21,7 @@ pub fn GridCanvas(
     Effect::new(move |_| {
         render_generation.get(); // Track render changes
         state_generation.get(); // Also track state changes
+        let device_pixel_ratio = device_pixel_ratio_signal.get();
 
         if let Some(canvas) = canvas_ref.get() {
             let canvas_elem: &web_sys::HtmlCanvasElement = &canvas;
@@ -79,11 +73,11 @@ pub fn GridCanvas(
             node_ref=canvas_ref
             width=move || {
                 let (width, _) = canvas_dimensions.get();
-                (width * device_pixel_ratio) as u32
+                (width * device_pixel_ratio_signal.get()) as u32
             }
             height=move || {
                 let (_, height) = canvas_dimensions.get();
-                (height * device_pixel_ratio) as u32
+                (height * device_pixel_ratio_signal.get()) as u32
             }
             style=move || {
                 let (width, height) = canvas_dimensions.get();
