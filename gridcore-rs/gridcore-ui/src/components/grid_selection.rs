@@ -8,6 +8,16 @@ use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 use crate::components::viewport::Viewport;
 use crate::rendering::GridTheme;
 
+pub struct SelectionRenderParams<'a> {
+    pub canvas: &'a HtmlCanvasElement,
+    pub selection: Option<&'a Selection>,
+    pub active_cell: &'a CellAddress,
+    pub viewport: &'a Viewport,
+    pub bounds: &'a ViewportBounds,
+    pub config: &'a GridConfiguration,
+    pub device_pixel_ratio: f64,
+}
+
 #[derive(Clone)]
 pub struct GridSelection {
     theme: GridTheme,
@@ -18,29 +28,27 @@ impl GridSelection {
         Self { theme }
     }
 
-    pub fn render(
-        &self,
-        canvas: &HtmlCanvasElement,
-        selection: Option<&Selection>,
-        active_cell: &CellAddress,
-        viewport: &Viewport,
-        bounds: &ViewportBounds,
-        config: &GridConfiguration,
-        device_pixel_ratio: f64,
-    ) {
-        let ctx = match self.get_context(canvas) {
+    pub fn render(&self, params: &SelectionRenderParams) {
+        let ctx = match self.get_context(params.canvas) {
             Some(ctx) => ctx,
             None => return,
         };
 
         ctx.save();
-        ctx.scale(device_pixel_ratio, device_pixel_ratio).ok();
+        ctx.scale(params.device_pixel_ratio, params.device_pixel_ratio)
+            .ok();
 
-        if let Some(sel) = selection {
-            self.render_selection_overlay(&ctx, sel, viewport, config, bounds);
+        if let Some(sel) = params.selection {
+            self.render_selection_overlay(&ctx, sel, params.viewport, params.config, params.bounds);
         }
 
-        self.render_active_cell_border(&ctx, viewport, active_cell, bounds, config);
+        self.render_active_cell_border(
+            &ctx,
+            params.viewport,
+            params.active_cell,
+            params.bounds,
+            params.config,
+        );
 
         ctx.restore();
     }

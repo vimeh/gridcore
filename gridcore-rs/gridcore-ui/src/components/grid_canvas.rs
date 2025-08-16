@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::components::viewport::Viewport;
-use crate::rendering::{default_theme, CanvasRenderer};
+use crate::rendering::{default_theme, CanvasRenderer, RenderParams};
 
 #[component]
 pub fn GridCanvas(
@@ -59,15 +59,16 @@ pub fn GridCanvas(
                     let facade = ctrl_borrow.facade();
                     let config = ctrl_borrow.get_config();
 
-                    renderer.render(
-                        canvas_elem,
-                        &vp.borrow(),
+                    let render_params = RenderParams {
+                        canvas: canvas_elem,
+                        viewport: &vp.borrow(),
                         active_cell,
                         selection,
                         facade,
                         device_pixel_ratio,
                         config,
-                    );
+                    };
+                    renderer.render(&render_params);
                 });
             });
         }
