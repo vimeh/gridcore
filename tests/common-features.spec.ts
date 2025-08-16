@@ -74,7 +74,8 @@ test.describe("Common Features", () => {
     await expect(debugCheckbox).not.toBeChecked();
   });
 
-  test("should toggle keyboard-only mode", async ({ page }) => {
+  test.skip("should toggle keyboard-only mode", async ({ page }) => {
+    // TODO: Keyboard-only mode checkbox has been removed in the refactoring
     const keyboardModeCheckbox = page.locator('input[type="checkbox"]').last();
 
     // Toggle keyboard-only mode

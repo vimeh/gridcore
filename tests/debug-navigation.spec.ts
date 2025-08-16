@@ -7,9 +7,9 @@ test("debug navigation", async ({ page }) => {
   // Wait for canvas to be ready
   await page.waitForSelector("canvas");
 
-  // Get the grid wrapper and focus it
-  const gridWrapper = page.locator(".canvas-grid-wrapper");
-  await gridWrapper.focus();
+  // Get the grid container and focus it
+  const gridContainer = page.locator(".grid-container");
+  await gridContainer.focus();
 
   // Open console to see logs
   page.on("console", (msg) => console.log("PAGE LOG:", msg.text()));
