@@ -280,13 +280,13 @@ export async function waitForGrid(page: Page, timeout = 5000): Promise<void> {
     state: "visible",
     timeout,
   });
-  
+
   // Wait for canvas to be ready
-  await page.waitForSelector('canvas', {
+  await page.waitForSelector("canvas", {
     state: "visible",
     timeout,
   });
-  
+
   // Give a bit more time for initial render
   await page.waitForTimeout(200);
 }
@@ -312,19 +312,19 @@ export async function pressKey(
     ctrl?: boolean;
     alt?: boolean;
     meta?: boolean;
-  }
+  },
 ): Promise<void> {
   const keys: string[] = [];
-  
-  if (modifiers?.shift) keys.push('Shift');
-  if (modifiers?.ctrl) keys.push('Control');
-  if (modifiers?.alt) keys.push('Alt');
-  if (modifiers?.meta) keys.push('Meta');
-  
+
+  if (modifiers?.shift) keys.push("Shift");
+  if (modifiers?.ctrl) keys.push("Control");
+  if (modifiers?.alt) keys.push("Alt");
+  if (modifiers?.meta) keys.push("Meta");
+
   keys.push(key);
-  
+
   if (keys.length > 1) {
-    await page.keyboard.press(keys.join('+'));
+    await page.keyboard.press(keys.join("+"));
   } else {
     await page.keyboard.press(key);
   }
