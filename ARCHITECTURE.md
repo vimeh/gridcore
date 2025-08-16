@@ -55,7 +55,12 @@ GridCore follows a clean three-layer architecture designed for maintainability, 
 **Purpose**: Bridges core business logic with UI, managing state and coordination
 
 **Key Components**:
-- `SpreadsheetController`: Main controller orchestrating all managers
+- `SpreadsheetController`: Main controller with hybrid state management
+  - Direct state fields: `cursor`, `selection`, `mode`, `formula_bar`
+  - Event dispatching and state synchronization
+- `EditorMode`: Simple enum tracking user interaction modes
+  - Navigation, Editing, Command, Visual, CellEditing, Resizing
+  - Replaces complex FSM with direct mode tracking
 - `ViewportManager`: Viewport state and calculations
   - Scroll position management
   - Visible bounds calculation
@@ -64,8 +69,9 @@ GridCore follows a clean three-layer architecture designed for maintainability, 
   - Resize state tracking
   - Size constraints enforcement
   - Hover detection logic
-- `SelectionManager`: Selection state and operations
-- `UIStateMachine`: Mode transitions (Normal, Insert, Visual, etc.)
+- `InputHandler`: Processes keyboard and mouse events
+  - Direct state updates for simple operations
+  - Complex operation delegation to managers
 
 **Rules**:
 - Can import from core layer only
@@ -109,7 +115,23 @@ Canvas Render ← UI Component Update ← Controller State Changed ← ───
 
 ## Key Design Patterns
 
-### 1. Delegation Pattern
+### 1. Hybrid State Management (NEW)
+Controller uses a hybrid approach combining direct fields with mode tracking:
+```rust
+struct SpreadsheetController {
+    // Direct state fields for frequently accessed data
+    cursor: CellAddress,
+    selection: Option<Selection>,
+    mode: EditorMode,
+    formula_bar: String,
+    
+    // Managers for complex operations
+    viewport_manager: ViewportManager,
+    resize_state: ResizeState,
+}
+```
+
+### 2. Delegation Pattern
 UI components delegate all logic to controller:
 ```rust
 // UI Viewport delegates to controller
@@ -120,13 +142,13 @@ pub fn get_column_width(&self, col: usize) -> f64 {
 }
 ```
 
-### 2. Manager Pattern
+### 3. Manager Pattern
 Controller uses specialized managers for different concerns:
 - ViewportManager for viewport operations
 - ResizeManager for resize operations
-- SelectionManager for selection state
+- Direct state fields for selection (no SelectionManager needed)
 
-### 3. Command Pattern
+### 4. Command Pattern
 Core uses commands for undo/redo support:
 ```rust
 pub trait Command {
@@ -135,20 +157,44 @@ pub trait Command {
 }
 ```
 
-### 4. Observer Pattern
-UI observes controller state changes through Leptos signals
+### 5. Observer Pattern
+UI observes controller state changes through Leptos signals and direct accessors
+
+## Hybrid Refactoring (2025-08)
+
+The controller layer underwent a major refactoring from a pure FSM approach to a hybrid model:
+
+### Before (Pure FSM)
+- Complex nested state machine (`UIStateMachine`)
+- All state transitions through actions
+- Deep nesting for state access
+- Action explosion for simple operations
+
+### After (Hybrid Model)
+- Direct state fields for frequently accessed data
+- Simple `EditorMode` enum for mode tracking
+- Direct accessors and mutators with event dispatch
+- Actions only for complex operations
+
+### Key Changes
+1. **Removed**: `UIStateMachine`, `transitions.rs`, `transition_handlers/`
+2. **Added**: Direct fields (`cursor`, `selection`, `mode`, `formula_bar`)
+3. **Simplified**: Input handling with direct state updates
+4. **Improved**: Visual mode selection rendering
 
 ## Benefits
 
 ### 1. Testability
 - Core logic tested without UI
-- Controller tested with mock UI
+- Controller tested with direct state assertions
 - Each layer tested independently
+- Simpler test setup without complex state construction
 
 ### 2. Maintainability
 - Clear responsibilities
 - Easy to locate functionality
 - Changes isolated to layers
+- Direct state access reduces cognitive load
 
 ### 3. Reusability
 - Core usable in different contexts (CLI, server)
@@ -159,6 +205,7 @@ UI observes controller state changes through Leptos signals
 - Minimal cross-boundary calls
 - Efficient state updates
 - Optimized rendering pipeline
+- Direct field access eliminates FSM overhead
 
 ## Migration Guidelines
 
