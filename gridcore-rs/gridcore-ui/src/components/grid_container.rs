@@ -14,7 +14,6 @@ pub fn GridContainer() -> impl IntoView {
     // Get app state from context
     let app_state = use_app_state();
     let controller_stored = app_state.controller;
-    let controller_rc = controller_stored.get_value();
     let (state_generation, render_generation) = use_reactive_signals();
     let viewport_stored = use_viewport();
 
@@ -22,7 +21,7 @@ pub fn GridContainer() -> impl IntoView {
     let wrapper_ref = NodeRef::<Div>::new();
 
     // Create resize handler
-    let resize_handler = ResizeHandler::new(controller_rc.clone());
+    let resize_handler = ResizeHandler::new();
 
     // Derive reactive values from controller state
     let active_cell = Memo::new(move |_| {
