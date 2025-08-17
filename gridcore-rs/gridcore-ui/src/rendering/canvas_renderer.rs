@@ -1,7 +1,7 @@
 use gridcore_controller::controller::{GridConfiguration, ViewportBounds};
 use gridcore_controller::state::Selection;
-use gridcore_core::types::CellAddress;
 use gridcore_core::SpreadsheetFacade;
+use gridcore_core::types::CellAddress;
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 

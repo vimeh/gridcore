@@ -2,7 +2,7 @@ use crate::context::{use_controller, use_device_pixel_ratio, use_reactive_signal
 use leptos::html::Canvas;
 use leptos::prelude::*;
 
-use crate::rendering::{default_theme, CanvasRenderer, RenderParams};
+use crate::rendering::{CanvasRenderer, RenderParams, default_theme};
 
 #[component]
 pub fn GridCanvas() -> impl IntoView {

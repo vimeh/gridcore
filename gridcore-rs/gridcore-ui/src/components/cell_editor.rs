@@ -1,6 +1,6 @@
 // use crate::components::error_display::use_error_context; // TODO: Re-enable when full keyboard support is restored
 use crate::context::use_controller;
-use gridcore_controller::state::{actions::Action, InsertMode};
+use gridcore_controller::state::{InsertMode, actions::Action};
 use gridcore_core::types::CellAddress;
 use leptos::html::Textarea;
 use leptos::prelude::*;
@@ -320,14 +320,12 @@ pub fn CellEditor(
                                         }
 
                                         // Return focus to grid container
-                                        if let Some(window) = web_sys::window() {
-                                            if let Some(document) = window.document() {
-                                                if let Ok(Some(element)) = document.query_selector(".grid-container") {
-                                                    if let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>() {
-                                                        let _ = html_element.focus();
-                                                    }
-                                                }
-                                            }
+                                        if let Some(window) = web_sys::window()
+                                            && let Some(document) = window.document()
+                                            && let Ok(Some(element)) = document.query_selector(".grid-container")
+                                            && let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>()
+                                        {
+                                            let _ = html_element.focus();
                                         }
                                     } else {
                                         // Fallback - just exit
@@ -336,14 +334,12 @@ pub fn CellEditor(
                                         // Controller will handle mode transition
 
                                         // Return focus to grid container
-                                        if let Some(window) = web_sys::window() {
-                                            if let Some(document) = window.document() {
-                                                if let Ok(Some(element)) = document.query_selector(".grid-container") {
-                                                    if let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>() {
-                                                        let _ = html_element.focus();
-                                                    }
-                                                }
-                                            }
+                                        if let Some(window) = web_sys::window()
+                                            && let Some(document) = window.document()
+                                            && let Ok(Some(element)) = document.query_selector(".grid-container")
+                                            && let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>()
+                                        {
+                                            let _ = html_element.focus();
                                         }
                                     }
                                 });

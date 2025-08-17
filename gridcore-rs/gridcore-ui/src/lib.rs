@@ -11,7 +11,7 @@ pub mod utils;
 #[cfg(feature = "demo")]
 pub use gridcore_demo::components::{DemoProgressBar, PerformanceOverlay};
 #[cfg(feature = "demo")]
-pub use gridcore_demo::{demo, DemoConfig, DemoController, DemoMode};
+pub use gridcore_demo::{DemoConfig, DemoController, DemoMode, demo};
 
 use app::App;
 use leptos::prelude::*;

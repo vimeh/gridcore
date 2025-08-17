@@ -16,16 +16,13 @@ pub fn GridEventHandler(resize_handler: ResizeHandler, children: Children) -> im
     // Handle mouse click
     let on_click = move |ev: MouseEvent| {
         // Focus the parent grid-container instead of this element
-        if let Some(current_target) = ev.current_target() {
-            if let Ok(element) = current_target.dyn_into::<web_sys::HtmlElement>() {
-                if let Some(parent) = element.parent_element() {
-                    if let Ok(parent_element) = parent.dyn_into::<web_sys::HtmlElement>() {
-                        if parent_element.class_name().contains("grid-container") {
-                            let _ = parent_element.focus();
-                        }
-                    }
-                }
-            }
+        if let Some(current_target) = ev.current_target()
+            && let Ok(element) = current_target.dyn_into::<web_sys::HtmlElement>()
+            && let Some(parent) = element.parent_element()
+            && let Ok(parent_element) = parent.dyn_into::<web_sys::HtmlElement>()
+            && parent_element.class_name().contains("grid-container")
+        {
+            let _ = parent_element.focus();
         }
 
         let x = ev.offset_x() as f64;
@@ -121,15 +118,15 @@ pub fn GridEventHandler(resize_handler: ResizeHandler, children: Children) -> im
         let is_col_header = y < config.column_header_height;
         let is_row_header = x < config.row_header_width;
 
-        if is_col_header || is_row_header {
-            if let Some((resize_type, index)) = resize_handler_down.check_resize_hover(
+        if (is_col_header || is_row_header)
+            && let Some((resize_type, index)) = resize_handler_down.check_resize_hover(
                 if is_col_header { x } else { 0.0 },
                 if is_row_header { y } else { 0.0 },
                 is_col_header,
-            ) {
-                ev.prevent_default();
-                resize_handler_down.start_resize(&ev, resize_type, index);
-            }
+            )
+        {
+            ev.prevent_default();
+            resize_handler_down.start_resize(&ev, resize_type, index);
         }
     };
 

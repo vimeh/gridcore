@@ -15,9 +15,9 @@ use std::rc::Rc;
 #[cfg(feature = "demo")]
 use crate::{DemoProgressBar, PerformanceOverlay};
 #[cfg(feature = "demo")]
-use gridcore_demo::demo::performance::Metrics;
-#[cfg(feature = "demo")]
 use gridcore_demo::DemoController;
+#[cfg(feature = "demo")]
+use gridcore_demo::demo::performance::Metrics;
 
 #[component]
 pub fn App() -> impl IntoView {
