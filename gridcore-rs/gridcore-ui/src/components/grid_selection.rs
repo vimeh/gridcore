@@ -1,22 +1,10 @@
-use gridcore_controller::controller::GridConfiguration;
-use gridcore_controller::controller::ViewportBounds;
 use gridcore_controller::state::{Selection, SelectionType};
-use gridcore_core::types::CellAddress;
+use leptos::prelude::{GetUntracked, WithValue};
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
-use crate::components::viewport::Viewport;
+use crate::context::{use_controller, use_device_pixel_ratio, use_viewport};
 use crate::rendering::GridTheme;
-
-pub struct SelectionRenderParams<'a> {
-    pub canvas: &'a HtmlCanvasElement,
-    pub selection: Option<&'a Selection>,
-    pub active_cell: &'a CellAddress,
-    pub viewport: &'a Viewport,
-    pub bounds: &'a ViewportBounds,
-    pub config: &'a GridConfiguration,
-    pub device_pixel_ratio: f64,
-}
 
 #[derive(Clone)]
 pub struct GridSelection {
@@ -28,27 +16,35 @@ impl GridSelection {
         Self { theme }
     }
 
-    pub fn render(&self, params: &SelectionRenderParams) {
-        let ctx = match self.get_context(params.canvas) {
+    pub fn render(&self, canvas: &HtmlCanvasElement) {
+        let ctx = match self.get_context(canvas) {
             Some(ctx) => ctx,
             None => return,
         };
 
+        let controller_stored = use_controller();
+        let viewport_stored = use_viewport();
+        let device_pixel_ratio = use_device_pixel_ratio().get_untracked();
+
         ctx.save();
-        ctx.scale(params.device_pixel_ratio, params.device_pixel_ratio)
-            .ok();
+        ctx.scale(device_pixel_ratio, device_pixel_ratio).ok();
 
-        if let Some(sel) = params.selection {
-            self.render_selection_overlay(&ctx, sel, params.viewport, params.config, params.bounds);
-        }
+        viewport_stored.with_value(|vp| {
+            controller_stored.with_value(|ctrl| {
+                let viewport = vp.borrow();
+                let bounds = viewport.get_visible_bounds();
+                let ctrl_borrow = ctrl.borrow();
+                let config = ctrl_borrow.get_config();
+                let active_cell = ctrl_borrow.cursor();
+                let selection = ctrl_borrow.get_selection();
 
-        self.render_active_cell_border(
-            &ctx,
-            params.viewport,
-            params.active_cell,
-            params.bounds,
-            params.config,
-        );
+                if let Some(sel) = selection {
+                    self.render_selection_overlay(&ctx, sel, &viewport, config, &bounds);
+                }
+
+                self.render_active_cell_border(&ctx, &viewport, &active_cell, &bounds, config);
+            });
+        });
 
         ctx.restore();
     }
@@ -64,9 +60,9 @@ impl GridSelection {
         &self,
         ctx: &CanvasRenderingContext2d,
         selection: &Selection,
-        viewport: &Viewport,
-        config: &GridConfiguration,
-        bounds: &ViewportBounds,
+        viewport: &crate::components::viewport::Viewport,
+        config: &gridcore_controller::controller::GridConfiguration,
+        bounds: &gridcore_controller::controller::ViewportBounds,
     ) {
         ctx.set_fill_style_str("rgba(0, 120, 215, 0.2)");
         ctx.set_stroke_style_str("rgba(0, 120, 215, 0.8)");
@@ -147,10 +143,10 @@ impl GridSelection {
     fn render_active_cell_border(
         &self,
         ctx: &CanvasRenderingContext2d,
-        viewport: &Viewport,
-        active_cell: &CellAddress,
-        bounds: &ViewportBounds,
-        config: &GridConfiguration,
+        viewport: &crate::components::viewport::Viewport,
+        active_cell: &gridcore_core::types::CellAddress,
+        bounds: &gridcore_controller::controller::ViewportBounds,
+        config: &gridcore_controller::controller::GridConfiguration,
     ) {
         if active_cell.row as usize <= bounds.end_row && active_cell.col as usize <= bounds.end_col
         {

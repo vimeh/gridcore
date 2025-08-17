@@ -1,11 +1,9 @@
-use gridcore_controller::controller::GridConfiguration;
-use gridcore_controller::controller::ViewportBounds;
-use gridcore_core::SpreadsheetFacade;
 use gridcore_core::types::{CellAddress, CellValue};
+use leptos::prelude::{GetUntracked, WithValue};
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
-use crate::components::viewport::Viewport;
+use crate::context::{use_controller, use_device_pixel_ratio, use_viewport};
 use crate::rendering::GridTheme;
 
 #[derive(Clone)]
@@ -18,24 +16,30 @@ impl GridCells {
         Self { theme }
     }
 
-    pub fn render(
-        &self,
-        canvas: &HtmlCanvasElement,
-        viewport: &Viewport,
-        bounds: &ViewportBounds,
-        facade: &SpreadsheetFacade,
-        config: &GridConfiguration,
-        device_pixel_ratio: f64,
-    ) {
+    pub fn render(&self, canvas: &HtmlCanvasElement) {
         let ctx = match self.get_context(canvas) {
             Some(ctx) => ctx,
             None => return,
         };
 
+        let controller_stored = use_controller();
+        let viewport_stored = use_viewport();
+        let device_pixel_ratio = use_device_pixel_ratio().get_untracked();
+
         ctx.save();
         ctx.scale(device_pixel_ratio, device_pixel_ratio).ok();
 
-        self.render_cell_content(&ctx, viewport, bounds, facade, config);
+        viewport_stored.with_value(|vp| {
+            controller_stored.with_value(|ctrl| {
+                let viewport = vp.borrow();
+                let bounds = viewport.get_visible_bounds();
+                let ctrl_borrow = ctrl.borrow();
+                let facade = ctrl_borrow.facade();
+                let config = ctrl_borrow.get_config();
+
+                self.render_cell_content(&ctx, &viewport, &bounds, facade, config);
+            });
+        });
 
         ctx.restore();
     }
@@ -50,10 +54,10 @@ impl GridCells {
     fn render_cell_content(
         &self,
         ctx: &CanvasRenderingContext2d,
-        viewport: &Viewport,
-        bounds: &ViewportBounds,
-        facade: &SpreadsheetFacade,
-        config: &GridConfiguration,
+        viewport: &crate::components::viewport::Viewport,
+        bounds: &gridcore_controller::controller::ViewportBounds,
+        facade: &gridcore_core::SpreadsheetFacade,
+        config: &gridcore_controller::controller::GridConfiguration,
     ) {
         ctx.set_fill_style_str(&self.theme.cell_text_color);
         ctx.set_font(&format!(

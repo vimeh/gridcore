@@ -1,13 +1,12 @@
-use crate::context::{use_controller, use_device_pixel_ratio, use_reactive_signals, use_viewport};
+use crate::context::{use_device_pixel_ratio, use_reactive_signals, use_viewport};
 use leptos::html::Canvas;
 use leptos::prelude::*;
 
-use crate::rendering::{CanvasRenderer, RenderParams, default_theme};
+use crate::rendering::{CanvasRenderer, default_theme};
 
 #[component]
 pub fn GridCanvas() -> impl IntoView {
-    // Get controller, viewport and reactive signals from context
-    let controller_stored = use_controller();
+    // Get viewport and reactive signals from context
     let viewport_stored = use_viewport();
     let (state_generation, render_generation) = use_reactive_signals();
     let device_pixel_ratio_signal = use_device_pixel_ratio();
@@ -43,27 +42,8 @@ pub fn GridCanvas() -> impl IntoView {
                 }
             }
 
-            // Render the grid
-            controller_stored.with_value(|ctrl| {
-                viewport_stored.with_value(|vp| {
-                    let ctrl_borrow = ctrl.borrow();
-                    let active_cell = ctrl_borrow.cursor();
-                    let selection = ctrl_borrow.get_selection().cloned();
-                    let facade = ctrl_borrow.facade();
-                    let config = ctrl_borrow.get_config();
-
-                    let render_params = RenderParams {
-                        canvas: canvas_elem,
-                        viewport: &vp.borrow(),
-                        active_cell,
-                        selection,
-                        facade,
-                        device_pixel_ratio,
-                        config,
-                    };
-                    renderer.render(&render_params);
-                });
-            });
+            // Render the grid - simply pass the canvas element
+            renderer.render(canvas_elem);
         }
     });
 

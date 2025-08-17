@@ -1,10 +1,9 @@
-use gridcore_controller::controller::GridConfiguration;
-use gridcore_controller::controller::ViewportBounds;
 use gridcore_core::types::CellAddress;
+use leptos::prelude::{GetUntracked, WithValue};
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
-use crate::components::viewport::Viewport;
+use crate::context::{use_controller, use_device_pixel_ratio, use_viewport};
 use crate::rendering::GridTheme;
 
 #[derive(Clone)]
@@ -17,27 +16,33 @@ impl GridHeaders {
         Self { theme }
     }
 
-    pub fn render(
-        &self,
-        canvas: &HtmlCanvasElement,
-        viewport: &Viewport,
-        bounds: &ViewportBounds,
-        config: &GridConfiguration,
-        device_pixel_ratio: f64,
-    ) {
+    pub fn render(&self, canvas: &HtmlCanvasElement) {
         let ctx = match self.get_context(canvas) {
             Some(ctx) => ctx,
             None => return,
         };
+
+        let controller_stored = use_controller();
+        let viewport_stored = use_viewport();
+        let device_pixel_ratio = use_device_pixel_ratio().get_untracked();
 
         ctx.save();
         ctx.scale(device_pixel_ratio, device_pixel_ratio).ok();
 
         let logical_width = (canvas.width() as f64) / device_pixel_ratio;
 
-        self.render_column_headers(&ctx, viewport, bounds, config, logical_width);
-        self.render_row_headers(&ctx, viewport, bounds, config);
-        self.render_corner(&ctx, config);
+        viewport_stored.with_value(|vp| {
+            controller_stored.with_value(|ctrl| {
+                let viewport = vp.borrow();
+                let bounds = viewport.get_visible_bounds();
+                let ctrl_borrow = ctrl.borrow();
+                let config = ctrl_borrow.get_config();
+
+                self.render_column_headers(&ctx, &viewport, &bounds, config, logical_width);
+                self.render_row_headers(&ctx, &viewport, &bounds, config);
+                self.render_corner(&ctx, config);
+            });
+        });
 
         ctx.restore();
     }
@@ -52,9 +57,9 @@ impl GridHeaders {
     fn render_column_headers(
         &self,
         ctx: &CanvasRenderingContext2d,
-        viewport: &Viewport,
-        bounds: &ViewportBounds,
-        config: &GridConfiguration,
+        viewport: &crate::components::viewport::Viewport,
+        bounds: &gridcore_controller::controller::ViewportBounds,
+        config: &gridcore_controller::controller::GridConfiguration,
         logical_width: f64,
     ) {
         ctx.set_fill_style_str(&self.theme.header_background_color);
@@ -92,9 +97,9 @@ impl GridHeaders {
     fn render_row_headers(
         &self,
         ctx: &CanvasRenderingContext2d,
-        viewport: &Viewport,
-        bounds: &ViewportBounds,
-        config: &GridConfiguration,
+        viewport: &crate::components::viewport::Viewport,
+        bounds: &gridcore_controller::controller::ViewportBounds,
+        config: &gridcore_controller::controller::GridConfiguration,
     ) {
         ctx.set_fill_style_str(&self.theme.header_text_color);
         ctx.set_font(&format!(
@@ -125,7 +130,11 @@ impl GridHeaders {
         }
     }
 
-    fn render_corner(&self, ctx: &CanvasRenderingContext2d, config: &GridConfiguration) {
+    fn render_corner(
+        &self,
+        ctx: &CanvasRenderingContext2d,
+        config: &gridcore_controller::controller::GridConfiguration,
+    ) {
         ctx.set_fill_style_str(&self.theme.header_background_color);
         ctx.fill_rect(
             0.0,

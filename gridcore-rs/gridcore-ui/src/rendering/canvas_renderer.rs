@@ -1,25 +1,13 @@
-use gridcore_controller::controller::{GridConfiguration, ViewportBounds};
-use gridcore_controller::state::Selection;
-use gridcore_core::SpreadsheetFacade;
-use gridcore_core::types::CellAddress;
+use gridcore_controller::controller::ViewportBounds;
+use leptos::prelude::{GetUntracked, WithValue};
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
 use crate::components::grid_cells::GridCells;
 use crate::components::grid_headers::GridHeaders;
-use crate::components::grid_selection::{GridSelection, SelectionRenderParams};
-use crate::components::viewport::Viewport;
+use crate::components::grid_selection::GridSelection;
+use crate::context::{use_controller, use_device_pixel_ratio, use_viewport};
 use crate::rendering::GridTheme;
-
-pub struct RenderParams<'a> {
-    pub canvas: &'a HtmlCanvasElement,
-    pub viewport: &'a Viewport,
-    pub active_cell: CellAddress,
-    pub selection: Option<Selection>,
-    pub facade: &'a SpreadsheetFacade,
-    pub device_pixel_ratio: f64,
-    pub config: &'a GridConfiguration,
-}
 
 pub struct CanvasRenderer {
     theme: GridTheme,
@@ -38,62 +26,49 @@ impl CanvasRenderer {
         }
     }
 
-    pub fn render(&self, params: &RenderParams) {
-        let ctx = match self.get_context(params.canvas) {
+    pub fn render(&self, canvas: &HtmlCanvasElement) {
+        let ctx = match self.get_context(canvas) {
             Some(ctx) => ctx,
             None => return,
         };
 
-        ctx.save();
-        ctx.scale(params.device_pixel_ratio, params.device_pixel_ratio)
-            .ok();
+        let controller_stored = use_controller();
+        let viewport_stored = use_viewport();
+        let device_pixel_ratio = use_device_pixel_ratio().get_untracked();
 
-        let logical_width = (params.canvas.width() as f64) / params.device_pixel_ratio;
-        let logical_height = (params.canvas.height() as f64) / params.device_pixel_ratio;
+        ctx.save();
+        ctx.scale(device_pixel_ratio, device_pixel_ratio).ok();
+
+        let logical_width = (canvas.width() as f64) / device_pixel_ratio;
+        let logical_height = (canvas.height() as f64) / device_pixel_ratio;
 
         self.clear_canvas(&ctx, logical_width, logical_height);
 
-        let bounds = params.viewport.get_visible_bounds();
+        viewport_stored.with_value(|vp| {
+            controller_stored.with_value(|ctrl| {
+                let viewport = vp.borrow();
+                let bounds = viewport.get_visible_bounds();
+                let ctrl_borrow = ctrl.borrow();
+                let config = ctrl_borrow.get_config();
 
-        self.render_background(&ctx, logical_width, logical_height);
-        self.render_grid_lines(
-            &ctx,
-            params.viewport,
-            &bounds,
-            params.config,
-            logical_width,
-            logical_height,
-        );
+                self.render_background(&ctx, logical_width, logical_height);
+                self.render_grid_lines(
+                    &ctx,
+                    &viewport,
+                    &bounds,
+                    config,
+                    logical_width,
+                    logical_height,
+                );
+            });
+        });
 
         ctx.restore();
 
         // Render components using their own contexts
-        self.headers.render(
-            params.canvas,
-            params.viewport,
-            &bounds,
-            params.config,
-            params.device_pixel_ratio,
-        );
-        self.cells.render(
-            params.canvas,
-            params.viewport,
-            &bounds,
-            params.facade,
-            params.config,
-            params.device_pixel_ratio,
-        );
-
-        let selection_params = SelectionRenderParams {
-            canvas: params.canvas,
-            selection: params.selection.as_ref(),
-            active_cell: &params.active_cell,
-            viewport: params.viewport,
-            bounds: &bounds,
-            config: params.config,
-            device_pixel_ratio: params.device_pixel_ratio,
-        };
-        self.selection.render(&selection_params);
+        self.headers.render(canvas);
+        self.cells.render(canvas);
+        self.selection.render(canvas);
     }
 
     fn get_context(&self, canvas: &HtmlCanvasElement) -> Option<CanvasRenderingContext2d> {
@@ -115,9 +90,9 @@ impl CanvasRenderer {
     fn render_grid_lines(
         &self,
         ctx: &CanvasRenderingContext2d,
-        viewport: &Viewport,
+        viewport: &crate::components::viewport::Viewport,
         bounds: &ViewportBounds,
-        config: &GridConfiguration,
+        config: &gridcore_controller::controller::GridConfiguration,
         logical_width: f64,
         logical_height: f64,
     ) {
