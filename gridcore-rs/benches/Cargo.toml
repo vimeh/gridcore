@@ -5,41 +5,71 @@ edition = "2024"
 
 [dependencies]
 gridcore-core = { path = "../gridcore-core" }
+gridcore-controller = { path = "../gridcore-controller" }
 criterion = "0.7"
 smallvec = "1.15.1"
 rustc-hash = "2.1.1"
+serde_json = "1.0"
 
+# For UI benchmarks (WASM context)
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gridcore-ui = { path = "../gridcore-ui" }
+wasm-bindgen-test = "0.3"
+web-sys = "0.3"
+
+# Core benchmarks
 [[bench]]
 name = "transformer_bench"
 harness = false
-path = "src/transformer_bench.rs"
+path = "src/core/transformer_bench.rs"
 
 [[bench]]
 name = "structural_ops_bench"
 harness = false
-path = "src/structural_ops_bench.rs"
+path = "src/core/structural_ops_bench.rs"
 
 [[bench]]
 name = "undo_redo_benchmark"
 harness = false
-path = "src/undo_redo_benchmark.rs"
+path = "src/core/undo_redo_benchmark.rs"
 
 [[bench]]
 name = "fill_bench"
 harness = false
-path = "src/fill_bench.rs"
+path = "src/core/fill_bench.rs"
 
 [[bench]]
 name = "memory_bench"
 harness = false
-path = "src/memory_bench.rs"
+path = "src/core/memory_bench.rs"
 
 [[bench]]
 name = "memory_bench_simple"
 harness = false
-path = "src/memory_bench_simple.rs"
+path = "src/core/memory_bench_simple.rs"
 
 [[bench]]
 name = "optimization_bench"
 harness = false
-path = "src/optimization_bench.rs"
+path = "src/core/optimization_bench.rs"
+
+# Controller benchmarks
+[[bench]]
+name = "viewport_bench"
+harness = false
+path = "src/controller/viewport_bench.rs"
+
+[[bench]]
+name = "selection_bench"
+harness = false
+path = "src/controller/selection_bench.rs"
+
+[[bench]]
+name = "vim_bench"
+harness = false
+path = "src/controller/vim_bench.rs"
+
+[[bench]]
+name = "event_handling_bench"
+harness = false
+path = "src/controller/event_handling_bench.rs"

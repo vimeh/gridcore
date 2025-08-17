@@ -7,10 +7,7 @@ use web_sys::{MouseEvent, WheelEvent};
 use crate::interaction::resize_handler::ResizeHandler;
 
 #[component]
-pub fn GridEventHandler(
-    resize_handler: ResizeHandler,
-    children: Children,
-) -> impl IntoView {
+pub fn GridEventHandler(resize_handler: ResizeHandler, children: Children) -> impl IntoView {
     // Get controller and viewport from context
     let controller_stored = use_controller();
     let viewport_stored = use_viewport();
