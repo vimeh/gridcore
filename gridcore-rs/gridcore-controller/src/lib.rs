@@ -3,6 +3,9 @@ pub mod controller;
 pub mod managers;
 pub mod state;
 
+#[cfg(feature = "perf")]
+pub mod perf;
+
 // Re-export key types
 pub use controller::SpreadsheetController;
 pub use state::{

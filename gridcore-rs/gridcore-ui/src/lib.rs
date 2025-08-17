@@ -7,6 +7,9 @@ pub mod reactive;
 pub mod rendering;
 pub mod utils;
 
+#[cfg(feature = "perf")]
+pub mod perf;
+
 // Re-export demo components when demo feature is enabled
 #[cfg(feature = "demo")]
 pub use gridcore_demo::components::{DemoProgressBar, PerformanceOverlay};

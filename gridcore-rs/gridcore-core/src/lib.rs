@@ -17,6 +17,9 @@ pub mod types;
 pub mod utils;
 pub mod workbook;
 
+#[cfg(feature = "perf")]
+pub mod perf;
+
 #[cfg(test)]
 pub mod test_utils;
 
