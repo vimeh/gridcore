@@ -1,7 +1,7 @@
 //! Real-time metrics display component
 
-use leptos::prelude::*;
 use crate::metrics_collector::MetricsSnapshot;
+use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 
 /// Component for displaying real-time performance metrics
@@ -19,7 +19,7 @@ pub fn MetricsDisplay(
         >
             <div class="metrics-overlay">
                 <h3 class="metrics-title">"Performance Metrics"</h3>
-                
+
                 // Operations per second
                 <div class="metrics-section">
                     <h4>"Operations/sec"</h4>
@@ -40,7 +40,7 @@ pub fn MetricsDisplay(
                         <span class="metric-value">{move || format!("{:.1}", metrics.get().action_dispatch_rate)}</span>
                     </div>
                 </div>
-                
+
                 // Counters
                 <div class="metrics-section">
                     <h4>"Total Operations"</h4>
@@ -61,7 +61,7 @@ pub fn MetricsDisplay(
                         <span class="metric-value">{move || metrics.get().cursor_moves.to_string()}</span>
                     </div>
                 </div>
-                
+
                 // Timing metrics
                 <div class="metrics-section">
                     <h4>"Response Times (ms)"</h4>
@@ -87,7 +87,7 @@ pub fn MetricsDisplay(
                         </div>
                     </Show>
                 </div>
-                
+
                 // System metrics
                 <div class="metrics-section">
                     <h4>"System"</h4>
@@ -104,15 +104,15 @@ pub fn MetricsDisplay(
                         <span class="metric-value">{move || metrics.get().formula_count.to_string()}</span>
                     </div>
                 </div>
-                
+
                 // Sparklines for trending (placeholder for now)
                 <div class="metrics-section">
                     <h4>"Trends"</h4>
-                    <MetricsSparkline 
+                    <MetricsSparkline
                         label="Formula Eval Rate"
                         data=Signal::derive(move || vec![metrics.get().formula_eval_rate])
                     />
-                    <MetricsSparkline 
+                    <MetricsSparkline
                         label="Cell Operations"
                         data=Signal::derive(move || vec![metrics.get().cell_read_rate + metrics.get().cell_write_rate])
                     />
@@ -160,7 +160,7 @@ pub fn MetricsToggle(
             class="metrics-toggle-btn"
             on:click=move |_| {
                 show_metrics.set(!show_metrics.get());
-                
+
                 // Refocus the grid container after toggling metrics
                 // This ensures keyboard navigation continues to work
                 if let Some(window) = web_sys::window() {

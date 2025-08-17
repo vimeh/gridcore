@@ -1,5 +1,5 @@
 //! No-op metrics recorder for WASM environment
-//! 
+//!
 //! This recorder satisfies the metrics crate's requirement for a global recorder
 //! but doesn't actually do anything with the metrics. This prevents the
 //! "unreachable code" panic in WASM when metrics macros are called.

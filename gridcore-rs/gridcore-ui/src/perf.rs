@@ -1,7 +1,7 @@
 //! Performance metrics for UI operations
 
+use std::cell::{OnceCell, RefCell};
 use std::rc::Rc;
-use std::cell::{RefCell, OnceCell};
 
 // Metric name constants following Prometheus naming conventions
 pub const RENDER_FRAMES: &str = "gridcore_render_frames_total";
@@ -23,9 +23,11 @@ pub use gridcore_core::{perf_gauge, perf_incr, perf_time};
 
 // Re-export metric constants from other crates
 #[cfg(feature = "perf")]
-pub use gridcore_core::perf::{FORMULA_EVALUATIONS, CELL_READS, CELL_WRITES};
+pub use gridcore_controller::perf::{
+    ACTION_DISPATCHES, CURSOR_MOVES, KEYBOARD_EVENTS, MOUSE_EVENTS, VIEWPORT_SCROLLS,
+};
 #[cfg(feature = "perf")]
-pub use gridcore_controller::perf::{ACTION_DISPATCHES, CURSOR_MOVES, VIEWPORT_SCROLLS, KEYBOARD_EVENTS, MOUSE_EVENTS};
+pub use gridcore_core::perf::{CELL_READS, CELL_WRITES, FORMULA_EVALUATIONS};
 
 // Global metrics collector instance - using thread_local for WASM compatibility
 #[cfg(feature = "perf")]

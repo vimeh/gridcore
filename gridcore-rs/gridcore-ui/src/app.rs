@@ -32,7 +32,7 @@ pub fn App() -> impl IntoView {
     // Set panic hook for better error messages
     #[cfg(feature = "debug")]
     console_error_panic_hook::set_once();
-    
+
     // Initialize metrics system
     #[cfg(feature = "perf")]
     {
@@ -59,18 +59,18 @@ pub fn App() -> impl IntoView {
     // Demo feature state
     #[cfg(feature = "demo")]
     let demo_state = create_demo_state();
-    
+
     // Metrics feature state
     #[cfg(feature = "perf")]
     let show_metrics = RwSignal::new(false);
     #[cfg(feature = "perf")]
     let current_metrics = RwSignal::new(MetricsSnapshot::default());
-    
+
     // Set up metrics collection interval
     #[cfg(feature = "perf")]
     {
         use gloo_timers::callback::Interval;
-        
+
         let metrics_signal = current_metrics;
         // Collect metrics every 100ms
         let _interval = Interval::new(100, move || {
@@ -196,7 +196,7 @@ pub fn App() -> impl IntoView {
                         />
                         " Debug Mode"
                     </label>
-                    
+
                     // Metrics toggle button (only when perf feature is enabled)
                     {
                         #[cfg(feature = "perf")]
@@ -292,13 +292,13 @@ pub fn App() -> impl IntoView {
 
             // Add error display overlay
             <ErrorDisplay />
-            
+
             // Metrics display overlay (only when perf feature is enabled)
             {
                 #[cfg(feature = "perf")]
                 {
                     view! {
-                        <MetricsDisplay 
+                        <MetricsDisplay
                             metrics=Signal::from(current_metrics)
                             visible=Signal::from(show_metrics)
                         />
