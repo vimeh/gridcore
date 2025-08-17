@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { getCellSelector, pressKey, waitForGrid } from "./helpers/test-utils";
+import { waitForGrid } from "./helpers/test-utils";
 
 // Helper to get the canvas element
 async function getCanvas(page: Page) {

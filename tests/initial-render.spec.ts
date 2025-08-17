@@ -12,7 +12,7 @@ test.describe("Initial Render Tests", () => {
     await expect(canvas).toBeVisible();
 
     // Take a screenshot to capture the initial state
-    const screenshot = await page.screenshot();
+    const _screenshot = await page.screenshot();
 
     // Get canvas context to check if it has been drawn
     const canvasHasContent = await page.evaluate(() => {

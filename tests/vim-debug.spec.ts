@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { test } from "@playwright/test";
 
 test("debug visual mode transition", async ({ page }) => {
   await page.goto("/");

@@ -43,10 +43,14 @@ test.describe("Metrics Display", () => {
     await page.click("button:has-text('Show Metrics')");
 
     // Check that metric values are displayed (initially should be 0)
-    await expect(page.locator("text=Formula Evaluations:").first()).toBeVisible();
+    await expect(
+      page.locator("text=Formula Evaluations:").first(),
+    ).toBeVisible();
     await expect(page.locator("text=Cell Reads:").first()).toBeVisible();
     await expect(page.locator("text=Cell Writes:").first()).toBeVisible();
-    await expect(page.locator("text=Actions Dispatched:").first()).toBeVisible();
+    await expect(
+      page.locator("text=Actions Dispatched:").first(),
+    ).toBeVisible();
 
     // Check memory usage is displayed
     await expect(page.locator("text=Memory Usage:")).toBeVisible();
@@ -75,7 +79,7 @@ test.describe("Metrics Display", () => {
 
     // Metrics should still be visible and navigation should work
     await expect(page.locator(".metrics-overlay")).toBeVisible();
-    
+
     // The grid should still be visible and functional
     await expect(page.locator("canvas")).toBeVisible();
   });
@@ -197,8 +201,8 @@ test.describe("Metrics Display", () => {
       .textContent();
 
     // The count should have increased (may not be exactly 3 due to timing)
-    const initial = parseInt(initialCursorMoves || "0");
-    const updated = parseInt(updatedCursorMoves || "0");
+    const initial = parseInt(initialCursorMoves || "0", 10);
+    const updated = parseInt(updatedCursorMoves || "0", 10);
     expect(updated).toBeGreaterThanOrEqual(initial);
   });
 });
