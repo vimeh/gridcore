@@ -459,6 +459,3 @@ pub enum ParsedBulkCommand {
         column: Option<u32>,
     },
 }
-
-// Re-export NavigationModal as ModalData for tests that still use the old name
-pub type ModalData = NavigationModal;

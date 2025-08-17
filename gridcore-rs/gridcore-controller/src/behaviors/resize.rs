@@ -152,7 +152,7 @@ impl Default for ResizeBehavior {
 
 // Mouse-based resize operations
 
-/// Type of resize operation (matches the old ResizeType from managers)
+/// Type of resize operation
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResizeType {
     None,

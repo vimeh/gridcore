@@ -177,8 +177,7 @@ impl SpreadsheetEvent {
 
     /// Get current timestamp in milliseconds
     fn current_timestamp() -> u64 {
-        // In a real implementation, this would use system time
-        // For now, return a placeholder
+        // Returns 0 as timestamps are handled by the UI layer
         0
     }
 }

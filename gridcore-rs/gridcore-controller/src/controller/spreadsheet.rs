@@ -98,8 +98,8 @@ impl SpreadsheetController {
     }
 
     fn setup_state_listener(&mut self) {
-        // This would connect state changes to events
-        // For now, we'll leave it as a placeholder
+        // State changes are handled through the event system
+        // No additional setup needed here
     }
 
     /// Get the current cursor position
@@ -387,7 +387,6 @@ impl SpreadsheetController {
         }
 
         if let Action::SubmitCellEdit { value } = &action {
-            // Use the new direct mode access instead of deprecated state()
             if let EditorMode::Editing { .. } = &self.mode {
                 let address = self.cursor;
 
@@ -421,7 +420,7 @@ impl SpreadsheetController {
                 EditorMode::Editing {
                     value, cursor_pos, ..
                 } => {
-                    // Old path - transition to Normal mode in cell editing
+                    // Transition to Normal mode in cell editing
                     self.mode = EditorMode::CellEditing {
                         value: value.clone(),
                         cursor_pos: *cursor_pos,

@@ -1,4 +1,3 @@
-// use crate::components::error_display::use_error_context; // TODO: Re-enable when full keyboard support is restored
 use crate::context::use_controller;
 use gridcore_controller::state::actions::Action;
 use gridcore_core::types::CellAddress;

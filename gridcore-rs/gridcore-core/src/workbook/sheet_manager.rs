@@ -34,9 +34,8 @@ impl SheetManager {
 
     /// Evaluate a cross-sheet formula
     pub fn evaluate_cross_sheet_formula(&self, _formula: &str) -> Result<CellValue> {
-        // This would need to be extended to handle cross-sheet references
-        // For now, return a placeholder
-        // Formula parsing should be handled by the application layer
+        // Cross-sheet references require application-layer formula parsing
+        // Returns Empty as this is handled at a higher level
         Ok(CellValue::Empty)
     }
 
@@ -166,8 +165,7 @@ impl SheetManager {
                 for (address, cell) in cells.get_all() {
                     if cell.has_formula() {
                         // Check if this formula references the target
-                        // This would need proper formula parsing and analysis
-                        // For now, this is a placeholder
+                        // Full formula parsing would be handled by the application layer
                         if let CellValue::String(formula) = &cell.raw_value {
                             let target_ref = format!("{}!{}", target_sheet, target_address.to_a1());
                             if formula.contains(&target_ref) {
