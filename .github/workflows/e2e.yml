@@ -19,6 +19,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Install trunk
+        run: |
+          cargo install trunk --locked || true
       - uses: oven-sh/setup-bun@v2
       - run: bun install
       - name: Install Playwright Browsers
