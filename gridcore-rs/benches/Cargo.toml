@@ -2,6 +2,10 @@
 name = "gridcore-benchmarks"
 version = "0.1.0"
 edition = "2024"
+autobenches = false
+
+[lib]
+bench = false
 
 [dependencies]
 gridcore-core = { path = "../gridcore-core" }

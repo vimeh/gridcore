@@ -5,11 +5,13 @@ edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+bench = false
 
 [[bin]]
 name = "demo-runner"
 path = "src/bin/demo_runner.rs"
 required-features = ["runner"]
+bench = false
 
 [dependencies]
 gridcore-core = { path = "../gridcore-core" }

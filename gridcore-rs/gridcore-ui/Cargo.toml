@@ -8,6 +8,7 @@ wasm-opt = false
 
 [lib]
 crate-type = ["cdylib"]
+bench = false
 
 [dependencies]
 gridcore-core = { path = "../gridcore-core" }
