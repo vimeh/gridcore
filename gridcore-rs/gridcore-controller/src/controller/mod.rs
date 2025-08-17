@@ -9,7 +9,6 @@ pub mod vim_handler;
 
 // New modular organization
 pub mod event_handling;
-pub mod manager_access;
 pub mod sheets;
 
 #[cfg(test)]
@@ -17,7 +16,6 @@ mod tests;
 
 pub use event_handling::EventHandling;
 pub use events::{EventDispatcher, KeyboardEvent, MouseEvent, SpreadsheetEvent};
-pub use manager_access::ManagerAccess;
 pub use mode::EditorMode;
 pub use sheets::SheetManagement;
 pub use spreadsheet::SpreadsheetController;
