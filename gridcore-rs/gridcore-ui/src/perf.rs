@@ -54,10 +54,6 @@ fn init_prometheus_export() -> Result<(), Box<dyn std::error::Error>> {
     // Set up Prometheus exporter on port 9090
     PrometheusBuilder::new()
         .with_http_listener(([127, 0, 0, 1], 9090))
-        .idle_timeout(
-            metrics_util::MetricKindMask::COUNTER | metrics_util::MetricKindMask::HISTOGRAM,
-            Some(std::time::Duration::from_secs(300)),
-        )
         .install()?;
 
     web_sys::console::log_1(
@@ -95,7 +91,7 @@ struct ConsoleWriter;
 impl std::io::Write for ConsoleWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let msg = String::from_utf8_lossy(buf);
-        web_sys::console::log_1(&msg.into());
+        web_sys::console::log_1(&msg.as_ref().into());
         Ok(buf.len())
     }
 
