@@ -15,7 +15,6 @@ fn key_event(key: &str) -> KeyboardEvent {
 }
 
 #[test]
-#[ignore] // TODO: Re-enable after completing visual mode state management
 fn test_visual_mode_entry() {
     let mut controller = SpreadsheetController::new();
 
@@ -32,7 +31,6 @@ fn test_visual_mode_entry() {
 }
 
 #[test]
-#[ignore] // TODO: Re-enable after completing visual mode state management
 fn test_visual_mode_selection_extension() {
     let mut controller = SpreadsheetController::new();
 
@@ -100,7 +98,6 @@ fn test_visual_mode_exit() {
 }
 
 #[test]
-#[ignore] // TODO: Re-enable after completing visual mode state management
 fn test_visual_mode_multi_directional_selection() {
     let mut controller = SpreadsheetController::new();
 
@@ -138,11 +135,11 @@ fn test_visual_mode_multi_directional_selection() {
 }
 
 #[test]
-#[ignore = "Visual line mode test - depends on visual mode working properly"]
 fn test_visual_line_mode() {
     let mut controller = SpreadsheetController::new();
 
-    // Enter visual line mode with 'V' (shift+v)
+    // Enter visual line mode with 'V'
+    // Note: Currently visual line mode is entered with uppercase V
     controller
         .handle_keyboard_event(KeyboardEvent {
             key: "V".to_string(),
@@ -150,7 +147,7 @@ fn test_visual_line_mode() {
             alt: false,
             ctrl: false,
             meta: false,
-            shift: true,
+            shift: false, // V is already uppercase
         })
         .unwrap();
 
@@ -173,13 +170,15 @@ fn test_visual_line_mode() {
                 assert!(rows.contains(&0), "Should include row 0");
                 assert!(rows.contains(&1), "Should include row 1");
             }
-            _ => panic!("Expected Row selection type for visual line mode"),
+            _ => panic!(
+                "Expected Row selection type for visual line mode, got {:?}",
+                selection.selection_type
+            ),
         }
     }
 }
 
 #[test]
-#[ignore] // TODO: Re-enable after completing visual mode state management
 fn test_visual_mode_selection_in_state() {
     let mut controller = SpreadsheetController::new();
 

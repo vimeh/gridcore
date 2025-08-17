@@ -288,25 +288,43 @@ impl<'a> InputHandler<'a> {
                 let new_cursor = CellAddress::new(new_col, new_row);
 
                 // Update cursor and extend selection
-                if let EditorMode::Visual { anchor, mode: _ } = self.controller.get_mode() {
-                    // Create new selection from anchor to new cursor
-                    // The selection should always maintain anchor as the start point
-                    // and the current cursor as the end point for the Range type
-                    let selection = Selection {
-                        selection_type: if *anchor == new_cursor {
-                            // Single cell selection
-                            SelectionType::Cell {
-                                address: new_cursor,
+                if let EditorMode::Visual { anchor, mode } = self.controller.get_mode() {
+                    use crate::state::VisualMode;
+
+                    // Create new selection based on visual mode type
+                    let selection = match mode {
+                        VisualMode::Line => {
+                            // For line mode, select all rows between anchor and current
+                            let start_row = anchor.row.min(new_cursor.row);
+                            let end_row = anchor.row.max(new_cursor.row);
+                            let mut rows = Vec::new();
+                            for row in start_row..=end_row {
+                                rows.push(row);
                             }
-                        } else {
-                            // Range selection - keep anchor and cursor positions as-is
-                            // Don't reorder them with min/max - that's a rendering concern
-                            SelectionType::Range {
-                                start: *anchor,
-                                end: new_cursor,
+                            Selection {
+                                selection_type: SelectionType::Row { rows },
+                                anchor: Some(*anchor),
                             }
-                        },
-                        anchor: Some(*anchor),
+                        }
+                        _ => {
+                            // For character/block mode
+                            Selection {
+                                selection_type: if *anchor == new_cursor {
+                                    // Single cell selection
+                                    SelectionType::Cell {
+                                        address: new_cursor,
+                                    }
+                                } else {
+                                    // Range selection - keep anchor and cursor positions as-is
+                                    // Don't reorder them with min/max - that's a rendering concern
+                                    SelectionType::Range {
+                                        start: *anchor,
+                                        end: new_cursor,
+                                    }
+                                },
+                                anchor: Some(*anchor),
+                            }
+                        }
                     };
 
                     // Update direct state (no action dispatch needed)
@@ -362,6 +380,36 @@ impl<'a> InputHandler<'a> {
                         },
                     })
             }
+            "V" => {
+                use super::mode::EditorMode;
+                use crate::state::VisualMode;
+
+                // Enter visual line mode with current cursor as anchor
+                self.controller.set_mode(EditorMode::Visual {
+                    mode: VisualMode::Line,
+                    anchor: current_cursor,
+                });
+
+                // Set initial selection to the current row
+                self.controller.set_selection(Some(Selection {
+                    selection_type: SelectionType::Row {
+                        rows: vec![current_cursor.row],
+                    },
+                    anchor: Some(current_cursor),
+                }));
+
+                // Also update state for compatibility
+                self.controller
+                    .dispatch_action(Action::EnterSpreadsheetVisualMode {
+                        visual_mode: VisualMode::Line,
+                        selection: Selection {
+                            selection_type: SelectionType::Row {
+                                rows: vec![current_cursor.row],
+                            },
+                            anchor: Some(current_cursor),
+                        },
+                    })
+            }
 
             // Navigation
             "h" => self.move_cursor(-1, 0),
@@ -390,6 +438,47 @@ impl<'a> InputHandler<'a> {
         );
 
         self.controller.viewport_manager.ensure_visible(&new_cursor);
+
+        // Check if we're in visual mode and update selection accordingly
+        use super::mode::EditorMode;
+        if let EditorMode::Visual { mode, anchor } = self.controller.get_mode() {
+            use crate::state::{SelectionType, VisualMode};
+
+            // Update selection based on visual mode type
+            let selection = match mode {
+                VisualMode::Line => {
+                    // For line mode, select all rows between anchor and current
+                    let start_row = anchor.row.min(new_cursor.row);
+                    let end_row = anchor.row.max(new_cursor.row);
+                    let mut rows = Vec::new();
+                    for row in start_row..=end_row {
+                        rows.push(row);
+                    }
+                    Selection {
+                        selection_type: SelectionType::Row { rows },
+                        anchor: Some(*anchor),
+                    }
+                }
+                _ => {
+                    // For character/block mode, create a range
+                    Selection {
+                        selection_type: SelectionType::Range {
+                            start: CellAddress::new(
+                                anchor.col.min(new_cursor.col),
+                                anchor.row.min(new_cursor.row),
+                            ),
+                            end: CellAddress::new(
+                                anchor.col.max(new_cursor.col),
+                                anchor.row.max(new_cursor.row),
+                            ),
+                        },
+                        anchor: Some(*anchor),
+                    }
+                }
+            };
+
+            self.controller.set_selection(Some(selection));
+        }
 
         // Use direct set_cursor which emits the CursorMoved event
         // This follows the hybrid architecture plan - no action dispatch needed

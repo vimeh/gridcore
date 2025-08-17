@@ -11,7 +11,6 @@ use super::cell_editor::{CellEditResult, CellEditor};
 use super::formula_bar::FormulaBarManager;
 
 pub struct SpreadsheetController {
-    // pub(super) state_machine: UIStateMachine, // Removed in hybrid refactor
     pub(super) facade: SpreadsheetFacade,
     pub(super) event_dispatcher: EventDispatcher,
     pub(super) viewport_manager: ViewportManager,
@@ -46,7 +45,6 @@ impl SpreadsheetController {
 
     pub fn with_viewport(viewport_manager: ViewportManager, config: GridConfiguration) -> Self {
         let mut controller = Self {
-            // state_machine: UIStateMachine::new(None), // Removed in hybrid refactor
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
             viewport_manager,
@@ -77,7 +75,6 @@ impl SpreadsheetController {
         let cursor = *initial_state.cursor();
 
         let mut controller = Self {
-            // state_machine: UIStateMachine::new(Some(initial_state)), // Removed in hybrid refactor
             facade: SpreadsheetFacade::new(),
             event_dispatcher: EventDispatcher::new(),
             viewport_manager: ViewportManager::new(1000, 100).with_config(config.clone()),
@@ -582,6 +579,37 @@ impl SpreadsheetController {
 
         // Handle action directly without state machine
         match &action {
+            Action::StartEditing {
+                edit_mode,
+                initial_value,
+                cursor_position,
+            } => {
+                // Enter editing mode
+                let value = initial_value.clone().unwrap_or_else(|| {
+                    // Get current cell value
+                    self.get_cell_display_for_ui(&self.cursor)
+                });
+                let cursor_pos = cursor_position.unwrap_or(0);
+
+                if let Some(insert_mode) = edit_mode {
+                    // Start in CellEditing mode with specified insert mode
+                    self.mode = EditorMode::CellEditing {
+                        value,
+                        cursor_pos,
+                        mode: CellEditMode::Insert(*insert_mode),
+                        visual_anchor: None,
+                    };
+                } else {
+                    // Start in regular Editing mode
+                    self.mode = EditorMode::Editing {
+                        value,
+                        cursor_pos,
+                        insert_mode: None,
+                    };
+                }
+                self.event_dispatcher
+                    .dispatch(&SpreadsheetEvent::StateChanged);
+            }
             Action::UpdateCursor { cursor } => {
                 // If in visual mode, exit it when clicking to move cursor
                 if matches!(self.mode, EditorMode::Visual { .. }) {
@@ -808,13 +836,6 @@ impl SpreadsheetController {
             self.formula_bar_manager.create_update_event()
         };
         self.event_dispatcher.dispatch(&event);
-    }
-
-    /// Sync direct state fields with the state machine
-    /// This is useful during the transition period
-    pub fn sync_from_state_machine(&mut self) {
-        // This method is no longer needed as we don't use state machine anymore
-        // Keeping empty for compatibility
     }
 
     // Sheet management methods

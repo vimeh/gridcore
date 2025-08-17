@@ -4,14 +4,6 @@ use gridcore_controller::controller::SpreadsheetController;
 use gridcore_controller::state::Action;
 
 #[test]
-#[ignore] // UIStateMachine has been removed in hybrid refactor
-fn test_state_machine_basic_transitions() {
-    // This test is disabled because UIStateMachine has been removed
-    // TODO: Rewrite using direct state manipulation
-}
-
-#[test]
-#[ignore] // TODO: Re-enable after implementing direct state management for editing mode
 fn test_controller_keyboard_handling() {
     let mut controller = SpreadsheetController::new();
 
@@ -27,13 +19,18 @@ fn test_controller_keyboard_handling() {
         })
         .unwrap();
 
-    // Should be in Editing mode with Insert edit mode
+    // Should be in CellEditing mode with Insert edit mode
     let mode = controller.get_mode();
     match mode {
-        gridcore_controller::controller::mode::EditorMode::Editing { insert_mode, .. } => {
-            assert!(insert_mode.is_some());
+        gridcore_controller::controller::mode::EditorMode::CellEditing {
+            mode: edit_mode, ..
+        } => {
+            assert!(matches!(
+                edit_mode,
+                gridcore_controller::controller::mode::CellEditMode::Insert(_)
+            ));
         }
-        _ => panic!("Expected Editing mode"),
+        _ => panic!("Expected CellEditing mode with Insert mode"),
     }
 }
 

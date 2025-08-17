@@ -6,7 +6,6 @@ pub mod spreadsheet;
 #[cfg(test)]
 mod refactoring_tests;
 
-// Keep only essential types - no more UIStateMachine
 pub use actions::Action;
 pub use context::StateContext;
 pub use spreadsheet::{

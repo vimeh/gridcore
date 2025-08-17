@@ -14,6 +14,5 @@ mod tests {
     #[test]
     fn test_module_imports() {
         // Basic smoke test to ensure modules compile
-        // UIStateMachine has been removed in hybrid refactor
     }
 }
