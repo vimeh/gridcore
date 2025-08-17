@@ -160,11 +160,12 @@ impl MetricsCollector {
     /// Initialize cached handles after metrics system is set up
     pub fn init_handles(&mut self) {
         let mut registry = self.registry.borrow_mut();
-        self.formula_eval_counter = Some(registry.get_or_create_counter(crate::perf::FORMULA_EVALUATIONS));
-        self.cell_read_counter = Some(registry.get_or_create_counter(crate::perf::CELL_READS));
-        self.cell_write_counter = Some(registry.get_or_create_counter(crate::perf::CELL_WRITES));
-        self.action_dispatch_counter = Some(registry.get_or_create_counter(crate::perf::ACTION_DISPATCHES));
-        self.cursor_move_counter = Some(registry.get_or_create_counter(crate::perf::CURSOR_MOVES));
+        // Use local constants to avoid cross-crate dependency issues
+        self.formula_eval_counter = Some(registry.get_or_create_counter("gridcore_formula_evaluations_total"));
+        self.cell_read_counter = Some(registry.get_or_create_counter("gridcore_cell_reads_total"));
+        self.cell_write_counter = Some(registry.get_or_create_counter("gridcore_cell_writes_total"));
+        self.action_dispatch_counter = Some(registry.get_or_create_counter("gridcore_action_dispatches_total"));
+        self.cursor_move_counter = Some(registry.get_or_create_counter("gridcore_cursor_moves_total"));
     }
     
     fn read_counter(&self, handle: Option<&Rc<AtomicU64>>) -> u64 {

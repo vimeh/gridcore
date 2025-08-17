@@ -75,7 +75,10 @@ pub fn App() -> impl IntoView {
         // Collect metrics every 100ms
         let _interval = Interval::new(100, move || {
             if let Some(collector) = crate::perf::get_metrics_collector() {
-                let snapshot = collector.borrow().collect_snapshot();
+                let snapshot = {
+                    let borrowed = collector.borrow();
+                    borrowed.collect_snapshot()
+                };
                 collector.borrow().record_snapshot(snapshot.clone());
                 metrics_signal.set(snapshot);
             }

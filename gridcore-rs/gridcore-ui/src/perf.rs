@@ -22,7 +22,9 @@ pub const FRAME_TIME_MS: f64 = 16.67; // 1000ms / 60fps
 pub use gridcore_core::{perf_gauge, perf_incr, perf_time};
 
 // Re-export metric constants from other crates
+#[cfg(feature = "perf")]
 pub use gridcore_core::perf::{FORMULA_EVALUATIONS, CELL_READS, CELL_WRITES};
+#[cfg(feature = "perf")]
 pub use gridcore_controller::perf::{ACTION_DISPATCHES, CURSOR_MOVES, VIEWPORT_SCROLLS, KEYBOARD_EVENTS, MOUSE_EVENTS};
 
 // Global metrics collector instance - using thread_local for WASM compatibility
