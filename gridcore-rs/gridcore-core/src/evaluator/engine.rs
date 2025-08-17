@@ -7,6 +7,11 @@ use crate::utils::object_pool::global::CELL_VALUE_VEC_POOL;
 use crate::{Result, SpreadsheetError};
 use smallvec::SmallVec;
 
+#[cfg(feature = "perf")]
+use crate::perf::FORMULA_EVALUATIONS;
+#[cfg(feature = "perf")]
+use crate::perf_incr;
+
 /// Main formula evaluator
 pub struct Evaluator<'a> {
     context: &'a mut dyn EvaluationContext,
@@ -24,6 +29,8 @@ impl<'a> Evaluator<'a> {
 
     /// Evaluate a formula expression
     pub fn evaluate(&mut self, expr: &Expr) -> Result<CellValue> {
+        perf_incr!(FORMULA_EVALUATIONS);
+
         match expr {
             Expr::Literal { value, .. } => Ok(value.clone()),
 

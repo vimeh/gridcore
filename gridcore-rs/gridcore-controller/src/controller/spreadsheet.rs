@@ -8,9 +8,9 @@ use crate::state::{Action, InsertMode, Selection, UIState};
 use gridcore_core::{types::CellAddress, Result, SpreadsheetFacade};
 
 #[cfg(feature = "perf")]
-use metrics::{counter, histogram};
-#[cfg(feature = "perf")]
 use crate::perf::*;
+#[cfg(feature = "perf")]
+use metrics::{counter, histogram};
 
 use super::cell_editor::{CellEditResult, CellEditor};
 use super::formula_bar::FormulaBarManager;
@@ -138,7 +138,7 @@ impl SpreadsheetController {
     pub fn set_cursor(&mut self, cursor: CellAddress) {
         #[cfg(feature = "perf")]
         counter!(CURSOR_MOVES).increment(1);
-        
+
         let old = self.cursor;
         self.cursor = cursor;
 
@@ -197,7 +197,7 @@ impl SpreadsheetController {
         let _start = std::time::Instant::now();
         #[cfg(feature = "perf")]
         counter!(ACTION_DISPATCHES).increment(1);
-        
+
         // Handle special actions that need controller logic
 
         // Handle formula bar actions
@@ -673,10 +673,10 @@ impl SpreadsheetController {
         }
 
         log::debug!("dispatch_action: returning Ok");
-        
+
         #[cfg(feature = "perf")]
         histogram!(ACTION_DISPATCH_TIME).record(_start.elapsed().as_secs_f64());
-        
+
         Ok(())
     }
 

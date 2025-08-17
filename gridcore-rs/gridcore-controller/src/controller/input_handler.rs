@@ -3,9 +3,9 @@ use crate::state::{Action, InsertMode, Selection, SelectionType};
 use gridcore_core::{types::CellAddress, Result};
 
 #[cfg(feature = "perf")]
-use metrics::counter;
-#[cfg(feature = "perf")]
 use crate::perf::{KEYBOARD_EVENTS, MOUSE_EVENTS};
+#[cfg(feature = "perf")]
+use metrics::counter;
 
 /// Handles all input events for the spreadsheet controller
 pub struct InputHandler<'a> {
@@ -21,7 +21,7 @@ impl<'a> InputHandler<'a> {
     pub fn handle_keyboard_event(&mut self, event: KeyboardEvent) -> Result<()> {
         #[cfg(feature = "perf")]
         counter!(KEYBOARD_EVENTS).increment(1);
-        
+
         let mode = self.controller.get_mode().clone();
         log::debug!(
             "Handling keyboard event: key='{}', mode={:?}",
@@ -500,7 +500,7 @@ impl<'a> InputHandler<'a> {
     pub fn handle_mouse_event(&mut self, event: MouseEvent) -> Result<()> {
         #[cfg(feature = "perf")]
         counter!(MOUSE_EVENTS).increment(1);
-        
+
         if let Some(cell) = self
             .controller
             .viewport_manager

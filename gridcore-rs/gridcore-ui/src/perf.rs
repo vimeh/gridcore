@@ -21,9 +21,9 @@ pub use gridcore_core::{perf_gauge, perf_incr, perf_time};
 /// Initialize metrics system for UI
 #[cfg(feature = "perf")]
 pub fn init_metrics() -> Result<(), Box<dyn std::error::Error>> {
+    use metrics::Unit;
     use metrics::describe_counter;
     use metrics::describe_histogram;
-    use metrics::Unit;
 
     // Register metric descriptions
     describe_counter!(RENDER_FRAMES, "Total number of frames rendered");
@@ -34,11 +34,7 @@ pub fn init_metrics() -> Result<(), Box<dyn std::error::Error>> {
     describe_counter!(VIEWPORT_UPDATES, "Total number of viewport updates");
     describe_counter!(REACTIVE_UPDATES, "Total number of reactive state updates");
 
-    describe_histogram!(
-        RENDER_TIME,
-        Unit::Seconds,
-        "Time taken to render a frame"
-    );
+    describe_histogram!(RENDER_TIME, Unit::Seconds, "Time taken to render a frame");
 
     // Initialize Prometheus exporter if feature is enabled
     #[cfg(feature = "perf-export")]
@@ -64,7 +60,9 @@ fn init_prometheus_export() -> Result<(), Box<dyn std::error::Error>> {
         )
         .install()?;
 
-    web_sys::console::log_1(&"Prometheus metrics available at http://localhost:9090/metrics".into());
+    web_sys::console::log_1(
+        &"Prometheus metrics available at http://localhost:9090/metrics".into(),
+    );
 
     Ok(())
 }

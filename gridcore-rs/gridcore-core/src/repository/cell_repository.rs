@@ -4,6 +4,11 @@ use crate::types::CellAddress;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
+#[cfg(feature = "perf")]
+use crate::perf::{CELL_READS, CELL_WRITES};
+#[cfg(feature = "perf")]
+use metrics::counter;
+
 /// Repository for storing and managing spreadsheet cells
 #[derive(Debug, Clone, Default)]
 pub struct CellRepository {
@@ -21,16 +26,25 @@ impl CellRepository {
 
     /// Get a cell by its address
     pub fn get(&self, address: &CellAddress) -> Option<&Cell> {
+        #[cfg(feature = "perf")]
+        counter!(CELL_READS).increment(1);
+
         self.cells.get(&address.to_string())
     }
 
     /// Get a mutable reference to a cell
     pub fn get_mut(&mut self, address: &CellAddress) -> Option<&mut Cell> {
+        #[cfg(feature = "perf")]
+        counter!(CELL_READS).increment(1);
+
         self.cells.get_mut(&address.to_string())
     }
 
     /// Set a cell at the given address
     pub fn set(&mut self, address: &CellAddress, cell: Cell) {
+        #[cfg(feature = "perf")]
+        counter!(CELL_WRITES).increment(1);
+
         self.cells.insert(address.to_string(), cell);
     }
 
