@@ -27,6 +27,12 @@ regex = { version = "1.11", default-features = false, features = [
 ] }
 chrono = { version = "0.4", default-features = false }
 
+# Performance monitoring
+metrics = { version = "0.24" }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+metrics-exporter-prometheus = { version = "0.17" }
+
 [profile.dev]
 # Use minimal optimizations to work around Leptos compilation issues
 opt-level = 1

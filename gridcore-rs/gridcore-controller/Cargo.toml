@@ -18,5 +18,12 @@ chrono = { version = "0.4", features = ["wasmbind"] }
 chumsky = { workspace = true }
 once_cell = "1.21.3"
 
+# Performance monitoring (optional)
+metrics = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+
+[features]
+perf = ["metrics", "tracing", "gridcore-core/perf"]
+
 [dev-dependencies]
 serde_json = { workspace = true }
