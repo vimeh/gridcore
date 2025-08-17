@@ -29,6 +29,7 @@ impl<'a> Evaluator<'a> {
 
     /// Evaluate a formula expression
     pub fn evaluate(&mut self, expr: &Expr) -> Result<CellValue> {
+        #[cfg(feature = "perf")]
         perf_incr!(FORMULA_EVALUATIONS);
 
         match expr {
