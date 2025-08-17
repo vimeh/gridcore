@@ -1,13 +1,12 @@
 pub mod cell_editor;
 pub mod error_display;
-pub mod grid_canvas;
-pub mod grid_cells;
-pub mod grid_container;
-pub mod grid_event_handler;
-pub mod grid_headers;
-pub mod grid_keyboard_handler;
-pub mod grid_selection;
-pub mod grid_state_provider;
+pub mod grid;
 pub mod status_bar;
 pub mod tab_bar;
 pub mod viewport;
+
+// Re-export commonly used grid components for convenience
+pub use grid::{
+    GridCanvas, GridCells, GridContainer, GridEventHandler, GridKeyboardHandler, GridSelection,
+    GridStateProvider, use_grid_state,
+};

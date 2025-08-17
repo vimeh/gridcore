@@ -3,9 +3,9 @@ use leptos::prelude::{GetUntracked, WithValue};
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
-use crate::components::grid_cells::GridCells;
-use crate::components::grid_headers::GridHeaders;
-use crate::components::grid_selection::GridSelection;
+use crate::components::grid::{
+    grid_cells::GridCells, grid_headers::GridHeaders, grid_selection::GridSelection,
+};
 use crate::context::{use_controller, use_device_pixel_ratio, use_viewport};
 use crate::rendering::GridTheme;
 

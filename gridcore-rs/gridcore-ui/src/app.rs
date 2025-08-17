@@ -1,5 +1,5 @@
 use crate::components::error_display::ErrorDisplay;
-use crate::components::grid_container::GridContainer;
+use crate::components::grid::GridContainer;
 use crate::components::status_bar::StatusBar;
 use crate::components::tab_bar::{Sheet, TabBar};
 use crate::components::viewport::Viewport;

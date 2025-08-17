@@ -1,8 +1,8 @@
+use super::grid_canvas::GridCanvas;
+use super::grid_event_handler::GridEventHandler;
+use super::grid_keyboard_handler::GridKeyboardHandler;
+use super::grid_state_provider::{GridStateProvider, use_grid_state};
 use crate::components::cell_editor::CellEditor;
-use crate::components::grid_canvas::GridCanvas;
-use crate::components::grid_event_handler::GridEventHandler;
-use crate::components::grid_keyboard_handler::GridKeyboardHandler;
-use crate::components::grid_state_provider::{GridStateProvider, use_grid_state};
 use crate::interaction::resize_handler::ResizeHandler;
 use leptos::prelude::*;
 
