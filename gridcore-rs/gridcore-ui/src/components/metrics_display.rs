@@ -2,6 +2,7 @@
 
 use leptos::prelude::*;
 use crate::metrics_collector::MetricsSnapshot;
+use wasm_bindgen::JsCast;
 
 /// Component for displaying real-time performance metrics
 #[component]
@@ -159,6 +160,23 @@ pub fn MetricsToggle(
             class="metrics-toggle-btn"
             on:click=move |_| {
                 show_metrics.set(!show_metrics.get());
+                
+                // Refocus the grid container after toggling metrics
+                // This ensures keyboard navigation continues to work
+                if let Some(window) = web_sys::window() {
+                    if let Some(document) = window.document() {
+                        // Find the grid-keyboard-handler element which has the tabindex
+                        if let Ok(grid_elements) = document.query_selector_all(".grid-keyboard-handler") {
+                            if grid_elements.length() > 0 {
+                                if let Some(element) = grid_elements.get(0) {
+                                    if let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>() {
+                                        let _ = html_element.focus();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         >
             {move || if show_metrics.get() { "Hide Metrics" } else { "Show Metrics" }}
