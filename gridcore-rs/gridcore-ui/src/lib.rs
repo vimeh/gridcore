@@ -13,6 +13,9 @@ pub mod perf;
 #[cfg(feature = "perf")]
 pub mod metrics_collector;
 
+#[cfg(feature = "perf")]
+pub mod metrics_recorder;
+
 // Re-export demo components when demo feature is enabled
 #[cfg(feature = "demo")]
 pub use gridcore_demo::components::{DemoProgressBar, PerformanceOverlay};

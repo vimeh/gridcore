@@ -46,6 +46,18 @@ pub fn init_metrics() -> Result<(), Box<dyn std::error::Error>> {
     use metrics::describe_counter;
     use metrics::describe_histogram;
 
+    // Install a metrics recorder
+    // If perf-export is not enabled, use the no-op recorder to prevent panics
+    #[cfg(not(feature = "perf-export"))]
+    {
+        crate::metrics_recorder::install_static()?;
+    }
+
+    // Initialize Prometheus exporter if feature is enabled
+    // This will replace the no-op recorder with the Prometheus recorder
+    #[cfg(feature = "perf-export")]
+    init_prometheus_export()?;
+
     // Register metric descriptions
     describe_counter!(RENDER_FRAMES, "Total number of frames rendered");
     describe_counter!(CELLS_RENDERED, "Total number of cells rendered");
@@ -64,10 +76,6 @@ pub fn init_metrics() -> Result<(), Box<dyn std::error::Error>> {
         cell.set(Rc::new(RefCell::new(collector)))
             .map_err(|_| "Failed to initialize metrics collector")
     })?;
-
-    // Initialize Prometheus exporter if feature is enabled
-    #[cfg(feature = "perf-export")]
-    init_prometheus_export()?;
 
     // Initialize tracing subscriber
     #[cfg(feature = "perf-export")]
