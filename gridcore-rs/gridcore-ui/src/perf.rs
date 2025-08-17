@@ -1,5 +1,8 @@
 //! Performance metrics for UI operations
 
+use std::rc::Rc;
+use std::cell::{RefCell, OnceCell};
+
 // Metric name constants following Prometheus naming conventions
 pub const RENDER_FRAMES: &str = "gridcore_render_frames_total";
 pub const RENDER_TIME: &str = "gridcore_render_duration_seconds";
@@ -18,6 +21,22 @@ pub const FRAME_TIME_MS: f64 = 16.67; // 1000ms / 60fps
 #[cfg(feature = "perf")]
 pub use gridcore_core::{perf_gauge, perf_incr, perf_time};
 
+// Re-export metric constants from other crates
+pub use gridcore_core::perf::{FORMULA_EVALUATIONS, CELL_READS, CELL_WRITES};
+pub use gridcore_controller::perf::{ACTION_DISPATCHES, CURSOR_MOVES, VIEWPORT_SCROLLS, KEYBOARD_EVENTS, MOUSE_EVENTS};
+
+// Global metrics collector instance - using thread_local for WASM compatibility
+#[cfg(feature = "perf")]
+thread_local! {
+    static METRICS_COLLECTOR: OnceCell<Rc<RefCell<crate::metrics_collector::MetricsCollector>>> = OnceCell::new();
+}
+
+/// Get the global metrics collector
+#[cfg(feature = "perf")]
+pub fn get_metrics_collector() -> Option<Rc<RefCell<crate::metrics_collector::MetricsCollector>>> {
+    METRICS_COLLECTOR.with(|cell| cell.get().cloned())
+}
+
 /// Initialize metrics system for UI
 #[cfg(feature = "perf")]
 pub fn init_metrics() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,6 +54,14 @@ pub fn init_metrics() -> Result<(), Box<dyn std::error::Error>> {
     describe_counter!(REACTIVE_UPDATES, "Total number of reactive state updates");
 
     describe_histogram!(RENDER_TIME, Unit::Seconds, "Time taken to render a frame");
+
+    // Initialize the metrics collector
+    let mut collector = crate::metrics_collector::MetricsCollector::new();
+    collector.init_handles();
+    METRICS_COLLECTOR.with(|cell| {
+        cell.set(Rc::new(RefCell::new(collector)))
+            .map_err(|_| "Failed to initialize metrics collector")
+    })?;
 
     // Initialize Prometheus exporter if feature is enabled
     #[cfg(feature = "perf-export")]
