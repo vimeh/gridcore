@@ -31,6 +31,14 @@ pub enum Action {
     DeleteCharacterAtCursor {
         forward: bool, // true for delete, false for backspace
     },
+    HandleEditingKey {
+        key: String,
+        shift: bool,
+        ctrl: bool,
+        alt: bool,
+        selection_start: Option<usize>,
+        selection_end: Option<usize>,
+    },
 
     // Command mode operations
     UpdateCommandValue {

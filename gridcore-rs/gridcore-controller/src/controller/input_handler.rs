@@ -35,6 +35,7 @@ impl<'a> InputHandler<'a> {
     }
 
     fn handle_navigation_key(&mut self, event: KeyboardEvent) -> Result<()> {
+        use crate::controller::vim_handler::VimHandler;
         let current_cursor = self.controller.cursor();
         log::debug!(
             "Navigation mode key: '{}', current cursor: {:?}",
@@ -42,156 +43,126 @@ impl<'a> InputHandler<'a> {
             current_cursor
         );
 
-        match event.key.as_str() {
-            // Edit mode triggers
-            "i" => {
-                let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
-                log::debug!(
-                    "'i' key pressed, starting insert mode with existing value: '{}', cursor at 0",
-                    existing_value
-                );
-                use super::mode::{CellEditMode, EditorMode};
-                self.controller.set_mode(EditorMode::CellEditing {
-                    value: existing_value,
-                    cursor_pos: 0,
-                    mode: CellEditMode::Insert(InsertMode::I),
-                    visual_anchor: None,
-                });
-                Ok(())
-            }
-            "a" => {
-                let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
-                let cursor_pos = existing_value.len();
-                log::debug!(
-                    "'a' key pressed, starting append mode with existing value: '{}', cursor at {}",
-                    existing_value,
-                    cursor_pos
-                );
-                use super::mode::{CellEditMode, EditorMode};
-                self.controller.set_mode(EditorMode::CellEditing {
-                    value: existing_value,
-                    cursor_pos,
-                    mode: CellEditMode::Insert(InsertMode::A),
-                    visual_anchor: None,
-                });
-                Ok(())
-            }
-            "Enter" => {
-                log::debug!("Enter key pressed, starting edit in Insert mode with empty value");
-                use super::mode::{CellEditMode, EditorMode};
-                self.controller.set_mode(EditorMode::CellEditing {
-                    value: String::new(),
-                    cursor_pos: 0,
-                    mode: CellEditMode::Insert(InsertMode::I), // Start in INSERT mode for Enter key
-                    visual_anchor: None,
-                });
-                Ok(())
-            }
-
-            // Command mode
-            ":" => self.controller.dispatch_action(Action::EnterCommandMode),
-
-            // Visual mode
-            "v" => {
-                use super::mode::EditorMode;
-                use crate::state::VisualMode;
-
-                // Enter visual mode with current cursor as anchor
-                self.controller.set_mode(EditorMode::Visual {
-                    mode: VisualMode::Character,
-                    anchor: current_cursor,
-                });
-
-                // Set initial selection to just the current cell
-                self.controller.set_selection(Some(Selection {
-                    selection_type: SelectionType::Cell {
-                        address: current_cursor,
-                    },
-                    anchor: Some(current_cursor),
-                }));
-
-                // Also update state machine for compatibility
-                self.controller
-                    .dispatch_action(Action::EnterSpreadsheetVisualMode {
-                        visual_mode: VisualMode::Character,
-                        selection: Selection {
-                            selection_type: SelectionType::Cell {
-                                address: current_cursor,
-                            },
-                            anchor: Some(current_cursor),
-                        },
-                    })
-            }
-
-            // Navigation
-            "ArrowUp" | "k" => {
-                log::debug!("Moving cursor up");
-                self.move_cursor(0, -1)
-            }
-            "ArrowDown" | "j" => {
-                log::debug!("Moving cursor down");
-                self.move_cursor(0, 1)
-            }
-            "ArrowLeft" | "h" => {
-                log::debug!("Moving cursor left");
-                self.move_cursor(-1, 0)
-            }
-            "ArrowRight" | "l" => {
-                log::debug!("Moving cursor right");
-                self.move_cursor(1, 0)
-            }
-
-            // Tab navigation
-            "Tab" => self.handle_tab_navigation(event.shift, current_cursor),
-
-            // Cell operations
-            "Delete" | "Backspace" => self.handle_delete_cell(current_cursor),
-
-            // Escape does nothing in navigation mode
-            "Escape" => Ok(()),
-
-            // Vim mode commands
-            "I" => {
-                let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
-                log::debug!("'I' key pressed, entering insert mode at start of line");
-                use super::mode::{CellEditMode, EditorMode};
-                self.controller.set_mode(EditorMode::CellEditing {
-                    value: existing_value,
-                    cursor_pos: 0,
-                    mode: CellEditMode::Insert(InsertMode::CapitalI),
-                    visual_anchor: None,
-                });
-                Ok(())
-            }
-            "A" => {
-                let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
-                let cursor_pos = existing_value.len();
-                log::debug!("'A' key pressed, entering insert mode at end of line");
-                use super::mode::{CellEditMode, EditorMode};
-                self.controller.set_mode(EditorMode::CellEditing {
-                    value: existing_value,
-                    cursor_pos,
-                    mode: CellEditMode::Insert(InsertMode::CapitalA),
-                    visual_anchor: None,
-                });
-                Ok(())
-            }
-
-            _ => {
-                // Check if this is a single printable character that should start editing
-                if event.key.len() == 1 && !event.ctrl && !event.alt && !event.meta {
-                    log::debug!("Starting edit mode with typed character: '{}'", event.key);
+        // Check if this is a vim navigation key that should start editing
+        if VimHandler::should_handle_navigation_key(&event.key) {
+            match event.key.as_str() {
+                // Edit mode triggers
+                "i" => {
+                    let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
+                    log::debug!(
+                        "'i' key pressed, starting insert mode with existing value: '{}', cursor at 0",
+                        existing_value
+                    );
                     use super::mode::{CellEditMode, EditorMode};
                     self.controller.set_mode(EditorMode::CellEditing {
-                        value: event.key.clone(),
-                        cursor_pos: 1,
+                        value: existing_value,
+                        cursor_pos: 0,
                         mode: CellEditMode::Insert(InsertMode::I),
                         visual_anchor: None,
                     });
                     Ok(())
-                } else {
-                    log::debug!("Unhandled navigation key: '{}'", event.key);
+                }
+                "a" => {
+                    let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
+                    let cursor_pos = existing_value.len();
+                    log::debug!(
+                        "'a' key pressed, starting append mode with existing value: '{}', cursor at {}",
+                        existing_value,
+                        cursor_pos
+                    );
+                    use super::mode::{CellEditMode, EditorMode};
+                    self.controller.set_mode(EditorMode::CellEditing {
+                        value: existing_value,
+                        cursor_pos,
+                        mode: CellEditMode::Insert(InsertMode::A),
+                        visual_anchor: None,
+                    });
                     Ok(())
+                }
+                "I" => {
+                    let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
+                    log::debug!("'I' key pressed, entering insert mode at start of line");
+                    use super::mode::{CellEditMode, EditorMode};
+                    self.controller.set_mode(EditorMode::CellEditing {
+                        value: existing_value,
+                        cursor_pos: 0,
+                        mode: CellEditMode::Insert(InsertMode::CapitalI),
+                        visual_anchor: None,
+                    });
+                    Ok(())
+                }
+                "A" => {
+                    let existing_value = self.controller.get_cell_display_for_ui(&current_cursor);
+                    let cursor_pos = existing_value.len();
+                    log::debug!("'A' key pressed, entering insert mode at end of line");
+                    use super::mode::{CellEditMode, EditorMode};
+                    self.controller.set_mode(EditorMode::CellEditing {
+                        value: existing_value,
+                        cursor_pos,
+                        mode: CellEditMode::Insert(InsertMode::CapitalA),
+                        visual_anchor: None,
+                    });
+                    Ok(())
+                }
+                _ => self.handle_navigation_vim_key(event.key.as_str()),
+            }
+        } else {
+            match event.key.as_str() {
+                "Enter" => {
+                    log::debug!("Enter key pressed, starting edit in Insert mode with empty value");
+                    use super::mode::{CellEditMode, EditorMode};
+                    self.controller.set_mode(EditorMode::CellEditing {
+                        value: String::new(),
+                        cursor_pos: 0,
+                        mode: CellEditMode::Insert(InsertMode::I), // Start in INSERT mode for Enter key
+                        visual_anchor: None,
+                    });
+                    Ok(())
+                }
+
+                // Navigation
+                "ArrowUp" | "k" => {
+                    log::debug!("Moving cursor up");
+                    self.move_cursor(0, -1)
+                }
+                "ArrowDown" | "j" => {
+                    log::debug!("Moving cursor down");
+                    self.move_cursor(0, 1)
+                }
+                "ArrowLeft" | "h" => {
+                    log::debug!("Moving cursor left");
+                    self.move_cursor(-1, 0)
+                }
+                "ArrowRight" | "l" => {
+                    log::debug!("Moving cursor right");
+                    self.move_cursor(1, 0)
+                }
+
+                // Tab navigation
+                "Tab" => self.handle_tab_navigation(event.shift, current_cursor),
+
+                // Cell operations
+                "Delete" | "Backspace" => self.handle_delete_cell(current_cursor),
+
+                // Escape does nothing in navigation mode
+                "Escape" => Ok(()),
+
+                _ => {
+                    // Check if this is a single printable character that should start editing
+                    if event.key.len() == 1 && !event.ctrl && !event.alt && !event.meta {
+                        log::debug!("Starting edit mode with typed character: '{}'", event.key);
+                        use super::mode::{CellEditMode, EditorMode};
+                        self.controller.set_mode(EditorMode::CellEditing {
+                            value: event.key.clone(),
+                            cursor_pos: 1,
+                            mode: CellEditMode::Insert(InsertMode::I),
+                            visual_anchor: None,
+                        });
+                        Ok(())
+                    } else {
+                        log::debug!("Unhandled navigation key: '{}'", event.key);
+                        Ok(())
+                    }
                 }
             }
         }
@@ -243,105 +214,15 @@ impl<'a> InputHandler<'a> {
     }
 
     fn handle_editing_key(&mut self, event: KeyboardEvent) -> Result<()> {
-        use super::mode::{CellEditMode, EditorMode};
-
-        // Handle keys based on the current editing mode
-        match self.controller.get_mode().clone() {
-            EditorMode::CellEditing {
-                value,
-                cursor_pos,
-                mode,
-                visual_anchor,
-            } => {
-                match mode {
-                    CellEditMode::Insert(_) => {
-                        // Handle typing in insert mode
-                        if event.key == "Escape" {
-                            // Exit to normal mode
-                            self.controller.set_mode(EditorMode::CellEditing {
-                                value,
-                                cursor_pos,
-                                mode: CellEditMode::Normal,
-                                visual_anchor,
-                            });
-                        } else if event.key.len() == 1 {
-                            // Type character
-                            let mut new_value = value.clone();
-                            new_value.insert(cursor_pos, event.key.chars().next().unwrap());
-                            self.controller.set_mode(EditorMode::CellEditing {
-                                value: new_value,
-                                cursor_pos: cursor_pos + 1,
-                                mode,
-                                visual_anchor,
-                            });
-                        } else if event.key == "Enter" {
-                            // Submit the edit
-                            self.controller.complete_editing()?;
-                        }
-                    }
-                    CellEditMode::Normal => {
-                        // Handle normal mode keys
-                        if event.key == "Escape" {
-                            // Exit to navigation
-                            self.controller.cancel_editing()?;
-                        } else if event.key == "i" {
-                            // Enter insert mode
-                            self.controller.set_mode(EditorMode::CellEditing {
-                                value,
-                                cursor_pos,
-                                mode: CellEditMode::Insert(InsertMode::I),
-                                visual_anchor,
-                            });
-                        }
-                    }
-                    CellEditMode::Visual(_) => {
-                        // Handle visual mode keys (not implemented yet)
-                        if event.key == "Escape" {
-                            // Exit to normal mode
-                            self.controller.set_mode(EditorMode::CellEditing {
-                                value,
-                                cursor_pos,
-                                mode: CellEditMode::Normal,
-                                visual_anchor: None,
-                            });
-                        }
-                    }
-                }
-                Ok(())
-            }
-            EditorMode::Editing {
-                value,
-                cursor_pos,
-                insert_mode,
-            } => {
-                // Legacy editing mode handling
-                if event.key == "Escape" {
-                    if insert_mode.is_some() {
-                        // Exit to normal mode (convert to CellEditing)
-                        self.controller.set_mode(EditorMode::CellEditing {
-                            value,
-                            cursor_pos,
-                            mode: CellEditMode::Normal,
-                            visual_anchor: None,
-                        });
-                    } else {
-                        // Cancel editing
-                        self.controller.cancel_editing()?;
-                    }
-                } else if event.key.len() == 1 && insert_mode.is_some() {
-                    // Type character
-                    let mut new_value = value.clone();
-                    new_value.insert(cursor_pos, event.key.chars().next().unwrap());
-                    self.controller.set_mode(EditorMode::Editing {
-                        value: new_value,
-                        cursor_pos: cursor_pos + 1,
-                        insert_mode,
-                    });
-                }
-                Ok(())
-            }
-            _ => Ok(()),
-        }
+        // Delegate all editing keys to the controller's vim handler
+        self.controller.dispatch_action(Action::HandleEditingKey {
+            key: event.key,
+            shift: event.shift,
+            ctrl: event.ctrl,
+            alt: event.alt,
+            selection_start: None,
+            selection_end: None,
+        })
     }
 
     fn handle_command_key(&mut self, event: KeyboardEvent) -> Result<()> {
@@ -438,6 +319,55 @@ impl<'a> InputHandler<'a> {
                     Ok(())
                 }
             }
+
+            _ => Ok(()),
+        }
+    }
+
+    fn handle_navigation_vim_key(&mut self, key: &str) -> Result<()> {
+        let current_cursor = self.controller.cursor();
+
+        match key {
+            // Command mode
+            ":" => self.controller.dispatch_action(Action::EnterCommandMode),
+
+            // Visual mode
+            "v" => {
+                use super::mode::EditorMode;
+                use crate::state::VisualMode;
+
+                // Enter visual mode with current cursor as anchor
+                self.controller.set_mode(EditorMode::Visual {
+                    mode: VisualMode::Character,
+                    anchor: current_cursor,
+                });
+
+                // Set initial selection to just the current cell
+                self.controller.set_selection(Some(Selection {
+                    selection_type: SelectionType::Cell {
+                        address: current_cursor,
+                    },
+                    anchor: Some(current_cursor),
+                }));
+
+                // Also update state machine for compatibility
+                self.controller
+                    .dispatch_action(Action::EnterSpreadsheetVisualMode {
+                        visual_mode: VisualMode::Character,
+                        selection: Selection {
+                            selection_type: SelectionType::Cell {
+                                address: current_cursor,
+                            },
+                            anchor: Some(current_cursor),
+                        },
+                    })
+            }
+
+            // Navigation
+            "h" => self.move_cursor(-1, 0),
+            "j" => self.move_cursor(0, 1),
+            "k" => self.move_cursor(0, -1),
+            "l" => self.move_cursor(1, 0),
 
             _ => Ok(()),
         }

@@ -243,6 +243,113 @@ impl SpreadsheetController {
             return Ok(());
         }
 
+        // Handle HandleEditingKey action - process vim-style key handling
+        if let Action::HandleEditingKey {
+            key,
+            shift,
+            ctrl,
+            alt,
+            selection_start,
+            selection_end,
+        } = &action
+        {
+            use crate::controller::vim_handler::{VimHandler, VimKeyResult};
+
+            if let Some(result) = VimHandler::handle_editing_key(
+                &self.mode,
+                key,
+                *shift,
+                *ctrl,
+                *alt,
+                *selection_start,
+                *selection_end,
+            )? {
+                match result {
+                    VimKeyResult::ChangeMode(new_mode) => {
+                        self.mode = new_mode;
+                        self.event_dispatcher
+                            .dispatch(&SpreadsheetEvent::StateChanged);
+                    }
+                    VimKeyResult::UpdateText { value, cursor_pos } => {
+                        // Update the mode with new text
+                        match &self.mode {
+                            EditorMode::Editing { insert_mode, .. } => {
+                                self.mode = EditorMode::Editing {
+                                    value: value.clone(),
+                                    cursor_pos,
+                                    insert_mode: *insert_mode,
+                                };
+                            }
+                            EditorMode::CellEditing {
+                                mode,
+                                visual_anchor,
+                                ..
+                            } => {
+                                self.mode = EditorMode::CellEditing {
+                                    value: value.clone(),
+                                    cursor_pos,
+                                    mode: mode.clone(),
+                                    visual_anchor: *visual_anchor,
+                                };
+                            }
+                            _ => {}
+                        }
+                        // Update formula bar to match
+                        self.formula_bar = value.clone();
+                        self.event_dispatcher
+                            .dispatch(&SpreadsheetEvent::FormulaBarUpdated { value });
+                    }
+                    VimKeyResult::UpdateCursor { cursor_pos } => {
+                        // Just update cursor position
+                        match &self.mode {
+                            EditorMode::Editing {
+                                value, insert_mode, ..
+                            } => {
+                                self.mode = EditorMode::Editing {
+                                    value: value.clone(),
+                                    cursor_pos,
+                                    insert_mode: *insert_mode,
+                                };
+                            }
+                            EditorMode::CellEditing {
+                                value,
+                                mode,
+                                visual_anchor,
+                                ..
+                            } => {
+                                self.mode = EditorMode::CellEditing {
+                                    value: value.clone(),
+                                    cursor_pos,
+                                    mode: mode.clone(),
+                                    visual_anchor: *visual_anchor,
+                                };
+                            }
+                            _ => {}
+                        }
+                    }
+                    VimKeyResult::UpdateTextAndMode {
+                        value,
+                        cursor_pos: _,
+                        mode,
+                    } => {
+                        self.mode = mode;
+                        self.formula_bar = value.clone();
+                        self.event_dispatcher
+                            .dispatch(&SpreadsheetEvent::FormulaBarUpdated { value });
+                        self.event_dispatcher
+                            .dispatch(&SpreadsheetEvent::StateChanged);
+                    }
+                    VimKeyResult::CompleteEdit => {
+                        self.complete_editing()?;
+                    }
+                    VimKeyResult::CancelEdit => {
+                        self.cancel_editing()?;
+                    }
+                }
+            }
+            return Ok(());
+        }
+
         // Handle UpdateEditingValue action - update editing mode with new value
         if let Action::UpdateEditingValue {
             value,

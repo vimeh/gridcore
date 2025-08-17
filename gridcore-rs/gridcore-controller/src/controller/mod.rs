@@ -5,6 +5,7 @@ pub mod input_handler;
 pub mod mode;
 pub mod spreadsheet;
 pub mod viewport;
+pub mod vim_handler;
 
 // New modular organization
 pub mod event_handling;
