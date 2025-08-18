@@ -15,12 +15,25 @@ pub fn GridKeyboardHandler(children: Children) -> impl IntoView {
     Effect::new(move |_| {
         if let Some(wrapper) = wrapper_ref.get() {
             let element: &web_sys::HtmlDivElement = wrapper.as_ref();
-            let _ = element.focus();
-            debug_log!("Grid keyboard handler auto-focused on mount");
+            
+            // Use setTimeout with a small delay to ensure all components are mounted
+            // This is necessary when the perf feature is enabled and MetricsToggle is rendered
+            let window = web_sys::window().expect("window should exist");
+            let element_clone = element.clone();
+            let focus_closure = wasm_bindgen::closure::Closure::once(move || {
+                let _ = element_clone.focus();
+                debug_log!("Grid keyboard handler focused after timeout");
+            });
+            
+            // Use a 10ms delay to ensure all components are fully mounted
+            window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                focus_closure.as_ref().unchecked_ref(),
+                10
+            ).ok();
+            focus_closure.forget();
 
             render_generation.update(|g| *g += 1);
 
-            let window = web_sys::window().expect("window should exist");
             let render_gen_clone = render_generation;
             let closure = wasm_bindgen::closure::Closure::once(move || {
                 render_gen_clone.update(|g| *g += 1);

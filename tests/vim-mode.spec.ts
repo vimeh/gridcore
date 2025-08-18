@@ -5,7 +5,7 @@ test.describe("Vim Mode", () => {
     await page.goto("/");
     // Wait for the app to load
     await page.waitForSelector("canvas");
-  });
+    await page.click("canvas");  });
 
   test("should transition from navigation to edit mode with 'i' key", async ({
     page,

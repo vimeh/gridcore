@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { skipIfNoMetrics } from "./metrics-test-utils";
 
 test.describe("Metrics Display", () => {
   test.beforeEach(async ({ page }) => {
@@ -8,7 +7,6 @@ test.describe("Metrics Display", () => {
   });
 
   test.skip("should toggle metrics display", async ({ page }) => {
-    await skipIfNoMetrics(page);
     // Initially metrics should not be visible
     await expect(page.locator(".metrics-overlay")).not.toBeVisible();
 

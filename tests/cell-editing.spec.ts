@@ -4,6 +4,10 @@ test.describe("Cell Editing", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("canvas");
+    // Wait a bit for focus to be set (needed when perf feature is enabled)
+    await page.waitForTimeout(50);
+    // Ensure grid has focus by clicking on it
+    await page.click("canvas");
   });
 
   test("should edit cell with Enter key", async ({ page }) => {

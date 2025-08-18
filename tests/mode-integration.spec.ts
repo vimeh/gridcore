@@ -23,7 +23,7 @@ test.describe("Mode Integration", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("canvas");
-
+    await page.click("canvas");
     // Ensure we start in a clean state
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");

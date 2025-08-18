@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("debug insert mode", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector("canvas");
-
+    await page.click("canvas");
   // Navigate to B1
   await page.keyboard.press("l");
   await page.waitForTimeout(100);

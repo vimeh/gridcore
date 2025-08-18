@@ -4,7 +4,7 @@ test.describe("Vim Mode - Text Saving Fixes", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("canvas");
-  });
+    await page.click("canvas");  });
 
   test("should save text when pressing Escape twice", async ({ page }) => {
     // Navigate to a cell and start editing with Enter (which clears content)
@@ -58,7 +58,7 @@ test.describe("Vim Mode - Cursor Positioning Fixes", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("canvas");
-
+    await page.click("canvas");
     // Put some text in a cell A1
     await page.keyboard.press("Enter");
     await page.keyboard.type("Hello World");
