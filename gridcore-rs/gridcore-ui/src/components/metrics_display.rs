@@ -176,19 +176,15 @@ pub fn MetricsToggle(
 
                 // Refocus the grid container after toggling metrics
                 // This ensures keyboard navigation continues to work
-                if let Some(window) = web_sys::window() {
-                    if let Some(document) = window.document() {
+                if let Some(window) = web_sys::window()
+                    && let Some(document) = window.document() {
                         // Find the grid-keyboard-handler element which has the tabindex
-                        if let Ok(grid_elements) = document.query_selector_all(".grid-keyboard-handler") {
-                            if grid_elements.length() > 0 {
-                                if let Some(element) = grid_elements.get(0) {
-                                    if let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>() {
-                                        let _ = html_element.focus();
-                                    }
-                                }
-                            }
+                        if let Ok(grid_elements) = document.query_selector_all(".grid-keyboard-handler")
+                            && grid_elements.length() > 0
+                            && let Some(element) = grid_elements.get(0)
+                            && let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>() {
+                                let _ = html_element.focus();
                         }
-                    }
                 }
             }
         >

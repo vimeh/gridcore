@@ -9,6 +9,12 @@ use metrics::{Key, KeyName, Metadata, Recorder, SetRecorderError, SharedString, 
 /// A no-op metrics recorder that does nothing with metrics
 pub struct NoOpRecorder;
 
+impl Default for NoOpRecorder {
+    fn default() -> Self {
+        Self
+    }
+}
+
 impl NoOpRecorder {
     pub fn new() -> Self {
         Self

@@ -97,15 +97,14 @@ impl MetricsHistory {
 }
 
 /// Simple metrics registry for WASM environment
+#[derive(Default)]
 pub struct MetricsRegistry {
     counters: HashMap<String, Rc<AtomicU64>>,
 }
 
 impl MetricsRegistry {
     pub fn new() -> Self {
-        Self {
-            counters: HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn get_or_create_counter(&mut self, key: &str) -> Rc<AtomicU64> {
@@ -138,8 +137,8 @@ pub struct MetricsCollector {
     prev_values: Rc<RefCell<HashMap<String, u64>>>,
 }
 
-impl MetricsCollector {
-    pub fn new() -> Self {
+impl Default for MetricsCollector {
+    fn default() -> Self {
         let window = web_sys::window().expect("Window should exist");
         let performance = window.performance().expect("Performance API should exist");
 
@@ -155,6 +154,12 @@ impl MetricsCollector {
             cursor_move_counter: None,
             prev_values: Rc::new(RefCell::new(HashMap::new())),
         }
+    }
+}
+
+impl MetricsCollector {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Initialize cached handles after metrics system is set up
@@ -250,12 +255,10 @@ impl MetricsCollector {
 
     fn get_memory_usage(&self) -> f64 {
         // Try to get memory usage from performance.memory if available
-        if let Ok(memory) = js_sys::Reflect::get(&self.performance, &"memory".into()) {
-            if let Ok(used_js_heap_size) = js_sys::Reflect::get(&memory, &"usedJSHeapSize".into()) {
-                if let Some(bytes) = used_js_heap_size.as_f64() {
-                    return bytes / (1024.0 * 1024.0); // Convert to MB
-                }
-            }
+        if let Ok(memory) = js_sys::Reflect::get(&self.performance, &"memory".into())
+            && let Ok(used_js_heap_size) = js_sys::Reflect::get(&memory, &"usedJSHeapSize".into())
+            && let Some(bytes) = used_js_heap_size.as_f64() {
+                return bytes / (1024.0 * 1024.0); // Convert to MB
         }
         0.0
     }

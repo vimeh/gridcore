@@ -32,7 +32,7 @@ pub use gridcore_core::perf::{CELL_READS, CELL_WRITES, FORMULA_EVALUATIONS};
 // Global metrics collector instance - using thread_local for WASM compatibility
 #[cfg(feature = "perf")]
 thread_local! {
-    static METRICS_COLLECTOR: OnceCell<Rc<RefCell<crate::metrics_collector::MetricsCollector>>> = OnceCell::new();
+    static METRICS_COLLECTOR: OnceCell<Rc<RefCell<crate::metrics_collector::MetricsCollector>>> = const { OnceCell::new() };
 }
 
 /// Get the global metrics collector
