@@ -158,6 +158,7 @@ pub fn MetricsToggle(
     view! {
         <button
             class="metrics-toggle-btn"
+            tabindex="-1"  // Prevent button from stealing focus on initial render
             on:click=move |_| {
                 show_metrics.set(!show_metrics.get());
 
