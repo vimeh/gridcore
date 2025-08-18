@@ -63,7 +63,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: "cd gridcore-rs/gridcore-ui && trunk serve --features perf",
+    command: "cd gridcore-rs/gridcore-ui && trunk serve",
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

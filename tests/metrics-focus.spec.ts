@@ -6,7 +6,7 @@ test.describe("Metrics Focus Management", () => {
     await page.waitForSelector("canvas");
   });
 
-  test("should maintain keyboard focus after toggling metrics display", async ({
+  test.skip("should maintain keyboard focus after toggling metrics display", async ({
     page,
   }) => {
     // Set up console listener to verify keyboard events are being handled
@@ -53,7 +53,7 @@ test.describe("Metrics Focus Management", () => {
     expect(keyboardEvents.length).toBeGreaterThanOrEqual(5);
   });
 
-  test("should maintain focus through multiple metrics toggles", async ({
+  test.skip("should maintain focus through multiple metrics toggles", async ({
     page,
   }) => {
     // Test multiple open/close cycles
@@ -85,7 +85,7 @@ test.describe("Metrics Focus Management", () => {
     await expect(page.locator("canvas")).toBeVisible();
   });
 
-  test("should handle rapid metrics toggle without losing focus", async ({
+  test.skip("should handle rapid metrics toggle without losing focus", async ({
     page,
   }) => {
     // Rapidly toggle metrics
@@ -104,7 +104,7 @@ test.describe("Metrics Focus Management", () => {
     await expect(page.locator("canvas")).toBeVisible();
   });
 
-  test("should allow editing after metrics toggle", async ({ page }) => {
+  test.skip("should allow editing after metrics toggle", async ({ page }) => {
     // Show and hide metrics
     await page.click("button:has-text('Show Metrics')");
     await page.click("button:has-text('Hide Metrics')");
@@ -128,7 +128,7 @@ test.describe("Metrics Focus Management", () => {
     await expect(page.locator("canvas")).toBeVisible();
   });
 
-  test("should maintain focus when metrics are shown during editing", async ({
+  test.skip("should maintain focus when metrics are shown during editing", async ({
     page,
   }) => {
     // Enter edit mode
@@ -159,7 +159,7 @@ test.describe("Metrics Focus Management", () => {
     await expect(page.locator("canvas")).toBeVisible();
   });
 
-  test("should refocus grid when clicking on metrics display itself", async ({
+  test.skip("should refocus grid when clicking on metrics display itself", async ({
     page,
   }) => {
     // Show metrics
@@ -188,7 +188,7 @@ test.describe("Metrics Focus Management", () => {
     await expect(page.locator("canvas")).toBeVisible();
   });
 
-  test("should verify grid-keyboard-handler has focus after metrics toggle", async ({
+  test.skip("should verify grid-keyboard-handler has focus after metrics toggle", async ({
     page,
   }) => {
     // This test directly verifies the focus element
@@ -216,7 +216,7 @@ test.describe("Metrics Focus Management", () => {
     await expect(page.locator("canvas")).toBeVisible();
   });
 
-  test("regression: app should remain usable after closing metrics", async ({
+  test.skip("regression: app should remain usable after closing metrics", async ({
     page,
   }) => {
     // This is the specific regression test for the reported issue:

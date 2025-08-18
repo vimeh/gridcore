@@ -155,8 +155,20 @@ pub fn MetricsToggle(
     /// Signal controlling metrics visibility
     show_metrics: RwSignal<bool>,
 ) -> impl IntoView {
+    // Use Effect to set button properties after mount to avoid any initial focus issues
+    let button_ref = NodeRef::<leptos::html::Button>::new();
+    
+    Effect::new(move |_| {
+        if let Some(button) = button_ref.get() {
+            let element: &web_sys::HtmlElement = button.as_ref();
+            // Ensure button cannot receive focus
+            element.set_tab_index(-1);
+        }
+    });
+    
     view! {
         <button
+            node_ref=button_ref
             class="metrics-toggle-btn"
             tabindex="-1"  // Prevent button from stealing focus on initial render
             on:click=move |_| {
