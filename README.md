@@ -2,6 +2,22 @@
 
 A high-performance spreadsheet application built entirely in Rust, compiled to WebAssembly for browser execution.
 
+## Features
+
+### Core Capabilities
+- **Formula Engine**: Full formula parser and evaluator with Excel-compatible functions
+- **Dependency Tracking**: Automatic cell dependency graph and recalculation
+- **Undo/Redo**: Command pattern-based undo/redo system
+- **Fill Patterns**: Smart fill detection for dates, numbers, and text patterns
+
+### UI Features
+- **Canvas Rendering**: High-performance canvas-based grid rendering
+- **Vim Mode**: Complete vim keybindings for navigation and editing
+- **Cell Editing**: Inline editing with formula autocomplete
+- **Multiple Sheets**: Tab-based sheet management
+- **Resizable Columns/Rows**: Mouse-based column and row resizing
+- **Selection Stats**: Real-time statistics for selected cells
+
 ## Architecture
 
 GridCore follows a clean three-layer architecture with clear separation of concerns:
@@ -83,82 +99,3 @@ bun test:e2e:ui
 # Debug tests
 bun test:e2e:debug
 ```
-
-## Features
-
-### Core Capabilities
-- **Formula Engine**: Full formula parser and evaluator with Excel-compatible functions
-- **Dependency Tracking**: Automatic cell dependency graph and recalculation
-- **Undo/Redo**: Command pattern-based undo/redo system
-- **Fill Patterns**: Smart fill detection for dates, numbers, and text patterns
-
-### UI Features
-- **Canvas Rendering**: High-performance canvas-based grid rendering
-- **Vim Mode**: Complete vim keybindings for navigation and editing
-- **Cell Editing**: Inline editing with formula autocomplete
-- **Multiple Sheets**: Tab-based sheet management
-- **Resizable Columns/Rows**: Mouse-based column and row resizing
-- **Selection Stats**: Real-time statistics for selected cells
-
-## Architecture Benefits
-
-The clean three-layer architecture provides:
-
-- **Separation of Concerns**: Business logic in controller, rendering in UI
-- **Reusability**: Controller can support multiple UI implementations
-- **Testability**: Business logic tested without UI dependencies
-- **Maintainability**: Each layer has clear, focused responsibilities
-- **Performance**: Optimized data flow with minimal cross-boundary calls
-
-## Technology Stack
-
-- **Rust**: Core language for all components
-- **Leptos**: Reactive web framework for the UI
-- **WebAssembly**: Compilation target for browser execution
-- **Web-sys**: Direct DOM and Canvas API access
-- **Trunk**: Build tool and development server
-- **Playwright**: End-to-end testing framework
-
-## Performance
-
-The Rust implementation provides significant performance benefits:
-- Zero-cost abstractions and compile-time optimizations
-- Direct WASM compilation without JavaScript overhead
-- Efficient memory management without garbage collection
-- Optimized WASM bundle with brotli compression support
-
-## Current Status
-
-✅ **Completed**
-- Full Rust migration from TypeScript
-- Core spreadsheet engine with formula support
-- Leptos UI with canvas rendering
-- Vim mode implementation
-- Cell editing with autocomplete
-- Column/row resizing
-- Multiple sheet support
-- E2E test suite
-- **Architecture refactoring**: Clean separation between UI rendering and business logic
-- **ViewportManager**: Centralized viewport state management in controller
-- **ResizeManager**: Dedicated resize operations management in controller
-
-🚧 **In Progress**
-- Performance optimizations
-- Additional formula functions
-- Extended vim mode features
-- Fixing reference toggle tests
-
-## Contributing
-
-GridCore is built with Rust and modern web technologies. Key areas for contribution:
-
-1. **Formula Functions**: Implement additional Excel-compatible functions
-2. **Performance**: Optimize calculation engine and rendering
-3. **Features**: Add charting, data validation, or import/export capabilities
-4. **Testing**: Expand test coverage for edge cases
-
-See individual README files in each crate for specific development instructions.
-
-## License
-
-[License information to be added]
