@@ -314,29 +314,68 @@ impl ViewportManager {
     }
 
     pub fn get_cell_at_position(&self, x: f64, y: f64) -> Option<CellAddress> {
-        let mut current_x = 0.0;
-        let mut col = None;
-
-        for c in 0..self.config.total_cols {
-            let width = self.get_column_width(c);
-            if x >= current_x && x < current_x + width {
-                col = Some(c);
-                break;
-            }
-            current_x += width;
+        // Early return if coordinates are negative
+        if x < 0.0 || y < 0.0 {
+            return None;
         }
 
-        let mut current_y = 0.0;
-        let mut row = None;
-
-        for r in 0..self.config.total_rows {
-            let height = self.get_row_height(r);
-            if y >= current_y && y < current_y + height {
-                row = Some(r);
-                break;
+        // For columns with uniform width, use direct calculation
+        let col = if self.column_widths.is_empty() {
+            // All columns have default width - direct calculation
+            let col_index = (x / self.config.default_cell_width) as usize;
+            if col_index < self.config.total_cols {
+                Some(col_index)
+            } else {
+                None
             }
-            current_y += height;
-        }
+        } else {
+            // Mixed widths - need to iterate but with early termination
+            let mut current_x = 0.0;
+            let mut col = None;
+            
+            for c in 0..self.config.total_cols {
+                let width = self.get_column_width(c);
+                if x >= current_x && x < current_x + width {
+                    col = Some(c);
+                    break;
+                }
+                current_x += width;
+                // Early termination if we've passed the target x
+                if current_x > x + width {
+                    break;
+                }
+            }
+            col
+        };
+
+        // For rows with uniform height, use direct calculation  
+        let row = if self.row_heights.is_empty() {
+            // All rows have default height - direct calculation
+            let row_index = (y / self.config.default_cell_height) as usize;
+            if row_index < self.config.total_rows {
+                Some(row_index)
+            } else {
+                None
+            }
+        } else {
+            // Mixed heights - need to iterate but with early termination
+            let mut current_y = 0.0;
+            let mut row = None;
+            
+            for r in 0..self.config.total_rows {
+                let height = self.get_row_height(r);
+                if y >= current_y && y < current_y + height {
+                    row = Some(r);
+                    break;
+                }
+                current_y += height;
+                // Early termination if we've passed the target y
+                if current_y > y + height {
+                    break;
+                }
+            }
+            row
+        };
 
         match (row, col) {
             (Some(r), Some(c)) => Some(CellAddress::new(c as u32, r as u32)),

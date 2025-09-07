@@ -88,25 +88,30 @@ pub fn GridEventHandler(resize_handler: ResizeHandler, children: Children) -> im
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
 
-        if resize_handler_move.is_resizing() {
-            resize_handler_move.handle_resize(&ev);
-            // Render will update automatically via state changes
-        } else {
-            let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
-            let is_col_header = y < config.column_header_height;
-            let is_row_header = x < config.row_header_width;
-
-            if is_col_header || is_row_header {
-                let cursor = resize_handler_move.get_cursor_style(
-                    if is_col_header { x } else { 0.0 },
-                    if is_row_header { y } else { 0.0 },
-                    is_col_header,
-                );
-                set_resize_hover_state.set(cursor);
+        controller_stored.with_value(|c| {
+            let mut controller = c.borrow_mut();
+            
+            if resize_handler_move.is_resizing(&controller) {
+                resize_handler_move.handle_resize(&ev, &mut controller);
+                // Render will update automatically via state changes
             } else {
-                set_resize_hover_state.set("cell");
+                let config = controller.get_config().clone();
+                let is_col_header = y < config.column_header_height;
+                let is_row_header = x < config.row_header_width;
+
+                if is_col_header || is_row_header {
+                    let cursor = resize_handler_move.get_cursor_style(
+                        if is_col_header { x } else { 0.0 },
+                        if is_row_header { y } else { 0.0 },
+                        is_col_header,
+                        &controller,
+                    );
+                    set_resize_hover_state.set(cursor);
+                } else {
+                    set_resize_hover_state.set("cell");
+                }
             }
-        }
+        });
     };
 
     // Handle mouse down
@@ -114,29 +119,37 @@ pub fn GridEventHandler(resize_handler: ResizeHandler, children: Children) -> im
     let on_mouse_down = move |ev: MouseEvent| {
         let x = ev.offset_x() as f64;
         let y = ev.offset_y() as f64;
-        let config = controller_stored.with_value(|c| c.borrow().get_config().clone());
-        let is_col_header = y < config.column_header_height;
-        let is_row_header = x < config.row_header_width;
+        
+        controller_stored.with_value(|c| {
+            let mut controller = c.borrow_mut();
+            let config = controller.get_config().clone();
+            let is_col_header = y < config.column_header_height;
+            let is_row_header = x < config.row_header_width;
 
-        if (is_col_header || is_row_header)
-            && let Some((resize_type, index)) = resize_handler_down.check_resize_hover(
-                if is_col_header { x } else { 0.0 },
-                if is_row_header { y } else { 0.0 },
-                is_col_header,
-            )
-        {
-            ev.prevent_default();
-            resize_handler_down.start_resize(&ev, resize_type, index);
-        }
+            if (is_col_header || is_row_header)
+                && let Some((resize_type, index)) = resize_handler_down.check_resize_hover(
+                    if is_col_header { x } else { 0.0 },
+                    if is_row_header { y } else { 0.0 },
+                    is_col_header,
+                    &controller,
+                )
+            {
+                ev.prevent_default();
+                resize_handler_down.start_resize(&ev, resize_type, index, &mut controller);
+            }
+        });
     };
 
     // Handle mouse up
     let resize_handler_up = resize_handler.clone();
     let on_mouse_up = move |_ev: MouseEvent| {
-        if resize_handler_up.is_resizing() {
-            resize_handler_up.end_resize();
-            // Render will update automatically via state changes
-        }
+        controller_stored.with_value(|c| {
+            let mut controller = c.borrow_mut();
+            if resize_handler_up.is_resizing(&controller) {
+                resize_handler_up.end_resize(&mut controller);
+                // Render will update automatically via state changes
+            }
+        });
     };
 
     // Handle wheel
